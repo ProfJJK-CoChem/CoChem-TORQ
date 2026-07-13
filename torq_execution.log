@@ -1,0 +1,48 @@
+2026-07-11 20:54:59,050 - INFO: --- NEW EXECUTION LAUNCHED ---
+2026-07-11 20:55:11,240 - ERROR: OET install.py failed:
+/usr/bin/bash: /home/joshua/anaconda3/lib/libtinfo.so.6: no version information available (required by /usr/bin/bash)
+
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m23.0.1[0m[39;49m -> [0m[32;49m26.1.2[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpython -m pip install --upgrade pip[0m
+[31mERROR: Package 'oet' requires a different Python: 3.10.20 not in '>=3.11'[0m[31m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m23.0.1[0m[39;49m -> [0m[32;49m26.1.2[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpython -m pip install --upgrade pip[0m
+Traceback (most recent call last):
+  File "/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/install.py", line 255, in <module>
+    main()
+  File "/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/install.py", line 245, in main
+    pip_install_target(args.venv_dir, args.script_dir)
+  File "/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/install.py", line 104, in pip_install_target
+    subprocess.check_call(
+  File "/home/joshua/anaconda3/envs/TORQ/lib/python3.10/subprocess.py", line 369, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '[PosixPath('/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/OET_VENV/bin/pip'), 'install', '-e.', '--config-settings', 'editable_mode=compat']' returned non-zero exit status 1.
+ERROR conda.cli.main_run:execute(142): `conda run python install.py --venv-dir /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/OET_VENV --script-dir /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/bin` failed. (See above for error)
+
+2026-07-11 20:57:36,393 - INFO: --- NEW EXECUTION LAUNCHED ---
+2026-07-11 20:57:51,187 - ERROR: OET install.py failed:
+/usr/bin/bash: /home/joshua/anaconda3/lib/libtinfo.so.6: no version information available (required by /usr/bin/bash)
+
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m23.0.1[0m[39;49m -> [0m[32;49m26.1.2[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpython -m pip install --upgrade pip[0m
+[31mERROR: Package 'oet' requires a different Python: 3.10.20 not in '>=3.11'[0m[31m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m23.0.1[0m[39;49m -> [0m[32;49m26.1.2[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpython -m pip install --upgrade pip[0m
+Traceback (most recent call last):
+  File "/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/install.py", line 255, in <module>
+    main()
+  File "/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/install.py", line 245, in main
+    pip_install_target(args.venv_dir, args.script_dir)
+  File "/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/install.py", line 104, in pip_install_target
+    subprocess.check_call(
+  File "/home/joshua/anaconda3/envs/TORQ/lib/python3.10/subprocess.py", line 369, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '[PosixPath('/media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/OET_VENV/bin/pip'), 'install', '-e.', '--config-settings', 'editable_mode=compat']' returned non-zero exit status 1.
+ERROR conda.cli.main_run:execute(142): `conda run python install.py --venv-dir /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/OET_VENV --script-dir /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/bin` failed. (See above for error)
+
+2026-07-11 21:03:16,945 - ERROR: OET Import Test Error:
+oet_mace binary not found in either /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/bin or /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/OET_VENV/bin. The OET installation did not produce the expected executable.
+2026-07-11 21:03:16,945 - ERROR: HARD FAIL [ORCA External Tools]: VENV Python Import Error:
+oet_mace binary not found in either /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/bin or /media/joshua/Storage/_CoChem/CoChem-TORQ/orca-external-tools/OET_VENV/bin. The OET installation did not produce the expected executable.

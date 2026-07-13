@@ -1,0 +1,9 @@
+{
+    "temperature": 298.15,
+    "pressure": 1.0,
+    "farir_unit": "cm\u207b\u00b9",
+    "mw_unit": "MHz",
+    "rotor_type": "Asymmetric Top",
+    "isotopes": "None",
+    "compute_required": true
+}
