@@ -34,7 +34,8 @@ def print_status(msg: str, status: str = "info") -> None:
 def setup_logging() -> logging.Logger:
     logger = logging.getLogger("CoChem")
     logger.setLevel(logging.DEBUG)
-    handler = RotatingFileHandler('cochem_execution.log', maxBytes=5*1024*1024, backupCount=5)
+    os.makedirs("Logs", exist_ok=True)
+    handler = RotatingFileHandler('Logs/cochem_execution.log', maxBytes=5*1024*1024, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -161,10 +162,11 @@ def main() -> None:
         "network_stable": net_health
     }
     
-    with open("cochem_state_p1.json", "w") as f:
+    os.makedirs("cochem_setup", exist_ok=True)
+    with open("cochem_setup/cochem_state_p1.json", "w") as f:
         json.dump(state, f, indent=4)
         
-    print(f"\n{Colors.OKGREEN}{Colors.BOLD}🏁 Phase 1 Complete. State cached in cochem_state_p1.json.{Colors.ENDC}")
+    print(f"\n{Colors.OKGREEN}{Colors.BOLD}🏁 Phase 1 Complete. State cached in cochem_setup/cochem_state_p1.json.{Colors.ENDC}")
 
 if __name__ == "__main__":
     main()
