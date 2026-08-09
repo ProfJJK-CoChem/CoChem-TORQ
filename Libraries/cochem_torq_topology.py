@@ -18,19 +18,20 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ] %(message)s")
 logger = logging.getLogger("TorqTopology")
 
-# Standard Covalent Radii (Å) for graph connectivity summation
-COVALENT_RADII = {
-    "H": 0.31, "C": 0.76, "N": 0.71, "O": 0.66, "F": 0.57,
-    "P": 1.07, "S": 1.05, "Cl": 1.02, "Br": 1.20, "I": 1.39
+# Pyykkö Covalent Radii (Å) for single, double, triple bonds
+PYYKKO_SINGLE_RADII = {
+    "H": 0.32, "He": 0.46, "Li": 1.33, "Be": 1.02, "B": 0.85, "C": 0.75, "N": 0.71, "O": 0.63, "F": 0.64,
+    "Ne": 0.67, "Na": 1.55, "Mg": 1.39, "Al": 1.26, "Si": 1.16, "P": 1.11, "S": 1.03, "Cl": 0.99, "Ar": 0.96,
+    "K": 1.96, "Ca": 1.71, "Sc": 1.48, "Ti": 1.36, "V": 1.34, "Cr": 1.22, "Mn": 1.19, "Fe": 1.16, "Co": 1.11,
+    "Ni": 1.10, "Cu": 1.12, "Zn": 1.18, "Ga": 1.24, "Ge": 1.21, "As": 1.21, "Se": 1.16, "Br": 1.14, "Kr": 1.17,
+    "Rb": 2.10, "Sr": 1.85, "Y": 1.63, "Zr": 1.48, "Nb": 1.37, "Mo": 1.36, "Tc": 1.26, "Ru": 1.26, "Rh": 1.25,
+    "Pd": 1.25, "Ag": 1.28, "Cd": 1.36, "In": 1.42, "Sn": 1.40, "Sb": 1.40, "Te": 1.36, "I": 1.33, "Xe": 1.31
 }
 
 class TorqTopology:
     def __init__(self, symbols, coordinates, is_complex=False):
         """
         Initialize the structural topology engine.
-        :param symbols: List of atomic symbols (e.g., ['C', 'H', 'H', ...])
-        :param coordinates: Nx3 numpy array of Cartesian coordinates
-        :param is_complex: Boolean flag indicating if this is a vdW complex (triggers BSSE)
         """
         self.symbols = symbols
         self.coordinates = np.array(coordinates, dtype=np.float64)
@@ -42,27 +43,30 @@ class TorqTopology:
 
     def _build_covalent_graph(self, tolerance_multiplier=1.15):
         """
-        Alternative 1 (Covalent Radii Summation): 
-        Builds the molecular graph by computing the pairwise distance matrix and 
-        comparing it against the sum of covalent radii with a breathing tolerance.
+        Builds the molecular graph using Pyykkö covalent radii and bond-order tolerances.
         """
         dist_matrix = cdist(self.coordinates, self.coordinates)
-        radii = np.array([COVALENT_RADII.get(sym, 1.50) for sym in self.symbols])
+        radii = np.array([PYYKKO_SINGLE_RADII.get(sym, 1.40) for sym in self.symbols])
         
-        # Matrix of summed radii (r_i + r_j) * 1.15
         summed_radii_matrix = (radii[:, None] + radii[None, :]) * tolerance_multiplier
         
-        # Add nodes
         for i, sym in enumerate(self.symbols):
             self.graph.add_node(i, element=sym, coords=self.coordinates[i])
             
-        # Add edges where distance < summed radii (ignoring diagonal)
         for i in range(self.num_atoms):
             for j in range(i + 1, self.num_atoms):
-                if dist_matrix[i, j] < summed_radii_matrix[i, j]:
-                    self.graph.add_edge(i, j, weight=dist_matrix[i, j])
+                d = dist_matrix[i, j]
+                r_sum = radii[i] + radii[j]
+                if d < r_sum * tolerance_multiplier:
+                    # Estimate bond order tolerance
+                    bond_order = 1
+                    if d < r_sum * 0.88:
+                        bond_order = 3
+                    elif d < r_sum * 0.95:
+                        bond_order = 2
+                    self.graph.add_edge(i, j, weight=d, bond_order=bond_order)
                     
-        logger.info(f"Covalent graph built: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges.")
+        logger.info(f"Covalent graph built with Pyykkö radii: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges.")
 
     # =========================================================================
     # THE 5-OPTION DIHEDRAL DETECTION ENGINE

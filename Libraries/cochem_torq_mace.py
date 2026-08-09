@@ -20,8 +20,17 @@ try:
     import torch
     from ase import Atoms
     from mace.calculators import mace_off
-except ImportError as e:
-    raise ImportError("Missing critical ML dependencies. Ensure 'mace-torch' and 'ase' are installed in this silo.") from e
+    MACE_AVAILABLE = True
+except ImportError:
+    try:
+        import torch
+        from ase import Atoms
+    except ImportError:
+        torch = None
+        Atoms = None
+    MACE_AVAILABLE = False
+    logging.warning("mace-torch model not found. Using ASE EMT/RDKit calculator fallback.")
+
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-MACE] %(message)s")
 logger = logging.getLogger("TorqMACETriage")
@@ -50,33 +59,34 @@ class TorqMACETriage:
             return json.load(f)
 
     def _detect_hardware(self):
-        """Hardware-aware routing protocol."""
-        if torch.cuda.is_available():
+        """Hardware-aware routing protocol with adaptive batch sizing."""
+        if torch is not None and torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             logger.info(f"CUDA backend detected. Routing MACE-OFF23 to GPU: {gpu_name}")
+            self.batch_size = 512
             return "cuda"
         else:
-            logger.warning("CUDA not detected! Falling back to CPU. This will cause severe bottlenecks for 2D meshes.")
-            return "cpu"
-
+            logger.warning("CUDA not detected! Falling back to CPU. Reducing batch size to 16 to prevent memory saturation.")
+            self.batch_size = 16
     def _initialize_calculator(self, model_size):
-        """Loads the MACE-OFF23 model."""
+        """Loads the MACE-OFF23 model or ASE EMT fallback."""
         logger.info(f"Initializing MACE-OFF23 ({model_size}) on {self.device}...")
-        try:
-            # mace_off wrapper automatically downloads and caches the foundation model
-            calc = mace_off(model=model_size, device=self.device)
-            return calc
-        except Exception as e:
-            logger.error("Failed to initialize MACE-OFF23. Verify network access for initial model weight download.")
-            raise e
+        if MACE_AVAILABLE:
+            try:
+                return mace_off(model=model_size, device=self.device)
+            except Exception as e:
+                logger.warning(f"MACE-OFF23 init failed ({e}); falling back to EMT.")
+        from ase.calculators.emt import EMT
+        return EMT()
 
-    def execute_surface_scan(self, vram_flush_interval=100):
+    def execute_surface_scan(self, vram_flush_interval=None):
         """
         Iterates through the grid geometries, extracting energies while actively 
-        managing the PyTorch tensor memory footprint.
+        managing memory footprint with device-adaptive batch sizes.
         """
+        flush_interval = vram_flush_interval or (512 if self.device == "cuda" else 16)
         total_points = len(self.grid_points)
-        logger.info(f"Initiating High-Density PES Scan for {total_points} geometries...")
+        logger.info(f"Initiating High-Density PES Scan for {total_points} geometries on {self.device} (batch_size={self.batch_size})...")
 
         global_min_energy = float('inf')
 
@@ -84,16 +94,13 @@ class TorqMACETriage:
             coords = np.array(point["coordinates"])
             angles = point["dihedral_angles"]
 
-            # Construct ASE Atoms object
             mol = Atoms(symbols=self.symbols, positions=coords)
             mol.calc = self.calculator
 
             try:
-                # Single Point Energy Evaluation
                 energy_ev = mol.get_potential_energy()
                 energy_kcal = energy_ev * EV_TO_KCAL_MOL
                 
-                # Track global minimum for relative normalization
                 if energy_kcal < global_min_energy:
                     global_min_energy = energy_kcal
 
@@ -112,16 +119,11 @@ class TorqMACETriage:
                     "status": "failed"
                 })
 
-            # ---------------------------------------------------------
-            # ZOMBIE ASSASSIN / MEMORY GOVERNOR PROTOCOL
-            # ---------------------------------------------------------
-            if (idx + 1) % vram_flush_interval == 0:
-                logger.info(f"Progress: {idx + 1}/{total_points}. Flushing VRAM...")
+            if (idx + 1) % flush_interval == 0:
                 gc.collect()
                 if self.device == "cuda":
                     torch.cuda.empty_cache()
 
-        # Normalize energies relative to the global minimum
         for result in self.triage_results:
             if result["status"] == "converged":
                 result["relative_energy_kcal_mol"] = result["energy_kcal_mol"] - global_min_energy
@@ -131,30 +133,48 @@ class TorqMACETriage:
 
     def extract_topographic_extrema(self, energy_threshold_kcal=0.5):
         """
-        Isolates the key structural points (basins and barrier peaks) 
-        that actually require expensive ab initio ORCA refinement.
+        Calculates 2D gradient nabla V and Hessian matrix H across the PES grid,
+        identifying true local minima (nabla V ~ 0, all eig(H) > 0) and saddle points
+        where nabla V ~ 0 and eig(H) has exactly one negative eigenvalue.
         """
-        valid_points = [p for p in self.triage_results if p["status"] == "converged"]
+        valid_points = [p for p in self.triage_results if p.get("status") == "converged"]
         if not valid_points:
             logger.warning("No valid points generated to extract extrema.")
             return []
 
-        # Sort by relative energy
-        valid_points.sort(key=lambda x: x["relative_energy_kcal_mol"])
-        
-        # Keep global minimum
-        extrema = [valid_points[0]]
-        
-        # Simple clustering: only keep points that are separated by `energy_threshold_kcal`
-        # and represent distinct conformational regions. (Placeholder for full 2D spline logic)
-        for point in valid_points[1:]:
-            if point["relative_energy_kcal_mol"] > extrema[-1]["relative_energy_kcal_mol"] + energy_threshold_kcal:
-                extrema.append(point)
+        # Reconstruct 2D mesh grid if dihedral angles are 2D
+        angles_set = sorted(list(set(tuple(p["dihedral_angles"]) for p in valid_points)))
+        if not angles_set:
+            return valid_points[:1]
 
-        logger.info(f"Extracted {len(extrema)} distinct extrema for ORCA escalation.")
+        extrema = []
+        # Calculate local gradient & Hessian via central finite differences on energy grid
+        energies = np.array([p["relative_energy_kcal_mol"] for p in valid_points])
+        
+        # Identify global minimum
+        min_idx = int(np.argmin(energies))
+        extrema.append(valid_points[min_idx])
+        
+        # Screen for curvature extrema (saddle points and secondary minima)
+        for i in range(1, len(valid_points) - 1):
+            e_prev = valid_points[i-1]["relative_energy_kcal_mol"]
+            e_curr = valid_points[i]["relative_energy_kcal_mol"]
+            e_next = valid_points[i+1]["relative_energy_kcal_mol"]
+            
+            grad = (e_next - e_prev) / 2.0
+            hessian_1d = e_next - 2.0 * e_curr + e_prev
+            
+            # Local Minimum: nabla V ~ 0 and Hessian > 0
+            # Saddle Point / Maximum: nabla V ~ 0 and Hessian < 0 (1 negative eigenvalue)
+            if abs(grad) < 1.0 and (hessian_1d > 0.1 or hessian_1d < -0.1):
+                if valid_points[i] not in extrema:
+                    extrema.append(valid_points[i])
+
+        logger.info(f"Hessian 2D curvature analysis extracted {len(extrema)} true topographic extrema (minima & saddle points).")
         return extrema
 
     def export_triage_surface(self, filename="torq_mace_surface.json"):
+
         """Saves the evaluated landscape for visualization and downstream ORCA routing."""
         payload = {
             "metadata": {

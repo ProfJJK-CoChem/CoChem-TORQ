@@ -142,6 +142,25 @@ class TorqCatalogCompiler:
                 writer.close()
             return False
 
+    def compute_temperature_dependent_partition_function(self, temp_k: float, A_MHz: float = 10000.0, B_MHz: float = 2000.0, C_MHz: float = 1500.0, sigma: int = 1) -> float:
+        """
+        Computes temperature-dependent rotational partition function Q_rot(T).
+        Q_rot(T) = (sqrt(pi) / sigma) * sqrt( (k_B * T)^3 / (h^3 * A * B * C) )
+        """
+        import math
+        kB = 1.380649e-23
+        h = 6.62607015e-34
+        kT = kB * temp_k
+        
+        A_Hz = max(abs(A_MHz), 1e-6) * 1e6
+        B_Hz = max(abs(B_MHz), 1e-6) * 1e6
+        C_Hz = max(abs(C_MHz), 1e-6) * 1e6
+        
+        q_rot = (math.sqrt(math.pi) / max(sigma, 1)) * math.sqrt((kT**3) / ((h**3) * A_Hz * B_Hz * C_Hz))
+        logger.info(f"Q_rot({temp_k} K) = {q_rot:.4f}")
+        return q_rot
+
+
 if __name__ == "__main__":
     # Self-test block: Mocking a 3-line SPCAT output to verify fixed-width slicing
     mock_cat_content = (
