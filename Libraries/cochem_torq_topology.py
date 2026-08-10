@@ -4,7 +4,7 @@ Stage 1.0: Torsional Topology & Dihedral Matrix
 -----------------------------------------------
 Provides the 5-Option Dihedral Detection Engine and Covalent Radii 
 Summation graph builder. Prepares the downstream Method Matrix Cascade 
-configuration (r2SCAN-3c -> wB97X-D4 -> DLPNO-CCSD(T) + BSSE/VPT2) 
+configuration (r2SCAN-3c -> wB97X-D4 -> CCSD(T)-F12 + BSSE/VPT2) 
 for the torsional grid scan.
 """
 
@@ -164,40 +164,144 @@ class TorqTopology:
         return indices
 
     # =========================================================================
-    # CASCADE METHODOLOGY INJECTION
+    # CASCADE METHODOLOGY INJECTION & TRACK ROUTING
     # =========================================================================
 
-    def generate_cascade_parameters(self, tier="high"):
+    def generate_cascade_parameters(self, tier="T3-1h", basis_set=None, method=None):
         """
         Applies the CoChem Method Matrix Cascade parameters for the torsional scan.
-        Injects BSSE and Dispersion (D4) corrections rigorously.
+        Refactored to map onto v4 T1-T4 tier rows ('T1-10s'..'T4-1mo') (§4.4, §9).
+        Restricts BSSE Counterpoise correction per §4.7 / §9A rules.
         """
+        tier_str = str(tier).strip()
+        
+        # Tier Mapping
+        if tier_str in ["T1-10s", "low", "T1"]:
+            tier_key = "T1-10s"
+            method_name = method or "r2SCAN-3c"
+            basis_name = basis_set or "r2SCAN-3c"
+            keywords = ["! r2SCAN-3c", "TightSCF", "DefGrid3", "Opt"]
+        elif tier_str in ["T2-1m", "medium", "T2"]:
+            tier_key = "T2-1m"
+            method_name = method or "wB97X-D4"
+            basis_name = basis_set or "def2-TZVP"
+            keywords = ["! wB97X-D4", "def2-TZVP", "def2/J", "TightSCF", "DefGrid3", "Opt"]
+        elif tier_str in ["T3-1h", "high", "T3"]:
+            tier_key = "T3-1h"
+            method_name = method or "CCSD(T)-F12"
+            basis_name = basis_set or "cc-pVTZ-F12"
+            keywords = ["! CCSD(T)-F12", "cc-pVTZ-F12", "def2/J", "def2/C", "ExtremeSCF", "DefGrid3", "Opt"]
+        elif tier_str in ["T4-1mo", "ultra", "T4"]:
+            tier_key = "T4-1mo"
+            method_name = method or "CCSD(T)"
+            basis_name = basis_set or "cc-pVTZ"
+            keywords = ["! CCSD(T)", "cc-pVTZ", "ExtremeSCF", "Opt"]
+        else:
+            tier_key = tier_str
+            method_name = method or "r2SCAN-3c"
+            basis_name = basis_set or "def2-TZVP"
+            keywords = [f"! {method_name}", basis_name, "TightSCF", "Opt"]
+
         params = {
-            "tier": tier,
-            "engine": "ORCA_6.1.1",
-            "keywords": [],
-            "anharmonicity": "! VPT2",  # Native rotational-vibrational coupling
-            "dispersion": "D4"
+            "tier": tier_key,
+            "wall_time_tier": tier_key,
+            "engine": "CFOUR" if tier_key == "T4-1mo" else "MPQC",
+            "method": method_name,
+            "basis_set": basis_name,
+            "keywords": keywords,
+            "anharmonicity": "! VPT2",
+            "dispersion": "D4",
+            "bsse_correction": None
         }
 
-        if tier == "low":
-            params["keywords"] = ["! r2SCAN-3c", "TightSCF", "DefGrid3", "Opt"]
-        elif tier == "medium":
-            params["keywords"] = ["! wB97X-D4", "def2-TZVP", "def2/J", "TightSCF", "DefGrid3", "Opt"]
-        elif tier == "high":
-            params["keywords"] = ["! DLPNO-CCSD(T)", "def2-TZVPP", "def2/J", "def2/C", "ExtremeSCF", "DefGrid3", "Opt"]
-
-        # Enforce Counterpoise Correction for Weak Interactions
+        # Enforce Counterpoise Correction Rules (§4.7, §9A)
         if self.is_complex:
-            logger.info("Complex identified. Appending BSSE Counterpoise Correction block.")
-            params["bsse_correction"] = "Counterpoise"
-            params["keywords"].append("! CP")
+            if should_apply_counterpoise(basis_name, method_name):
+                logger.info(f"Complex identified with non-aug TZ basis ({basis_name}). Appending BSSE Counterpoise Correction.")
+                params["bsse_correction"] = "Counterpoise"
+                if "! CP" not in params["keywords"]:
+                    params["keywords"].append("! CP")
+            else:
+                logger.info(f"Complex identified but CP addition prohibited for basis='{basis_name}'/method='{method_name}' per §4.7/§9A.")
+
+        # CABS basis set mappings for F12 methods
+        if "F12" in method_name.upper() or "F12" in basis_name.upper():
+            params["cabs_mappings"] = {
+                "OptRI": f"{basis_name}-OptRI",
+                "JKFIT": f"{basis_name}-JKFIT",
+                "MP2FIT": f"{basis_name}-MP2FIT"
+            }
 
         with open("torq_run_params.json", "w") as f:
             json.dump(params, f, indent=4)
         
-        logger.info(f"Cascade parameters written to torq_run_params.json at Tier: {tier}")
+        logger.info(f"Cascade parameters written to torq_run_params.json at Tier: {tier_key}")
         return params
+
+def should_apply_counterpoise(basis_set: str, method: str) -> bool:
+    """
+    Determines whether BSSE Counterpoise (CP) correction should be applied (§4.7, §9A).
+    - Restricted to non-augmented triple-zeta basis sets (e.g. cc-pVTZ, def2-TZVP, def2-TZVPP).
+    - Prohibited for augmented/diffuse basis sets (containing 'aug-', 'ma-', 'jun-', 'apr-', 'may-', 'jul-', or trailing diffuse designations like 'd', 'tzvpd', 'tzvppd').
+    - Prohibited for CBS-extrapolated composite rows (containing 'CBS', 'W1', 'HEAT', 'COMPOSITE').
+    """
+    basis_lower = (basis_set or "").lower().strip()
+    method_upper = (method or "").upper().strip()
+
+    # 1. Prohibit on CBS-extrapolated composite rows
+    if any(cbs_kw in method_upper for cbs_kw in ["CBS", "W1", "HEAT", "COMPOSITE"]):
+        return False
+
+    # 2. Prohibit on augmented or diffuse basis sets
+    aug_diffuse_prefixes = ["aug-", "aug", "ma-", "jun-", "apr-", "may-", "jul-"]
+    if any(pref in basis_lower for pref in aug_diffuse_prefixes):
+        return False
+
+    if basis_lower.endswith("d") or "tzvpd" in basis_lower or "tzvppd" in basis_lower:
+        return False
+
+    # 3. Restrict to non-augmented triple-zeta basis sets
+    valid_tz_bases = ["cc-pvtz", "def2-tzvp", "def2-tzvpp", "tzvp", "tzvpp"]
+    clean_basis = basis_lower.split("/")[-1]
+    is_non_aug_tz = clean_basis in valid_tz_bases
+
+    return is_non_aug_tz
+
+def route_method_track(method: str, is_anharmonic: bool, n_atoms: int) -> str:
+    """
+    Routes calculations between CFOUR and MPQC tracks based on $36N^2$ displacement arithmetic (§9).
+    - Route CCSD(T) VPT2/analytic Hessians to CFOUR track.
+    - Route DFT/SCF/F12 to MPQC track.
+    - Abort MPQC CCSD(T)-F12 numerical VPT2 for N > 6 due to 36N^2 displacement penalty.
+    """
+    m_upper = (method or "").upper()
+
+    # 1. Coupled-Cluster Anharmonicity / Analytic Hessians without F12 -> CFOUR Track
+    if "CCSD(T)" in m_upper and "F12" not in m_upper and is_anharmonic:
+        logger.info(f"Routing CCSD(T) VPT2 calculation (N={n_atoms}) to CFOUR track.")
+        return "CFOUR"
+
+    # 2. CCSD(T)-F12 Numerical VPT2 check
+    if "F12" in m_upper and is_anharmonic:
+        if n_atoms > 6:
+            modes = 3 * n_atoms - 6 if n_atoms >= 3 else 1
+            vpt2_displacements = 2 * modes + 1
+            points_per_hess = (6 * n_atoms) ** 2
+            total_points = vpt2_displacements * points_per_hess
+            err_msg = (
+                f"MPQC CCSD(T)-F12 numerical VPT2 calculation aborted for system size N={n_atoms} > 6 "
+                f"due to 36N^2 displacement penalty ({total_points} single points required). "
+                f"Route to CFOUR track or limit N <= 6."
+            )
+            logger.error(err_msg)
+            raise ValueError(err_msg)
+        else:
+            logger.info(f"Routing MPQC CCSD(T)-F12 numerical VPT2 (N={n_atoms} <= 6) to MPQC track.")
+            return "MPQC"
+
+    # 3. Standard DFT/SCF/F12/Harmonic -> MPQC Track
+    logger.info(f"Routing {method} (is_anharmonic={is_anharmonic}, N={n_atoms}) to MPQC track.")
+    return "MPQC"
 
 if __name__ == "__main__":
     # Self-test payload
@@ -205,5 +309,8 @@ if __name__ == "__main__":
     mock_syms = ["C", "C", "O", "H"]
     
     topos = TorqTopology(mock_syms, mock_coords, is_complex=False)
-    topos.detect_via_manual_override([0, 1, 2, 3])
-    topos.generate_cascade_parameters(tier="high")
+    topos.detect_via_override([0, 1, 2, 3])
+    topos.generate_cascade_parameters(tier="T3-1h")
+    
+    print("Track route CCSD(T) VPT2:", route_method_track("CCSD(T)", True, 5))
+    print("Track route CCSD(T)-F12 harmonic:", route_method_track("CCSD(T)-F12", False, 10))

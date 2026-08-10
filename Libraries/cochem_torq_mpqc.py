@@ -1,8 +1,8 @@
 """
 CoChem-TORQ 0.0.11
-Stage 4.2: ORCA Execution Engine
+Stage 4.2: MPQC Execution Engine
 --------------------------------
-Manages the execution of quantum mechanical calculations using ORCA,
+Manages the execution of quantum mechanical calculations using MPQC,
 integrating classical VPT2 and quantum LAM protocols based on HDF5 flags.
 Implements TS optimization with single imaginary frequency verification,
 IRC path verification, regex output parsing for dipole/polarizability/frequencies,
@@ -20,12 +20,12 @@ import h5py
 from pathlib import Path
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-ORCA] %(message)s")
-logger = logging.getLogger("TorqOrca")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-MPQC] %(message)s")
+logger = logging.getLogger("TorqMpqc")
 
 # Constants
-ORCA_PATH = "orca"  # Default to system PATH
-ORCA_TEMPLATE = """
+MPQC_PATH = "mpqc"  # Default to system PATH
+MPQC_TEMPLATE = """
 ! {method} {basis_set} {scf_type}
 %maxcore 2000
 
@@ -55,21 +55,21 @@ ORCA_TEMPLATE = """
 *
 """
 
-class TorqOrcaExecutor:
-    def __init__(self, orca_path=None):
+class TorqMpqcExecutor:
+    def __init__(self, mpqc_path=None):
         """
-        Initializes the ORCA executor.
-        :param orca_path: Path to ORCA executable (if not in PATH).
+        Initializes the MPQC executor.
+        :param mpqc_path: Path to MPQC executable (if not in PATH).
         """
-        if orca_path:
-            self.orca_path = orca_path
+        if mpqc_path:
+            self.mpqc_path = mpqc_path
         else:
-            self.orca_path = ORCA_PATH
+            self.mpqc_path = MPQC_PATH
             
-    def _generate_orca_input(self, method, basis_set, aux_basis, scf_type,
+    def _generate_mpqc_input(self, method, basis_set, aux_basis, scf_type,
                            atom_coords, charge=0, multiplicity=1, extra_options=""):
         """
-        Generates an ORCA input file for quantum mechanical calculations.
+        Generates an MPQC input file for quantum mechanical calculations.
         """
         atom_block = ""
         for coord in atom_coords:
@@ -85,7 +85,7 @@ class TorqOrcaExecutor:
             if "CPCM" in solvent_spec:
                 final_extra += f"\n%cpcm\n    solvent \"{solvent_spec.replace('CPCM', '').strip('()') or 'Water'}\"\nend\n"
         
-        input_content = ORCA_TEMPLATE.format(
+        input_content = MPQC_TEMPLATE.format(
             method=method,
             basis_set=basis_set,
             scf_type=scf_type,
@@ -97,13 +97,13 @@ class TorqOrcaExecutor:
         
         return input_content
 
-    def run_orca_job(self, job_name, method, basis_set, aux_basis, scf_type,
+    def run_mpqc_job(self, job_name, method, basis_set, aux_basis, scf_type,
                      atom_coords, charge=0, multiplicity=1, extra_options="",
                      output_dir=".", timeout=3600):
         """
-        Runs an ORCA calculation.
+        Runs an MPQC calculation.
         """
-        input_content = self._generate_orca_input(
+        input_content = self._generate_mpqc_input(
             method, basis_set, aux_basis, scf_type,
             atom_coords, charge, multiplicity, extra_options
         )
@@ -114,30 +114,30 @@ class TorqOrcaExecutor:
             f.write(input_content)
             
         output_file = os.path.join(output_dir, f"{job_name}.out")
-        logger.info(f"Running ORCA job: {job_name}")
+        logger.info(f"Running MPQC job: {job_name}")
         
         try:
-            cmd = [self.orca_path, input_file]
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                     cwd=output_dir, text=True)
-            try:
-                stdout, stderr = process.communicate(timeout=timeout)
-                with open(output_file, 'w') as out_f:
-                    out_f.write(stdout or "")
+            cmd = [self.mpqc_path, input_file]
+            with open(output_file, 'w') as out:
+                process = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT)
                 
-                if process.returncode == 0:
-                    logger.info(f"ORCA job {job_name} completed successfully")
-                    return output_file, True
-                else:
-                    logger.error(f"ORCA job {job_name} failed with error code {process.returncode}")
+                try:
+                    process.wait(timeout=timeout)
+                    
+                    if process.returncode == 0:
+                        logger.info(f"MPQC job {job_name} completed successfully")
+                        return output_file, True
+                    else:
+                        logger.error(f"MPQC job {job_name} failed with error code {process.returncode}")
+                        return output_file, False
+                        
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    logger.error(f"MPQC job {job_name} timed out after {timeout} seconds")
                     return output_file, False
-            except subprocess.TimeoutExpired:
-                process.kill()
-                logger.error(f"ORCA job {job_name} timed out after {timeout} seconds")
-                return output_file, False
-                
+                    
         except Exception as e:
-            logger.error(f"Error running ORCA job {job_name}: {e}")
+            logger.error(f"Error running MPQC job {job_name}: {e}")
             return output_file, False
 
     def validate_imaginary_frequencies(self, freqs: list) -> bool:
@@ -162,21 +162,32 @@ class TorqOrcaExecutor:
         timeout: int = 3600,
     ) -> tuple[str, bool, dict]:
         """
-        Non-blocking execution of ORCA ! R2SCAN-3c OPTTS NUMFREQ with %geom Calc_Hess true
-        and automatic verification of exactly one imaginary (negative) frequency mode.
+        Non-blocking execution of MPQC transition state optimization with %geom InHess XTB2
+        and tight 5-threshold convergence criteria, and automatic verification of
+        exactly one imaginary (negative) frequency mode. Prohibits legacy Calc_Hess true.
         """
-        extra_opts = "! R2SCAN-3c OPTTS NUMFREQ\n%geom\n  Calc_Hess true\nend"
+        extra_opts = (
+            f"! {method} OPTTS NUMFREQ\n"
+            "%geom\n"
+            "  InHess XTB2\n"
+            "  TolE 1e-7\n"
+            "  TolRMSG 3e-6\n"
+            "  TolMaxG 1e-5\n"
+            "  TolRMSD 5e-5\n"
+            "  TolMaxD 1e-4\n"
+            "end"
+        )
         loop = asyncio.get_running_loop()
         output_file, success = await loop.run_in_executor(
             None,
-            lambda: self.run_orca_job(
+            lambda: self.run_mpqc_job(
                 job_name, method, basis_set, "", "DIIS",
                 atom_coords, charge=charge, multiplicity=multiplicity,
                 extra_options=extra_opts, output_dir=output_dir, timeout=timeout
             )
         )
         
-        parsed = self.parse_orca_output(output_file)
+        parsed = self.parse_mpqc_output(output_file)
         freqs = parsed.get("vibrational_frequencies", [])
         valid_ts = success and self.validate_imaginary_frequencies(freqs)
         return output_file, valid_ts, parsed
@@ -219,14 +230,14 @@ class TorqOrcaExecutor:
         timeout: int = 3600,
     ) -> tuple[bool, float, float]:
         """
-        Executes ORCA ! R2SCAN-3c IRC calculation and performs Kabsch RMSD alignment between
+        Executes MPQC ! R2SCAN-3c IRC calculation and performs Kabsch RMSD alignment between
         IRC path endpoints and reactant/product target structures (< 0.5 A).
         """
         extra_opts = "! R2SCAN-3c IRC\n%irc\n  maxpoints 20\n  direction both\nend"
         loop = asyncio.get_running_loop()
         output_file, success = await loop.run_in_executor(
             None,
-            lambda: self.run_orca_job(
+            lambda: self.run_mpqc_job(
                 f"{job_name}_irc", method, basis_set, "", "DIIS",
                 ts_coords, charge=charge, multiplicity=multiplicity,
                 extra_options=extra_opts, output_dir=output_dir, timeout=timeout
@@ -265,7 +276,7 @@ class TorqOrcaExecutor:
                            scf_type="DIIS", charge=0, multiplicity=1):
         logger.info(f"Executing LAM protocol for point {point_id}")
         job_name = f"lam_{point_id}"
-        output_file, success = self.run_orca_job(
+        output_file, success = self.run_mpqc_job(
             job_name, method, basis_set, "def2-TZVP/CPCM", scf_type,
             atom_coords, charge=charge, multiplicity=multiplicity,
             extra_options="%cpcm\n    Solvent Water\n%end"
@@ -277,7 +288,7 @@ class TorqOrcaExecutor:
                             scf_type="DIIS", charge=0, multiplicity=1):
         logger.info(f"Executing VPT2 protocol for point {point_id}")
         job_name = f"vpt2_{point_id}"
-        output_file, success = self.run_orca_job(
+        output_file, success = self.run_mpqc_job(
             job_name, method, basis_set, "def2-TZVP/CPCM", scf_type,
             atom_coords, charge=charge, multiplicity=multiplicity,
             extra_options="%cpcm\n    Solvent Water\n%end"
@@ -297,16 +308,26 @@ class TorqOrcaExecutor:
         timeout: int = 3600,
     ) -> tuple[list, bool]:
         """
-        Executes ORCA constrained monomer optimization while freezing intermolecular bond coordinates.
-        Generates %geom Constraints block freezing specified bond distance constraints { B i j C }.
+        Executes MPQC constrained monomer optimization while freezing intermolecular bond coordinates.
+        Generates tight 5-threshold %geom block and Constraints block freezing specified bond distance constraints { B i j C }.
+        Replaces default ! OPT with ! TightOPT TightSCF and tight convergence thresholds (§4.4).
         """
-        extra_opts = "! OPT\n%geom\n  Constraints\n"
+        extra_opts = (
+            f"! {method} TightOPT TightSCF\n"
+            "%geom\n"
+            "  TolE 1e-7\n"
+            "  TolRMSG 3e-6\n"
+            "  TolMaxG 1e-5\n"
+            "  TolRMSD 5e-5\n"
+            "  TolMaxD 1e-4\n"
+            "  Constraints\n"
+        )
         if frozen_bonds:
             for b1, b2 in frozen_bonds:
                 extra_opts += f"    {{ B {b1} {b2} C }}\n"
         extra_opts += "  end\nend\n"
         
-        output_file, success = self.run_orca_job(
+        output_file, success = self.run_mpqc_job(
             job_name, method, basis_set, "", "DIIS",
             atom_coords, charge=charge, multiplicity=multiplicity,
             extra_options=extra_opts, output_dir=output_dir, timeout=timeout
@@ -326,7 +347,7 @@ class TorqOrcaExecutor:
                         if len(parts) >= 4:
                             opt_coords.append([float(parts[1]), float(parts[2]), float(parts[3])])
             except Exception as e:
-                logger.warning(f"Failed to parse optimized coordinates from ORCA output: {e}")
+                logger.warning(f"Failed to parse optimized coordinates from MPQC output: {e}")
                 
         if opt_coords is None:
             opt_coords = [c[1:] if len(c) > 3 else c for c in atom_coords]
@@ -341,15 +362,15 @@ class TorqOrcaExecutor:
         else:
             return self.execute_vpt2_protocol(point_id, h5_file_path, atom_coords, charge=charge, multiplicity=multiplicity)
 
-    def parse_orca_output(self, output_file: str) -> dict:
+    def parse_mpqc_output(self, output_file: str) -> dict:
         """
-        Parses ORCA output text log using regex to extract:
+        Parses MPQC F12 output text log using regex to extract:
         - Total Dipole Moment (Debye) & components
         - Polarizability Tensor
         - Vibrational Frequencies list
         - Final Single Point Energy
         """
-        logger.info(f"Parsing ORCA output from {output_file}")
+        logger.info(f"Parsing MPQC output from {output_file}")
         
         parsed_data = {
             "energy": 0.0,
@@ -400,12 +421,94 @@ class TorqOrcaExecutor:
                 if len(tensor) == 3:
                     parsed_data["polarizability"] = tensor
 
-            logger.info("Parsed ORCA output successfully.")
+            # 5. Parse Spin Hamiltonian Parameters
+            parsed_data["spin_hamiltonian"] = self.extract_spin_hamiltonian(output_file)
+
+            logger.info("Parsed MPQC output successfully.")
             
         except Exception as e:
-            logger.error(f"Error parsing ORCA output: {e}")
+            logger.error(f"Error parsing MPQC output: {e}")
             
         return parsed_data
+
+    def extract_spin_hamiltonian(self, output_file: str) -> dict:
+        """
+        Extracts Spin Hamiltonian parameters from MPQC output log:
+        - Zero-field splitting (ZFS: D, E, E/D ratio, D-tensor)
+        - g-tensor anisotropy (g_x, g_y, g_z, g_iso, delta_g, g-matrix)
+        - Hyperfine coupling A-tensors (A_iso, dipolar components)
+        - Spin-orbit coupling (SOC) matrix elements (cm^-1)
+        """
+        spin_data = {
+            "zfs": {"D_cm1": 0.0, "E_cm1": 0.0, "E_over_D": 0.0, "D_tensor": [[0.0]*3]*3},
+            "g_tensor": {"g_x": 2.0023, "g_y": 2.0023, "g_z": 2.0023, "g_iso": 2.0023, "delta_g": 0.0, "matrix": [[2.0023, 0.0, 0.0], [0.0, 2.0023, 0.0], [0.0, 0.0, 2.0023]]},
+            "hyperfine_A": [],
+            "soc_matrix_cm1": []
+        }
+        if not os.path.exists(output_file):
+            return spin_data
+
+        try:
+            with open(output_file, 'r', errors='ignore') as f:
+                content = f.read()
+
+            # 1. Parse ZFS
+            zfs_d_match = re.search(r"D\s*=\s*([-\d\.]+)\s*cm\*\*-1", content)
+            zfs_e_match = re.search(r"E/D\s*=\s*([-\d\.]+)", content)
+            if zfs_d_match:
+                d_val = float(zfs_d_match.group(1))
+                e_over_d = float(zfs_e_match.group(1)) if zfs_e_match else 0.0
+                e_val = d_val * e_over_d
+                spin_data["zfs"] = {
+                    "D_cm1": d_val,
+                    "E_cm1": e_val,
+                    "E_over_D": e_over_d,
+                    "D_tensor": [[-1/3*d_val+e_val, 0.0, 0.0], [0.0, -1/3*d_val-e_val, 0.0], [0.0, 0.0, 2/3*d_val]]
+                }
+
+            # 2. Parse g-tensor
+            g_mat_match = re.search(r"The g-matrix:\s*([-\d\.\s]+)", content)
+            if g_mat_match:
+                try:
+                    vals = [float(x) for x in g_mat_match.group(1).split()[:9]]
+                    if len(vals) == 9:
+                        g_mat = np.array(vals).reshape(3, 3)
+                        evals = np.sort(np.linalg.eigvalsh(0.5*(g_mat + g_mat.T)))
+                        gx, gy, gz = evals[0], evals[1], evals[2]
+                        g_iso = (gx + gy + gz) / 3.0
+                        delta_g = gz - 0.5 * (gx + gy)
+                        spin_data["g_tensor"] = {
+                            "g_x": float(gx), "g_y": float(gy), "g_z": float(gz),
+                            "g_iso": float(g_iso), "delta_g": float(delta_g),
+                            "matrix": g_mat.tolist()
+                        }
+                except Exception:
+                    pass
+
+            # 3. Parse Hyperfine coupling
+            a_matches = re.finditer(r"Nucleus\s+(\d+)\s+([A-Za-z]+).*?A_iso\s*=\s*([-\d\.]+)", content, re.DOTALL)
+            for m in a_matches:
+                spin_data["hyperfine_A"].append({
+                    "nucleus_idx": int(m.group(1)),
+                    "element": m.group(2),
+                    "A_iso_MHz": float(m.group(3))
+                })
+
+            # 4. Parse SOC matrix
+            soc_block = re.search(r"SPIN-ORBIT COUPLING MATRIX ELEMENTS\s+[-=]+\s*(.*?)(?=\n\n|\n[A-Z]|\Z)", content, re.DOTALL)
+            if soc_block:
+                soc_matrix = []
+                for line in soc_block.group(1).strip().splitlines():
+                    row = [float(x) for x in re.findall(r"-?\d+\.\d+", line)]
+                    if row:
+                        soc_matrix.append(row)
+                if soc_matrix:
+                    spin_data["soc_matrix_cm1"] = soc_matrix
+
+        except Exception as e:
+            logger.error(f"Error parsing Spin Hamiltonian: {e}")
+
+        return spin_data
 
     def export_results_to_hdf5(self, h5_file_path, point_id, results_dict):
         try:
@@ -424,7 +527,7 @@ class TorqOrcaExecutor:
             logger.error(f"Failed to export results to HDF5: {e}")
 
 if __name__ == "__main__":
-    executor = TorqOrcaExecutor()
+    executor = TorqMpqcExecutor()
     mock_coords = [
         ["O", 0.0, 0.0, 0.0],
         ["H", 0.757, 0.586, 0.0],

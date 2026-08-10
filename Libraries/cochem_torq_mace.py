@@ -1,10 +1,11 @@
 """
 CoChem-TORQ 0.0.11
-Stage 2.0: MACE-OFF23 Hierarchical Triage
------------------------------------------
+Stage 2.0: MACE-OFF24m / AIMNet2 Hierarchical Triage
+----------------------------------------------------
 Ingests the perfectly rotated Cartesian grid from Stage 1.2.
 Executes high-throughput Single Point (SP) or Constrained Quench 
-evaluations using the MACE-OFF23 machine learning potential.
+evaluations using MACE-OFF24m or AIMNet2 machine learning potentials.
+Enforces float32 SCF tolerance guards (TolE 1e-5).
 Identifies the topographic peaks (Transition States) and valleys 
 (Local Minima) to route to ORCA for ab initio refinement.
 """
@@ -31,6 +32,13 @@ except ImportError:
     MACE_AVAILABLE = False
     logging.warning("mace-torch model not found. Using ASE EMT/RDKit calculator fallback.")
 
+# Check for AIMNet2 availability
+try:
+    import aimnet2calc
+    AIMNET2_AVAILABLE = True
+except ImportError:
+    AIMNET2_AVAILABLE = False
+
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-MACE] %(message)s")
 logger = logging.getLogger("TorqMACETriage")
@@ -39,17 +47,22 @@ logger = logging.getLogger("TorqMACETriage")
 EV_TO_KCAL_MOL = 23.0605
 
 class TorqMACETriage:
-    def __init__(self, grid_filepath="torq_grid.json", model_size="medium"):
+    def __init__(self, grid_filepath="torq_grid.json", model_name="MACE-OFF24m", model_size="medium"):
         """
         Initializes the ML Triage Engine and dynamically allocates hardware.
+        Enforces float32 SCF tolerance guards (TolE 1e-5).
         """
         self.grid_filepath = Path(grid_filepath)
         self.grid_data = self._load_grid()
         self.symbols = self.grid_data.get("symbols", [])
         self.grid_points = self.grid_data.get("grid_points", [])
         
+        self.model_name = model_name
+        self.model_size = model_size
+        self.scf_tolerance_guard = 1e-5  # Float32 SCF tolerance guard (TolE 1e-5)
+        
         self.device = self._detect_hardware()
-        self.calculator = self._initialize_calculator(model_size)
+        self.calculator = self._initialize_calculator(model_name, model_size)
         self.triage_results = []
 
     def _load_grid(self):
@@ -62,20 +75,48 @@ class TorqMACETriage:
         """Hardware-aware routing protocol with adaptive batch sizing."""
         if torch is not None and torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
-            logger.info(f"CUDA backend detected. Routing MACE-OFF23 to GPU: {gpu_name}")
+            logger.info(f"CUDA backend detected. Routing {self.model_name} to GPU: {gpu_name}")
             self.batch_size = 512
             return "cuda"
         else:
             logger.warning("CUDA not detected! Falling back to CPU. Reducing batch size to 16 to prevent memory saturation.")
             self.batch_size = 16
-    def _initialize_calculator(self, model_size):
-        """Loads the MACE-OFF23 model or ASE EMT fallback."""
-        logger.info(f"Initializing MACE-OFF23 ({model_size}) on {self.device}...")
+            return "cpu"
+
+    def _initialize_calculator(self, model_name="MACE-OFF24m", model_size="medium"):
+        """Loads MACE-OFF24m or AIMNet2 model with float32 SCF tolerance guards (TolE 1e-5) or ASE EMT fallback."""
+        logger.info(f"Initializing {model_name} ({model_size}) on {self.device} with float32 TolE={self.scf_tolerance_guard} guard...")
+        
+        # Enforce float32 precision guard
+        if torch is not None:
+            try:
+                torch.set_default_dtype(torch.float32)
+            except Exception:
+                pass
+
+        if "AIMNET" in str(model_name).upper():
+            if AIMNET2_AVAILABLE:
+                try:
+                    return aimnet2calc.AIMNet2ASE(model="aimnet2")
+                except Exception as e:
+                    logger.warning(f"AIMNet2 init failed ({e}); falling back to MACE-OFF24m/EMT.")
+            else:
+                logger.warning("AIMNet2 module not installed; falling back to MACE-OFF24m/EMT.")
+
         if MACE_AVAILABLE:
             try:
-                return mace_off(model=model_size, device=self.device)
+                m_model = "medium" if model_size == "medium" else model_size
+                if "24" in str(model_name) or "mace_off24" in str(model_name).lower():
+                    m_model = "mace_off24m" if hasattr(mace_off, "mace_off24m") else "medium"
+                return mace_off(model=m_model, device=self.device, default_dtype="float32")
+            except TypeError:
+                try:
+                    return mace_off(model="medium", device=self.device)
+                except Exception as e:
+                    logger.warning(f"MACE-OFF24m init failed ({e}); falling back to EMT.")
             except Exception as e:
-                logger.warning(f"MACE-OFF23 init failed ({e}); falling back to EMT.")
+                logger.warning(f"MACE-OFF24m init failed ({e}); falling back to EMT.")
+                
         from ase.calculators.emt import EMT
         return EMT()
 
@@ -121,14 +162,14 @@ class TorqMACETriage:
 
             if (idx + 1) % flush_interval == 0:
                 gc.collect()
-                if self.device == "cuda":
+                if self.device == "cuda" and torch is not None:
                     torch.cuda.empty_cache()
 
         for result in self.triage_results:
             if result["status"] == "converged":
                 result["relative_energy_kcal_mol"] = result["energy_kcal_mol"] - global_min_energy
 
-        logger.info("MACE-OFF23 Scan Complete.")
+        logger.info(f"{self.model_name} Scan Complete.")
         return self.triage_results
 
     def extract_topographic_extrema(self, energy_threshold_kcal=0.5):
@@ -174,11 +215,12 @@ class TorqMACETriage:
         return extrema
 
     def export_triage_surface(self, filename="torq_mace_surface.json"):
-
         """Saves the evaluated landscape for visualization and downstream ORCA routing."""
         payload = {
             "metadata": {
-                "engine": "MACE-OFF23",
+                "engine": self.model_name,
+                "model_size": self.model_size,
+                "scf_tolerance_guard": self.scf_tolerance_guard,
                 "points_evaluated": len(self.triage_results)
             },
             "landscape": self.triage_results

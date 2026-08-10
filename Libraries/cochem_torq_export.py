@@ -281,8 +281,8 @@ if __name__ == "__main__":
     # Self-test for Zstandard compression export
     exporter = TorqExporter()
     
-    # Mock data for testing
-    mock_h5_file = "test_tensor.h5"
+    # Sample data for testing
+    sample_h5_file = "test_tensor.h5"
     
     try:
         # Test export (this will fail without a real HDF5 file)

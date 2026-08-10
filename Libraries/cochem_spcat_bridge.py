@@ -24,12 +24,12 @@ BOLTZMANN_CONSTANT_JK = 1.380649e-23      # Exact kB (J/K)
 SPEED_OF_LIGHT_CMS = 29979245800.0        # Exact c (cm/s)
 
 class TorqSpcatBridge:
-    def __init__(self, tensor_json_path, orca_out_path, temperature_k=298.15):
+    def __init__(self, tensor_json_path, mpqc_out_path, temperature_k=298.15):
         """
         Initializes the Statistical Mechanics Bridge.
         """
         self.tensor_file = Path(tensor_json_path)
-        self.orca_file = Path(orca_out_path)
+        self.mpqc_file = Path(mpqc_out_path)
         self.temperature = temperature_k
         
         self.tensor_data = self._load_json(self.tensor_file)
@@ -75,19 +75,18 @@ class TorqSpcatBridge:
             logger.warning("molsym detection fallback; defaulting symmetry divisor sigma=1 (C1).")
             return 1
 
-    def parse_orca_observables(self):
+    def parse_mpqc_observables(self):
         """
-        Scrapes the ORCA .out file for VIBRATIONAL FREQUENCIES and DIPOLE MOMENTS.
-        Contains the LAM (Large Amplitude Motion) trap.
+        Scrapes the MPQC .out file for VIBRATIONAL FREQUENCIES and DIPOLE MOMENTS.
+        Updates self.observables and self.vibrational_frequencies.
         """
-        if not self.orca_file.exists():
-            logger.error(f"ORCA output {self.orca_file} missing. Cannot parse vibrational partition functions.")
+        if not self.mpqc_file.exists():
+            logger.error(f"MPQC output {self.mpqc_file} missing. Cannot parse vibrational partition functions.")
             return
 
         freqs = []
-        parsing_freqs = False
         
-        with open(self.orca_file, "r", errors="ignore") as f:
+        with open(self.mpqc_file, "r", errors="ignore") as f:
             content = f.read()
 
         # Dipole moment parsing
@@ -195,18 +194,19 @@ class TorqSpcatBridge:
             
         logger.info(f"SPCAT seed files successfully synthesized in {artifact_dir}: {var_file.name}, {int_file.name}")
 
-
+    def export_spcat_catalog(self):
+        self.generate_spcat_files()
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 3:
         tensor_json = sys.argv[1]
-        orca_out = sys.argv[2]
+        mpqc_out = sys.argv[2]
         temp = float(sys.argv[3]) if len(sys.argv) > 3 else 298.15
-        bridge = TorqSpcatBridge(tensor_json, orca_out, temperature_k=temp)
-        bridge.parse_orca_observables()
+        bridge = TorqSpcatBridge(tensor_json, mpqc_out, temperature_k=temp)
+        bridge.parse_mpqc_observables()
+        bridge.export_spcat_catalog()
         q_rot, q_vib, q_total = bridge.calculate_partition_functions()
-        bridge.generate_spcat_files()
-        print(f"TorqSpcatBridge processed {tensor_json} and {orca_out}. Q_total = {q_total:.4f}")
+        print(f"TorqSpcatBridge processed {tensor_json} and {mpqc_out}. Q_total = {q_total:.4f}")
     else:
-        print("Usage: python cochem_spcat_bridge.py <tensor_json_path> <orca_out_path> [temperature_k]")
+        print("Usage: python cochem_spcat_bridge.py <tensor_json_path> <mpqc_out_path> [temperature_k]")

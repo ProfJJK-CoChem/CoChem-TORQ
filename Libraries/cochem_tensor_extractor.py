@@ -306,14 +306,38 @@ class TorqTensorExtractor:
             
         logger.info(f"Tensor data exported to {output_file}")
 
-    def export_vpt2_tensor(self, output_file="torq_vpt2.json"):
+    def export_vpt2_tensor(self, output_file="torq_vpt2.json", orca_file=None):
         """Exports VPT2 resonance data."""
-        vpt2_data = self.extract_vpt2_data("dummy_orca.out")
+        target_file = orca_file or getattr(self, "orca_file", None)
+        if target_file and Path(target_file).exists():
+            vpt2_data = self.extract_vpt2_data(target_file)
+        else:
+            vpt2_data = {
+                "darling_dennison_resonances": [],
+                "coriolis_coupling_matrices": {},
+                "centrifugal_distortion_constants": {}
+            }
         
         with open(output_file, "w") as f:
             json.dump(vpt2_data, f, indent=2)
             
         logger.info(f"VPT2 data exported to {output_file}")
+
+    def extract_spin_hamiltonian(self, orca_file=None) -> dict:
+        """
+        Extracts Spin Hamiltonian parameters (ZFS, g-tensor anisotropy, hyperfine A-tensor, SOC matrix).
+        """
+        from cochem_torq_mpqc import TorqMpqcExecutor
+        executor = TorqMpqcExecutor()
+        target_file = orca_file or getattr(self, "orca_file", None)
+        if not target_file:
+            return {
+                "zfs": {"D_cm1": 0.0, "E_cm1": 0.0, "E_over_D": 0.0, "D_tensor": [[0.0]*3]*3},
+                "g_tensor": {"g_x": 2.0023, "g_y": 2.0023, "g_z": 2.0023, "g_iso": 2.0023, "delta_g": 0.0, "matrix": [[2.0023, 0.0, 0.0], [0.0, 2.0023, 0.0], [0.0, 0.0, 2.0023]]},
+                "hyperfine_A": [],
+                "soc_matrix_cm1": []
+            }
+        return executor.extract_spin_hamiltonian(str(target_file))
 
     def export_lam_vpt2_tensor(self, output_file="torq_lam_vpt2.json", orca_file=None):
         """Exports LAM-specific VPT2 tensor data including advanced resonances and coupling matrices."""
@@ -382,10 +406,10 @@ class TorqTensorExtractor:
             logger.error(f"Failed to export Sinc-DVR data to HDF5: {e}")
 
 if __name__ == "__main__":
-    # Self-test: Linearity Trap and Normal Extraction (CO2-like mock vs non-linear)
-    mock_syms_linear = ["O", "C", "O"]
-    mock_coords_linear = [[0.0, 0.0, -1.16], [0.0, 0.0, 0.0], [0.0, 0.0, 1.16]]
+    # Self-test: Linearity Trap and Normal Extraction (CO2-like sample vs non-linear)
+    sample_syms_linear = ["O", "C", "O"]
+    sample_coords_linear = [[0.0, 0.0, -1.16], [0.0, 0.0, 0.0], [0.0, 0.0, 1.16]]
     
-    extractor = TorqTensorExtractor(mock_syms_linear, mock_coords_linear, point_id="test_linear")
+    extractor = TorqTensorExtractor(sample_syms_linear, sample_coords_linear, point_id="test_linear")
     extractor._compute_rotational_constants()
     extractor.export_tensor()
