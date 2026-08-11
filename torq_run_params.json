@@ -1,0 +1,24 @@
+{
+    "tier": "T3-1h",
+    "wall_time_tier": "T3-1h",
+    "engine": "MPQC",
+    "method": "CCSD(T)-F12/CBS",
+    "basis_set": "cc-pVTZ-F12",
+    "keywords": [
+        "! CCSD(T)-F12",
+        "cc-pVTZ-F12",
+        "def2/J",
+        "def2/C",
+        "ExtremeSCF",
+        "DefGrid3",
+        "Opt"
+    ],
+    "anharmonicity": "! VPT2",
+    "dispersion": "D4",
+    "bsse_correction": null,
+    "cabs_mappings": {
+        "OptRI": "cc-pVTZ-F12-OptRI",
+        "JKFIT": "cc-pVTZ-F12-JKFIT",
+        "MP2FIT": "cc-pVTZ-F12-MP2FIT"
+    }
+}

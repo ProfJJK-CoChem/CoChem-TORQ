@@ -277,7 +277,7 @@ def route_method_track(method: str, is_anharmonic: bool, n_atoms: int) -> str:
     m_upper = (method or "").upper()
 
     # 1. Coupled-Cluster Anharmonicity / Analytic Hessians without F12 -> CFOUR Track
-    if "CCSD(T)" in m_upper and "F12" not in m_upper and is_anharmonic:
+    if ("CCSD(T)" in m_upper or "CFOUR" in m_upper) and "F12" not in m_upper and is_anharmonic:
         logger.info(f"Routing CCSD(T) VPT2 calculation (N={n_atoms}) to CFOUR track.")
         return "CFOUR"
 

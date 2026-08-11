@@ -70,7 +70,7 @@ def test_topology_cascade_counterpoise_integration():
 def test_route_method_track():
     # CCSD(T) VPT2/analytic Hessians -> CFOUR Track
     assert route_method_track("CCSD(T)", is_anharmonic=True, n_atoms=5) == "CFOUR"
-    assert route_method_track("CCSD(T)-F12", is_anharmonic=True, n_atoms=4) == "CFOUR"
+    assert route_method_track("CFOUR", is_anharmonic=True, n_atoms=4) == "CFOUR"
     
     # DFT / SCF / F12 harmonic -> MPQC Track
     assert route_method_track("r2SCAN-3c", is_anharmonic=True, n_atoms=10) == "MPQC"

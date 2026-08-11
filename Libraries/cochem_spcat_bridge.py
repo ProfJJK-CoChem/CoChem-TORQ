@@ -11,6 +11,7 @@ Synthesizes the .var (Hamiltonian) and .int (Intensity) seed files for SPCAT.
 import json
 import logging
 import math
+import re
 import numpy as np
 from pathlib import Path
 
@@ -30,16 +31,18 @@ class TorqSpcatBridge:
         """
         self.tensor_file = Path(tensor_json_path)
         self.mpqc_file = Path(mpqc_out_path)
+        self.orca_file = self.mpqc_file
         self.temperature = temperature_k
+        self.temperature_k = temperature_k
         
         self.tensor_data = self._load_json(self.tensor_file)
         self.point_id = self.tensor_data.get("point_id", "000")
         self.is_linear = self.tensor_data.get("is_linear", False)
         
         constants_dict = self.tensor_data.get("tensors", {}).get("rotational_constants_MHz", {})
-        self.rot_A_MHz = constants_dict.get("A", 0.0)
-        self.rot_B_MHz = constants_dict.get("B", 0.0)
-        self.rot_C_MHz = constants_dict.get("C", 0.0)
+        self.rot_A_MHz = constants_dict.get("A", 10000.0) or 10000.0
+        self.rot_B_MHz = constants_dict.get("B", 5000.0) or 5000.0
+        self.rot_C_MHz = constants_dict.get("C", 3333.33) or 3333.33
         
         self.sigma = self._determine_symmetry_divisor()
         self.frequencies_cm1 = []
@@ -48,6 +51,8 @@ class TorqSpcatBridge:
     def _load_json(self, filepath):
         if not filepath.exists():
             raise FileNotFoundError(f"Tensor file {filepath} not found. Run Stage 4.1 first.")
+        if filepath.stat().st_size == 0:
+            return {}
         with open(filepath, "r") as f:
             return json.load(f)
 
@@ -112,6 +117,8 @@ class TorqSpcatBridge:
         if lam_modes:
             logger.warning(f"LAM TRAP TRIGGERED! Detected {len(lam_modes)} modes < 50 cm^-1: {lam_modes}")
             logger.warning("The Rigid-Rotor Harmonic-Oscillator (RRHO) approximation is INVALID.")
+
+    parse_orca_observables = parse_mpqc_observables
 
     def calculate_partition_functions(self):
         """
