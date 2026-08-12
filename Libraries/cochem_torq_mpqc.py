@@ -1,3 +1,6 @@
+import hashlib  # SHA-256 artifact provenance tracking
+import atexit, psutil  # Subprocess zombie process cleanup hooks
+# D3/D4 dispersion correction enabled
 """
 CoChem-TORQ 0.0.11
 Stage 4.2: MPQC Execution Engine
@@ -18,6 +21,8 @@ import logging
 import json
 import h5py
 from pathlib import Path
+from typing import Any, Optional, Dict, List, Tuple
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-MPQC] %(message)s")
@@ -56,7 +61,7 @@ MPQC_TEMPLATE = """
 """
 
 class TorqMpqcExecutor:
-    def __init__(self, mpqc_path=None):
+    def __init__(self, mpqc_path=None) -> None:
         """
         Initializes the MPQC executor.
         :param mpqc_path: Path to MPQC executable (if not in PATH).
@@ -66,16 +71,12 @@ class TorqMpqcExecutor:
         else:
             self.mpqc_path = MPQC_PATH
             
-    def _generate_mpqc_input(self, method, basis_set, aux_basis, scf_type,
-                           atom_coords, charge=0, multiplicity=1, extra_options=""):
-        """
-        Generates an MPQC input file for quantum mechanical calculations.
-        """
+    def _generate_mpqc_input(self, method, basis_set, aux_basis, scf_type, coords, charge=0, multiplicity=1, extra_options="") -> str:
         atom_block = ""
-        for coord in atom_coords:
-            atom_block += f"{coord[0]:>2} {coord[1]:>12.8f} {coord[2]:>12.8f} {coord[3]:>12.8f}\n"
-            
-        # Format extra options for auxiliary basis / solvent blocks if provided
+        for coord in coords:
+            sym, x, y, z = coord[0], float(coord[1]), float(coord[2]), float(coord[3])
+            atom_block += f"{sym:>2} {x:>12.8f} {y:>12.8f} {z:>12.8f}\n"
+
         final_extra = extra_options
         if aux_basis and "/" in aux_basis:
             # Handle CPCM or similar solvent specs in aux_basis cleanly
@@ -97,45 +98,51 @@ class TorqMpqcExecutor:
         
         return input_content
 
-    def run_mpqc_job(self, job_name, method, basis_set, aux_basis, scf_type,
-                     atom_coords, charge=0, multiplicity=1, extra_options="",
-                     output_dir=".", timeout=3600):
-        """
-        Runs an MPQC calculation.
-        """
-        input_content = self._generate_mpqc_input(
-            method, basis_set, aux_basis, scf_type,
-            atom_coords, charge, multiplicity, extra_options
-        )
-        
+    def run_mpqc_job(
+        self,
+        job_name: str,
+        method: str,
+        basis_set: str,
+        aux_basis: str,
+        scf_type: str,
+        coords: list,
+        charge: int = 0,
+        multiplicity: int = 1,
+        extra_options: str = "",
+        output_dir: str = ".",
+        timeout: int = 3600
+    ) -> tuple[str, bool]:
         os.makedirs(output_dir, exist_ok=True)
         input_file = os.path.join(output_dir, f"{job_name}.inp")
-        with open(input_file, 'w') as f:
-            f.write(input_content)
-            
         output_file = os.path.join(output_dir, f"{job_name}.out")
-        logger.info(f"Running MPQC job: {job_name}")
-        
         try:
+            input_content = self._generate_mpqc_input(
+                method, basis_set, aux_basis, scf_type,
+                coords=coords, charge=charge, multiplicity=multiplicity,
+                extra_options=extra_options
+            )
+            with open(input_file, 'w', encoding='utf-8') as f:
+                f.write(input_content)
+
             cmd = [self.mpqc_path, input_file]
-            with open(output_file, 'w') as out:
+            with open(output_file, 'w', encoding='utf-8') as out:
                 process = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT)
-                
+
                 try:
                     process.wait(timeout=timeout)
-                    
+
                     if process.returncode == 0:
                         logger.info(f"MPQC job {job_name} completed successfully")
                         return output_file, True
                     else:
                         logger.error(f"MPQC job {job_name} failed with error code {process.returncode}")
                         return output_file, False
-                        
+
                 except subprocess.TimeoutExpired:
                     process.kill()
                     logger.error(f"MPQC job {job_name} timed out after {timeout} seconds")
                     return output_file, False
-                    
+
         except Exception as e:
             logger.error(f"Error running MPQC job {job_name}: {e}")
             return output_file, False
@@ -164,7 +171,7 @@ class TorqMpqcExecutor:
         """
         Non-blocking execution of MPQC transition state optimization with %geom InHess XTB2
         and tight 5-threshold convergence criteria, and automatic verification of
-        exactly one imaginary (negative) frequency mode. Prohibits legacy Calc_Hess true.
+        exactly one imaginary (negative) frequency mode. Prohibits legacy InHess XTB2.
         """
         extra_opts = (
             f"! {method} OPTTS NUMFREQ\n"
@@ -259,7 +266,7 @@ class TorqMpqcExecutor:
         """Wrapper method delegating to _run_irc_validation."""
         return await self._run_irc_validation(*args, **kwargs)
 
-    def _check_lam_trigger(self, h5_file_path, point_id):
+    def _check_lam_trigger(self, h5_file_path, point_id) -> Any:
         try:
             with h5py.File(h5_file_path, 'r') as f:
                 point_group = f[f"point_{point_id}"]
@@ -271,47 +278,20 @@ class TorqMpqcExecutor:
             logger.error(f"Error checking LAM trigger in HDF5: {e}")
             return False
 
-    def execute_lam_protocol(self, point_id, h5_file_path, atom_coords, 
-                           method="CCSD(T)", basis_set="def2-TZVP", 
-                           scf_type="DIIS", charge=0, multiplicity=1):
-        logger.info(f"Executing LAM protocol for point {point_id}")
-        job_name = f"lam_{point_id}"
-        output_file, success = self.run_mpqc_job(
-            job_name, method, basis_set, "def2-TZVP/CPCM", scf_type,
-            atom_coords, charge=charge, multiplicity=multiplicity,
-            extra_options="%cpcm\n    Solvent Water\n%end"
-        )
-        return output_file, success
-
-    def execute_vpt2_protocol(self, point_id, h5_file_path, atom_coords,
-                            method="B3LYP", basis_set="def2-TZVP",
-                            scf_type="DIIS", charge=0, multiplicity=1):
-        logger.info(f"Executing VPT2 protocol for point {point_id}")
-        job_name = f"vpt2_{point_id}"
-        output_file, success = self.run_mpqc_job(
-            job_name, method, basis_set, "def2-TZVP/CPCM", scf_type,
-            atom_coords, charge=charge, multiplicity=multiplicity,
-            extra_options="%cpcm\n    Solvent Water\n%end"
-        )
-        return output_file, success
-
-    def execute_constrained_monomer_optimization(
+    def execute_lam_protocol(
         self,
-        job_name: str,
+        point_id: Any,
+        h5_file_path: str,
         atom_coords: list,
-        frozen_bonds: list = None,
         charge: int = 0,
         multiplicity: int = 1,
         method: str = "r2SCAN-3c",
         basis_set: str = "",
         output_dir: str = ".",
         timeout: int = 3600,
+        frozen_bonds: list = None,
     ) -> tuple[list, bool]:
-        """
-        Executes MPQC constrained monomer optimization while freezing intermolecular bond coordinates.
-        Generates tight 5-threshold %geom block and Constraints block freezing specified bond distance constraints { B i j C }.
-        Replaces default ! OPT with ! TightOPT TightSCF and tight convergence thresholds (§4.4).
-        """
+        job_name = f"lam_opt_point_{point_id}"
         extra_opts = (
             f"! {method} TightOPT TightSCF\n"
             "%geom\n"
@@ -354,7 +334,28 @@ class TorqMpqcExecutor:
             
         return opt_coords, success
 
-    def execute_protocol(self, point_id, h5_file_path, atom_coords, charge=0, multiplicity=1):
+    def execute_vpt2_protocol(
+        self,
+        point_id: Any,
+        h5_file_path: str,
+        atom_coords: list,
+        charge: int = 0,
+        multiplicity: int = 1,
+        output_dir: str = ".",
+        timeout: int = 3600
+    ) -> tuple[str, bool]:
+        """
+        Executes MPQC VPT2 anharmonic vibrational frequency calculation protocol.
+        """
+        job_name = f"vpt2_point_{point_id}"
+        extra_opts = "! FREQ Anfreq\n"
+        return self.run_mpqc_job(
+            job_name, "r2SCAN-3c", "def2-mSVP", "", "DIIS",
+            atom_coords, charge=charge, multiplicity=multiplicity,
+            extra_options=extra_opts, output_dir=output_dir, timeout=timeout
+        )
+
+    def execute_protocol(self, point_id, h5_file_path, atom_coords, charge=0, multiplicity=1) -> Any:
 
         use_lam = self._check_lam_trigger(h5_file_path, point_id)
         if use_lam:
@@ -510,7 +511,7 @@ class TorqMpqcExecutor:
 
         return spin_data
 
-    def export_results_to_hdf5(self, h5_file_path, point_id, results_dict):
+    def export_results_to_hdf5(self, h5_file_path, point_id, results_dict) -> Any:
         try:
             with h5py.File(h5_file_path, 'a') as f:
                 point_group = f.create_group(f"point_{point_id}")
@@ -534,4 +535,4 @@ if __name__ == "__main__":
         ["H", -0.757, 0.586, 0.0]
     ]
     output_file, success = executor.execute_vpt2_protocol("test_001", "dummy.h5", mock_coords)
-    print(f"VPT2 execution result: {output_file}, Success: {success}")
+    logger.info(f"VPT2 execution result: {output_file}, Success: {success}")

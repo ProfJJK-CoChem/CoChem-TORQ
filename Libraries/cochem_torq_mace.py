@@ -12,6 +12,7 @@ Identifies the topographic peaks (Transition States) and valleys
 
 import json
 import logging
+from typing import Any
 import gc
 import numpy as np
 from pathlib import Path
@@ -47,7 +48,7 @@ logger = logging.getLogger("TorqMACETriage")
 EV_TO_KCAL_MOL = 23.0605
 
 class TorqMACETriage:
-    def __init__(self, grid_filepath="torq_grid.json", model_name="MACE-OFF24m", model_size="medium"):
+    def __init__(self, grid_filepath="torq_grid.json", model_name="MACE-OFF24m", model_size="medium") -> None:
         """
         Initializes the ML Triage Engine and dynamically allocates hardware.
         Enforces float32 SCF tolerance guards (TolE 1e-5).
@@ -65,13 +66,13 @@ class TorqMACETriage:
         self.calculator = self._initialize_calculator(model_name, model_size)
         self.triage_results = []
 
-    def _load_grid(self):
+    def _load_grid(self) -> Any:
         if not self.grid_filepath.exists():
             raise FileNotFoundError(f"Grid file {self.grid_filepath} not found. Run Stage 1.2 first.")
         with open(self.grid_filepath, "r") as f:
-            return json.load(f)
+            return json.loads(f.read())
 
-    def _detect_hardware(self):
+    def _detect_hardware(self) -> Any:
         """Hardware-aware routing protocol with adaptive batch sizing."""
         if torch is not None and torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
@@ -83,7 +84,7 @@ class TorqMACETriage:
             self.batch_size = 16
             return "cpu"
 
-    def _initialize_calculator(self, model_name="MACE-OFF24m", model_size="medium"):
+    def _initialize_calculator(self, model_name="MACE-OFF24m", model_size="medium") -> Any:
         """Loads MACE-OFF24m or AIMNet2 model with float32 SCF tolerance guards (TolE 1e-5) or ASE EMT fallback."""
         logger.info(f"Initializing {model_name} ({model_size}) on {self.device} with float32 TolE={self.scf_tolerance_guard} guard...")
         
@@ -120,7 +121,7 @@ class TorqMACETriage:
         from ase.calculators.emt import EMT
         return EMT()
 
-    def execute_surface_scan(self, vram_flush_interval=None):
+    def execute_surface_scan(self, vram_flush_interval=None) -> Any:
         """
         Iterates through the grid geometries, extracting energies while actively 
         managing memory footprint with device-adaptive batch sizes.
@@ -172,7 +173,7 @@ class TorqMACETriage:
         logger.info(f"{self.model_name} Scan Complete.")
         return self.triage_results
 
-    def extract_topographic_extrema(self, energy_threshold_kcal=0.5):
+    def extract_topographic_extrema(self, energy_threshold_kcal=0.5) -> Any:
         """
         Calculates 2D gradient nabla V and Hessian matrix H across the PES grid,
         identifying true local minima (nabla V ~ 0, all eig(H) > 0) and saddle points
@@ -214,7 +215,7 @@ class TorqMACETriage:
         logger.info(f"Hessian 2D curvature analysis extracted {len(extrema)} true topographic extrema (minima & saddle points).")
         return extrema
 
-    def export_triage_surface(self, filename="torq_mace_surface.json"):
+    def export_triage_surface(self, filename="torq_mace_surface.json") -> Any:
         """Saves the evaluated landscape for visualization and downstream ORCA routing."""
         payload = {
             "metadata": {

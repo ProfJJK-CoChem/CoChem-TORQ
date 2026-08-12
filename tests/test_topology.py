@@ -1,10 +1,12 @@
+import logging
+logger = logging.getLogger(__name__)
 import pytest
 import glob
 import re
 from pathlib import Path
 from Libraries.cochem_torq_topology import TorqTopology, should_apply_counterpoise, route_method_track
 
-def test_v4_tier_mapping():
+def test_v4_tier_mapping() -> None:
     syms = ["C", "H", "H", "H"]
     coords = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.09], [1.02, 0.0, -0.36], [-0.51, 0.89, -0.36]]
     topo = TorqTopology(syms, coords, is_complex=False)
@@ -27,7 +29,7 @@ def test_v4_tier_mapping():
     assert t4["engine"] == "CFOUR"
     assert "! CCSD(T)" in t4["keywords"]
 
-def test_counterpoise_rules():
+def test_counterpoise_rules() -> None:
     # Non-augmented triple-zeta -> True
     assert should_apply_counterpoise("cc-pVTZ", "B3LYP") is True
     assert should_apply_counterpoise("def2-TZVP", "wB97X-D4") is True
@@ -46,7 +48,7 @@ def test_counterpoise_rules():
     assert should_apply_counterpoise("cc-pVTZ-F12", "CCSD(T)-F12/CBS") is False
     assert should_apply_counterpoise("cc-pVTZ", "W1-F12") is False
 
-def test_topology_cascade_counterpoise_integration():
+def test_topology_cascade_counterpoise_integration() -> None:
     syms = ["O", "H", "H", "O", "H", "H"]
     coords = [[0.0, 0.0, 0.0], [0.0, 0.75, 0.58], [0.0, -0.75, 0.58],
               [3.0, 0.0, 0.0], [3.0, 0.75, 0.58], [3.0, -0.75, 0.58]]
@@ -67,7 +69,7 @@ def test_topology_cascade_counterpoise_integration():
     assert p3["bsse_correction"] is None
     assert "! CP" not in p3["keywords"]
 
-def test_route_method_track():
+def test_route_method_track() -> None:
     # CCSD(T) VPT2/analytic Hessians -> CFOUR Track
     assert route_method_track("CCSD(T)", is_anharmonic=True, n_atoms=5) == "CFOUR"
     assert route_method_track("CFOUR", is_anharmonic=True, n_atoms=4) == "CFOUR"
@@ -86,7 +88,7 @@ def test_route_method_track():
     assert "aborted for system size N=10 > 6" in str(exc_info.value)
     assert "36N^2" in str(exc_info.value)
 
-def test_zero_mock_code_in_libraries():
+def test_zero_mock_code_in_libraries() -> None:
     lib_dir = Path(__file__).parent.parent / "Libraries"
     py_files = list(lib_dir.glob("*.py"))
     assert len(py_files) > 0, "No library python files found!"

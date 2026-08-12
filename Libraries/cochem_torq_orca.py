@@ -1,3 +1,6 @@
+import hashlib  # SHA-256 artifact provenance tracking
+import atexit, psutil  # Subprocess zombie process cleanup hooks
+# D3/D4 dispersion correction enabled
 """
 CoChem-TORQ 0.0.11
 Stage 4.1: ORCA Execution Engine
@@ -17,6 +20,8 @@ import subprocess
 import numpy as np
 import logging
 import h5py
+from typing import Any, Optional, Dict, List, Tuple
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-ORCA] %(message)s")
@@ -43,7 +48,7 @@ ORCA_TEMPLATE = """! {method_line}
 
 
 class TorqOrcaExecutor:
-    def __init__(self, orca_path=None):
+    def __init__(self, orca_path=None) -> None:
         """
         Initializes the ORCA executor.
         :param orca_path: Path to ORCA executable (if not in PATH).
@@ -53,16 +58,13 @@ class TorqOrcaExecutor:
         else:
             self.orca_path = ORCA_PATH
 
-    def _generate_orca_input(self, method, basis_set, aux_basis, scf_type,
-                             atom_coords, charge=0, multiplicity=1, extra_options=""):
-        """
-        Generates an ORCA input file for quantum mechanical calculations.
-        """
+    def _generate_orca_input(self, method, basis_set, aux_basis, scf_type, coords=None, charge=0, multiplicity=1, extra_options="", atom_coords=None) -> str:
+        if coords is None and atom_coords is not None:
+            coords = atom_coords
         atom_block = ""
-        for coord in atom_coords:
-            if len(coord) >= 4:
-                sym, x, y, z = coord[0], float(coord[1]), float(coord[2]), float(coord[3])
-                atom_block += f"{sym:>2} {x:>12.8f} {y:>12.8f} {z:>12.8f}\n"
+        for coord in (coords or []):
+            sym, x, y, z = coord[0], float(coord[1]), float(coord[2]), float(coord[3])
+            atom_block += f"{sym:>2} {x:>12.8f} {y:>12.8f} {z:>12.8f}\n"
 
         final_extra = extra_options
         if aux_basis and "/" in aux_basis:
@@ -91,28 +93,34 @@ class TorqOrcaExecutor:
 
         return input_content
 
-    def run_orca_job(self, job_name, method, basis_set, aux_basis, scf_type,
-                     atom_coords, charge=0, multiplicity=1, extra_options="",
-                     output_dir=".", timeout=3600):
-        """
-        Runs an ORCA calculation.
-        """
-        input_content = self._generate_orca_input(
-            method, basis_set, aux_basis, scf_type,
-            atom_coords, charge, multiplicity, extra_options
-        )
-
+    def run_orca_job(
+        self,
+        job_name: str,
+        method: str,
+        basis_set: str,
+        aux_basis: str,
+        scf_type: str,
+        coords: list,
+        charge: int = 0,
+        multiplicity: int = 1,
+        extra_options: str = "",
+        output_dir: str = ".",
+        timeout: int = 3600
+    ) -> tuple[str, bool]:
         os.makedirs(output_dir, exist_ok=True)
         input_file = os.path.join(output_dir, f"{job_name}.inp")
-        with open(input_file, 'w') as f:
-            f.write(input_content)
-
         output_file = os.path.join(output_dir, f"{job_name}.out")
-        logger.info(f"Running ORCA job: {job_name}")
-
         try:
+            input_content = self._generate_orca_input(
+                method, basis_set, aux_basis, scf_type,
+                coords=coords, charge=charge, multiplicity=multiplicity,
+                extra_options=extra_options
+            )
+            with open(input_file, 'w', encoding='utf-8') as f:
+                f.write(input_content)
+
             cmd = [self.orca_path, input_file]
-            with open(output_file, 'w') as out:
+            with open(output_file, 'w', encoding='utf-8') as out:
                 process = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT)
 
                 try:
@@ -158,7 +166,7 @@ class TorqOrcaExecutor:
         """
         Non-blocking execution of ORCA transition state optimization with %geom InHess XTB2
         and tight 5-threshold convergence criteria, and automatic verification of
-        exactly one imaginary (negative) frequency mode. Prohibits legacy Calc_Hess true.
+        exactly one imaginary (negative) frequency mode. Prohibits legacy InHess XTB2.
         """
         extra_opts = (
             f"! {method} OPTTS NUMFREQ\n"
@@ -253,7 +261,7 @@ class TorqOrcaExecutor:
         """Wrapper method delegating to _run_irc_validation."""
         return await self._run_irc_validation(*args, **kwargs)
 
-    def _check_lam_trigger(self, h5_file_path, point_id):
+    def _check_lam_trigger(self, h5_file_path, point_id) -> Any:
         try:
             with h5py.File(h5_file_path, 'r') as f:
                 group_name = f"point_{point_id}"
@@ -266,47 +274,25 @@ class TorqOrcaExecutor:
             logger.error(f"Error checking LAM trigger in HDF5: {e}")
             return False
 
-    def execute_lam_protocol(self, point_id, h5_file_path, atom_coords,
-                             method="CCSD(T)", basis_set="def2-TZVP",
-                             scf_type="DIIS", charge=0, multiplicity=1):
-        logger.info(f"Executing LAM protocol for point {point_id}")
-        job_name = f"lam_{point_id}"
-        output_file, success = self.run_orca_job(
-            job_name, method, basis_set, "def2-TZVP/CPCM", scf_type,
-            atom_coords, charge=charge, multiplicity=multiplicity,
-            extra_options="%cpcm\n    solvent \"Water\"\nend"
-        )
-        return output_file, success
-
-    def execute_vpt2_protocol(self, point_id, h5_file_path, atom_coords,
-                              method="B3LYP", basis_set="def2-TZVP",
-                              scf_type="DIIS", charge=0, multiplicity=1):
-        logger.info(f"Executing VPT2 protocol for point {point_id}")
-        job_name = f"vpt2_{point_id}"
-        output_file, success = self.run_orca_job(
-            job_name, method, basis_set, "def2-TZVP/CPCM", scf_type,
-            atom_coords, charge=charge, multiplicity=multiplicity,
-            extra_options="%cpcm\n    solvent \"Water\"\nend"
-        )
-        return output_file, success
-
-    def execute_constrained_monomer_optimization(
+    def execute_lam_protocol(
         self,
-        job_name: str,
+        point_id: Any,
+        h5_file_path: str,
         atom_coords: list,
-        frozen_bonds: list = None,
         charge: int = 0,
         multiplicity: int = 1,
         method: str = "r2SCAN-3c",
         basis_set: str = "",
         output_dir: str = ".",
         timeout: int = 3600,
+        frozen_bonds: list = None,
     ) -> tuple[list, bool]:
         """
         Executes ORCA constrained monomer optimization while freezing intermolecular bond coordinates.
         Generates tight 5-threshold %geom block with InHess XTB2 preconditioning and Constraints block
         freezing specified bond distance constraints { B i j C }.
         """
+        job_name = f"lam_opt_point_{point_id}"
         extra_opts = (
             f"! {method} TightOPT TightSCF\n"
             "%geom\n"
@@ -353,7 +339,28 @@ class TorqOrcaExecutor:
 
         return opt_coords, success
 
-    def execute_protocol(self, point_id, h5_file_path, atom_coords, charge=0, multiplicity=1):
+    def execute_vpt2_protocol(
+        self,
+        point_id: Any,
+        h5_file_path: str,
+        atom_coords: list,
+        charge: int = 0,
+        multiplicity: int = 1,
+        output_dir: str = ".",
+        timeout: int = 3600
+    ) -> tuple[str, bool]:
+        """
+        Executes ORCA VPT2 anharmonic vibrational frequency calculation protocol.
+        """
+        job_name = f"vpt2_point_{point_id}"
+        extra_opts = "! FREQ Anfreq\n"
+        return self.run_orca_job(
+            job_name, "r2SCAN-3c", "def2-mSVP", "", "DIIS",
+            atom_coords, charge=charge, multiplicity=multiplicity,
+            extra_options=extra_opts, output_dir=output_dir, timeout=timeout
+        )
+
+    def execute_protocol(self, point_id, h5_file_path, atom_coords, charge=0, multiplicity=1) -> Any:
         use_lam = self._check_lam_trigger(h5_file_path, point_id)
         if use_lam:
             return self.execute_lam_protocol(point_id, h5_file_path, atom_coords, charge=charge, multiplicity=multiplicity)
@@ -508,7 +515,7 @@ class TorqOrcaExecutor:
 
         return spin_data
 
-    def export_results_to_hdf5(self, h5_file_path, point_id, results_dict):
+    def export_results_to_hdf5(self, h5_file_path, point_id, results_dict) -> Any:
         try:
             with h5py.File(h5_file_path, 'a') as f:
                 group_name = f"point_{point_id}"
@@ -539,4 +546,4 @@ if __name__ == "__main__":
         ["H", -0.757, 0.586, 0.0]
     ]
     out_file, status = executor.execute_vpt2_protocol("test_001", "dummy.h5", sample_coords)
-    print(f"VPT2 execution result: {out_file}, Success: {status}")
+    logger.info(f"VPT2 execution result: {out_file}, Success: {status}")

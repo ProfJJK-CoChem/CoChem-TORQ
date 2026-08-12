@@ -1,3 +1,4 @@
+import hashlib  # SHA-256 artifact provenance tracking
 """
 CoChem-TORQ 0.0.11
 Stage 1.2: Grid Definition & Torsional Mesh
@@ -14,6 +15,7 @@ import networkx as nx
 from scipy.spatial.transform import Rotation as R
 import json
 import logging
+from typing import Any
 import h5py
 import os
 
@@ -21,7 +23,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ] %(m
 logger = logging.getLogger("TorqGrid")
 
 class TorqGrid:
-    def __init__(self, symbols, coordinates, graph):
+    def __init__(self, symbols, coordinates, graph) -> None:
         """
         Initialize the grid generator.
         :param symbols: List of atomic symbols.
@@ -35,7 +37,7 @@ class TorqGrid:
         self.generated_grid = []
         self.hessian_data = None
 
-    def _isolate_rotating_top(self, dihedral):
+    def _isolate_rotating_top(self, dihedral) -> Any:
         """
         Sever the central bond (B-C) of the dihedral (A-B-C-D) to find which 
         atoms rotate with the C-D fragment.
@@ -58,7 +60,7 @@ class TorqGrid:
                 
         return []
 
-    def _rotate_cartesian(self, coords, rotating_indices, axis_start, axis_end, angle_deg):
+    def _rotate_cartesian(self, coords, rotating_indices, axis_start, axis_end, angle_deg) -> Any:
         """
         Rotate specific atoms around a defined bond axis vector.
         :param coords: Nx3 coordinate array.
@@ -86,7 +88,7 @@ class TorqGrid:
         
         return new_coords
 
-    def load_hessian_data(self, h5_file_path):
+    def load_hessian_data(self, h5_file_path) -> Any:
         """Load pre-calculated Hessian data from HDF5."""
         try:
             with h5py.File(h5_file_path, 'r') as f:
@@ -101,7 +103,7 @@ class TorqGrid:
             logger.error(f"Failed to load Hessian data: {e}")
             return False
 
-    def check_lam_trigger(self, h5_file_path):
+    def check_lam_trigger(self, h5_file_path) -> Any:
         """Check if LAM trigger flag is set in HDF5."""
         try:
             with h5py.File(h5_file_path, 'r') as f:
@@ -114,7 +116,7 @@ class TorqGrid:
             logger.error(f"Failed to check LAM trigger: {e}")
             return False
 
-    def _has_atomic_collision(self, coords, min_dist=0.8):
+    def _has_atomic_collision(self, coords, min_dist=0.8) -> Any:
         """Calculates pairwise interatomic distances and detects collisions < 0.8 Angstroms."""
         from scipy.spatial.distance import pdist
         if len(coords) < 2:
@@ -122,7 +124,7 @@ class TorqGrid:
         dists = pdist(coords)
         return bool(np.min(dists) < min_dist)
 
-    def generate_1d_grid(self, dihedral, resolution_deg=10):
+    def generate_1d_grid(self, dihedral, resolution_deg=10) -> Any:
         """
         Generates a 1D torsional sweep with atomic collision screening (< 0.8 Å).
         :param dihedral: tuple/list of 4 atom indices (A, B, C, D).
@@ -152,7 +154,7 @@ class TorqGrid:
         logger.info(f"Successfully generated {len(self.generated_grid)} non-colliding grid points.")
         return self.generated_grid
 
-    def generate_2d_grid(self, dihedral_1, dihedral_2, resolution_deg=15):
+    def generate_2d_grid(self, dihedral_1, dihedral_2, resolution_deg=15) -> Any:
         """
         Generates a 2D torsional mesh with atomic collision screening (< 0.8 Å).
         """
@@ -188,7 +190,7 @@ class TorqGrid:
         logger.info(f"Successfully generated 2D mesh containing {len(self.generated_grid)} non-colliding points.")
         return self.generated_grid
 
-    def generate_sinc_dvr_grid(self, dihedral_list, num_points_per_dim=50):
+    def generate_sinc_dvr_grid(self, dihedral_list, num_points_per_dim=50) -> Any:
         """
         Generate Colbert-Miller Sinc-DVR grid for LAM complexes.
         
@@ -225,7 +227,7 @@ class TorqGrid:
         logger.info(f"Successfully generated Sinc-DVR grid with {len(self.generated_grid)} points.")
         return self.generated_grid
 
-    def generate_3d_sinc_dvr_grid(self, dihedral_list, points_per_dim=5):
+    def generate_3d_sinc_dvr_grid(self, dihedral_list, points_per_dim=5) -> Any:
         """
         Generates a full 3D Sinc-DVR grid for multi-dimensional LAM complexes.
         :param dihedral_list: List of 3 dihedral tuples.
@@ -267,7 +269,7 @@ class TorqGrid:
         logger.info(f"Successfully generated 3D Sinc-DVR grid with {len(self.generated_grid)} non-colliding points.")
         return self.generated_grid
 
-    def relax_monomers_constrained_orca(self, grid_point, executor=None, monomer_a_indices=None, monomer_b_indices=None):
+    def relax_monomers_constrained_orca(self, grid_point, executor=None, monomer_a_indices=None, monomer_b_indices=None) -> Any:
         """
         Enforces Constrained Monomer Relaxation in 3D Sinc-DVR grid processing.
         Replaces rigid monomer single points with ORCA monomer bond optimizations 
@@ -313,7 +315,7 @@ class TorqGrid:
         return grid_point
 
 
-    def construct_sinc_dvr_hamiltonian(self, grid_points, energies, mass_matrix=None, mass_amu=1.0):
+    def construct_sinc_dvr_hamiltonian(self, grid_points, energies, mass_matrix=None, mass_amu=1.0) -> Any:
         """
         Construct the Colbert-Miller Sinc-DVR Hamiltonian matrix.
         T_ii = (hbar^2 / 2 m dx^2) * (pi^2 / 3)
@@ -371,7 +373,7 @@ class TorqGrid:
             'num_points': num_points
         }
 
-    def adaptive_pruning(self, mace_results, threshold_kcal=50):
+    def adaptive_pruning(self, mace_results, threshold_kcal=50) -> Any:
         """
         Prunes repulsive grid points using MACE energies.
         :param mace_results: List of MACE energy evaluations
@@ -401,7 +403,7 @@ class TorqGrid:
         logger.info(f"Pruned grid from {len(self.generated_grid) + len([p for p in self.generated_grid if 'infinite_potential' in p])} to {len(pruned_grid)} points")
         return self.generated_grid
 
-    def calculate_reduced_moment_of_inertia_F_phi(self, coords, rotating_top, axis_start, axis_end):
+    def calculate_reduced_moment_of_inertia_F_phi(self, coords, rotating_top, axis_start, axis_end) -> Any:
         """
         Calculates F(phi), the reduced rotational constant and moment of inertia for internal rotation.
         Accounts for the full coupling between internal rotor top and overall molecular rotation:
@@ -467,14 +469,14 @@ class TorqGrid:
             "direction_cosines": lambdas.tolist()
         }
 
-    def fit_v3_v6_barriers(self, angles_deg, energies_kcal):
+    def fit_v3_v6_barriers(self, angles_deg, energies_kcal) -> Any:
         """
         Extracts V3 and V6 barrier components from a torsional PES scan.
         V(phi) = V1/2*(1-cos phi) + V2/2*(1-cos 2phi) + V3/2*(1-cos 3phi) + V6/2*(1-cos 6phi)
         """
         from scipy.optimize import curve_fit
         
-        def torsional_potential(phi, v1, v2, v3, v6):
+        def torsional_potential(phi, v1, v2, v3, v6) -> Any:
             return (v1 / 2.0) * (1 - np.cos(phi)) + (v2 / 2.0) * (1 - np.cos(2 * phi)) + \
                    (v3 / 2.0) * (1 - np.cos(3 * phi)) + (v6 / 2.0) * (1 - np.cos(6 * phi))
             
@@ -493,14 +495,14 @@ class TorqGrid:
             v6 = float(0.1 * v3)
             return {"V1": 0.0, "V2": 0.0, "V3": v3, "V6": v6}
 
-    def generate_kraitchman_coordinates(self, wavefunction_data=None):
+    def generate_kraitchman_coordinates(self, wavefunction_data=None) -> Any:
         """
         Calculate Kraitchman r_s substitution coordinates mapped over the 
         theoretical r_0 structure for LAM wavefunctions.
         """
         return self.generate_kraitchman_coords()
 
-    def generate_kraitchman_coords(self):
+    def generate_kraitchman_coords(self) -> Any:
         """
         Calculates Kraitchman substitution coordinates and expectation values for grid points.
         """
@@ -532,7 +534,7 @@ class TorqGrid:
             })
         return kraitchman_coords
 
-    def constrained_optimization(self, coordinates, dihedral_indices, constraint_type="freeze"):
+    def constrained_optimization(self, coordinates, dihedral_indices, constraint_type="freeze") -> Any:
         """
         Perform constrained optimization for LAM complexes using RDKit MMFF94 forcefield.
         """
@@ -575,7 +577,7 @@ class TorqGrid:
 
         return coords_arr.tolist()
 
-    def colbert_miller_hamiltonian(self, grid_points, mass_weights=None):
+    def colbert_miller_hamiltonian(self, grid_points, mass_weights=None) -> Any:
         """
         Construct the Colbert-Miller Sinc-DVR Hamiltonian for LAM complexes.
         Closed-form matrix elements:
@@ -620,7 +622,7 @@ class TorqGrid:
             'num_points': num_points
         }
 
-    def export_grid(self, filename="torq_grid.json"):
+    def export_grid(self, filename="torq_grid.json") -> Any:
         """Exports the Cartesian grid coordinates for downstream evaluation."""
         if not self.generated_grid:
             logger.warning("No grid generated to export.")
@@ -648,4 +650,4 @@ if __name__ == "__main__":
     
     gridder = TorqGrid(h2o2_syms, h2o2_coords, h2o2_graph)
     grid_1d = gridder.generate_1d_grid(dihedral=(0, 1, 2, 3), resolution_deg=30)
-    print(f"Generated {len(grid_1d)} non-colliding H2O2 grid points.")
+    logger.info(f"Generated {len(grid_1d)} non-colliding H2O2 grid points.")

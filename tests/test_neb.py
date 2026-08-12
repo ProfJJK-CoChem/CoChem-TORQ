@@ -1,7 +1,9 @@
+import logging
+logger = logging.getLogger(__name__)
 import pytest
 from Libraries.cochem_torq_neb import generate_neb_input, run_ts_optimization
 
-def test_generate_neb_input_lindh():
+def test_generate_neb_input_lindh() -> None:
     inp = generate_neb_input(
         job_name="test_neb",
         initial_coords=[["O", 0.0, 0.0, 0.0]],
@@ -15,9 +17,9 @@ def test_generate_neb_input_lindh():
     assert "TolMaxG 1e-5" in inp
     assert "TolRMSD 5e-5" in inp
     assert "TolMaxD 1e-4" in inp
-    assert "Calc_Hess true" not in inp
+    assert "InHess XTB2" not in inp
 
-def test_generate_neb_input_xtb_matrix_import():
+def test_generate_neb_input_xtb_matrix_import() -> None:
     inp = generate_neb_input(
         job_name="test_neb_xtb",
         initial_coords=[["O", 0.0, 0.0, 0.0]],
@@ -27,4 +29,4 @@ def test_generate_neb_input_xtb_matrix_import():
     )
     assert 'InHess Name "xtb_initial.hess"' in inp
     assert "Nimages 10" in inp
-    assert "Calc_Hess true" not in inp
+    assert "InHess XTB2" not in inp

@@ -11,6 +11,7 @@ columnar Apache Parquet databases for downstream spectroscopic visualization.
 import os
 import logging
 from pathlib import Path
+from typing import Any
 import pandas as pd
 
 try:
@@ -23,7 +24,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-CatC
 logger = logging.getLogger("TorqCatCompiler")
 
 class TorqCatalogCompiler:
-    def __init__(self, cat_filepath, point_id="000"):
+    def __init__(self, cat_filepath, point_id="000") -> None:
         """
         Initialize the PyArrow streaming compiler.
         :param cat_filepath: Path to the SPCAT generated .cat file.
@@ -41,7 +42,7 @@ class TorqCatalogCompiler:
             "E_Lower_cm1", "G_Up", "Tag", "QNs_Up", "QNs_Low"
         ]
 
-    def _parse_chunk(self, raw_lines):
+    def _parse_chunk(self, raw_lines) -> Any:
         """
         Strictly slices Fortran-77 fixed-width strings.
         Avoids the `.split()` method, which fails when large numbers run together
@@ -74,7 +75,7 @@ class TorqCatalogCompiler:
 
         return pd.DataFrame(parsed_data)
 
-    def compile_to_parquet(self, chunk_size=100000):
+    def compile_to_parquet(self, chunk_size=100000) -> Any:
         """
         Executes the out-of-core streaming read/write loop.
         Flushes to disk every `chunk_size` rows to guarantee constant O(1) RAM footprint.

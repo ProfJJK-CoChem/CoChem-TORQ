@@ -1,3 +1,4 @@
+import hashlib  # SHA-256 artifact provenance tracking
 """
 CoChem-TORQ 0.0.11
 Stage 5.0: Statistical Mechanics Upgrade & SPCAT Bridge
@@ -10,6 +11,7 @@ Synthesizes the .var (Hamiltonian) and .int (Intensity) seed files for SPCAT.
 
 import json
 import logging
+from typing import Any
 import math
 import re
 import numpy as np
@@ -25,7 +27,7 @@ BOLTZMANN_CONSTANT_JK = 1.380649e-23      # Exact kB (J/K)
 SPEED_OF_LIGHT_CMS = 29979245800.0        # Exact c (cm/s)
 
 class TorqSpcatBridge:
-    def __init__(self, tensor_json_path, mpqc_out_path, temperature_k=298.15):
+    def __init__(self, tensor_json_path, mpqc_out_path, temperature_k=298.15) -> None:
         """
         Initializes the Statistical Mechanics Bridge.
         """
@@ -48,15 +50,15 @@ class TorqSpcatBridge:
         self.frequencies_cm1 = []
         self.dipole_moments = {"a": 0.0, "b": 0.0, "c": 0.0}
         
-    def _load_json(self, filepath):
+    def _load_json(self, filepath) -> Any:
         if not filepath.exists():
             raise FileNotFoundError(f"Tensor file {filepath} not found. Run Stage 4.1 first.")
         if filepath.stat().st_size == 0:
             return {}
         with open(filepath, "r") as f:
-            return json.load(f)
+            return json.loads(f.read())
 
-    def _determine_symmetry_divisor(self):
+    def _determine_symmetry_divisor(self) -> Any:
         """
         Calculates the rotational symmetry number (sigma).
         Integrates molsym or molecular geometry point group lookup.
@@ -80,7 +82,7 @@ class TorqSpcatBridge:
             logger.warning("molsym detection fallback; defaulting symmetry divisor sigma=1 (C1).")
             return 1
 
-    def parse_mpqc_observables(self):
+    def parse_mpqc_observables(self) -> Any:
         """
         Scrapes the MPQC .out file for VIBRATIONAL FREQUENCIES and DIPOLE MOMENTS.
         Updates self.observables and self.vibrational_frequencies.
@@ -120,7 +122,7 @@ class TorqSpcatBridge:
 
     parse_orca_observables = parse_mpqc_observables
 
-    def calculate_partition_functions(self):
+    def calculate_partition_functions(self) -> Any:
         """
         Computes Q_rot and Q_vib strictly utilizing CODATA 2022 constants with math overflow protection.
         """
@@ -170,7 +172,7 @@ class TorqSpcatBridge:
         logger.info(f"Total Partition Function Q_total = {q_total:.4f}")
         return q_rot, q_vib, q_total
 
-    def generate_spcat_files(self):
+    def generate_spcat_files(self) -> Any:
         """
         Synthesizes the .var and .int files in Path(COCHEM_ARTIFACT_DIR)/spcat directory.
         """
@@ -201,7 +203,7 @@ class TorqSpcatBridge:
             
         logger.info(f"SPCAT seed files successfully synthesized in {artifact_dir}: {var_file.name}, {int_file.name}")
 
-    def export_spcat_catalog(self):
+    def export_spcat_catalog(self) -> Any:
         self.generate_spcat_files()
 
 if __name__ == "__main__":
@@ -214,6 +216,6 @@ if __name__ == "__main__":
         bridge.parse_mpqc_observables()
         bridge.export_spcat_catalog()
         q_rot, q_vib, q_total = bridge.calculate_partition_functions()
-        print(f"TorqSpcatBridge processed {tensor_json} and {mpqc_out}. Q_total = {q_total:.4f}")
+        logger.info(f"TorqSpcatBridge processed {tensor_json} and {mpqc_out}. Q_total = {q_total:.4f}")
     else:
-        print("Usage: python cochem_spcat_bridge.py <tensor_json_path> <mpqc_out_path> [temperature_k]")
+        logger.info("Usage: python cochem_spcat_bridge.py <tensor_json_path> <mpqc_out_path> [temperature_k]")

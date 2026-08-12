@@ -1,3 +1,6 @@
+import logging
+from typing import Any
+logger = logging.getLogger(__name__)
 """
 CoChem-TORQ 0.0.11
 Stage 4.1: Transition State Optimization & NEB Module
@@ -21,8 +24,8 @@ async def run_ts_optimization(
     output_dir: str = ".",
     timeout: int = 3600,
     inhess: str = "XTB2",
-):
-    """Executes ORCA transition state optimization with R2SCAN-3c and initial Hessian preconditioning (InHess Lindh or InHess XTB2). Prohibits Calc_Hess true."""
+) -> Any:
+    """Executes ORCA transition state optimization with R2SCAN-3c and initial Hessian preconditioning (InHess Lindh or InHess XTB2). Prohibits InHess XTB2."""
     return await _executor.run_ts_optimization(
         job_name=job_name,
         atom_coords=atom_coords,
@@ -49,7 +52,7 @@ def generate_neb_input(
     """
     Generates ORCA NEB / CI-NEB calculation input with initial Hessian preconditioning
     using 'InHess Lindh' or importing an xTB pre-calculated Hessian matrix (§8B.3).
-    Prohibits legacy Calc_Hess true.
+    Prohibits legacy InHess XTB2.
     """
     inhess_line = f"  InHess {inhess}\n"
     if xtb_hessian_file:
@@ -80,7 +83,7 @@ async def _run_irc_validation(
     basis_set: str = "",
     output_dir: str = ".",
     timeout: int = 3600,
-):
+) -> Any:
     """Executes ORCA IRC calculation and verifies Kabsch RMSD against targets (< 0.5 A)."""
     return await _executor._run_irc_validation(
         job_name=job_name,

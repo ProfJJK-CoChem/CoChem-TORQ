@@ -1,9 +1,11 @@
+import logging
+logger = logging.getLogger(__name__)
 import pytest
 import json
 from pathlib import Path
 from Libraries.cochem_torq_mace import TorqMACETriage
 
-def test_mace_triage_init(tmp_path):
+def test_mace_triage_init(tmp_path) -> None:
     grid_file = tmp_path / "torq_grid.json"
     grid_data = {
         "symbols": ["H", "H"],
@@ -22,7 +24,7 @@ def test_mace_triage_init(tmp_path):
     assert triage.scf_tolerance_guard == 1e-5
     assert triage.device in ["cpu", "cuda"]
 
-def test_aimnet2_triage_init(tmp_path):
+def test_aimnet2_triage_init(tmp_path) -> None:
     grid_file = tmp_path / "torq_grid.json"
     grid_data = {
         "symbols": ["H", "H"],
@@ -36,7 +38,7 @@ def test_aimnet2_triage_init(tmp_path):
     assert triage.model_name == "AIMNet2"
     assert triage.scf_tolerance_guard == 1e-5
 
-def test_extract_topographic_extrema():
+def test_extract_topographic_extrema() -> None:
     # Populate test triage results directly
     triage = TorqMACETriage.__new__(TorqMACETriage)
     triage.triage_results = [

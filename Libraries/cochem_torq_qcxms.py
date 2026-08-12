@@ -14,7 +14,7 @@ import logging
 import h5py
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import hashlib
 
 # Configure logging
@@ -34,7 +34,7 @@ class TorqQCxMSIntegration:
         import subprocess
         logger.info(f"Running QCxMS simulation: {' '.join(cmd)}")
         try:
-            res = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+            res = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, check=True)
             if res.returncode != 0:
                 raise QCXMSError(f"QCxMS execution failed with exit code {res.returncode}: {res.stderr}")
             logger.info("QCxMS simulation completed successfully.")
@@ -46,7 +46,7 @@ class TorqQCxMSIntegration:
                 raise QCXMSError(f"QCxMS execution error: {e}") from e
             raise
 
-    def __init__(self, qcxms_config_path: str = "config/qcxms_config.json"):
+    def __init__(self, qcxms_config_path: str = "config/qcxms_config.json") -> None:
         """
         Initializes the QCxMS integration module.
         :param qcxms_config_path: Path to QCxMS configuration file
@@ -66,7 +66,7 @@ class TorqQCxMSIntegration:
             }
             
         with open(self.qcxms_config_path, 'r') as f:
-            return json.load(f)
+            return json.loads(f.read())
             
     def _generate_qcxms_metadata(self, point_id: str, tensor_data: Dict) -> Dict:
         """Generates QCxMS-specific metadata for the exported data."""
@@ -97,7 +97,7 @@ class TorqQCxMSIntegration:
                 tensor_data = {}
                 
                 # Recursively read all data from HDF5
-                def read_group(name, obj):
+                def read_group(name, obj) -> Any:
                     if isinstance(obj, h5py.Group):
                         tensor_data[name] = {}
                         for key, value in obj.items():
@@ -173,7 +173,7 @@ class TorqQCxMSIntegration:
         """
         try:
             with open(qcxms_file_path, 'r') as f:
-                data = json.load(f)
+                data = json.loads(f.read())
                 
             # Check if required fields are present
             required_fields = ['tensor_data', 'metadata']
@@ -257,15 +257,15 @@ if __name__ == "__main__":
     try:
         # Test basic processing
         processed_file = qcxms_integration.process_tensor_for_qcxms(mock_h5_file)
-        print(f"Processed file: {processed_file}")
+        logger.info(f"Processed file: {processed_file}")
         
         # Test workflow routing
         routing_info = qcxms_integration.generate_workflow_routing(mock_h5_file)
-        print(f"Routing info: {routing_info}")
+        logger.info(f"Routing info: {routing_info}")
         
         # Test batch processing
         batch_results = qcxms_integration.integrate_with_qcxms_workflow([mock_h5_file])
-        print(f"Batch results: {batch_results}")
+        logger.info(f"Batch results: {batch_results}")
         
     except Exception as e:
         logger.info("Test completed (expected without real HDF5 file): " + str(e))

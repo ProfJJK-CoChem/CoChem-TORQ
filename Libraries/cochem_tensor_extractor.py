@@ -13,6 +13,7 @@ resonances, and centrifugal distortion constants.
 import numpy as np
 import json
 import logging
+from typing import Any
 import hashlib
 import re
 from datetime import datetime
@@ -39,7 +40,7 @@ EXACT_MASSES = {
 }
 
 class TorqTensorExtractor:
-    def __init__(self, symbols, coordinates, point_id="000"):
+    def __init__(self, symbols, coordinates, point_id="000") -> None:
         """
         Initializes the tensor extractor.
         :param symbols: List of element symbols.
@@ -62,7 +63,7 @@ class TorqTensorExtractor:
         self.coriolis_couplings = {}
         self.centrifugal_distortion = {}
         
-    def _compute_inertia_tensor(self):
+    def _compute_inertia_tensor(self) -> Any:
         """Computes the inertia tensor from atomic coordinates."""
         com = np.average(self.coordinates, axis=0, weights=self.masses)
         rel_coords = self.coordinates - com
@@ -84,7 +85,7 @@ class TorqTensorExtractor:
                     
         return self.inertia_tensor
 
-    def _compute_rotational_constants(self):
+    def _compute_rotational_constants(self) -> Any:
         """Computes rotational constants from inertia tensor with strict amu to kg mass conversion."""
         self._compute_inertia_tensor()
         
@@ -111,7 +112,7 @@ class TorqTensorExtractor:
             
         return self.rotational_constants
 
-    def extract_tensors(self):
+    def extract_tensors(self) -> Any:
         """Extracts the basic rotational and vibrational tensors."""
         logger.info("Starting tensor extraction.")
         rc = self._compute_rotational_constants()
@@ -122,7 +123,7 @@ class TorqTensorExtractor:
             "coordinates": self.coordinates.tolist()
         }
 
-    def _parse_orca_vib_block(self, orca_file):
+    def _parse_orca_vib_block(self, orca_file) -> Any:
         """
         Parses ORCA %vib block for advanced VPT2 data using regex parsing.
         Extracts:
@@ -170,7 +171,7 @@ class TorqTensorExtractor:
             
         return vpt2_data
 
-    def extract_vpt2_data(self, orca_file, is_lam_complex=False):
+    def extract_vpt2_data(self, orca_file, is_lam_complex=False) -> Any:
         """Extracts VPT2 data from ORCA output."""
         logger.info("Extracting VPT2 data from ORCA output.")
         vpt2_data = self._parse_orca_vib_block(orca_file)
@@ -181,7 +182,7 @@ class TorqTensorExtractor:
         self._check_divergence(vpt2_data["centrifugal_distortion"])
         return vpt2_data
 
-    def _extract_lam_vpt2_additions(self, orca_file):
+    def _extract_lam_vpt2_additions(self, orca_file) -> Any:
         """Extract additional VPT2 data required for LAM complexes using regex parsing."""
         import re
         lam_data = {
@@ -201,7 +202,7 @@ class TorqTensorExtractor:
             logger.error(f"Error extracting LAM VPT2 additions: {e}")
         return lam_data
 
-    def _check_divergence(self, distortion_constants):
+    def _check_divergence(self, distortion_constants) -> Any:
         divergent = False
         for key, values in distortion_constants.items():
             if len(values) > 0:
@@ -214,7 +215,7 @@ class TorqTensorExtractor:
             return True
         return False
 
-    def extract_thermal_nmr(self, trajectory_file=None):
+    def extract_thermal_nmr(self, trajectory_file=None) -> Any:
         """Extracts thermally averaged NMR data from AIMD trajectory or ORCA calculation."""
         logger.info("Extracting thermally averaged NMR data.")
         nmr_data = {
@@ -268,7 +269,7 @@ class TorqTensorExtractor:
             logger.error(f"Error extracting thermal NMR: {e}")
         return nmr_data
 
-    def extract_raman_polarizability(self, orca_file):
+    def extract_raman_polarizability(self, orca_file) -> Any:
         """Extracts Raman polarizability derivatives from ORCA output file."""
         logger.info("Extracting Raman polarizability data.")
         raman_data = {
@@ -297,7 +298,7 @@ class TorqTensorExtractor:
             logger.error(f"Error extracting Raman data: {e}")
         return raman_data
 
-    def export_tensor(self, output_file="torq_tensors.json"):
+    def export_tensor(self, output_file="torq_tensors.json") -> Any:
         """Exports all extracted tensors to a JSON file."""
         result = self.extract_tensors()
         
@@ -306,7 +307,7 @@ class TorqTensorExtractor:
             
         logger.info(f"Tensor data exported to {output_file}")
 
-    def export_vpt2_tensor(self, output_file="torq_vpt2.json", orca_file=None):
+    def export_vpt2_tensor(self, output_file="torq_vpt2.json", orca_file=None) -> Any:
         """Exports VPT2 resonance data."""
         target_file = orca_file or getattr(self, "orca_file", None)
         if target_file and Path(target_file).exists():
@@ -339,7 +340,7 @@ class TorqTensorExtractor:
             }
         return executor.extract_spin_hamiltonian(str(target_file))
 
-    def export_lam_vpt2_tensor(self, output_file="torq_lam_vpt2.json", orca_file=None):
+    def export_lam_vpt2_tensor(self, output_file="torq_lam_vpt2.json", orca_file=None) -> Any:
         """Exports LAM-specific VPT2 tensor data including advanced resonances and coupling matrices."""
         target_file = orca_file or getattr(self, "orca_file", None)
         if target_file and Path(target_file).exists():
@@ -363,7 +364,7 @@ class TorqTensorExtractor:
             
         logger.info(f"LAM VPT2 data exported to {output_file}")
 
-    def export_to_hdf5(self, h5_file_path, data_dict):
+    def export_to_hdf5(self, h5_file_path, data_dict) -> Any:
         """Exports data to HDF5 tensor for CoChem-SCRIBE integration."""
         try:
             with h5py.File(h5_file_path, 'a') as f:
@@ -381,7 +382,7 @@ class TorqTensorExtractor:
         except Exception as e:
             logger.error(f"Failed to export to HDF5: {e}")
 
-    def export_to_hdf5_with_sinc_dvr(self, h5_file_path, dvr_data):
+    def export_to_hdf5_with_sinc_dvr(self, h5_file_path, dvr_data) -> Any:
         """Exports Sinc-DVR data to HDF5 for CoChem-SCRIBE integration."""
         try:
             with h5py.File(h5_file_path, 'a') as f:

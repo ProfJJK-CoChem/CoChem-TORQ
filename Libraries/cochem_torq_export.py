@@ -11,6 +11,7 @@ provenance and metadata for quantum mechanical calculations.
 import os
 import json
 import logging
+from typing import Any
 import h5py
 import zstandard as zstd
 from pathlib import Path
@@ -22,7 +23,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Expo
 logger = logging.getLogger("TorqExport")
 
 class TorqExporter:
-    def __init__(self, export_dir="torq_exports", zstd_compression_level=3):
+    def __init__(self, export_dir="torq_exports", zstd_compression_level=3) -> None:
         """
         Initializes the tensor exporter.
         :param export_dir: Directory to store exported files
@@ -34,7 +35,7 @@ class TorqExporter:
         # Create export directory if it doesn't exist
         self.export_dir.mkdir(exist_ok=True)
         
-    def _generate_metadata(self, point_id, tensor_data, lam_trigger_required=False, symmetry_group="C1"):
+    def _generate_metadata(self, point_id, tensor_data, lam_trigger_required=False, symmetry_group="C1") -> Any:
         """
         Generates metadata for the exported tensor including TORQ-17 flags.
         :param point_id: Point identifier
@@ -55,7 +56,7 @@ class TorqExporter:
         
         return metadata
 
-    def export_tensor_to_zstd(self, h5_file_path, output_file=None):
+    def export_tensor_to_zstd(self, h5_file_path, output_file=None) -> Any:
         """
         Exports an HDF5 tensor to a Zstandard-compressed file.
         :param h5_file_path: Path to the input HDF5 tensor file
@@ -69,7 +70,7 @@ class TorqExporter:
                 tensor_data = {}
                 
                 # Recursively read all data from HDF5
-                def read_group(name, obj):
+                def read_group(name, obj) -> Any:
                     if isinstance(obj, h5py.Group):
                         tensor_data[name] = {}
                         for key, value in obj.items():
@@ -118,7 +119,7 @@ class TorqExporter:
             logger.error(f"Error compressing data to Zstandard: {e}")
             raise
 
-    def export_tensor_to_zstd_with_sinc_dvr(self, h5_file_path, output_file=None):
+    def export_tensor_to_zstd_with_sinc_dvr(self, h5_file_path, output_file=None) -> Any:
         """
         Exports an HDF5 tensor with Sinc-DVR data to a Zstandard-compressed file.
         :param h5_file_path: Path to the input HDF5 tensor file
@@ -132,7 +133,7 @@ class TorqExporter:
                 tensor_data = {}
                 
                 # Recursively read all data from HDF5
-                def read_group(name, obj):
+                def read_group(name, obj) -> Any:
                     if isinstance(obj, h5py.Group):
                         tensor_data[name] = {}
                         for key, value in obj.items():
@@ -181,7 +182,7 @@ class TorqExporter:
             logger.error(f"Error compressing data to Zstandard: {e}")
             raise
 
-    def batch_export_to_zstd(self, h5_files, output_dir=None):
+    def batch_export_to_zstd(self, h5_files, output_dir=None) -> Any:
         """
         Exports multiple HDF5 tensor files to Zstandard-compressed files.
         :param h5_files: List of HDF5 file paths
@@ -205,7 +206,7 @@ class TorqExporter:
                 
         return exported_files
 
-    def verify_export(self, compressed_file_path):
+    def verify_export(self, compressed_file_path) -> Any:
         """
         Verifies the integrity of a compressed export file.
         :param compressed_file_path: Path to the compressed file
@@ -227,7 +228,7 @@ class TorqExporter:
             logger.error(f"Verification failed for {compressed_file_path}: {e}")
             return False, None
 
-    def export_to_scribe_daemon(self, compressed_file_path, host="127.0.0.1", port=5555, timeout_ms=2000):
+    def export_to_scribe_daemon(self, compressed_file_path, host="127.0.0.1", port=5555, timeout_ms=2000) -> Any:
         """
         Exports the compressed tensor to the CoChem-SCRIBE daemon via ZeroMQ socket IPC transmission.
         :param compressed_file_path: Path to the compressed file
@@ -287,12 +288,12 @@ if __name__ == "__main__":
     try:
         # Test export (this will fail without a real HDF5 file)
         compressed_file = exporter.export_tensor_to_zstd(mock_h5_file)
-        print(f"Exported to: {compressed_file}")
+        logger.info(f"Exported to: {compressed_file}")
         
         # Test verification
         success, metadata = exporter.verify_export(compressed_file)
         if success:
-            print(f"Verification successful: {metadata}")
+            logger.info(f"Verification successful: {metadata}")
             
     except Exception as e:
         logger.info("Test completed (expected without real HDF5 file): " + str(e))

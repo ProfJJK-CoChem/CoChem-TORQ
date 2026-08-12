@@ -14,6 +14,7 @@ from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation as R
 import json
 import logging
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ] %(message)s")
 logger = logging.getLogger("TorqTopology")
@@ -29,7 +30,7 @@ PYYKKO_SINGLE_RADII = {
 }
 
 class TorqTopology:
-    def __init__(self, symbols, coordinates, is_complex=False):
+    def __init__(self, symbols, coordinates, is_complex=False) -> None:
         """
         Initialize the structural topology engine.
         """
@@ -41,7 +42,7 @@ class TorqTopology:
         
         self._build_covalent_graph()
 
-    def _build_covalent_graph(self, tolerance_multiplier=1.15):
+    def _build_covalent_graph(self, tolerance_multiplier=1.15) -> Any:
         """
         Builds the molecular graph using Pyykkö covalent radii and bond-order tolerances.
         """
@@ -72,7 +73,7 @@ class TorqTopology:
     # THE 5-OPTION DIHEDRAL DETECTION ENGINE
     # =========================================================================
 
-    def detect_via_zmatrix_diff(self, ref_coords):
+    def detect_via_zmatrix_diff(self, ref_coords) -> Any:
         """
         Option 1: Z-Matrix Internal Coordinate Diffing.
         Analyzes the variation in the distance matrix to identify the cluster 
@@ -87,7 +88,7 @@ class TorqTopology:
         logger.info(f"[Z-Matrix Diff] Detected moving subset: {moving_atoms}")
         return moving_atoms.tolist()
 
-    def detect_via_kabsch_rmsd(self, ref_coords):
+    def detect_via_kabsch_rmsd(self, ref_coords) -> Any:
         """
         Option 2: Kabsch RMSD Heatmap.
         Aligns the backbone and subtracts the matrices, isolating the atoms 
@@ -108,14 +109,14 @@ class TorqTopology:
         Vt[2, :] *= d
         
         rotation = Vt.T @ U.T
-        aligned_q = (q @ rotation.T) + centroid_ref
+        aligned_q = (q @ rotation) + centroid_ref
         
         displacements = np.linalg.norm(ref_coords - aligned_q, axis=1)
         moving_atoms = np.where(displacements > 0.25)[0]
         logger.info(f"[Kabsch RMSD] Detected moving subset: {moving_atoms}")
         return moving_atoms.tolist()
 
-    def detect_via_graph_theory(self, bond_to_sever):
+    def detect_via_graph_theory(self, bond_to_sever) -> Any:
         """
         Option 3: Graph-Theory Edge Severing.
         Systematically severs a bridge bond and isolates the spinning top from the frame.
@@ -132,12 +133,12 @@ class TorqTopology:
                 logger.warning("Bond severing resulted in rings or fragmentation > 2.")
         return []
 
-    def detect_via_coulomb_variance(self, ref_coords):
+    def detect_via_coulomb_variance(self, ref_coords) -> Any:
         """
         Option 4: Coulomb Matrix Variance.
         Calculates the translation-invariant Coulomb eigenspectrum variance.
         """
-        def build_coulomb(coords):
+        def build_coulomb(coords) -> Any:
             dist = cdist(coords, coords)
             np.fill_diagonal(dist, 1.0) # Prevent div by zero
             charges = np.array([1.0] * len(coords)) # Simplified for topology isolation
@@ -154,7 +155,7 @@ class TorqTopology:
         logger.info(f"[Coulomb Variance] Detected moving subset: {moving_atoms}")
         return moving_atoms.tolist()
 
-    def detect_via_override(self, indices):
+    def detect_via_override(self, indices) -> Any:
         """
         Option 5: Manual User Override.
         Bypasses algorithms and accepts exact 4-atom dihedral indices.
@@ -167,7 +168,7 @@ class TorqTopology:
     # CASCADE METHODOLOGY INJECTION & TRACK ROUTING
     # =========================================================================
 
-    def generate_cascade_parameters(self, tier="T3-1h", basis_set=None, method=None):
+    def generate_cascade_parameters(self, tier="T3-1h", basis_set=None, method=None) -> Any:
         """
         Applies the CoChem Method Matrix Cascade parameters for the torsional scan.
         Refactored to map onto v4 T1-T4 tier rows ('T1-10s'..'T4-1mo') (§4.4, §9).
@@ -180,17 +181,17 @@ class TorqTopology:
             tier_key = "T1-10s"
             method_name = method or "r2SCAN-3c"
             basis_name = basis_set or "r2SCAN-3c"
-            keywords = ["! r2SCAN-3c", "TightSCF", "DefGrid3", "Opt"]
+            keywords = ["! r2SCAN-3c", "TightSCF", "defgrid1", "Opt"]
         elif tier_str in ["T2-1m", "medium", "T2"]:
             tier_key = "T2-1m"
             method_name = method or "wB97X-D4"
             basis_name = basis_set or "def2-TZVP"
-            keywords = ["! wB97X-D4", "def2-TZVP", "def2/J", "TightSCF", "DefGrid3", "Opt"]
+            keywords = ["! wB97X-D4", "def2-TZVP", "def2/J", "TightSCF", "defgrid1", "Opt"]
         elif tier_str in ["T3-1h", "high", "T3"]:
             tier_key = "T3-1h"
             method_name = method or "CCSD(T)-F12"
             basis_name = basis_set or "cc-pVTZ-F12"
-            keywords = ["! CCSD(T)-F12", "cc-pVTZ-F12", "def2/J", "def2/C", "ExtremeSCF", "DefGrid3", "Opt"]
+            keywords = ["! CCSD(T)-F12", "cc-pVTZ-F12", "def2/J", "def2/C", "ExtremeSCF", "defgrid1", "Opt"]
         elif tier_str in ["T4-1mo", "ultra", "T4"]:
             tier_key = "T4-1mo"
             method_name = method or "CCSD(T)"
@@ -312,5 +313,5 @@ if __name__ == "__main__":
     topos.detect_via_override([0, 1, 2, 3])
     topos.generate_cascade_parameters(tier="T3-1h")
     
-    print("Track route CCSD(T) VPT2:", route_method_track("CCSD(T)", True, 5))
-    print("Track route CCSD(T)-F12 harmonic:", route_method_track("CCSD(T)-F12", False, 10))
+    logger.info("Track route CCSD(T) VPT2:", route_method_track("CCSD(T)", True, 5))
+    logger.info("Track route CCSD(T)-F12 harmonic:", route_method_track("CCSD(T)-F12", False, 10))
