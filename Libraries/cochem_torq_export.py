@@ -47,7 +47,7 @@ class TorqExporter:
         metadata = {
             "point_id": point_id,
             "export_timestamp": datetime.now().isoformat(),
-            "data_hash": hashlib.md5(str(tensor_data).encode()).hexdigest(),
+            "data_hash": hashlib.sha256(str(tensor_data).encode()).hexdigest(),
             "compression_method": "Zstandard",
             "compression_level": self.zstd_compression_level,
             "LAM_TRIGGER_REQUIRED": bool(lam_trigger_required),
@@ -245,11 +245,11 @@ class TorqExporter:
 
         try:
             payload = file_path.read_bytes()
-            md5_hash = hashlib.md5(payload).hexdigest()
+            sha256_hash = hashlib.sha256(payload).hexdigest()
             meta_data = {
                 "file_name": file_path.name,
                 "file_size": len(payload),
-                "md5": md5_hash,
+                "sha256": sha256_hash,
                 "timestamp": datetime.utcnow().isoformat(),
                 "status": "ready"
             }
@@ -277,6 +277,71 @@ class TorqExporter:
         except Exception as e:
             logger.error(f"Failed to export to CoChem-SCRIBE: {e}")
             return False
+
+class PESStore:
+    def __init__(self, h5_filepath):
+        self.h5_filepath = h5_filepath
+        
+    def append_data(self, step, coordinates, energy):
+        """
+        Appends coordinate geometry and energy to the chunked HDF5 database.
+        Explicitly prevents scaleoffset as per Section 6.4.3 rules.
+        """
+        with h5py.File(self.h5_filepath, 'a') as f:
+            if 'coordinates' not in f:
+                f.create_dataset('coordinates', data=[coordinates], 
+                                 maxshape=(None, len(coordinates)),
+                                 chunks=True, 
+                                 compression='gzip', compression_opts=4, shuffle=True,
+                                 scaleoffset=None)
+            else:
+                f['coordinates'].resize((f['coordinates'].shape[0] + 1, f['coordinates'].shape[1]))
+                f['coordinates'][-1] = coordinates
+
+            if 'energies' not in f:
+                f.create_dataset('energies', data=[energy], 
+                                 maxshape=(None,),
+                                 chunks=True, 
+                                 compression='gzip', compression_opts=4, shuffle=True,
+                                 scaleoffset=None)
+            else:
+                f['energies'].resize((f['energies'].shape[0] + 1,))
+                f['energies'][-1] = energy
+
+def export_qcschema(result_dict, output_filename):
+    """
+    Accepts an OrcaResult (or dict) and writes a FAIR QCSchema output as per Section 6.4.4.
+    """
+    data_to_hash = json.dumps(result_dict, sort_keys=True).encode()
+    hash_val = hashlib.sha256(data_to_hash).hexdigest()
+    
+    qcschema = {
+        "schema_name": "qcschema_output",
+        "schema_version": 1,
+        "molecule": {
+            "geometry": result_dict.get("geometry", []),
+            "symbols": result_dict.get("symbols", []),
+            "molecular_charge": result_dict.get("molecular_charge", 0),
+            "molecular_multiplicity": result_dict.get("molecular_multiplicity", 1),
+            "provenance": {
+                "creator": "CoChem-SCRIBE",
+                "version": "4.1",
+                "hash": hash_val
+            }
+        },
+        "driver": result_dict.get("driver", "energy"),
+        "model": {
+            "method": result_dict.get("method", "unknown"),
+            "basis": result_dict.get("basis", "unknown")
+        },
+        "properties": {
+            "return_energy": result_dict.get("return_energy", 0.0)
+        }
+    }
+    
+    with open(output_filename, 'w') as f:
+        json.dump(qcschema, f, indent=2)
+    return output_filename
 
 if __name__ == "__main__":
     # Self-test for Zstandard compression export

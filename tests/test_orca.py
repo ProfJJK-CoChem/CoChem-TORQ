@@ -6,6 +6,10 @@ import pytest
 import asyncio
 import numpy as np
 import networkx as nx
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from Libraries.cochem_torq_orca import TorqOrcaExecutor
 from Libraries.cochem_torq_grid import TorqGrid
 
@@ -111,9 +115,9 @@ def test_torq_orca_output_parser(tmp_path) -> None:
     """)
     executor = TorqOrcaExecutor()
     parsed = executor.parse_orca_output(str(out_file))
-    assert parsed["energy"] == -123.456
-    assert len(parsed["vibrational_frequencies"]) == 2
-    assert parsed["dipole_moment"]["total"] == 3.74
+    assert parsed.energy == -123.456
+    assert len(parsed.vibrational_frequencies) == 2
+    assert parsed.dipole_moment.total == 3.74
 
 def test_validate_imaginary_frequencies() -> None:
     executor = TorqOrcaExecutor()

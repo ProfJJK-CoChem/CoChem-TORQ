@@ -32,13 +32,9 @@ ORCA_PATH = "orca"  # Default to system PATH
 ORCA_TEMPLATE = """! {method_line}
 %maxcore 2000
 
-%output
-    PrintLevel Medium
-%end
-
 %scf
     MaxIter 300
-%end
+end
 
 {extra_options}
 
@@ -293,8 +289,10 @@ class TorqOrcaExecutor:
         freezing specified bond distance constraints { B i j C }.
         """
         job_name = f"lam_opt_point_{point_id}"
+        # Merge TightOPT and TightSCF into the main method string so they appear on the first line.
+        combined_method = f"{method} TightOPT TightSCF"
+        
         extra_opts = (
-            f"! {method} TightOPT TightSCF\n"
             "%geom\n"
             "  InHess XTB2\n"
             "  TolE 1e-7\n"
@@ -310,7 +308,7 @@ class TorqOrcaExecutor:
         extra_opts += "  end\nend\n"
 
         output_file, success = self.run_orca_job(
-            job_name, method, basis_set, "", "DIIS",
+            job_name, combined_method, basis_set, "", "DIIS",
             atom_coords, charge=charge, multiplicity=multiplicity,
             extra_options=extra_opts, output_dir=output_dir, timeout=timeout
         )

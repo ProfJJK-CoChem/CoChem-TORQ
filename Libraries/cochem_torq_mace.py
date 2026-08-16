@@ -93,8 +93,7 @@ class TorqMACETriage:
             try:
                 torch.set_default_dtype(torch.float32)
             except Exception:
-                pass
-
+                raise NotImplementedError("Implementation pending")
         if "AIMNET" in str(model_name).upper():
             if AIMNET2_AVAILABLE:
                 try:

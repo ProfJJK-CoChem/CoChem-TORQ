@@ -484,8 +484,7 @@ class TorqMpqcExecutor:
                             "matrix": g_mat.tolist()
                         }
                 except Exception:
-                    pass
-
+                    raise NotImplementedError("Implementation pending")
             # 3. Parse Hyperfine coupling
             a_matches = re.finditer(r"Nucleus\s+(\d+)\s+([A-Za-z]+).*?A_iso\s*=\s*([-\d\.]+)", content, re.DOTALL)
             for m in a_matches:

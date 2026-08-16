@@ -165,8 +165,7 @@ class TorqSpcatBridge:
                      q_vib_mode = 1.0 / denom if abs(denom) > 1e-12 else 1.0
                  q_vib *= q_vib_mode
              except (OverflowError, ZeroDivisionError):
-                 pass
-
+                 raise NotImplementedError("Implementation pending")
         logger.info(f"Q_vib({self.temperature}K) = {q_vib:.4f}")
         q_total = q_rot * q_vib
         logger.info(f"Total Partition Function Q_total = {q_total:.4f}")

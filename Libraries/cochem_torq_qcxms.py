@@ -23,8 +23,7 @@ logger = logging.getLogger("TorqQCxMS")
 
 class QCXMSError(Exception):
     """Raised when QCxMS subprocess calculation fails."""
-    pass
-
+    raise NotImplementedError("Implementation pending")
 class TorqQCxMSIntegration:
     def run_qcxms_simulation(self, cmd: list, cwd: str = ".", timeout: int = 3600) -> bool:
         """
