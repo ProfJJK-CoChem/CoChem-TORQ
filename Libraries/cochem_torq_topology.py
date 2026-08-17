@@ -19,6 +19,15 @@ from typing import Any
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ] %(message)s")
 logger = logging.getLogger("TorqTopology")
 
+ATOMIC_NUMBERS = {
+    "H": 1, "He": 2, "Li": 3, "Be": 4, "B": 5, "C": 6, "N": 7, "O": 8, "F": 9,
+    "Ne": 10, "Na": 11, "Mg": 12, "Al": 13, "Si": 14, "P": 15, "S": 16, "Cl": 17, "Ar": 18,
+    "K": 19, "Ca": 20, "Sc": 21, "Ti": 22, "V": 23, "Cr": 24, "Mn": 25, "Fe": 26, "Co": 27,
+    "Ni": 28, "Cu": 29, "Zn": 30, "Ga": 31, "Ge": 32, "As": 33, "Se": 34, "Br": 35, "Kr": 36,
+    "Rb": 37, "Sr": 38, "Y": 39, "Zr": 40, "Nb": 41, "Mo": 42, "Tc": 43, "Ru": 44, "Rh": 45,
+    "Pd": 46, "Ag": 47, "Cd": 48, "In": 49, "Sn": 50, "Sb": 51, "Te": 52, "I": 53, "Xe": 54
+}
+
 # Pyykkö Covalent Radii (Å) for single, double, triple bonds
 PYYKKO_SINGLE_RADII = {
     "H": 0.32, "He": 0.46, "Li": 1.33, "Be": 1.02, "B": 0.85, "C": 0.75, "N": 0.71, "O": 0.63, "F": 0.64,
@@ -30,7 +39,7 @@ PYYKKO_SINGLE_RADII = {
 }
 
 class TorqTopology:
-    def __init__(self, symbols, coordinates, is_complex=False) -> None:
+    def __init__(self, symbols: list[str], coordinates: list[list[float]] | np.ndarray, is_complex: bool = False) -> None:
         """
         Initialize the structural topology engine.
         """
@@ -42,7 +51,7 @@ class TorqTopology:
         
         self._build_covalent_graph()
 
-    def _build_covalent_graph(self, tolerance_multiplier=1.15) -> Any:
+    def _build_covalent_graph(self, tolerance_multiplier: float = 1.15) -> None:
         """
         Builds the molecular graph using Pyykkö covalent radii and bond-order tolerances.
         """
@@ -73,7 +82,7 @@ class TorqTopology:
     # THE 5-OPTION DIHEDRAL DETECTION ENGINE
     # =========================================================================
 
-    def detect_via_zmatrix_diff(self, ref_coords) -> Any:
+    def detect_via_zmatrix_diff(self, ref_coords: np.ndarray) -> list[int]:
         """
         Option 1: Z-Matrix Internal Coordinate Diffing.
         Analyzes the variation in the distance matrix to identify the cluster 
@@ -88,7 +97,7 @@ class TorqTopology:
         logger.info(f"[Z-Matrix Diff] Detected moving subset: {moving_atoms}")
         return moving_atoms.tolist()
 
-    def detect_via_kabsch_rmsd(self, ref_coords) -> Any:
+    def detect_via_kabsch_rmsd(self, ref_coords: np.ndarray) -> list[int]:
         """
         Option 2: Kabsch RMSD Heatmap.
         Aligns the backbone and subtracts the matrices, isolating the atoms 
@@ -116,7 +125,7 @@ class TorqTopology:
         logger.info(f"[Kabsch RMSD] Detected moving subset: {moving_atoms}")
         return moving_atoms.tolist()
 
-    def detect_via_graph_theory(self, bond_to_sever) -> Any:
+    def detect_via_graph_theory(self, bond_to_sever: tuple[int, int]) -> list[list[int]]:
         """
         Option 3: Graph-Theory Edge Severing.
         Systematically severs a bridge bond and isolates the spinning top from the frame.
@@ -130,18 +139,18 @@ class TorqTopology:
                 logger.info(f"[Graph Theory] Top 1: {subgraphs[0]} | Top 2: {subgraphs[1]}")
                 return [list(subgraphs[0]), list(subgraphs[1])]
             else:
-                logger.warning("Bond severing resulted in rings or fragmentation > 2.")
-        return []
+                raise ValueError(f"Bond severing resulted in {len(subgraphs)} subgraphs, expected 2.")
+        raise ValueError(f"Bond {bond_to_sever} not found in graph.")
 
-    def detect_via_coulomb_variance(self, ref_coords) -> Any:
+    def detect_via_coulomb_variance(self, ref_coords: np.ndarray) -> list[int]:
         """
         Option 4: Coulomb Matrix Variance.
         Calculates the translation-invariant Coulomb eigenspectrum variance.
         """
-        def build_coulomb(coords) -> Any:
+        def build_coulomb(coords: np.ndarray) -> np.ndarray:
             dist = cdist(coords, coords)
             np.fill_diagonal(dist, 1.0) # Prevent div by zero
-            charges = np.array([1.0] * len(coords)) # Simplified for topology isolation
+            charges = np.array([ATOMIC_NUMBERS.get(sym, 6.0) for sym in self.symbols])
             q_mat = charges[:, None] * charges[None, :]
             c_mat = q_mat / dist
             np.fill_diagonal(c_mat, 0.5 * charges ** 2.4)
@@ -155,7 +164,7 @@ class TorqTopology:
         logger.info(f"[Coulomb Variance] Detected moving subset: {moving_atoms}")
         return moving_atoms.tolist()
 
-    def detect_via_override(self, indices) -> Any:
+    def detect_via_override(self, indices: list[int]) -> list[int]:
         """
         Option 5: Manual User Override.
         Bypasses algorithms and accepts exact 4-atom dihedral indices.
@@ -168,7 +177,7 @@ class TorqTopology:
     # CASCADE METHODOLOGY INJECTION & TRACK ROUTING
     # =========================================================================
 
-    def generate_cascade_parameters(self, tier="T3-1h", basis_set=None, method=None) -> Any:
+    def generate_cascade_parameters(self, tier: str = "T3-1h", basis_set: str | None = None, method: str | None = None) -> dict[str, Any]:
         """
         Applies the CoChem Method Matrix Cascade parameters for the torsional scan.
         Refactored to map onto v4 T1-T4 tier rows ('T1-10s'..'T4-1mo') (§4.4, §9).
@@ -239,7 +248,7 @@ class TorqTopology:
         logger.info(f"Cascade parameters written to torq_run_params.json at Tier: {tier_key}")
         return params
 
-def should_apply_counterpoise(basis_set: str, method: str) -> bool:
+def should_apply_counterpoise(basis_set: str | None, method: str | None) -> bool:
     """
     Determines whether BSSE Counterpoise (CP) correction should be applied (§4.7, §9A).
     - Restricted to non-augmented triple-zeta basis sets (e.g. cc-pVTZ, def2-TZVP, def2-TZVPP).
@@ -268,7 +277,7 @@ def should_apply_counterpoise(basis_set: str, method: str) -> bool:
 
     return is_non_aug_tz
 
-def route_method_track(method: str, is_anharmonic: bool, n_atoms: int) -> str:
+def route_method_track(method: str | None, is_anharmonic: bool, n_atoms: int) -> str:
     """
     Routes calculations between CFOUR and MPQC tracks based on $36N^2$ displacement arithmetic (§9).
     - Route CCSD(T) VPT2/analytic Hessians to CFOUR track.

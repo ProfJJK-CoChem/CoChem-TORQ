@@ -168,6 +168,7 @@ class TorqTensorExtractor:
 
         except Exception as e:
             logger.error(f"Error parsing ORCA VPT2 file: {e}")
+            raise
             
         return vpt2_data
 
@@ -200,6 +201,7 @@ class TorqTensorExtractor:
                 lam_data["darling_dennison_resonances"].append({"mode1": int(m[0]), "mode2": int(m[1]), "resonance_strength": float(m[2])})
         except Exception as e:
             logger.error(f"Error extracting LAM VPT2 additions: {e}")
+            raise
         return lam_data
 
     def _check_divergence(self, distortion_constants) -> Any:
@@ -267,6 +269,7 @@ class TorqTensorExtractor:
             logger.info(f"Extracted NMR data from {nmr_data['frame_count']} trajectory frames. Mean shielding: {nmr_data['thermal_average']:.2f} ppm")
         except Exception as e:
             logger.error(f"Error extracting thermal NMR: {e}")
+            raise
         return nmr_data
 
     def extract_raman_polarizability(self, orca_file) -> Any:
@@ -296,6 +299,7 @@ class TorqTensorExtractor:
                 raman_data["tensor_components"] = ["alpha_xx", "alpha_yy", "alpha_zz"]
         except Exception as e:
             logger.error(f"Error extracting Raman data: {e}")
+            raise
         return raman_data
 
     def export_tensor(self, output_file="torq_tensors.json") -> Any:
@@ -326,19 +330,9 @@ class TorqTensorExtractor:
 
     def extract_spin_hamiltonian(self, orca_file=None) -> dict:
         """
-        Extracts Spin Hamiltonian parameters (ZFS, g-tensor anisotropy, hyperfine A-tensor, SOC matrix).
+        Extracts Spin Hamiltonian parameters.
         """
-        from cochem_torq_mpqc import TorqMpqcExecutor
-        executor = TorqMpqcExecutor()
-        target_file = orca_file or getattr(self, "orca_file", None)
-        if not target_file:
-            return {
-                "zfs": {"D_cm1": 0.0, "E_cm1": 0.0, "E_over_D": 0.0, "D_tensor": [[0.0]*3]*3},
-                "g_tensor": {"g_x": 2.0023, "g_y": 2.0023, "g_z": 2.0023, "g_iso": 2.0023, "delta_g": 0.0, "matrix": [[2.0023, 0.0, 0.0], [0.0, 2.0023, 0.0], [0.0, 0.0, 2.0023]]},
-                "hyperfine_A": [],
-                "soc_matrix_cm1": []
-            }
-        return executor.extract_spin_hamiltonian(str(target_file))
+        raise NotImplementedError("Anti-spoofing mandate: Mocked Spin Hamiltonian code removed.")
 
     def export_lam_vpt2_tensor(self, output_file="torq_lam_vpt2.json", orca_file=None) -> Any:
         """Exports LAM-specific VPT2 tensor data including advanced resonances and coupling matrices."""
@@ -381,6 +375,7 @@ class TorqTensorExtractor:
             logger.info(f"Data exported to HDF5 tensor at {h5_file_path}")
         except Exception as e:
             logger.error(f"Failed to export to HDF5: {e}")
+            raise
 
     def export_to_hdf5_with_sinc_dvr(self, h5_file_path, dvr_data) -> Any:
         """Exports Sinc-DVR data to HDF5 for CoChem-SCRIBE integration."""
@@ -405,6 +400,7 @@ class TorqTensorExtractor:
             logger.info(f"Sinc-DVR data exported to HDF5 tensor at {h5_file_path}")
         except Exception as e:
             logger.error(f"Failed to export Sinc-DVR data to HDF5: {e}")
+            raise
 
 if __name__ == "__main__":
     # Self-test: Linearity Trap and Normal Extraction (CO2-like sample vs non-linear)

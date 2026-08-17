@@ -2,9 +2,9 @@ import hashlib  # SHA-256 artifact provenance tracking
 import atexit, psutil
 import subprocess
 
-_ACTIVE_PROCESSES = []
+_ACTIVE_PROCESSES: list[subprocess.Popen] = []
 
-def cleanup_zombies():
+def cleanup_zombies() -> None:
     for p in _ACTIVE_PROCESSES:
         try:
             if psutil.pid_exists(p.pid):
@@ -12,7 +12,7 @@ def cleanup_zombies():
                 for child in proc.children(recursive=True):
                     child.kill()
                 proc.kill()
-        except:
+        except Exception:
             pass
 atexit.register(cleanup_zombies)
 
@@ -37,7 +37,7 @@ import logging
 import json
 import h5py
 from pathlib import Path
-from typing import Any, Optional, Dict, List, Tuple
+from typing import Optional
 
 
 # Configure logging
@@ -77,7 +77,7 @@ MPQC_TEMPLATE = """
 """
 
 class TorqMpqcExecutor:
-    def __init__(self, mpqc_path=None) -> None:
+    def __init__(self, mpqc_path: Optional[str] = None) -> None:
         """
         Initializes the MPQC executor.
         :param mpqc_path: Path to MPQC executable (if not in PATH).
@@ -87,7 +87,7 @@ class TorqMpqcExecutor:
         else:
             self.mpqc_path = MPQC_PATH
             
-    def _generate_mpqc_input(self, method, basis_set, aux_basis, scf_type, coords, charge=0, multiplicity=1, extra_options="") -> str:
+    def _generate_mpqc_input(self, method: str, basis_set: str, aux_basis: str, scf_type: str, coords: list[list[str | float]], charge: int = 0, multiplicity: int = 1, extra_options: str = "") -> str:
         atom_block = ""
         for coord in coords:
             sym, x, y, z = coord[0], float(coord[1]), float(coord[2]), float(coord[3])
@@ -121,7 +121,7 @@ class TorqMpqcExecutor:
         basis_set: str,
         aux_basis: str,
         scf_type: str,
-        coords: list,
+        coords: list[list[str | float]],
         charge: int = 0,
         multiplicity: int = 1,
         extra_options: str = "",
@@ -163,7 +163,7 @@ class TorqMpqcExecutor:
             logger.error(f"Error running MPQC job {job_name}: {e}")
             return output_file, False
 
-    def validate_imaginary_frequencies(self, freqs: list) -> bool:
+    def validate_imaginary_frequencies(self, freqs: list[float]) -> bool:
         """Validates that vibrational frequencies list contains exactly one imaginary (negative) frequency."""
         imaginary_freqs = [f for f in freqs if f < 0.0]
         valid = (len(imaginary_freqs) == 1)
@@ -176,14 +176,14 @@ class TorqMpqcExecutor:
     async def run_ts_optimization(
         self,
         job_name: str,
-        atom_coords: list,
+        atom_coords: list[list[str | float]],
         charge: int = 0,
         multiplicity: int = 1,
         method: str = "R2SCAN-3c",
         basis_set: str = "",
         output_dir: str = ".",
         timeout: int = 3600,
-    ) -> tuple[str, bool, dict]:
+    ) -> tuple[str, bool, dict[str, float | list | dict]]:
         """
         Non-blocking execution of MPQC transition state optimization with %geom InHess XTB2
         and tight 5-threshold convergence criteria, and automatic verification of
@@ -215,7 +215,7 @@ class TorqMpqcExecutor:
         valid_ts = success and self.validate_imaginary_frequencies(freqs)
         return output_file, valid_ts, parsed
 
-    async def optimize_transition_state(self, *args, **kwargs) -> tuple[str, bool, dict]:
+    async def optimize_transition_state(self, *args: object, **kwargs: object) -> tuple[str, bool, dict[str, float | list | dict]]:
         """Wrapper method delegating to run_ts_optimization."""
         return await self.run_ts_optimization(*args, **kwargs)
 
@@ -242,9 +242,9 @@ class TorqMpqcExecutor:
     async def _run_irc_validation(
         self,
         job_name: str,
-        ts_coords: list,
-        reactant_coords: list,
-        product_coords: list,
+        ts_coords: list[list[str | float]],
+        reactant_coords: list[list[str | float]],
+        product_coords: list[list[str | float]],
         charge: int = 0,
         multiplicity: int = 1,
         method: str = "R2SCAN-3c",
@@ -278,11 +278,11 @@ class TorqMpqcExecutor:
         logger.info(f"IRC Verification Complete: Reactant Kabsch RMSD={rmsd_r:.4f} A, Product Kabsch RMSD={rmsd_p:.4f} A. Target threshold < 0.5 A. Valid={path_valid}")
         return path_valid, rmsd_r, rmsd_p
 
-    async def verify_irc_path(self, *args, **kwargs) -> tuple[bool, float, float]:
+    async def verify_irc_path(self, *args: object, **kwargs: object) -> tuple[bool, float, float]:
         """Wrapper method delegating to _run_irc_validation."""
         return await self._run_irc_validation(*args, **kwargs)
 
-    def _check_lam_trigger(self, h5_file_path, point_id) -> Any:
+    def _check_lam_trigger(self, h5_file_path: str, point_id: str | int) -> bool:
         try:
             with h5py.File(h5_file_path, 'r') as f:
                 point_group = f[f"point_{point_id}"]
@@ -296,17 +296,17 @@ class TorqMpqcExecutor:
 
     def execute_lam_protocol(
         self,
-        point_id: Any,
+        point_id: str | int,
         h5_file_path: str,
-        atom_coords: list,
+        atom_coords: list[list[str | float]],
         charge: int = 0,
         multiplicity: int = 1,
         method: str = "r2SCAN-3c",
         basis_set: str = "",
         output_dir: str = ".",
         timeout: int = 3600,
-        frozen_bonds: list = None,
-    ) -> tuple[list, bool]:
+        frozen_bonds: list[tuple[int, int]] | None = None,
+    ) -> tuple[list[list[float]], bool]:
         job_name = f"lam_opt_point_{point_id}"
         extra_opts = (
             f"! {method} TightOPT TightSCF\n"
@@ -352,9 +352,9 @@ class TorqMpqcExecutor:
 
     def execute_vpt2_protocol(
         self,
-        point_id: Any,
+        point_id: str | int,
         h5_file_path: str,
-        atom_coords: list,
+        atom_coords: list[list[str | float]],
         charge: int = 0,
         multiplicity: int = 1,
         output_dir: str = ".",
@@ -371,7 +371,7 @@ class TorqMpqcExecutor:
             extra_options=extra_opts, output_dir=output_dir, timeout=timeout
         )
 
-    def execute_protocol(self, point_id, h5_file_path, atom_coords, charge=0, multiplicity=1) -> Any:
+    def execute_protocol(self, point_id: str | int, h5_file_path: str, atom_coords: list[list[str | float]], charge: int = 0, multiplicity: int = 1) -> tuple[list[list[float]], bool] | tuple[str, bool]:
 
         use_lam = self._check_lam_trigger(h5_file_path, point_id)
         if use_lam:
@@ -379,7 +379,7 @@ class TorqMpqcExecutor:
         else:
             return self.execute_vpt2_protocol(point_id, h5_file_path, atom_coords, charge=charge, multiplicity=multiplicity)
 
-    def parse_mpqc_output(self, output_file: str) -> dict:
+    def parse_mpqc_output(self, output_file: str) -> dict[str, float | list | dict]:
         """
         Parses MPQC F12 output text log using regex to extract:
         - Total Dipole Moment (Debye) & components
@@ -448,7 +448,7 @@ class TorqMpqcExecutor:
             
         return parsed_data
 
-    def extract_spin_hamiltonian(self, output_file: str) -> dict:
+    def extract_spin_hamiltonian(self, output_file: str) -> dict[str, float | list | dict]:
         """
         Extracts Spin Hamiltonian parameters from MPQC output log:
         - Zero-field splitting (ZFS: D, E, E/D ratio, D-tensor)
@@ -499,8 +499,9 @@ class TorqMpqcExecutor:
                             "g_iso": float(g_iso), "delta_g": float(delta_g),
                             "matrix": g_mat.tolist()
                         }
-                except Exception:
-                    raise NotImplementedError("Implementation pending")
+                except Exception as e:
+                    logger.error(f"Error parsing g-tensor: {e}")
+                    raise
             # 3. Parse Hyperfine coupling
             a_matches = re.finditer(r"Nucleus\s+(\d+)\s+([A-Za-z]+).*?A_iso\s*=\s*([-\d\.]+)", content, re.DOTALL)
             for m in a_matches:
@@ -526,7 +527,7 @@ class TorqMpqcExecutor:
 
         return spin_data
 
-    def export_results_to_hdf5(self, h5_file_path, point_id, results_dict) -> Any:
+    def export_results_to_hdf5(self, h5_file_path: str, point_id: str | int, results_dict: dict[str, float | list | dict]) -> None:
         try:
             with h5py.File(h5_file_path, 'a') as f:
                 point_group = f.create_group(f"point_{point_id}")

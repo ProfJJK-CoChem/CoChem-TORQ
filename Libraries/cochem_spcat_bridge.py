@@ -11,7 +11,6 @@ Synthesizes the .var (Hamiltonian) and .int (Intensity) seed files for SPCAT.
 
 import json
 import logging
-from typing import Any
 import math
 import re
 import numpy as np
@@ -27,7 +26,7 @@ BOLTZMANN_CONSTANT_JK = 1.380649e-23      # Exact kB (J/K)
 SPEED_OF_LIGHT_CMS = 29979245800.0        # Exact c (cm/s)
 
 class TorqSpcatBridge:
-    def __init__(self, tensor_json_path, mpqc_out_path, temperature_k=298.15) -> None:
+    def __init__(self, tensor_json_path: str | Path, mpqc_out_path: str | Path, temperature_k: float = 298.15) -> None:
         """
         Initializes the Statistical Mechanics Bridge.
         """
@@ -50,7 +49,7 @@ class TorqSpcatBridge:
         self.frequencies_cm1 = []
         self.dipole_moments = {"a": 0.0, "b": 0.0, "c": 0.0}
         
-    def _load_json(self, filepath) -> Any:
+    def _load_json(self, filepath: Path) -> dict:
         if not filepath.exists():
             raise FileNotFoundError(f"Tensor file {filepath} not found. Run Stage 4.1 first.")
         if filepath.stat().st_size == 0:
@@ -58,7 +57,7 @@ class TorqSpcatBridge:
         with open(filepath, "r") as f:
             return json.loads(f.read())
 
-    def _determine_symmetry_divisor(self) -> Any:
+    def _determine_symmetry_divisor(self) -> int:
         """
         Calculates the rotational symmetry number (sigma).
         Integrates molsym or molecular geometry point group lookup.
@@ -82,7 +81,7 @@ class TorqSpcatBridge:
             logger.warning("molsym detection fallback; defaulting symmetry divisor sigma=1 (C1).")
             return 1
 
-    def parse_mpqc_observables(self) -> Any:
+    def parse_mpqc_observables(self) -> None:
         """
         Scrapes the MPQC .out file for VIBRATIONAL FREQUENCIES and DIPOLE MOMENTS.
         Updates self.observables and self.vibrational_frequencies.
@@ -120,9 +119,7 @@ class TorqSpcatBridge:
             logger.warning(f"LAM TRAP TRIGGERED! Detected {len(lam_modes)} modes < 50 cm^-1: {lam_modes}")
             logger.warning("The Rigid-Rotor Harmonic-Oscillator (RRHO) approximation is INVALID.")
 
-    parse_orca_observables = parse_mpqc_observables
-
-    def calculate_partition_functions(self) -> Any:
+    def calculate_partition_functions(self) -> tuple[float, float, float]:
         """
         Computes Q_rot and Q_vib strictly utilizing CODATA 2022 constants with math overflow protection.
         """
@@ -156,22 +153,19 @@ class TorqSpcatBridge:
         for nu in self.frequencies_cm1:
              nu_clamped = max(nu, 10.0)  # Lower bound clamp to prevent division by zero / overflow
              E_vib = h * SPEED_OF_LIGHT_CMS * nu_clamped
-             try:
-                 exp_arg = -E_vib / kT
-                 if exp_arg < -700:
-                     q_vib_mode = 1.0
-                 else:
-                     denom = 1.0 - math.exp(exp_arg)
-                     q_vib_mode = 1.0 / denom if abs(denom) > 1e-12 else 1.0
-                 q_vib *= q_vib_mode
-             except (OverflowError, ZeroDivisionError):
-                 raise NotImplementedError("Implementation pending")
+             exp_arg = -E_vib / kT
+             if exp_arg < -700:
+                 q_vib_mode = 1.0
+             else:
+                 denom = 1.0 - math.exp(exp_arg)
+                 q_vib_mode = 1.0 / denom if abs(denom) > 1e-12 else 1.0
+             q_vib *= q_vib_mode
         logger.info(f"Q_vib({self.temperature}K) = {q_vib:.4f}")
         q_total = q_rot * q_vib
         logger.info(f"Total Partition Function Q_total = {q_total:.4f}")
         return q_rot, q_vib, q_total
 
-    def generate_spcat_files(self) -> Any:
+    def generate_spcat_files(self) -> None:
         """
         Synthesizes the .var and .int files in Path(COCHEM_ARTIFACT_DIR)/spcat directory.
         """
@@ -202,7 +196,7 @@ class TorqSpcatBridge:
             
         logger.info(f"SPCAT seed files successfully synthesized in {artifact_dir}: {var_file.name}, {int_file.name}")
 
-    def export_spcat_catalog(self) -> Any:
+    def export_spcat_catalog(self) -> None:
         self.generate_spcat_files()
 
 if __name__ == "__main__":

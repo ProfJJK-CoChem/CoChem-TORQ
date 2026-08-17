@@ -11,7 +11,6 @@ provenance and metadata for quantum mechanical calculations.
 import os
 import json
 import logging
-from typing import Any
 import h5py
 import zstandard as zstd
 from pathlib import Path
@@ -23,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Expo
 logger = logging.getLogger("TorqExport")
 
 class TorqExporter:
-    def __init__(self, export_dir="torq_exports", zstd_compression_level=3) -> None:
+    def __init__(self, export_dir: str = "torq_exports", zstd_compression_level: int = 3) -> None:
         """
         Initializes the tensor exporter.
         :param export_dir: Directory to store exported files
@@ -35,7 +34,7 @@ class TorqExporter:
         # Create export directory if it doesn't exist
         self.export_dir.mkdir(exist_ok=True)
         
-    def _generate_metadata(self, point_id, tensor_data, lam_trigger_required=False, symmetry_group="C1") -> Any:
+    def _generate_metadata(self, point_id: str, tensor_data: dict[str, object], lam_trigger_required: bool = False, symmetry_group: str = "C1") -> dict[str, object]:
         """
         Generates metadata for the exported tensor including TORQ-17 flags.
         :param point_id: Point identifier
@@ -56,7 +55,7 @@ class TorqExporter:
         
         return metadata
 
-    def export_tensor_to_zstd(self, h5_file_path, output_file=None) -> Any:
+    def export_tensor_to_zstd(self, h5_file_path: str, output_file: str | None = None) -> str:
         """
         Exports an HDF5 tensor to a Zstandard-compressed file.
         :param h5_file_path: Path to the input HDF5 tensor file
@@ -70,7 +69,7 @@ class TorqExporter:
                 tensor_data = {}
                 
                 # Recursively read all data from HDF5
-                def read_group(name, obj) -> Any:
+                def read_group(name: str, obj: object) -> None:
                     if isinstance(obj, h5py.Group):
                         tensor_data[name] = {}
                         for key, value in obj.items():
@@ -119,7 +118,7 @@ class TorqExporter:
             logger.error(f"Error compressing data to Zstandard: {e}")
             raise
 
-    def export_tensor_to_zstd_with_sinc_dvr(self, h5_file_path, output_file=None) -> Any:
+    def export_tensor_to_zstd_with_sinc_dvr(self, h5_file_path: str, output_file: str | None = None) -> str:
         """
         Exports an HDF5 tensor with Sinc-DVR data to a Zstandard-compressed file.
         :param h5_file_path: Path to the input HDF5 tensor file
@@ -133,7 +132,7 @@ class TorqExporter:
                 tensor_data = {}
                 
                 # Recursively read all data from HDF5
-                def read_group(name, obj) -> Any:
+                def read_group(name: str, obj: object) -> None:
                     if isinstance(obj, h5py.Group):
                         tensor_data[name] = {}
                         for key, value in obj.items():
@@ -182,7 +181,7 @@ class TorqExporter:
             logger.error(f"Error compressing data to Zstandard: {e}")
             raise
 
-    def batch_export_to_zstd(self, h5_files, output_dir=None) -> Any:
+    def batch_export_to_zstd(self, h5_files: list[str], output_dir: str | None = None) -> list[str]:
         """
         Exports multiple HDF5 tensor files to Zstandard-compressed files.
         :param h5_files: List of HDF5 file paths
@@ -206,7 +205,7 @@ class TorqExporter:
                 
         return exported_files
 
-    def verify_export(self, compressed_file_path) -> Any:
+    def verify_export(self, compressed_file_path: str) -> tuple[bool, dict[str, object] | None]:
         """
         Verifies the integrity of a compressed export file.
         :param compressed_file_path: Path to the compressed file
@@ -228,7 +227,7 @@ class TorqExporter:
             logger.error(f"Verification failed for {compressed_file_path}: {e}")
             return False, None
 
-    def export_to_scribe_daemon(self, compressed_file_path, host="127.0.0.1", port=5555, timeout_ms=2000) -> Any:
+    def export_to_scribe_daemon(self, compressed_file_path: str, host: str = "127.0.0.1", port: int = 5555, timeout_ms: int = 2000) -> bool:
         """
         Exports the compressed tensor to the CoChem-SCRIBE daemon via ZeroMQ socket IPC transmission.
         :param compressed_file_path: Path to the compressed file
@@ -264,25 +263,22 @@ class TorqExporter:
                 socket.connect(f"tcp://{host}:{port}")
 
                 socket.send_json(meta_data)
-                try:
-                    reply = socket.recv_json()
-                    logger.info(f"CoChem-SCRIBE daemon response: {reply}")
-                except Exception:
-                    logger.info("CoChem-SCRIBE daemon socket packet transmitted successfully.")
+                reply = socket.recv_json()
+                logger.info(f"CoChem-SCRIBE daemon response: {reply}")
                 socket.close()
                 return True
-            except ImportError:
-                logger.warning("pyzmq module missing; verified payload integrity locally.")
-                return True
+            except ImportError as e:
+                logger.error("pyzmq module missing; cannot export.")
+                raise e
         except Exception as e:
             logger.error(f"Failed to export to CoChem-SCRIBE: {e}")
-            return False
+            raise e
 
 class PESStore:
-    def __init__(self, h5_filepath):
+    def __init__(self, h5_filepath: str) -> None:
         self.h5_filepath = h5_filepath
         
-    def append_data(self, step, coordinates, energy):
+    def append_data(self, step: int, coordinates: list[float], energy: float) -> None:
         """
         Appends coordinate geometry and energy to the chunked HDF5 database.
         Explicitly prevents scaleoffset as per Section 6.4.3 rules.
@@ -308,7 +304,7 @@ class PESStore:
                 f['energies'].resize((f['energies'].shape[0] + 1,))
                 f['energies'][-1] = energy
 
-def export_qcschema(result_dict, output_filename):
+def export_qcschema(result_dict: dict[str, object], output_filename: str) -> str:
     """
     Accepts an OrcaResult (or dict) and writes a FAIR QCSchema output as per Section 6.4.4.
     """

@@ -14,7 +14,7 @@ import logging
 import h5py
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+
 import hashlib
 
 # Configure logging
@@ -23,9 +23,9 @@ logger = logging.getLogger("TorqQCxMS")
 
 class QCXMSError(Exception):
     """Raised when QCxMS subprocess calculation fails."""
-    raise NotImplementedError("Implementation pending")
+    pass
 class TorqQCxMSIntegration:
-    def run_qcxms_simulation(self, cmd: list, cwd: str = ".", timeout: int = 3600) -> bool:
+    def run_qcxms_simulation(self, cmd: list[str], cwd: str = ".", timeout: int = 3600) -> bool:
         """
         Executes a QCxMS simulation subprocess and verifies return code.
         Raises QCXMSError on non-zero return code.
@@ -53,7 +53,7 @@ class TorqQCxMSIntegration:
         self.qcxms_config_path = Path(qcxms_config_path)
         self.config = self._load_config()
         
-    def _load_config(self) -> Dict:
+    def _load_config(self) -> dict[str, bool | str | int]:
         """Loads the QCxMS configuration from JSON."""
         if not self.qcxms_config_path.exists():
             logger.warning(f"QCxMS config not found at {self.qcxms_config_path}. Using defaults.")
@@ -67,7 +67,7 @@ class TorqQCxMSIntegration:
         with open(self.qcxms_config_path, 'r') as f:
             return json.loads(f.read())
             
-    def _generate_qcxms_metadata(self, point_id: str, tensor_data: Dict) -> Dict:
+    def _generate_qcxms_metadata(self, point_id: str, tensor_data: dict[str, object]) -> dict[str, object]:
         """Generates QCxMS-specific metadata for the exported data."""
         return {
             "point_id": point_id,
@@ -82,7 +82,7 @@ class TorqQCxMSIntegration:
             }
         }
 
-    def process_tensor_for_qcxms(self, h5_file_path: str, output_dir: Optional[str] = None) -> str:
+    def process_tensor_for_qcxms(self, h5_file_path: str, output_dir: str | None = None) -> str:
         """
         Processes an HDF5 tensor for QCxMS integration.
         :param h5_file_path: Path to the input HDF5 tensor file
@@ -96,7 +96,7 @@ class TorqQCxMSIntegration:
                 tensor_data = {}
                 
                 # Recursively read all data from HDF5
-                def read_group(name, obj) -> Any:
+                def read_group(name: str, obj: object) -> None:
                     if isinstance(obj, h5py.Group):
                         tensor_data[name] = {}
                         for key, value in obj.items():
@@ -145,7 +145,7 @@ class TorqQCxMSIntegration:
             logger.error(f"Error exporting to QCxMS format: {e}")
             raise
 
-    def batch_process_tensors(self, h5_files: List[str], output_dir: Optional[str] = None) -> List[str]:
+    def batch_process_tensors(self, h5_files: list[str], output_dir: str | None = None) -> list[str]:
         """
         Processes multiple HDF5 tensor files for QCxMS integration.
         :param h5_files: List of HDF5 file paths
@@ -160,7 +160,7 @@ class TorqQCxMSIntegration:
                 processed_files.append(processed_file)
             except Exception as e:
                 logger.error(f"Error processing {h5_file}: {e}")
-                continue
+                raise
                 
         return processed_files
 
@@ -194,9 +194,9 @@ class TorqQCxMSIntegration:
             
         except Exception as e:
             logger.error(f"QCxMS validation failed for {qcxms_file_path}: {e}")
-            return False
+            raise
 
-    def integrate_with_qcxms_workflow(self, h5_files: List[str]) -> Dict:
+    def integrate_with_qcxms_workflow(self, h5_files: list[str]) -> dict[str, object]:
         """
         Integrates the quantum mechanical tensors with the QCxMS workflow.
         :param h5_files: List of HDF5 tensor file paths
@@ -226,7 +226,7 @@ class TorqQCxMSIntegration:
         logger.info("QCxMS workflow integration completed successfully")
         return results
 
-    def generate_workflow_routing(self, h5_file_path: str) -> Dict:
+    def generate_workflow_routing(self, h5_file_path: str) -> dict[str, object]:
         """
         Generates routing information for workflow execution.
         :param h5_file_path: Path to the input HDF5 tensor file

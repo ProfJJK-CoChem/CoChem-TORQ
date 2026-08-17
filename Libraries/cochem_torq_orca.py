@@ -4,7 +4,7 @@ import subprocess
 
 _ACTIVE_PROCESSES = []
 
-def cleanup_zombies():
+def cleanup_zombies() -> None:
     for p in _ACTIVE_PROCESSES:
         try:
             if psutil.pid_exists(p.pid):
@@ -12,8 +12,9 @@ def cleanup_zombies():
                 for child in proc.children(recursive=True):
                     child.kill()
                 proc.kill()
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Failed to kill process {p.pid}: {e}")
+            raise
 atexit.register(cleanup_zombies)
 
 # D3/D4 dispersion correction enabled
@@ -36,7 +37,7 @@ import subprocess
 import numpy as np
 import logging
 import h5py
-from typing import Any, Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Union
 
 
 # Configure logging
@@ -65,7 +66,7 @@ ORCA_TEMPLATE = """! {method_line}
 
 class DotDict(dict):
     """Dict subclass allowing dot notation attribute access."""
-    def __getattr__(self, key: str) -> Any:
+    def __getattr__(self, key: str) -> object:
         try:
             val = self[key]
             if isinstance(val, dict) and not isinstance(val, DotDict):
@@ -75,7 +76,7 @@ class DotDict(dict):
         except KeyError:
             raise AttributeError(f"'DotDict' object has no attribute '{key}'")
 
-    def __setattr__(self, key: str, value: Any) -> None:
+    def __setattr__(self, key: str, value: object) -> None:
         self[key] = value
 
     def __delattr__(self, key: str) -> None:
@@ -86,7 +87,7 @@ class DotDict(dict):
 
 
 class TorqOrcaExecutor:
-    def __init__(self, orca_path=None) -> None:
+    def __init__(self, orca_path: str | None = None) -> None:
         """
         Initializes the ORCA executor.
         :param orca_path: Path to ORCA executable (if not in PATH).
@@ -96,7 +97,7 @@ class TorqOrcaExecutor:
         else:
             self.orca_path = ORCA_PATH
 
-    def _generate_orca_input(self, method, basis_set, aux_basis, scf_type, coords=None, charge=0, multiplicity=1, extra_options="", atom_coords=None) -> str:
+    def _generate_orca_input(self, method: str, basis_set: str, aux_basis: str, scf_type: str, coords: list | None = None, charge: int = 0, multiplicity: int = 1, extra_options: str = "", atom_coords: list | None = None) -> str:
         if coords is None and atom_coords is not None:
             coords = atom_coords
         atom_block = ""
@@ -178,7 +179,7 @@ class TorqOrcaExecutor:
 
         except Exception as e:
             logger.error(f"Error running ORCA job {job_name}: {e}")
-            return output_file, False
+            raise
 
     def validate_imaginary_frequencies(self, freqs: list) -> bool:
         """Validates that vibrational frequencies list contains exactly one imaginary (negative) frequency."""
@@ -232,7 +233,7 @@ class TorqOrcaExecutor:
         valid_ts = success and self.validate_imaginary_frequencies(freqs)
         return output_file, valid_ts, parsed
 
-    async def optimize_transition_state(self, *args, **kwargs) -> tuple[str, bool, dict]:
+    async def optimize_transition_state(self, *args: object, **kwargs: object) -> tuple[str, bool, dict]:
         """Wrapper method delegating to run_ts_optimization."""
         return await self.run_ts_optimization(*args, **kwargs)
 
@@ -295,11 +296,11 @@ class TorqOrcaExecutor:
         logger.info(f"IRC Verification Complete: Reactant Kabsch RMSD={rmsd_r:.4f} A, Product Kabsch RMSD={rmsd_p:.4f} A. Target threshold < 0.5 A. Valid={path_valid}")
         return path_valid, rmsd_r, rmsd_p
 
-    async def verify_irc_path(self, *args, **kwargs) -> tuple[bool, float, float]:
+    async def verify_irc_path(self, *args: object, **kwargs: object) -> tuple[bool, float, float]:
         """Wrapper method delegating to _run_irc_validation."""
         return await self._run_irc_validation(*args, **kwargs)
 
-    def _check_lam_trigger(self, h5_file_path, point_id) -> Any:
+    def _check_lam_trigger(self, h5_file_path: str, point_id: str | int) -> bool:
         try:
             with h5py.File(h5_file_path, 'r') as f:
                 group_name = f"point_{point_id}"
@@ -310,11 +311,11 @@ class TorqOrcaExecutor:
                 return False
         except Exception as e:
             logger.error(f"Error checking LAM trigger in HDF5: {e}")
-            return False
+            raise
 
     def execute_lam_protocol(
         self,
-        point_id: Any,
+        point_id: str | int,
         h5_file_path: str,
         atom_coords: list,
         charge: int = 0,
@@ -323,7 +324,7 @@ class TorqOrcaExecutor:
         basis_set: str = "",
         output_dir: str = ".",
         timeout: int = 3600,
-        frozen_bonds: list = None,
+        frozen_bonds: list | None = None,
     ) -> tuple[list, bool]:
         """
         Executes ORCA constrained monomer optimization while freezing intermolecular bond coordinates.
@@ -371,6 +372,7 @@ class TorqOrcaExecutor:
                             opt_coords.append([float(parts[1]), float(parts[2]), float(parts[3])])
             except Exception as e:
                 logger.warning(f"Failed to parse optimized coordinates from ORCA output: {e}")
+                raise
 
         if opt_coords is None:
             opt_coords = [c[1:] if len(c) > 3 else c for c in atom_coords]
@@ -379,7 +381,7 @@ class TorqOrcaExecutor:
 
     def execute_vpt2_protocol(
         self,
-        point_id: Any,
+        point_id: str | int,
         h5_file_path: str,
         atom_coords: list,
         charge: int = 0,
@@ -398,7 +400,7 @@ class TorqOrcaExecutor:
             extra_options=extra_opts, output_dir=output_dir, timeout=timeout
         )
 
-    def execute_protocol(self, point_id, h5_file_path, atom_coords, charge=0, multiplicity=1) -> Any:
+    def execute_protocol(self, point_id: str | int, h5_file_path: str, atom_coords: list, charge: int = 0, multiplicity: int = 1) -> tuple[list | str, bool]:
         use_lam = self._check_lam_trigger(h5_file_path, point_id)
         if use_lam:
             return self.execute_lam_protocol(point_id, h5_file_path, atom_coords, charge=charge, multiplicity=multiplicity)
@@ -471,6 +473,7 @@ class TorqOrcaExecutor:
 
         except Exception as e:
             logger.error(f"Error parsing ORCA output: {e}")
+            raise
 
         return DotDict(parsed_data)
 
@@ -525,8 +528,9 @@ class TorqOrcaExecutor:
                             "g_iso": float(g_iso), "delta_g": float(delta_g),
                             "matrix": g_mat.tolist()
                         }
-                except Exception:
-                    raise NotImplementedError("Implementation pending")
+                except Exception as e:
+                    logger.error(f"Error parsing g-matrix: {e}")
+                    raise
             # 3. Parse Hyperfine coupling
             a_matches = re.finditer(r"Nucleus\s+(\d+)\s+([A-Za-z]+).*?A_iso\s*=\s*([-\d\.]+)", content, re.DOTALL)
             for m in a_matches:
@@ -549,10 +553,11 @@ class TorqOrcaExecutor:
 
         except Exception as e:
             logger.error(f"Error parsing Spin Hamiltonian: {e}")
+            raise
 
         return spin_data
 
-    def export_results_to_hdf5(self, h5_file_path, point_id, results_dict) -> Any:
+    def export_results_to_hdf5(self, h5_file_path: str, point_id: str | int, results_dict: dict) -> None:
         try:
             with h5py.File(h5_file_path, 'a') as f:
                 group_name = f"point_{point_id}"
@@ -573,6 +578,7 @@ class TorqOrcaExecutor:
             logger.info(f"Results exported to HDF5 tensor at {h5_file_path}")
         except Exception as e:
             logger.error(f"Failed to export results to HDF5: {e}")
+            raise
 
 
 if __name__ == "__main__":

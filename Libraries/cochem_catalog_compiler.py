@@ -11,7 +11,6 @@ columnar Apache Parquet databases for downstream spectroscopic visualization.
 import os
 import logging
 from pathlib import Path
-from typing import Any
 import pandas as pd
 
 try:
@@ -24,7 +23,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-CatC
 logger = logging.getLogger("TorqCatCompiler")
 
 class TorqCatalogCompiler:
-    def __init__(self, cat_filepath, point_id="000") -> None:
+    def __init__(self, cat_filepath: str | Path, point_id: str = "000") -> None:
         """
         Initialize the PyArrow streaming compiler.
         :param cat_filepath: Path to the SPCAT generated .cat file.
@@ -42,7 +41,7 @@ class TorqCatalogCompiler:
             "E_Lower_cm1", "G_Up", "Tag", "QNs_Up", "QNs_Low"
         ]
 
-    def _parse_chunk(self, raw_lines) -> Any:
+    def _parse_chunk(self, raw_lines: list[str]) -> pd.DataFrame:
         """
         Strictly slices Fortran-77 fixed-width strings.
         Avoids the `.split()` method, which fails when large numbers run together
@@ -69,20 +68,21 @@ class TorqCatalogCompiler:
                 # Handle Fortran asterisk overflow (e.g., '*******' when bounds exceeded)
                 if "*" in line:
                     logger.debug(f"Skipping line due to Fortran overflow: {line.strip()}")
+                    continue
                 else:
-                    logger.warning(f"Malformed line encountered and skipped: {line.strip()}")
-                continue
+                    logger.error(f"Malformed line encountered: {line.strip()}")
+                    raise ValueError(f"Malformed line: {line.strip()}")
 
         return pd.DataFrame(parsed_data)
 
-    def compile_to_parquet(self, chunk_size=100000) -> Any:
+    def compile_to_parquet(self, chunk_size: int = 100000) -> bool:
         """
         Executes the out-of-core streaming read/write loop.
         Flushes to disk every `chunk_size` rows to guarantee constant O(1) RAM footprint.
         """
         if not self.cat_filepath.exists():
             logger.error(f"Catalog file {self.cat_filepath} not found. SPCAT execution may have failed.")
-            return False
+            raise FileNotFoundError(f"Catalog file {self.cat_filepath} not found.")
 
         logger.info(f"Initiating out-of-core Parquet compilation for {self.cat_filepath}")
         
@@ -141,7 +141,7 @@ class TorqCatalogCompiler:
             logger.error(f"Catastrophic failure during Parquet serialization: {e}")
             if writer:
                 writer.close()
-            return False
+            raise RuntimeError(f"Serialization failed: {e}") from e
 
     def compute_temperature_dependent_partition_function(self, temp_k: float, A_MHz: float = 10000.0, B_MHz: float = 2000.0, C_MHz: float = 1500.0, sigma: int = 1) -> float:
         """

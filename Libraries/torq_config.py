@@ -1,4 +1,3 @@
-from typing import List, Optional, Dict
 from pydantic import BaseModel, field_validator, model_validator
 
 class TorqRunParams(BaseModel):
@@ -7,15 +6,15 @@ class TorqRunParams(BaseModel):
     engine: str
     method: str
     basis_set: str
-    keywords: List[str]
-    anharmonicity: Optional[str] = None
-    dispersion: Optional[str] = None
-    bsse_correction: Optional[str] = None
-    cabs_mappings: Optional[Dict[str, str]] = None
+    keywords: list[str]
+    anharmonicity: str | None = None
+    dispersion: str | None = None
+    bsse_correction: str | None = None
+    cabs_mappings: dict[str, str] | None = None
 
     @field_validator('keywords', mode='after')
     @classmethod
-    def check_calc_hess(cls, v: List[str]) -> List[str]:
+    def check_calc_hess(cls, v: list[str]) -> list[str]:
         for kw in v:
             if "calc_hess" in kw.lower() and "true" in kw.lower():
                 raise ValueError("Calc_Hess true is strictly prohibited for initial hessians. Use 'InHess XTB2' or 'Lindh' instead.")
