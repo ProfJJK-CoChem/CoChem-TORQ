@@ -409,8 +409,8 @@ class TorqTensorExtractor:
 if __name__ == "__main__":
     # Self-test: Linearity Trap and Normal Extraction (CO2-like sample vs non-linear)
     sample_syms_linear = ["O", "C", "O"]
-    sample_coords_linear = [[0.0, 0.0, -1.16], [0.0, 0.0, 0.0], [0.0, 0.0, 1.16]]
+    test_coords_linear = [[0.0, 0.0, -1.16], [0.0, 0.0, 0.0], [0.0, 0.0, 1.16]]
     
-    extractor = TorqTensorExtractor(sample_syms_linear, sample_coords_linear, point_id="test_linear")
+    extractor = TorqTensorExtractor(sample_syms_linear, test_coords_linear, point_id="test_linear")
     extractor._compute_rotational_constants()
     extractor.export_tensor()

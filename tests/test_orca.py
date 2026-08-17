@@ -19,8 +19,8 @@ def test_torq_orca_executor_init() -> None:
 
 def test_torq_orca_generate_input() -> None:
     executor = TorqOrcaExecutor()
-    sample_coords = [["O", 0, 0, 0], ["H", 1, 0, 0], ["H", 0, 1, 0]]
-    inp = executor._generate_orca_input("B3LYP", "def2-TZVP", "def2-TZVP/CPCM", "DIIS", sample_coords, charge=0, multiplicity=1)
+    mock_coords = [["O", 0, 0, 0], ["H", 1, 0, 0], ["H", 0, 1, 0]]
+    inp = executor._generate_orca_input("B3LYP", "def2-TZVP", "def2-TZVP/CPCM", "DIIS", mock_coords, charge=0, multiplicity=1)
     assert "* xyz 0 1" in inp
     assert "B3LYP" in inp
     assert "def2-TZVP" in inp
@@ -52,7 +52,7 @@ def test_orca_constrained_input_generation() -> None:
 
 def test_ts_optimization_5_threshold_geom_block() -> None:
     executor = TorqOrcaExecutor()
-    sample_coords = [["O", 0.0, 0.0, 0.0], ["H", 0.0, 0.75, 0.58], ["H", 0.0, -0.75, 0.58]]
+    mock_coords = [["O", 0.0, 0.0, 0.0], ["H", 0.0, 0.75, 0.58], ["H", 0.0, -0.75, 0.58]]
     extra_opts = (
         "! R2SCAN-3c OPTTS NUMFREQ\n"
         "%geom\n"
@@ -64,7 +64,7 @@ def test_ts_optimization_5_threshold_geom_block() -> None:
         "  TolMaxD 1e-4\n"
         "end"
     )
-    inp = executor._generate_orca_input("R2SCAN-3c", "", "", "DIIS", sample_coords, extra_options=extra_opts)
+    inp = executor._generate_orca_input("R2SCAN-3c", "", "", "DIIS", mock_coords, extra_options=extra_opts)
     assert "InHess XTB2" in inp
     assert "TolE 1e-7" in inp
     assert "TolRMSG 3e-6" in inp

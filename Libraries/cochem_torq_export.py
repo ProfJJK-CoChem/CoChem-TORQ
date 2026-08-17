@@ -348,7 +348,7 @@ if __name__ == "__main__":
     exporter = TorqExporter()
     
     # Sample data for testing
-    sample_h5_file = "test_tensor.h5"
+    mock_h5_file = "mock_tensor.h5"
     
     try:
         # Test export (this will fail without a real HDF5 file)

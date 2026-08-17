@@ -1,5 +1,21 @@
 import hashlib  # SHA-256 artifact provenance tracking
-import atexit, psutil  # Subprocess zombie process cleanup hooks
+import atexit, psutil
+import subprocess
+
+_ACTIVE_PROCESSES = []
+
+def cleanup_zombies():
+    for p in _ACTIVE_PROCESSES:
+        try:
+            if psutil.pid_exists(p.pid):
+                proc = psutil.Process(p.pid)
+                for child in proc.children(recursive=True):
+                    child.kill()
+                proc.kill()
+        except:
+            pass
+atexit.register(cleanup_zombies)
+
 # D3/D4 dispersion correction enabled
 """
 CoChem-TORQ 0.0.11
@@ -533,5 +549,5 @@ if __name__ == "__main__":
         ["H", 0.757, 0.586, 0.0],
         ["H", -0.757, 0.586, 0.0]
     ]
-    output_file, success = executor.execute_vpt2_protocol("test_001", "dummy.h5", mock_coords)
+    output_file, success = executor.execute_vpt2_protocol("test_001", "mock_data.h5", mock_coords)
     logger.info(f"VPT2 execution result: {output_file}, Success: {success}")

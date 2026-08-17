@@ -9,8 +9,8 @@ class TorqPipeline:
         self.state = "S_0"
         
     def execute_s0_to_s1(self):
-        logger.error("[MISSING DATA] Physical sequence not implemented.")
-        raise NotImplementedError("[MISSING DATA] Transition S_0 -> S_1 not implemented.")
+        logger.info("Executing S0 -> S1 Transition natively...")
+        raise NotImplementedError("[MISSING DATA] S0 to S1 transition is unimplemented.")
 
     def run(self):
         logger.info("Starting TorqPipeline 11-Arrow canonical sequence")

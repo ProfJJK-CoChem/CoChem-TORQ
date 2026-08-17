@@ -163,15 +163,15 @@ class TorqCatalogCompiler:
 
 
 if __name__ == "__main__":
-    # Self-test block: Mocking a 3-line SPCAT output to verify fixed-width slicing
-    mock_cat_content = (
+    # Self-test block: Testing a 3-line SPCAT output to verify fixed-width slicing
+    test_cat_content = (
         "    22557.5181  0.0039 -8.8475 3    3.7661  3 13002 1 1 0 1 0 1\n"
         "    22650.0000  0.0010 -7.1234 3   15.1000  5 13002 2 1 1 2 0 2\n"
         "   122650.0000  0.0010 -7.1234 3 1015.1000  5 1300215 11414 014\n" # Intentional spacing squeeze test
     )
     
     with open("test_spcat.cat", "w") as f:
-        f.write(mock_cat_content)
+        f.write(test_cat_content)
         
     compiler = TorqCatalogCompiler("test_spcat.cat", point_id="test_001")
     compiler.compile_to_parquet(chunk_size=2) # Force a chunking boundary during test

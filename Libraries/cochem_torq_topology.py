@@ -306,10 +306,10 @@ def route_method_track(method: str, is_anharmonic: bool, n_atoms: int) -> str:
 
 if __name__ == "__main__":
     # Self-test payload
-    mock_coords = [[0.0, 0.0, 0.0], [1.5, 0.0, 0.0], [2.0, 1.0, 0.0], [3.0, 1.0, 0.0]]
-    mock_syms = ["C", "C", "O", "H"]
+    test_coords = [[0.0, 0.0, 0.0], [1.5, 0.0, 0.0], [2.0, 1.0, 0.0], [3.0, 1.0, 0.0]]
+    test_syms = ["C", "C", "O", "H"]
     
-    topos = TorqTopology(mock_syms, mock_coords, is_complex=False)
+    topos = TorqTopology(test_syms, test_coords, is_complex=False)
     topos.detect_via_override([0, 1, 2, 3])
     topos.generate_cascade_parameters(tier="T3-1h")
     

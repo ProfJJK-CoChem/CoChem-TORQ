@@ -251,7 +251,7 @@ if __name__ == "__main__":
     qcxms_integration = TorqQCxMSIntegration()
     
     # Sample data for testing
-    sample_h5_file = "test_tensor.h5"
+    mock_h5_file = "mock_tensor.h5"
     
     try:
         # Test basic processing
