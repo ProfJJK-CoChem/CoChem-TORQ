@@ -1,0 +1,512 @@
+[
+  {
+    "LineNumber": 441,
+    "Line": "    \"\"\"Verify that all Method Matrix v4 recommended functionals pass dispersion validation.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 3,
+    "Line": "# anti-spoof: zero-stub verification suite",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_mps_worker.py"
+  },
+  {
+    "LineNumber": 133,
+    "Line": "    \"\"\"# anti-spoof: zero-stub verification of prohibited terms.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_mps_worker.py"
+  },
+  {
+    "LineNumber": 138,
+    "Line": "        \"dummy\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_mps_worker.py"
+  },
+  {
+    "LineNumber": 140,
+    "Line": "        \"fake\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_mps_worker.py"
+  },
+  {
+    "LineNumber": 152,
+    "Line": "    \"\"\"# anti-spoof: zero-stub AST inspection for prohibited test utility imports.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_mps_worker.py"
+  },
+  {
+    "LineNumber": 3,
+    "Line": "# anti-spoof: zero-stub verification suite",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_submit_slurm.py"
+  },
+  {
+    "LineNumber": 147,
+    "Line": "    \"\"\"# anti-spoof: zero-stub verification of prohibited terms.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_submit_slurm.py"
+  },
+  {
+    "LineNumber": 152,
+    "Line": "        \"dummy\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_submit_slurm.py"
+  },
+  {
+    "LineNumber": 154,
+    "Line": "        \"fake\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_submit_slurm.py"
+  },
+  {
+    "LineNumber": 166,
+    "Line": "    \"\"\"# anti-spoof: zero-stub AST inspection for prohibited test utility imports.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_submit_slurm.py"
+  },
+  {
+    "LineNumber": 6,
+    "Line": "Zero-Mock test suite verifying physical air-gap mathematical boundary checks,",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 89,
+    "Line": "        \"\"\"Disjoint working directory and artifact directory must pass.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 2,
+    "Line": "Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ Devcontainer.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_devcontainer.py"
+  },
+  {
+    "LineNumber": 12,
+    "Line": "8. Strict absence of prohibited placeholder strings or unfinished markers",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_devcontainer.py"
+  },
+  {
+    "LineNumber": 171,
+    "Line": "    \"\"\"Verify devcontainer.json contains no placeholder or banned terms.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_devcontainer.py"
+  },
+  {
+    "LineNumber": 11,
+    "Line": "- Zero-Mock and Anti-Spoofing compliance.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_dockerfile.py"
+  },
+  {
+    "LineNumber": 151,
+    "Line": "    \"\"\"Validate zero-stub anti-spoofing compliance and absence of banned directives.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_dockerfile.py"
+  },
+  {
+    "LineNumber": 161,
+    "Line": "        \"pass\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_dockerfile.py"
+  },
+  {
+    "LineNumber": 548,
+    "Line": "        dummy_gbw = b\"GBW_PERSISTENT_WAVEFUNCTION_STEP_0005\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_engine.py"
+  },
+  {
+    "LineNumber": 550,
+    "Line": "        chk_path = stateful_scf_checkpointing(5, dummy_gbw, ctx, checkpoint_type=\"gbw\")",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_engine.py"
+  },
+  {
+    "LineNumber": 553,
+    "Line": "        assert chk_path.read_bytes() == dummy_gbw",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_engine.py"
+  },
+  {
+    "LineNumber": 1,
+    "Line": "\"\"\"Comprehensive Zero-Mock Test Suite for Scaffolding and .gitignore.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_gitignore.py"
+  },
+  {
+    "LineNumber": 20,
+    "Line": "5. Anti-spoofing compliance (zero placeholder tokens).",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_gitignore.py"
+  },
+  {
+    "LineNumber": 212,
+    "Line": "    \"\"\"Verify that .gitignore contains no placeholder or spoof tokens.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_gitignore.py"
+  },
+  {
+    "LineNumber": 6,
+    "Line": "Zero-Mock test suite verifying physical SWMR lock management, multi-tier zombie",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 139,
+    "Line": "        def mock_read_perm(*args: object, **kwargs: object) -> str:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 142,
+    "Line": "        monkeypatch.setattr(Path, \"read_text\", mock_read_perm)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 145,
+    "Line": "        def mock_read_os(*args: object, **kwargs: object) -> str:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 148,
+    "Line": "        monkeypatch.setattr(Path, \"read_text\", mock_read_os)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 153,
+    "Line": "# 2. Process Validation & Zombie Detection Tests (Zero-Mock)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 285,
+    "Line": "        class MockCompletedProcessTerminal:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 293,
+    "Line": "            lambda *args, **kwargs: MockCompletedProcessTerminal(),",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 302,
+    "Line": "        class MockCompletedProcessActive:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 310,
+    "Line": "            lambda *args, **kwargs: MockCompletedProcessActive(),",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 323,
+    "Line": "        def mock_process(pid: int) -> psutil.Process:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 326,
+    "Line": "        monkeypatch.setattr(psutil, \"Process\", mock_process)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 338,
+    "Line": "        def mock_process(pid: int) -> psutil.Process:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 341,
+    "Line": "        monkeypatch.setattr(psutil, \"Process\", mock_process)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 353,
+    "Line": "        class MockProc:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 360,
+    "Line": "        monkeypatch.setattr(psutil, \"Process\", lambda _pid: MockProc())",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 369,
+    "Line": "# 3. Live Subprocess Crash & SWMR Recovery Simulation (Zero-Mock)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 374,
+    "Line": "    \"\"\"Zero-Mock crash simulation killing live worker subprocess.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 570,
+    "Line": "            # Releasing with force=True must bypass session check",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 704,
+    "Line": "        def mock_h5_file(*args: object, **kwargs: object) -> h5py.File:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 707,
+    "Line": "        monkeypatch.setattr(h5py, \"File\", mock_h5_file)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 712,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 718,
+    "Line": "# 6. Concurrent Multi-Reader SWMR Validation (Zero-Mock)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 723,
+    "Line": "    \"\"\"Zero-Mock verification of concurrent readers accessing live SWMR writer.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 794,
+    "Line": "            class MockCompletedProcess:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 802,
+    "Line": "                lambda *args, **kwargs: MockCompletedProcess(),",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 822,
+    "Line": "            class MockCompletedProcess:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 830,
+    "Line": "                lambda *args, **kwargs: MockCompletedProcess(),",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 849,
+    "Line": "        class MockCompletedProcess:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 857,
+    "Line": "            lambda *args, **kwargs: MockCompletedProcess(),",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 879,
+    "Line": "        def mock_timeout(",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 884,
+    "Line": "        monkeypatch.setattr(subprocess, \"run\", mock_timeout)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 895,
+    "Line": "        def mock_error(",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 900,
+    "Line": "        monkeypatch.setattr(subprocess, \"run\", mock_error)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 911,
+    "Line": "        class MockUnrecognized:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 917,
+    "Line": "            subprocess, \"run\", lambda *args, **kwargs: MockUnrecognized()",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py"
+  },
+  {
+    "LineNumber": 4,
+    "Line": "Adhering to Zero-Mock Mandate and Real Physical Solvers",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_jax_builder.py"
+  },
+  {
+    "LineNumber": 337,
+    "Line": "    Verifies that clean inputs pass through wavefunctions without empty array returns,",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_jax_builder.py"
+  },
+  {
+    "LineNumber": 5,
+    "Line": "Strictly adheres to Anti-Spoofing Directives: zero mock patches of unimplemented physics steps.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pipeline.py"
+  },
+  {
+    "LineNumber": 18,
+    "Line": "- Authentic execution policy and absence of placeholder / banned tokens.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 428,
+    "Line": "def test_pyproject_authentic_and_no_placeholders(pyproject_content: str) -> None:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 429,
+    "Line": "    \"\"\"Validate pyproject.toml contains no synthetic, placeholder, or banned tokens.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 434,
+    "Line": "        \"dummy\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 435,
+    "Line": "        \"placeholder\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 436,
+    "Line": "        \"fake\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 443,
+    "Line": "            f\"pyproject.toml contains forbidden placeholder token '{token}'\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 469,
+    "Line": "    \"\"\"Verify test module contains no pass statements or empty function bodies.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 473,
+    "Line": "        assert not isinstance(node, ast.Pass), (",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 474,
+    "Line": "            \"Forbidden 'pass' statement found in test module\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py"
+  },
+  {
+    "LineNumber": 1,
+    "Line": "\"\"\"Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ README.md.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 30,
+    "Line": "- Zero banned / placeholder / mock tokens across README.md and test suite.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 52,
+    "Line": "    \"mock\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 53,
+    "Line": "    \"dummy\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 54,
+    "Line": "    \"placeholder\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 55,
+    "Line": "    \"fake\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 474,
+    "Line": "# 10. Anti-Spoofing & Zero-Mock Verification",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 478,
+    "Line": "def test_readme_no_banned_placeholder_tokens(readme_lines: list[str]) -> None:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 479,
+    "Line": "    \"\"\"Verify README contains zero banned placeholder or mock tokens.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 489,
+    "Line": "                f\"Line {line_idx} contains banned placeholder token '{token}': {line}\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 494,
+    "Line": "    \"\"\"Verify that test_readme.py contains zero dummy passes or mock imports.\"\"\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 499,
+    "Line": "        # Disallow mock imports",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 502,
+    "Line": "                assert \"mock\" not in alias.name.lower(), (",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 503,
+    "Line": "                    f\"Mock import '{alias.name}' is strictly forbidden by mandate\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 507,
+    "Line": "                assert \"mock\" not in node.module.lower(), (",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 508,
+    "Line": "                    f\"Mock import from '{node.module}' is strictly forbidden\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 511,
+    "Line": "        # Disallow empty test functions with only `pass`",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 514,
+    "Line": "            if len(body) == 1 and isinstance(body[0], ast.Pass):",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 516,
+    "Line": "                    f\"Test function '{node.name}' has empty dummy body with 'pass'\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 522,
+    "Line": "                and isinstance(body[1], ast.Pass)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 525,
+    "Line": "                    f\"Test function '{node.name}' has dummy docstring and 'pass'\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py"
+  },
+  {
+    "LineNumber": 91,
+    "Line": "def test_zero_mock_code_in_libraries() -> None:",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py"
+  },
+  {
+    "LineNumber": 97,
+    "Line": "        r\"\\bmock\\b\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py"
+  },
+  {
+    "LineNumber": 98,
+    "Line": "        r\"\\bplaceholder\\b\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py"
+  },
+  {
+    "LineNumber": 99,
+    "Line": "        r\"\\bdummy_data\\b\",",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py"
+  },
+  {
+    "LineNumber": 101,
+    "Line": "        r\"return\\s+['\\\"]mock['\\\"]\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py"
+  },
+  {
+    "LineNumber": 115,
+    "Line": "    assert len(violations) == 0, f\"Found mock code violations in Libraries: {violations}\"",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py"
+  },
+  {
+    "LineNumber": 54,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py"
+  }
+]

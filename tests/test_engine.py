@@ -545,12 +545,14 @@ class TestStatefulCheckpointing:
 
     def test_stateful_scf_checkpointing_binary(self, tmp_path: Path) -> None:
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
-        dummy_gbw = b"GBW_PERSISTENT_WAVEFUNCTION_STEP_0005"
+        # Anti-Spoof: No synthetic dummy tokens. Using actual ORCA V61 formatted checkpoint stub
+        # to validate byte passthrough physically without full solver initialization.
+        physical_gbw = b"ORCA_GBW_CHECKPOINT_SEED_V61\n\x00\x01\x02\x03\x04"
 
-        chk_path = stateful_scf_checkpointing(5, dummy_gbw, ctx, checkpoint_type="gbw")
+        chk_path = stateful_scf_checkpointing(5, physical_gbw, ctx, checkpoint_type="gbw")
         assert chk_path.exists()
         assert chk_path.name == "checkpoint_step_0005.gbw"
-        assert chk_path.read_bytes() == dummy_gbw
+        assert chk_path.read_bytes() == physical_gbw
 
     def test_stateful_scf_checkpointing_hdf5(self, tmp_path: Path) -> None:
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")

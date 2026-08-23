@@ -874,6 +874,28 @@ def pyarrow_chunked_serializer(
         if rows_in_buffer > 0:
             _flush_buffer()
 
+        if writer is not None:
+            writer.close()
+            writer = None
+
+        if total_rows == 0:
+            raise InactiveRotorError(
+                f"Zero catalog records were produced for {final_path.name}. Inactive rotor intercepted.",
+                error_code=ProvenanceErrorCode.SPCAT_BRIDGE_ERROR,
+                details={"output_path": str(final_path), "total_rows": 0},
+            )
+
+        if verify_sync:
+            buffer_lock_sync(temp_staging_path, min_bytes=4)
+
+        if final_path.exists():
+            remove_readonly_seal(final_path, recursive=False)
+
+        try:
+            os.replace(temp_staging_path, final_path)
+        except OSError:
+            shutil.move(str(temp_staging_path), str(final_path))
+
     except Exception:
         if writer is not None:
             try:
@@ -883,33 +905,11 @@ def pyarrow_chunked_serializer(
             writer = None
         if temp_staging_path.exists():
             try:
+                remove_readonly_seal(temp_staging_path, recursive=False)
                 temp_staging_path.unlink()
             except Exception:
                 pass
         raise
-    finally:
-        if writer is not None:
-            writer.close()
-
-    if total_rows == 0:
-        if temp_staging_path.exists():
-            temp_staging_path.unlink()
-        raise InactiveRotorError(
-            f"Zero catalog records were produced for {final_path.name}. Inactive rotor intercepted.",
-            error_code=ProvenanceErrorCode.SPCAT_BRIDGE_ERROR,
-            details={"output_path": str(final_path), "total_rows": 0},
-        )
-
-    if verify_sync:
-        buffer_lock_sync(temp_staging_path, min_bytes=4)
-
-    if final_path.exists():
-        remove_readonly_seal(final_path, recursive=False)
-
-    try:
-        os.replace(temp_staging_path, final_path)
-    except OSError:
-        shutil.move(str(temp_staging_path), str(final_path))
 
     return final_path
 
@@ -1033,8 +1033,9 @@ def generate_methods_latex(
     """Generate an AASTeX 6.3.1 and siunitx compliant LaTeX Computational Methods section.
 
     Validates Method Matrix v4 constraints:
-    - DFT methods require explicit dispersion correction (-D3BJ, -D4).
+    - DFT methods require explicit dispersion correction (-D3BJ, -D4, -VV10, -3c).
     - Grid definitions must meet DEFGRID2 / DEFGRID3 criteria.
+    - Frozen-Monomer and BSSE Counterpoise documentation for weak complexes.
     - Required metadata: theory_level, basis_set, rotational_constants, temperatures.
 
     Args:
@@ -1045,7 +1046,7 @@ def generate_methods_latex(
         Formatted LaTeX code string ready for direct insertion into scientific manuscripts.
 
     Raises:
-        MethodMatrixViolationError: If required fields or dispersion corrections are missing.
+        MethodMatrixViolationError: If required fields, grids, or dispersion corrections fail.
     """
     theory_level = str(metadata.get("theory_level", "")).strip()
     basis_set = str(metadata.get("basis_set", "")).strip()
@@ -1084,27 +1085,11 @@ def generate_methods_latex(
                 details={"metadata": metadata},
             )
 
-        # Check DFT dispersion compliance
-        dft_signatures = (
-            "B3LYP", "WB97", "PBE", "R2SCAN", "TPSS", "M06", "B97", "SCAN",
-            "OLYP", "PW6B95", "BP86", "BLYP", "CAM-B3LYP", "LC-",
-        )
-        theory_upper = theory_level.upper()
-        is_dft = any(sig in theory_upper for sig in dft_signatures)
-        disp_signatures = (
-            "-D3", "-D3BJ", "-D3ZERO", "-D4", "D3", "D4", "D3BJ", "D3ZERO",
-            "-V", "-VV10", "VV10", "-3C", "3C", "-NL", "NL", "-D2", "D2",
-        )
-        has_disp = any(disp in theory_upper for disp in disp_signatures)
-        if is_dft and not has_disp:
-            raise DispersionMissingError(
-                f"Method Matrix v4 Violation: DFT functional {theory_level!r} lacks required dispersion correction (D3BJ/D4/VV10/3c).",
-                error_code=ProvenanceErrorCode.DISPERSION_MISSING,
-                details={"theory_level": theory_level},
-            )
+        # Audit banned methods and dispersion / grid standards
+        audit_banned_methods(metadata, raise_on_violation=True)
 
-        # Check DEFGRID standard
-        if "DEFGRID1" in defgrid or "SG-1" in defgrid:
+        # Explicit DEFGRID verification
+        if not defgrid or "DEFGRID1" in defgrid or "SG-1" in defgrid:
             raise MethodMatrixViolationError(
                 f"Method Matrix v4 Violation: Grid {defgrid!r} fails minimum integration threshold (DEFGRID2/DEFGRID3 required).",
                 error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
@@ -1170,6 +1155,15 @@ def generate_methods_latex(
         r"on frequencies, intensities, and state energies.",
     ]
 
+    is_non_covalent = metadata.get("is_non_covalent", metadata.get("is_vdw_complex", False))
+    if is_non_covalent:
+        latex_lines.extend([
+            r"",
+            "The Frozen-Monomer protocol was applied to lock intramolecular monomer coordinates,",
+            "fixing the monomer $A$ constant while optimizing intermolecular degrees of freedom.",
+            "Basis Set Superposition Error (BSSE) was corrected via the Boys-Bernardi counterpoise procedure.",
+        ])
+
     if centrifugal:
         def _find_cent_val(*aliases: str) -> float:
             for k, v in centrifugal.items():
@@ -1213,39 +1207,71 @@ def deduplicate_bibtex(
     bibtex_entries: Union[str, Sequence[str]],
     deduplicate_by: str = "both",
 ) -> str:
-    """Deduplicate BibTeX bibliography entries by cite key, normalized DOI, or both."""
+    """Deduplicate BibTeX bibliography entries by cite key, normalized DOI, or both.
+
+    Uses a robust brace-depth tokenizer that handles inter-entry non-whitespace comments
+    (e.g., '% ADS Export') without swallowing or corrupting subsequent entries.
+    """
     raw_text: str
     if isinstance(bibtex_entries, (list, tuple, set)):
         raw_text = "\n\n".join(str(entry) for entry in bibtex_entries)
     else:
         raw_text = str(bibtex_entries)
 
-    entry_pattern = re.compile(
-        r"@(?P<type>[a-zA-Z]+)\s*\{\s*(?P<key>[^,\s]+)\s*,\s*(?P<body>.*?)\s*\}\s*(?=(?:@[a-zA-Z]+\s*\{|\Z))",
-        re.DOTALL,
-    )
+    entries: List[Tuple[str, str, str]] = []  # (entry_type, cite_key, body)
+    pos = 0
+    length = len(raw_text)
 
-    doi_pattern = re.compile(r"doi\s*=\s*[\"{](?P<doi>[^\"}]+)[\"}]", re.IGNORECASE)
+    entry_header = re.compile(r"@(?P<type>[a-zA-Z]+)\s*\{\s*(?P<key>[^,\s]+)\s*,", re.DOTALL)
+    doi_pattern = re.compile(r"\bdoi\s*=\s*[\"{]?(?P<doi>[^\s,\"'}]+)[\"}]?", re.IGNORECASE)
+
+    while pos < length:
+        match = entry_header.search(raw_text, pos)
+        if not match:
+            break
+
+        entry_type = match.group("type").strip()
+        cite_key = match.group("key").strip()
+
+        brace_pos = raw_text.find("{", match.start())
+        if brace_pos == -1:
+            pos = match.end()
+            continue
+
+        brace_depth = 0
+        body_start = match.end()
+        i = brace_pos
+
+        while i < length:
+            char = raw_text[i]
+            if char == "{":
+                brace_depth += 1
+            elif char == "}":
+                brace_depth -= 1
+                if brace_depth == 0:
+                    break
+            i += 1
+
+        if brace_depth == 0:
+            body = raw_text[body_start:i].strip()
+            entries.append((entry_type, cite_key, body))
+            pos = i + 1
+        else:
+            pos = match.end()
 
     seen_keys: Set[str] = set()
     seen_dois: Set[str] = set()
     unique_entries: List[str] = []
 
-    for match in entry_pattern.finditer(raw_text):
-        entry_type = match.group("type").strip()
-        cite_key = match.group("key").strip()
-        body = match.group("body").strip()
-        full_entry = f"@{entry_type}{{{cite_key},\n  {body}\n}}"
-
-        norm_key = cite_key.lower()
-
+    for entry_type, cite_key, body in entries:
+        norm_key = cite_key.lower().strip()
         doi_match = doi_pattern.search(body)
         norm_doi: Optional[str] = None
         if doi_match:
             raw_doi = doi_match.group("doi").strip()
             cleaned_doi = re.sub(r"^https?://(dx\.)?doi\.org/", "", raw_doi, flags=re.IGNORECASE)
             cleaned_doi = re.sub(r"^doi:\s*", "", cleaned_doi, flags=re.IGNORECASE)
-            norm_doi = cleaned_doi.strip().lower()
+            norm_doi = cleaned_doi.strip().lower().rstrip("/.,;")
 
         is_duplicate = False
 
@@ -1259,7 +1285,8 @@ def deduplicate_bibtex(
             seen_keys.add(norm_key)
             if norm_doi:
                 seen_dois.add(norm_doi)
-            unique_entries.append(full_entry)
+            clean_entry = f"@{entry_type}{{{cite_key},\n  {body}\n}}"
+            unique_entries.append(clean_entry)
 
     return "\n\n".join(unique_entries) + ("\n" if unique_entries else "")
 
@@ -1294,8 +1321,10 @@ def audit_banned_methods(
 
     Mandates:
     - Banned: Additive diffuse corrections (e.g. adding diffuse primitives to standard basis).
+    - Banned: ONIOM and QM/QM2 partitioning on 5-10 atom non-covalent complexes (Method Matrix §9A.5).
+    - Banned: Stacking explicit D3/D4 dispersion on functionals with built-in VV10 or 3c models (§9A.7).
     - Required for vdW / non-covalent complexes: True diffuse-in-base sets
-      (e.g., 'aug-cc-pVQZ', 'aug-cc-pVTZ', 'ma-def2-TZVPP', 'def2-TZVPPD').
+      (e.g., 'aug-cc-pVTZ/QZ', 'jun-cc-pVTZ/QZ', 'jul-cc-pVTZ', 'ma-def2-TZVPP', 'def2-TZVPPD').
     - Confirms Frozen-Monomer Protocol (to fix A-constants).
     - Confirms Boys-Bernardi Counterpoise Corrections for BSSE.
     - Validates Hessian Preconditioning (verifies 'InHess XTB2' or 'Lindh' while trapping 'Calc_Hess true').
@@ -1312,6 +1341,8 @@ def audit_banned_methods(
         MethodMatrixViolationError: If a banned method is detected and raise_on_violation=True.
     """
     banned_flags: List[str] = []
+    theory_level = str(metadata.get("theory_level", "")).strip()
+    theory_upper = theory_level.upper()
     basis_set = str(metadata.get("basis_set", "")).strip().lower()
     keywords = str(metadata.get("keywords", metadata.get("orca_keywords", ""))).lower()
 
@@ -1319,10 +1350,43 @@ def audit_banned_methods(
     if "additive_diffuse" in keywords or metadata.get("additive_diffuse_correction", False):
         banned_flags.append(
             "BANNED_ADDITIVE_DIFFUSE: Additive diffuse corrections degrade interaction energies. "
-            "Use true diffuse-in-base sets (e.g. aug-cc-pVQZ or ma-def2-TZVPP)."
+            "Use true diffuse-in-base sets (e.g. aug-cc-pVQZ, jun-cc-pVTZ, or ma-def2-TZVPP)."
         )
 
-    # 2. Check for banned Calc_Hess true without preconditioning
+    # 2. Check for banned ONIOM or QM/QM2 partitioning on small complexes (§9A.5)
+    if "oniom" in keywords or "qm/qm2" in keywords or "qm-qm2" in keywords or metadata.get("oniom", False):
+        banned_flags.append(
+            "BANNED_ONIOM_QM_QM2: Method Matrix v4 §9A.5 strictly prohibits ONIOM and QM/QM2 "
+            "partitioning for 5-10 atom non-covalent complexes due to boundary polarization artifacts."
+        )
+
+    # 3. Check for banned double-dispersion / improper dispersion stacking (§9A.7)
+    if theory_upper:
+        has_builtin_disp = any(v in theory_upper for v in ("-V", "-VV10", "VV10", "-3C", "3C"))
+        has_stacked_disp = any(d in theory_upper for d in ("-D3", "-D4", "-D3BJ", "-D3ZERO", "D3BJ", "D3ZERO"))
+        if has_builtin_disp and has_stacked_disp:
+            banned_flags.append(
+                f"BANNED_DOUBLE_DISPERSION: Functional {theory_level!r} combines built-in non-local correlation/3c parameters "
+                "with explicit D3/D4 dispersion corrections, violating Method Matrix v4 §9A.7."
+            )
+
+        # Check DFT dispersion compliance if it is DFT without built-in or stacked dispersion
+        dft_signatures = (
+            "B3LYP", "WB97", "PBE", "R2SCAN", "TPSS", "M06", "B97", "SCAN",
+            "OLYP", "PW6B95", "BP86", "BLYP", "CAM-B3LYP", "LC-",
+        )
+        is_dft = any(sig in theory_upper for sig in dft_signatures)
+        disp_signatures = (
+            "-D3", "-D3BJ", "-D3ZERO", "-D4", "D3", "D4", "D3BJ", "D3ZERO",
+            "-V", "-VV10", "VV10", "-3C", "3C", "-NL", "NL", "-D2", "D2",
+        )
+        has_disp = any(disp in theory_upper for disp in disp_signatures)
+        if is_dft and not has_disp:
+            banned_flags.append(
+                f"DISPERSION_MISSING: DFT functional {theory_level!r} lacks required dispersion correction (D3BJ/D4/VV10/3c)."
+            )
+
+    # 4. Check for banned Calc_Hess true without preconditioning
     if "calc_hess true" in keywords or "calc_hess=true" in keywords or metadata.get("calc_hess_true", False):
         if not ("inhess xtb2" in keywords or "inhess lindh" in keywords or metadata.get("hessian_preconditioned", False)):
             banned_flags.append(
@@ -1330,24 +1394,28 @@ def audit_banned_methods(
                 "Must use 'InHess XTB2' or 'Lindh' Hessian preconditioning."
             )
 
-    # 3. Check for diffuse-in-base compliance on non-covalent complexes
+    # 5. Check for diffuse-in-base compliance on non-covalent complexes
     is_non_covalent = metadata.get("is_non_covalent", metadata.get("is_vdw_complex", False))
-    valid_diffuse_sets = ("aug-cc-pv", "ma-def2", "def2-tzvppd", "def2-qzvppd", "heavy-aug")
+    valid_diffuse_sets = (
+        "aug-cc-pv", "jun-cc-pv", "jul-cc-pv", "apr-cc-pv", "may-cc-pv",
+        "ma-def2", "def2-tzvpd", "def2-tzvppd", "def2-qzvpd", "def2-qzvppd",
+        "def2-svpd", "heavy-aug", "aug-cc-pwcv", "aug-pcseg", "calendar"
+    )
     allowed_diffuse_basis = any(ds in basis_set for ds in valid_diffuse_sets)
 
     if is_non_covalent and not allowed_diffuse_basis:
         banned_flags.append(
             f"INVALID_NONCOVALENT_BASIS: Basis set '{basis_set}' lacks true diffuse-in-base primitives. "
-            "Non-covalent complexes require aug-cc-pVTZ/QZ or ma-def2-TZVPP."
+            "Non-covalent complexes require aug-cc-pVTZ/QZ, jun-cc-pVTZ, or ma-def2-TZVPP."
         )
 
-    # 4. Check Frozen-Monomer Protocol verification
+    # 6. Check Frozen-Monomer Protocol verification
     frozen_monomer = bool(metadata.get("frozen_monomer", metadata.get("frozen_monomer_protocol", False)))
 
-    # 5. Check BSSE Counterpoise verification
+    # 7. Check BSSE Counterpoise verification
     bsse_cp = bool(metadata.get("counterpoise", metadata.get("bsse_counterpoise", "cp" in keywords)))
 
-    # 6. Check Hessian preconditioning
+    # 8. Check Hessian preconditioning
     hessian_preconditioned = bool(
         "inhess xtb2" in keywords
         or "inhess lindh" in keywords
@@ -1355,7 +1423,7 @@ def audit_banned_methods(
         or metadata.get("hessian_preconditioning", None) in ("XTB2", "Lindh")
     )
 
-    # 7. Extract ORCA GOAT/CREST conformer union parameters
+    # 9. Extract ORCA GOAT/CREST conformer union parameters
     conformer_union = metadata.get(
         "conformer_union_parameters",
         {
@@ -1368,6 +1436,12 @@ def audit_banned_methods(
     passed = len(banned_flags) == 0
 
     if not passed and raise_on_violation:
+        if any("DISPERSION_MISSING" in f for f in banned_flags):
+            raise DispersionMissingError(
+                f"Method Matrix v4 Banned Methods Audit Failed: {'; '.join(banned_flags)}",
+                error_code=ProvenanceErrorCode.DISPERSION_MISSING,
+                details={"banned_flags": banned_flags, "metadata": metadata},
+            )
         raise MethodMatrixViolationError(
             f"Method Matrix v4 Banned Methods Audit Failed: {'; '.join(banned_flags)}",
             error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
@@ -1399,8 +1473,7 @@ class TorqCatalogCompiler:
     def __init__(self, cat_filepath: Union[str, Path], point_id: str = "000", output_dir: Optional[Union[str, Path]] = None) -> None:
         self.cat_filepath = Path(cat_filepath).resolve()
         self.point_id = point_id
-        out_dir = Path(output_dir).resolve() if output_dir is not None else Path(ARTIFACTS_DIR).resolve()
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = CoChemPathManager.resolve_deliverables_dir(output_dir, create=True)
         self.parquet_outpath = out_dir / f"torq_catalog_{self.point_id}.parquet"
         self.col_widths = [13, 8, 8, 2, 10, 3, 7, 12, 12]
         self.col_names = [
@@ -1408,7 +1481,7 @@ class TorqCatalogCompiler:
             "E_Lower_cm1", "G_Up", "Tag", "QNs_Up", "QNs_Low"
         ]
 
-    def _parse_chunk(self, raw_lines: List[str]) -> pd.DataFrame:
+    def _parse_chunk_arrays(self, raw_lines: List[str], schema: pa.Schema) -> Optional[pa.Table]:
         parsed_data: Dict[str, List[Any]] = {col: [] for col in self.col_names}
         for line in raw_lines:
             if not line.strip():
@@ -1432,7 +1505,11 @@ class TorqCatalogCompiler:
                 logger.error(f"Malformed line encountered: {line.strip()}: {exc}")
                 raise ValueError(f"Malformed line: {line.strip()}") from exc
 
-        return pd.DataFrame(parsed_data)
+        if not parsed_data["Frequency_MHz"]:
+            return None
+
+        arrays = [pa.array(parsed_data[col], type=schema.field(col).type) for col in self.col_names]
+        return pa.Table.from_arrays(arrays, schema=schema)
 
     def compile_to_parquet(self, chunk_size: int = 100_000, compression: str = "snappy") -> bool:
         """Executes the out-of-core streaming read/write loop with chunked Parquet writing."""
@@ -1454,6 +1531,7 @@ class TorqCatalogCompiler:
             ("QNs_Low", pa.string()),
         ])
 
+        temp_staging_path = self.parquet_outpath.parent / f".{self.parquet_outpath.name}.tmp.{uuid.uuid4().hex[:8]}"
         total_rows = 0
         writer: Optional[pq.ParquetWriter] = None
 
@@ -1463,28 +1541,38 @@ class TorqCatalogCompiler:
                 for line in f:
                     chunk.append(line)
                     if len(chunk) >= chunk_size:
-                        df_chunk = self._parse_chunk(chunk)
-                        table_chunk = pa.Table.from_pandas(df_chunk, schema=schema)
-                        if writer is None:
-                            writer = pq.ParquetWriter(self.parquet_outpath, schema, compression=compression)
-                        writer.write_table(table_chunk)
-                        total_rows += len(df_chunk)
+                        table_chunk = self._parse_chunk_arrays(chunk, schema=schema)
+                        if table_chunk is not None:
+                            if writer is None:
+                                writer = pq.ParquetWriter(temp_staging_path, schema, compression=compression)
+                            writer.write_table(table_chunk)
+                            total_rows += table_chunk.num_rows
                         chunk = []
 
                 if chunk:
-                    df_chunk = self._parse_chunk(chunk)
-                    if not df_chunk.empty:
-                        table_chunk = pa.Table.from_pandas(df_chunk, schema=schema)
+                    table_chunk = self._parse_chunk_arrays(chunk, schema=schema)
+                    if table_chunk is not None:
                         if writer is None:
-                            writer = pq.ParquetWriter(self.parquet_outpath, schema, compression=compression)
+                            writer = pq.ParquetWriter(temp_staging_path, schema, compression=compression)
                         writer.write_table(table_chunk)
-                        total_rows += len(df_chunk)
+                        total_rows += table_chunk.num_rows
 
             if writer:
                 writer.close()
+                writer = None
 
             if total_rows == 0:
                 raise InactiveRotorError("SPCAT produced 0 transitions.")
+
+            buffer_lock_sync(temp_staging_path, min_bytes=4)
+
+            if self.parquet_outpath.exists():
+                remove_readonly_seal(self.parquet_outpath, recursive=False)
+
+            try:
+                os.replace(temp_staging_path, self.parquet_outpath)
+            except OSError:
+                shutil.move(str(temp_staging_path), str(self.parquet_outpath))
 
             file_size_mb = os.path.getsize(self.parquet_outpath) / (1024 * 1024)
             logger.info(f"Compilation Complete! {total_rows} transitions secured.")
@@ -1494,7 +1582,18 @@ class TorqCatalogCompiler:
         except Exception as e:
             logger.error(f"Catastrophic failure during Parquet serialization: {e}")
             if writer:
-                writer.close()
+                try:
+                    writer.close()
+                except Exception:
+                    pass
+                writer = None
+            if temp_staging_path.exists():
+                try:
+                    temp_staging_path.unlink()
+                except Exception:
+                    pass
+            if isinstance(e, (InactiveRotorError, FileNotFoundError)):
+                raise
             raise RuntimeError(f"Serialization failed: {e}") from e
 
     def compute_temperature_dependent_partition_function(

@@ -751,68 +751,109 @@ def opi_persistent_threading(
     trajectory: Optional[List[np.ndarray]] = None
 ) -> Generator[ORCAStepResult, None, None]:
     """
-    Interfaces with the ORCA Python Interface (OPI) persistent memory threading engine,
-    yielding ORCAStepResult instances across optimization or PES sweep steps without
-    scratch disk thrashing.
+    Interfaces with the ORCA execution engine, yielding ORCAStepResult instances 
+    across optimization or PES sweep steps.
+    Replaced dummy mock with actual file-based execution.
     """
     if context is None:
         context = ExecutionContext()
 
     current_coords = np.copy(input_payload.coordinates)
-    n_atoms = len(input_payload.symbols)
-    n_basis = max(n_atoms * 14, 20)  # Approximate def2-TZVP basis count
-
-    # Initialize persistent state in memory
-    np.random.seed(42)
-    # Generate orthonormal molecular orbital coefficients
-    q_mat, _ = np.linalg.qr(np.random.randn(n_basis, n_basis))
-    mo_coeffs = q_mat
-    fock_mat = np.diag(np.linspace(-1.5, 0.5, n_basis))
-    density_mat = mo_coeffs[:, :n_basis // 2] @ mo_coeffs[:, :n_basis // 2].T
-
-    # Base energy from simple Lennard-Jones + Harmonic covalent model for realism
-    base_energy = -76.4000
-
     steps_to_run = trajectory if trajectory is not None else [current_coords for _ in range(n_steps)]
 
+    # Use TorqOrcaExecutor to run actual ORCA jobs
+    # Since we can't import it directly due to circular dependencies potentially,
+    # we'll dynamically import or just run the subprocess directly.
+    import re
+    from pathlib import Path
+    
+    scratch_dir = context.get_scratch_dir("opi_thread")
+    orca_bin = os.environ.get("ORCA_PATH", "orca")
+
     for idx, step_coords in enumerate(steps_to_run):
-        # Compute realistic physical step energy variation based on coordinate RMSD
-        disp = np.linalg.norm(step_coords - input_payload.coordinates)
-        step_energy = base_energy + 0.5 * 0.15 * (disp ** 2) - (idx * 0.0025)
+        # Update payload coordinates for this step
+        step_payload = input_payload.model_copy(deep=True)
+        step_payload.coordinates = step_coords
+        
+        # Generate ORCA input
+        inp_content = step_payload.to_orca_input(n_procs=context.num_cores, max_core_mb=max(1000, context.max_memory_mb // context.num_cores))
+        
+        job_base = scratch_dir / f"opi_step_{idx:04d}_{context.session_id[:8]}"
+        inp_path = job_base.with_suffix(".inp")
+        out_path = job_base.with_suffix(".out")
+        gbw_path = job_base.with_suffix(".gbw")
+        
+        inp_path.write_text(inp_content, encoding="utf-8")
+        
+        # Execute ORCA
+        logger.info(f"[OPI Thread] Executing ORCA step {idx} at {inp_path}")
+        try:
+            stdout, stderr, ret_code = execute_subprocess_safe(
+                cmd=[orca_bin, str(inp_path)],
+                cwd=scratch_dir,
+                timeout=3600.0
+            )
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(stdout)
+        except Exception as e:
+            logger.error(f"[OPI Thread] ORCA execution failed at step {idx}: {e}")
+            raise RuntimeError(f"ORCA execution failed at step {idx}: {e}")
+            
+        # Parse output for energy and observables
+        try:
+            with open(out_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+        except FileNotFoundError:
+            content = ""
 
-        # Analytical nuclear gradient
-        grad = 0.05 * (step_coords - np.mean(step_coords, axis=0))
-
+        # Parse energy
+        energy = 0.0
+        e_match = re.search(r"(?:FINAL SINGLE POINT ENERGY|TOTAL ENERGY)\s+(-?\d+\.\d+)", content)
+        if e_match:
+            energy = float(e_match.group(1))
+            
         # Spin observables
-        s_ideal, s_obs, s_dev = (0.0, 0.0, 0.0)
+        s_ideal, s_obs, s_dev = None, None, None
         if input_payload.multiplicity > 1:
-            s = (input_payload.multiplicity - 1) / 2.0
-            s_ideal = s * (s + 1.0)
-            # Simulated slight UHF spin contamination (e.g. 1.5% deviation)
-            s_obs = s_ideal * 1.015
-            s_ideal, s_obs, s_dev = validate_spin_contamination(input_payload.multiplicity, s_obs)
+            s2_match = re.search(r"Expectation value of <S\*\*2>\s+:\s+([\d\.]+)", content)
+            s2_ideal_match = re.search(r"Ideal value s\*\(s\+1\)\s+for\s+S=\S+\s+:\s+([\d\.]+)", content)
+            if s2_match and s2_ideal_match:
+                s_obs = float(s2_match.group(1))
+                ideal_val = float(s2_ideal_match.group(1))
+                s_ideal, s_obs, s_dev = validate_spin_contamination(input_payload.multiplicity, s_obs)
+                
+        # Gradient parsing (simplified, assumes Opt or EnGrad was run)
+        grad = np.zeros_like(step_coords)
+        grad_match = re.search(r"CARTESIAN GRADIENT.*?\n\n(.*?)\n\n", content, re.DOTALL)
+        if grad_match:
+            lines = grad_match.group(1).strip().splitlines()
+            parsed_grad = []
+            for line in lines:
+                parts = line.split()
+                if len(parts) >= 6 and not line.startswith("-"):
+                    parsed_grad.append([float(parts[3]), float(parts[4]), float(parts[5])])
+            if len(parsed_grad) == len(step_coords):
+                grad = np.array(parsed_grad)
 
-        # Update in-memory Fock & density matrices
-        fock_mat += 1e-4 * (idx + 1) * np.eye(n_basis)
-        gbw_data = f"GBW_PERSISTENT_STEP_{idx:04d}_ENERGY_{step_energy:.8f}".encode("utf-8")
-
+        # Read GBW if present
+        gbw_data = None
+        if gbw_path.exists():
+            gbw_data = gbw_path.read_bytes()
+            
         result = ORCAStepResult(
             step_idx=idx,
-            energy=step_energy,
+            energy=energy,
             coordinates=np.copy(step_coords),
             gradient=grad,
-            converged=True,
-            mo_coefficients=mo_coeffs,
-            fock_matrix=fock_mat,
-            density_matrix=density_mat,
+            converged=True if "ORCA TERMINATED NORMALLY" in content else False,
             gbw_bytes=gbw_data,
-            s_squared_ideal=s_ideal if input_payload.multiplicity > 1 else None,
-            s_squared_observed=s_obs if input_payload.multiplicity > 1 else None,
-            spin_contamination_percent=s_dev if input_payload.multiplicity > 1 else None,
-            raw_output=f"ORCA 6.1 Persistent Step {idx} completed successfully."
+            s_squared_ideal=s_ideal,
+            s_squared_observed=s_obs,
+            spin_contamination_percent=s_dev,
+            raw_output=content
         )
-
-        logger.info(f"[OPI Thread] Yielded step {idx}: E = {step_energy:.6f} Ha, max(|Grad|) = {np.max(np.abs(grad)):.6f}")
+        
+        logger.info(f"[OPI Thread] Yielded step {idx}: E = {energy:.8f} Ha")
         yield result
 
 

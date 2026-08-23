@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterator
 
-import psutil
+import psutil  # type: ignore[import-untyped]
 import pyarrow as pa  # type: ignore[import-untyped]
 import pyarrow.parquet as pq  # type: ignore[import-untyped]
 import pytest
@@ -597,3 +597,100 @@ def test_banned_methods_auditor() -> None:
     with pytest.raises(MethodMatrixViolationError) as exc_info:
         audit_banned_methods(bad_meta_hess, raise_on_violation=True)
     assert "BANNED_UNPRECONDITIONED_HESSIAN" in str(exc_info.value)
+
+
+# =============================================================================
+# 16. Inter-Entry Comment BibTeX Deduplication Test
+# =============================================================================
+
+def test_bibtex_deduplication_with_inter_entry_comments() -> None:
+    """Verify that comments between BibTeX entries do not collapse or corrupt entries."""
+    raw_bibtex_with_comments = """
+% Entry 1 from ADS database
+@article{Pickett1991,
+  author = {Pickett, Herbert M.},
+  title = {The fitting and prediction of vibration-rotation spectra with spin interactions},
+  journal = {Journal of Molecular Spectroscopy},
+  volume = {148},
+  number = {2},
+  pages = {371--377},
+  year = {1991},
+  doi = {10.1016/0022-2852(91)90124-S}
+}
+
+% =============================================================================
+% Another section with separate article
+% =============================================================================
+
+@article{MethodMatrix2024,
+  author = {CoChem Consortium},
+  title = {CoChem Method Matrix v4 Standards},
+  year = {2024},
+  doi = {10.5281/zenodo.1234567}
+}
+
+% Final Comment Line
+"""
+    deduped = deduplicate_bibtex(raw_bibtex_with_comments, deduplicate_by="both")
+    assert "@article{Pickett1991" in deduped
+    assert "@article{MethodMatrix2024" in deduped
+    assert deduped.count("@article") == 2
+
+
+# =============================================================================
+# 17. Method Matrix v4 Extended Non-Covalent Rules & Double Dispersion Test
+# =============================================================================
+
+def test_banned_methods_extended_matrix_rules() -> None:
+    """Validate that jun-cc-pVTZ passes for non-covalent complexes and ONIOM/double-dispersion are rejected."""
+    # jun-cc-pVTZ must pass for non-covalent
+    jun_meta = {
+        "theory_level": "wB97X-D4",
+        "basis_set": "jun-cc-pVTZ",
+        "is_non_covalent": True,
+        "keywords": "InHess XTB2 opt freq",
+    }
+    jun_res = audit_banned_methods(jun_meta, raise_on_violation=True)
+    assert jun_res.passed is True
+    assert jun_res.allowed_diffuse_basis is True
+
+    # ONIOM on small complex must be rejected
+    oniom_meta = {
+        "theory_level": "wB97X-D4",
+        "basis_set": "def2-TZVP",
+        "keywords": "oniom(b3lyp:hf) opt",
+    }
+    with pytest.raises(MethodMatrixViolationError) as exc_oniom:
+        audit_banned_methods(oniom_meta, raise_on_violation=True)
+    assert "BANNED_ONIOM_QM_QM2" in str(exc_oniom.value)
+
+    # Double dispersion (stacking D4 on VV10) must be rejected
+    double_disp_meta = {
+        "theory_level": "wB97M-V-D4",
+        "basis_set": "def2-QZVPP",
+    }
+    with pytest.raises(MethodMatrixViolationError) as exc_double:
+        audit_banned_methods(double_disp_meta, raise_on_violation=True)
+    assert "BANNED_DOUBLE_DISPERSION" in str(exc_double.value)
+
+
+# =============================================================================
+# 18. Non-Covalent Frozen-Monomer & BSSE LaTeX Documentation Test
+# =============================================================================
+
+def test_methods_latex_non_covalent_documentation() -> None:
+    """Assert that non-covalent metadata triggers Frozen-Monomer and BSSE Counterpoise documentation in LaTeX."""
+    meta = {
+        "theory_level": "wB97X-D4",
+        "basis_set": "jun-cc-pVTZ",
+        "is_non_covalent": True,
+        "counterpoise": True,
+        "frozen_monomer": True,
+        "rotational_constants": {"A": 12000.0, "B": 2400.0, "C": 1800.0},
+        "temperatures": [300.0],
+        "defgrid": "DEFGRID3",
+    }
+    tex = generate_methods_latex(meta, method_matrix_v4_check=True)
+    assert "The Frozen-Monomer protocol was applied" in tex
+    assert "Basis Set Superposition Error (BSSE) was corrected via the Boys-Bernardi counterpoise procedure" in tex
+

@@ -1,0 +1,332 @@
+[
+  {
+    "LineNumber": 219,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 419,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 426,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 435,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 558,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 696,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 882,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 888,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 1121,
+    "Line": "                    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 1135,
+    "Line": "                    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 1182,
+    "Line": "                            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 1309,
+    "Line": "        BannedMethodsAuditResult with pass/fail status and flags.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py"
+  },
+  {
+    "LineNumber": 19,
+    "Line": "- Complete physical validation compliance (prohibits synthetic stubs).",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 199,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 229,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 508,
+    "Line": "                    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 513,
+    "Line": "                    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 567,
+    "Line": "        force: If True, bypass session and process ownership validation.",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 714,
+    "Line": "                    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py"
+  },
+  {
+    "LineNumber": 55,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py"
+  },
+  {
+    "LineNumber": 60,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py"
+  },
+  {
+    "LineNumber": 539,
+    "Line": "        # Pass through NaN watchdog for validation with wavefunctions",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py"
+  },
+  {
+    "LineNumber": 75,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py"
+  },
+  {
+    "LineNumber": 78,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py"
+  },
+  {
+    "LineNumber": 81,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py"
+  },
+  {
+    "LineNumber": 877,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py"
+  },
+  {
+    "LineNumber": 1263,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py"
+  },
+  {
+    "LineNumber": 1624,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py"
+  },
+  {
+    "LineNumber": 339,
+    "Line": "        raise RuntimeError(\"Anti-spoofing mandate: Mocked Spin Hamiltonian code removed.\")",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_tensor_extractor.py"
+  },
+  {
+    "LineNumber": 78,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py"
+  },
+  {
+    "LineNumber": 166,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py"
+  },
+  {
+    "LineNumber": 421,
+    "Line": "    Applies a two-pass numerical refinement to eliminate floating point rounding",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py"
+  },
+  {
+    "LineNumber": 447,
+    "Line": "    # Pass 1: Primary COM calculation",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py"
+  },
+  {
+    "LineNumber": 451,
+    "Line": "    # Pass 2: Numerical residual compensation (Kahan / iterative re-centering)",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py"
+  },
+  {
+    "LineNumber": 869,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py"
+  },
+  {
+    "LineNumber": 68,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 152,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 184,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 726,
+    "Line": "        # If no raw bytes, write non-empty binary stub for MOREAD compatibility",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 933,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 938,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 948,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 1017,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py"
+  },
+  {
+    "LineNumber": 54,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_export.py"
+  },
+  {
+    "LineNumber": 59,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_export.py"
+  },
+  {
+    "LineNumber": 64,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_export.py"
+  },
+  {
+    "LineNumber": 286,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 302,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 570,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 579,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 822,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 914,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 932,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 948,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 969,
+    "Line": "                pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py"
+  },
+  {
+    "LineNumber": 16,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mpqc.py"
+  },
+  {
+    "LineNumber": 23,
+    "Line": "                        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py"
+  },
+  {
+    "LineNumber": 27,
+    "Line": "                    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py"
+  },
+  {
+    "LineNumber": 29,
+    "Line": "            pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py"
+  },
+  {
+    "LineNumber": 29,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_qcxms.py"
+  },
+  {
+    "LineNumber": 79,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py"
+  },
+  {
+    "LineNumber": 84,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py"
+  },
+  {
+    "LineNumber": 89,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py"
+  },
+  {
+    "LineNumber": 94,
+    "Line": "    pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py"
+  },
+  {
+    "LineNumber": 184,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py"
+  },
+  {
+    "LineNumber": 489,
+    "Line": "        pass",
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py"
+  }
+]

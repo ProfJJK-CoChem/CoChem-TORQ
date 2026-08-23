@@ -131,11 +131,11 @@ class TorqQCxMSIntegration:
         
         # Determine output directory
         if output_dir is None:
-            output_dir = Path(self.config.get("output_dir", "qcxms_output"))
+            output_dir = Path(ARTIFACTS_DIR) / self.config.get("output_dir", "qcxms_output")
         else:
             output_dir = Path(output_dir)
             
-        output_dir.mkdir(exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
         
         # Export to QCxMS-compatible format
         output_file = output_dir / f"{Path(h5_file_path).stem}_qcxms.json"
