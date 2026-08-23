@@ -311,8 +311,9 @@ def test_nan_watchdog_clean_passthrough_and_validation() -> None:
     Verifies clean inputs pass through wavefunctions without empty array returns.
     """
     evals = np.array([10.0, 25.0])
-    evecs = np.eye(2)
-    h_mat = np.diag([10.0, 25.0])
+    np.random.seed(42)
+    evecs, _ = np.linalg.qr(np.random.randn(2, 2))
+    h_mat = evecs @ np.diag([10.0, 25.0]) @ evecs.T
 
     evals_out, evecs_out = nan_tensor_watchdog(
         eigenvalues=evals,
@@ -325,7 +326,7 @@ def test_nan_watchdog_clean_passthrough_and_validation() -> None:
     # Test T=0 K guard
     vpt2_res_0k = localized_vpt2_coupling(
         dvr_energies=[0.0, 10.0],
-        vpt2_matrix=np.zeros((1, 1)),
+        vpt2_matrix=np.array([[-5.0]]),
         harmonic_frequencies=[500.0],
         temperature_k=0.0,
     )

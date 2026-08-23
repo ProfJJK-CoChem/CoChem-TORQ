@@ -123,9 +123,8 @@ def get_atomic_mass(symbol: str) -> float:
         elif elem.isotopes and elem.isotopes[0].mass is not None:
             return float(elem.isotopes[0].mass)
     except Exception as e:
-        logger.warning(f"Symbol '{symbol}' not found in mendeleev or error occurred: {e}. Defaulting to 12.0 u.")
-        
-    return 12.0
+        raise ValueError(f"Symbol '{symbol}' not found in mendeleev or error occurred: {e}")
+
 
 
 
