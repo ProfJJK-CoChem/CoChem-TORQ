@@ -1,5 +1,1 @@
-Cycle 2: Implement code for prompt at D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_p2_extractor.md strictly adhering to Zero-Mock mandate. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ. Generate unit tests first. IMPORTANT: You MUST update/create `pytest.ini` to restrict `testpaths` to ONLY the tests you are writing for this prompt, otherwise the global 1500+ test suite will run and crash your context. 
-Test Failures from previous run:
-Zero-Mock mandate violation:
-Mock usage found in D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_cochem_mps_worker.py
-Mock usage found in D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_cochem_submit_slurm.py
+Cycle 1: Implement code for prompt at D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_p2_jax_builder.md strictly adhering to Zero-Mock mandate. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ. Generate unit tests first. IMPORTANT: You MUST update/create `pytest.ini` to restrict `testpaths` to ONLY the tests you are writing for this prompt, otherwise the global 1500+ test suite will run and crash your context. 
