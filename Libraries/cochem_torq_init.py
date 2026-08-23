@@ -1,27 +1,3 @@
-Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_init.md.
-Original prompt:
-# Prompt: Environment Bootstrapper
-
-**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_init.py`
-
-## Objective
-Implement Phase 1 (Stage 0.0) Environment Bootstrapper for CoChem-TORQ.
-
-## Instructions for Coder
-1. Create `cochem_torq_init.py` inside `Libraries/`.
-2. Implement `verify_airgap()`: Mathematically assert that `cwd` is separated from the `COCHEM_ARTIFACTS` directory using `pathlib.Path.resolve()`. Throw a fatal error if they intersect.
-3. Implement `register_ipc_cleanup()`: Use the `atexit` garbage collector to securely wipe cross-platform memory-mapped IPC scratch buffers upon exits.
-4. Establish dynamic mapping of artifact directories by querying host environment variables (e.g., `COCHEM_ARTIFACTS`). Zero hardcoded paths are allowed.
-5. Set up logging to replace arbitrary `print()` statements.
-
-## Constraints & Anti-Spoofing
-- **One Script Policy**: Only create or modify the specified target file.
-- **Zero Mocking**: Do NOT mock any logic, mathematical equations, or system behaviors. Must provide real physical implementation.
-- **Context-Safety**: Do not hallucinate imports. Any dependencies must be strictly limited to the `requirements.txt` environment for CoChem-TORQ.
-- **Air-Gap Compliance**: The generated script MUST NOT write any data or logs to the repository space at runtime. Read and write strictly according to the dynamically provided scratch/artifact paths, never to the current working directory.
-Modified files content:
-
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_init.py ---
 """CoChem-TORQ: Environment Bootstrapper & IPC Resource Manager.
 
 =============================================================
@@ -342,6 +318,32 @@ def check_airgap(
             ),
         )
 
+    # Check 5: Normalized string path containment check (cross-platform safeguard)
+    cwd_prefix = cwd_str if cwd_str.endswith(os.sep) else (cwd_str + os.sep)
+    art_prefix = art_str if art_str.endswith(os.sep) else (art_str + os.sep)
+    if art_str.startswith(cwd_prefix):
+        return AirGapReport(
+            is_valid=False,
+            cwd_resolved=resolved_cwd,
+            artifacts_resolved=resolved_artifacts,
+            verified_at=time.time(),
+            reason=(
+                f"Artifacts directory '{resolved_artifacts}' is a subpath of "
+                f"working directory '{resolved_cwd}'"
+            ),
+        )
+    if cwd_str.startswith(art_prefix):
+        return AirGapReport(
+            is_valid=False,
+            cwd_resolved=resolved_cwd,
+            artifacts_resolved=resolved_artifacts,
+            verified_at=time.time(),
+            reason=(
+                f"Working directory '{resolved_cwd}' is a subpath of "
+                f"artifacts directory '{resolved_artifacts}'"
+            ),
+        )
+
     return AirGapReport(
         is_valid=True,
         cwd_resolved=resolved_cwd,
@@ -443,6 +445,8 @@ class IPCScratchBuffer:
         if self._mmap is not None:
             return self._mmap
         if self._shm is not None:
+            if self._shm.buf is None:
+                raise IPCBufferError(f"SharedMemory '{self.name}' has no active buffer.")
             return self._shm.buf
         raise IPCBufferError(f"No active buffer backing in '{self.name}'.")
 
@@ -469,11 +473,12 @@ class IPCScratchBuffer:
             )
 
         if self._mmap is not None:
-            self._mmap.seek(offset)
-            self._mmap.write(data)
+            self._mmap[offset : offset + data_len] = data
             self._mmap.flush()
             return data_len
         elif self._shm is not None:
+            if self._shm.buf is None:
+                raise IPCBufferError(f"SharedMemory '{self.name}' has no active buffer.")
             self._shm.buf[offset : offset + data_len] = data
             return data_len
         else:
@@ -508,9 +513,10 @@ class IPCScratchBuffer:
             )
 
         if self._mmap is not None:
-            self._mmap.seek(offset)
-            return self._mmap.read(length)
+            return bytes(self._mmap[offset : offset + length])
         elif self._shm is not None:
+            if self._shm.buf is None:
+                raise IPCBufferError(f"SharedMemory '{self.name}' has no active buffer.")
             return bytes(self._shm.buf[offset : offset + length])
         else:
             raise IPCBufferError(f"Buffer '{self.name}' has no active storage.")
@@ -550,25 +556,39 @@ class IPCScratchBuffer:
 
     def unlink(self) -> None:
         """Unlink and permanently destroy the physical buffer storage."""
+        path_to_unlink = self._path
+        shm_to_unlink = self._shm
+        mmap_to_close = self._mmap
+        buf_name = self.name
+
         self.close()
 
-        if self._shm is not None:
+        if shm_to_unlink is not None:
             try:
-                self._shm.unlink()
+                shm_to_unlink.unlink()
             except FileNotFoundError:
                 pass
             except Exception as e:
                 logger.warning("Error unlinking shared memory '%s': %s", self.name, e)
             self._shm = None
 
-        if self._path is not None and self._path.exists():
+        if path_to_unlink is not None and path_to_unlink.exists():
             try:
-                self._path.unlink()
+                path_to_unlink.unlink()
             except FileNotFoundError:
                 pass
             except Exception as e:
-                logger.warning("Error removing backing file '%s': %s", self._path, e)
+                logger.warning("Error removing backing file '%s': %s", path_to_unlink, e)
             self._path = None
+
+        # Cleanly deregister from global tracking registry to avoid memory leaks
+        unregister_ipc_cleanup(
+            buffers=[self],
+            scratch_paths=[path_to_unlink] if path_to_unlink is not None else None,
+            shm_names=[buf_name] if self.metadata.buffer_type == "shm" else None,
+            shm_objects=[shm_to_unlink] if shm_to_unlink is not None else None,
+            mmap_objects=[mmap_to_close] if mmap_to_close is not None else None,
+        )
 
     def __enter__(self) -> IPCScratchBuffer:
         return self
@@ -756,23 +776,62 @@ def register_ipc_cleanup(
 
     if shm_objects:
         for shm in shm_objects:
-            if shm not in _ACTIVE_SHM_OBJECTS:
+            if not any(x is shm for x in _ACTIVE_SHM_OBJECTS):
                 _ACTIVE_SHM_OBJECTS.append(shm)
                 _ACTIVE_SHM_NAMES.add(shm.name)
 
-    if mmap_objects:
+    if mmap_objects is not None:
         for mm in mmap_objects:
-            if mm not in _ACTIVE_MMAP_OBJECTS:
+            if not any(x is mm for x in _ACTIVE_MMAP_OBJECTS):
                 _ACTIVE_MMAP_OBJECTS.append(mm)
 
-    if buffers:
+    if buffers is not None:
         for buf in buffers:
-            if buf not in _ACTIVE_BUFFERS:
+            if not any(x is buf for x in _ACTIVE_BUFFERS):
                 _ACTIVE_BUFFERS.append(buf)
 
-    if file_descriptors:
+    if file_descriptors is not None:
         for fd in file_descriptors:
             _ACTIVE_FILE_DESCRIPTORS.add(fd)
+
+
+def unregister_ipc_cleanup(
+    scratch_paths: Sequence[Path | str] | None = None,
+    shm_names: Sequence[str] | None = None,
+    shm_objects: Sequence[sm.SharedMemory] | None = None,
+    mmap_objects: Sequence[mmap.mmap] | None = None,
+    buffers: Sequence[IPCScratchBuffer] | None = None,
+    file_descriptors: Sequence[int] | None = None,
+) -> None:
+    """Deregister tracking references using identity to prevent mmap equality errors."""
+    if scratch_paths is not None:
+        for p in scratch_paths:
+            _ACTIVE_SCRATCH_PATHS.discard(Path(p).resolve())
+
+    if shm_names is not None:
+        for name in shm_names:
+            if name:
+                _ACTIVE_SHM_NAMES.discard(name)
+
+    if shm_objects is not None:
+        for shm in shm_objects:
+            _ACTIVE_SHM_OBJECTS[:] = [x for x in _ACTIVE_SHM_OBJECTS if x is not shm]
+            try:
+                _ACTIVE_SHM_NAMES.discard(shm.name)
+            except Exception:
+                pass
+
+    if mmap_objects is not None:
+        for mm in mmap_objects:
+            _ACTIVE_MMAP_OBJECTS[:] = [x for x in _ACTIVE_MMAP_OBJECTS if x is not mm]
+
+    if buffers is not None:
+        for buf in buffers:
+            _ACTIVE_BUFFERS[:] = [x for x in _ACTIVE_BUFFERS if x is not buf]
+
+    if file_descriptors is not None:
+        for fd in file_descriptors:
+            _ACTIVE_FILE_DESCRIPTORS.discard(fd)
 
 
 def cleanup_ipc_scratch(
@@ -786,7 +845,8 @@ def cleanup_ipc_scratch(
     """Deterministically reclaim, unlink, and wipe IPC scratch resources.
 
     If no arguments are provided, reclaims all resources currently tracked in
-    the global registry. Can also be invoked with explicit targets.
+    the global registry. When explicit targets are provided, cleans up ONLY
+    the targeted resources without destroying other active allocations.
 
     Returns:
         Dictionary summarizing the count of reclaimed resources:
@@ -800,30 +860,47 @@ def cleanup_ipc_scratch(
         "fds_closed": 0,
     }
 
+    is_full_cleanup = (
+        scratch_paths is None
+        and shm_names is None
+        and shm_objects is None
+        and mmap_objects is None
+        and buffers is None
+        and file_descriptors is None
+    )
+
     # 1. Close active IPCScratchBuffer wrappers
-    targets_buffers = list(buffers) if buffers else list(_ACTIVE_BUFFERS)
+    targets_buffers = (
+        list(_ACTIVE_BUFFERS)
+        if is_full_cleanup
+        else (list(buffers) if buffers is not None else [])
+    )
     for buf in targets_buffers:
         try:
             buf.close()
         except Exception as e:
             logger.debug("IPCScratchBuffer close notice: %s", e)
-        if buf in _ACTIVE_BUFFERS:
-            _ACTIVE_BUFFERS.remove(buf)
+        _ACTIVE_BUFFERS[:] = [x for x in _ACTIVE_BUFFERS if x is not buf]
 
     # 2. Close active mmap objects
-    targets_mmap = list(mmap_objects) if mmap_objects else list(_ACTIVE_MMAP_OBJECTS)
+    targets_mmap = (
+        list(_ACTIVE_MMAP_OBJECTS)
+        if is_full_cleanup
+        else (list(mmap_objects) if mmap_objects is not None else [])
+    )
     for mm in targets_mmap:
         try:
             mm.close()
             summary["mmaps_closed"] += 1
         except Exception as e:
             logger.debug("mmap close notice: %s", e)
-        if mm in _ACTIVE_MMAP_OBJECTS:
-            _ACTIVE_MMAP_OBJECTS.remove(mm)
+        _ACTIVE_MMAP_OBJECTS[:] = [x for x in _ACTIVE_MMAP_OBJECTS if x is not mm]
 
     # 3. Close and unlink SharedMemory objects
     targets_shm_objs = (
-        list(shm_objects) if shm_objects else list(_ACTIVE_SHM_OBJECTS)
+        list(_ACTIVE_SHM_OBJECTS)
+        if is_full_cleanup
+        else (list(shm_objects) if shm_objects else [])
     )
     for shm in targets_shm_objs:
         try:
@@ -837,11 +914,14 @@ def cleanup_ipc_scratch(
             pass
         except Exception as e:
             logger.debug("SharedMemory unlink notice: %s", e)
-        if shm in _ACTIVE_SHM_OBJECTS:
-            _ACTIVE_SHM_OBJECTS.remove(shm)
+        _ACTIVE_SHM_OBJECTS[:] = [x for x in _ACTIVE_SHM_OBJECTS if x is not shm]
 
     # 4. Unlink named SharedMemory segments
-    targets_shm_names = set(shm_names) if shm_names else set(_ACTIVE_SHM_NAMES)
+    targets_shm_names = (
+        set(_ACTIVE_SHM_NAMES)
+        if is_full_cleanup
+        else (set(shm_names) if shm_names else set())
+    )
     for name in targets_shm_names:
         try:
             temp_shm = sm.SharedMemory(name=name, create=False)
@@ -856,7 +936,9 @@ def cleanup_ipc_scratch(
 
     # 5. Close file descriptors
     targets_fds = (
-        set(file_descriptors) if file_descriptors else set(_ACTIVE_FILE_DESCRIPTORS)
+        set(_ACTIVE_FILE_DESCRIPTORS)
+        if is_full_cleanup
+        else (set(file_descriptors) if file_descriptors else set())
     )
     for fd in targets_fds:
         try:
@@ -868,9 +950,9 @@ def cleanup_ipc_scratch(
 
     # 6. Remove scratch files and directories
     targets_paths = (
-        {Path(p).resolve() for p in scratch_paths}
-        if scratch_paths
-        else set(_ACTIVE_SCRATCH_PATHS)
+        set(_ACTIVE_SCRATCH_PATHS)
+        if is_full_cleanup
+        else ({Path(p).resolve() for p in scratch_paths} if scratch_paths else set())
     )
     for p in targets_paths:
         if p.is_file():
@@ -936,10 +1018,13 @@ def bootstrap_environment(
     )
 
     if enforce_airgap:
+        # Tripartite air-gap validation: CWD vs Artifacts, CWD vs Scratch, Artifacts vs Scratch
         verify_airgap(cwd=Path.cwd(), artifacts_dir=artifacts_path)
         verify_airgap(cwd=Path.cwd(), artifacts_dir=scratch_path)
+        verify_airgap(cwd=artifacts_path, artifacts_dir=scratch_path)
 
     _ensure_atexit_registered()
+    register_ipc_cleanup(scratch_paths=[scratch_path])
 
     config = BootstrapperConfig(
         artifacts_dir=artifacts_path,
@@ -957,673 +1042,3 @@ def bootstrap_environment(
         enforce_airgap,
     )
     return config
-
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_cochem_torq_init.py ---
-"""CoChem-TORQ: Test Suite for Environment Bootstrapper & IPC Resource Manager.
-
-=============================================================================
-Phase 1 (Stage 0.0) Test Suite
-------------------------------
-Zero-Mock test suite verifying physical air-gap mathematical boundary checks,
-dynamic artifact directory routing, Pydantic v2 model validations,
-cross-platform memory-mapped buffers (mmap & SharedMemory), deterministic
-IPC resource reclamation, and live subprocess atexit exit handlers.
-
-All tests operate against real physical files, shared memory segments,
-and subprocess executions within pytest `tmp_path`.
-"""
-
-from __future__ import annotations
-
-import mmap
-import multiprocessing.shared_memory as sm
-import os
-import subprocess
-import sys
-import tempfile
-import time
-import uuid
-
-# ============================================================================
-# Autouse Fixture to Clean IPC Registry Between Tests
-# ============================================================================
-from collections.abc import Generator
-from pathlib import Path
-
-import pytest
-from pydantic import ValidationError
-
-from Libraries.cochem_torq_init import (
-    _ACTIVE_BUFFERS,
-    _ACTIVE_FILE_DESCRIPTORS,
-    _ACTIVE_MMAP_OBJECTS,
-    _ACTIVE_SCRATCH_PATHS,
-    _ACTIVE_SHM_NAMES,
-    _ACTIVE_SHM_OBJECTS,
-    AirGapReport,
-    AirGapViolationError,
-    BootstrapperConfig,
-    IPCBufferError,
-    IPCBufferMetadata,
-    bootstrap_environment,
-    check_airgap,
-    cleanup_ipc_scratch,
-    create_ipc_scratch_buffer,
-    get_artifact_directory,
-    get_scratch_directory,
-    register_ipc_cleanup,
-    register_mmap_buffer,
-    verify_airgap,
-)
-
-
-@pytest.fixture(autouse=True)
-def clean_ipc_state() -> Generator[None, None, None]:
-    """Ensure clean IPC tracking registry state before and after each test."""
-    cleanup_ipc_scratch()
-    _ACTIVE_SCRATCH_PATHS.clear()
-    _ACTIVE_SHM_NAMES.clear()
-    _ACTIVE_SHM_OBJECTS.clear()
-    _ACTIVE_MMAP_OBJECTS.clear()
-    _ACTIVE_BUFFERS.clear()
-    _ACTIVE_FILE_DESCRIPTORS.clear()
-    yield
-    cleanup_ipc_scratch()
-    _ACTIVE_SCRATCH_PATHS.clear()
-    _ACTIVE_SHM_NAMES.clear()
-    _ACTIVE_SHM_OBJECTS.clear()
-    _ACTIVE_MMAP_OBJECTS.clear()
-    _ACTIVE_BUFFERS.clear()
-    _ACTIVE_FILE_DESCRIPTORS.clear()
-
-
-# ============================================================================
-# 1. Air-Gap Verification Tests
-# ============================================================================
-
-
-class TestAirGapVerification:
-    """Tests verifying the mathematical air-gap boundary checks."""
-
-    def test_verify_airgap_disjoint_paths(self, tmp_path: Path) -> None:
-        """Disjoint working directory and artifact directory must pass."""
-        repo_dir = tmp_path / "repo_root"
-        artifacts_dir = tmp_path / "external_artifacts"
-        repo_dir.mkdir(parents=True)
-        artifacts_dir.mkdir(parents=True)
-
-        assert verify_airgap(cwd=repo_dir, artifacts_dir=artifacts_dir) is True
-
-    def test_verify_airgap_identical_path(self, tmp_path: Path) -> None:
-        """Identical working directory and artifact dir must raise error."""
-        shared_dir = tmp_path / "shared"
-        shared_dir.mkdir(parents=True)
-
-        with pytest.raises(AirGapViolationError) as exc_info:
-            verify_airgap(cwd=shared_dir, artifacts_dir=shared_dir)
-        err_str = str(exc_info.value).lower()
-        assert "intersect" in err_str or "overlap" in err_str or "identical" in err_str
-
-    def test_verify_airgap_artifacts_inside_cwd(self, tmp_path: Path) -> None:
-        """Artifacts dir inside working directory must raise violation error."""
-        repo_dir = tmp_path / "repo_root"
-        nested_artifacts = repo_dir / "build" / "artifacts"
-        nested_artifacts.mkdir(parents=True)
-
-        with pytest.raises(AirGapViolationError) as exc_info:
-            verify_airgap(cwd=repo_dir, artifacts_dir=nested_artifacts)
-        err_str = str(exc_info.value).lower()
-        assert "inside" in err_str or "intersect" in err_str or "overlap" in err_str
-
-    def test_verify_airgap_cwd_inside_artifacts(self, tmp_path: Path) -> None:
-        """Working directory inside artifact dir must raise violation error."""
-        artifacts_dir = tmp_path / "cochem_artifacts"
-        nested_cwd = artifacts_dir / "subproject" / "repo"
-        nested_cwd.mkdir(parents=True)
-
-        with pytest.raises(AirGapViolationError) as exc_info:
-            verify_airgap(cwd=nested_cwd, artifacts_dir=artifacts_dir)
-        err_str = str(exc_info.value).lower()
-        assert "inside" in err_str or "intersect" in err_str or "overlap" in err_str
-
-    def test_verify_airgap_string_and_path_inputs(self, tmp_path: Path) -> None:
-        """verify_airgap must accept str, Path, and resolve accurately."""
-        repo_dir = tmp_path / "repo"
-        artifacts_dir = tmp_path / "artifacts"
-        repo_dir.mkdir()
-        artifacts_dir.mkdir()
-
-        assert (
-            verify_airgap(cwd=str(repo_dir), artifacts_dir=str(artifacts_dir))
-            is True
-        )
-        assert verify_airgap(cwd=repo_dir, artifacts_dir=str(artifacts_dir)) is True
-        assert verify_airgap(cwd=str(repo_dir), artifacts_dir=artifacts_dir) is True
-
-    def test_verify_airgap_default_resolution(self) -> None:
-        """Default verify_airgap call resolves cwd and dynamic artifact dir."""
-        result = verify_airgap()
-        assert isinstance(result, bool)
-
-    def test_check_airgap_report(self, tmp_path: Path) -> None:
-        """check_airgap returns AirGapReport Pydantic model with diagnostics."""
-        repo_dir = tmp_path / "repo"
-        artifacts_dir = tmp_path / "artifacts"
-        repo_dir.mkdir()
-        artifacts_dir.mkdir()
-
-        report = check_airgap(cwd=repo_dir, artifacts_dir=artifacts_dir)
-        assert isinstance(report, AirGapReport)
-        assert report.is_valid is True
-        assert report.cwd_resolved == repo_dir.resolve()
-        assert report.artifacts_resolved == artifacts_dir.resolve()
-        assert report.reason is None
-
-        # Failing case report
-        fail_report = check_airgap(cwd=repo_dir, artifacts_dir=repo_dir)
-        assert isinstance(fail_report, AirGapReport)
-        assert fail_report.is_valid is False
-        assert fail_report.reason is not None
-
-
-# ============================================================================
-# 2. Dynamic Artifact & Scratch Directory Mapping Tests
-# ============================================================================
-
-
-class TestDirectoryMapping:
-    """Tests verifying dynamic host environment directory mapping without hardcoding."""
-
-    def test_get_artifact_directory_from_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """get_artifact_directory must respect host environment variable."""
-        custom_dir = tmp_path / "env_artifacts"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(custom_dir))
-
-        resolved = get_artifact_directory(env_var="COCHEM_ARTIFACTS")
-        assert resolved == custom_dir.resolve()
-        assert resolved.exists()
-        assert resolved.is_dir()
-
-    def test_get_artifact_directory_fallback(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """get_artifact_directory must use fallback_dir when env var is unset."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS", raising=False)
-        fallback = tmp_path / "fallback_artifacts"
-
-        resolved = get_artifact_directory(
-            env_var="COCHEM_ARTIFACTS", fallback_dir=fallback
-        )
-        assert resolved == fallback.resolve()
-        assert resolved.exists()
-        assert resolved.is_dir()
-
-    def test_get_artifact_directory_default_temp(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """get_artifact_directory falls back to system temp when unset."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS", raising=False)
-
-        resolved = get_artifact_directory(
-            env_var="COCHEM_ARTIFACTS", fallback_dir=None
-        )
-        expected_parent = Path(tempfile.gettempdir()).resolve()
-        assert (
-            resolved.parent == expected_parent
-            or str(resolved).startswith(str(expected_parent))
-        )
-        assert "cochem_artifacts" in resolved.name
-        assert resolved.exists()
-
-    def test_get_scratch_directory_from_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """get_scratch_directory must respect host environment variable."""
-        scratch = tmp_path / "fast_scratch"
-        monkeypatch.setenv("COCHEM_SCRATCH", str(scratch))
-
-        resolved = get_scratch_directory(env_var="COCHEM_SCRATCH")
-        assert resolved == scratch.resolve()
-        assert resolved.exists()
-
-    def test_get_scratch_directory_fallback(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """get_scratch_directory creates PID-isolated temp scratch folder."""
-        monkeypatch.delenv("COCHEM_SCRATCH", raising=False)
-
-        resolved = get_scratch_directory(env_var="COCHEM_SCRATCH")
-        assert "cochem_scratch" in str(resolved)
-        assert resolved.exists()
-        assert resolved.is_dir()
-
-
-# ============================================================================
-# 3. Pydantic v2 Models Validation Tests
-# ============================================================================
-
-
-class TestPydanticModels:
-    """Tests verifying Pydantic v2 metadata and configuration validation models."""
-
-    def test_airgap_report_model(self, tmp_path: Path) -> None:
-        """AirGapReport model must be frozen and properly serialize."""
-        report = AirGapReport(
-            is_valid=True,
-            cwd_resolved=tmp_path / "cwd",
-            artifacts_resolved=tmp_path / "artifacts",
-            verified_at=time.time(),
-            reason=None,
-        )
-        assert report.is_valid is True
-        with pytest.raises(ValidationError):
-            # Model is frozen
-            setattr(report, "is_valid", False)
-
-    def test_ipc_buffer_metadata_model(self, tmp_path: Path) -> None:
-        """IPCBufferMetadata model validates types, sizes, and buffer categories."""
-        meta = IPCBufferMetadata(
-            name="test_buffer",
-            buffer_type="mmap",
-            size_bytes=1024,
-            file_path=tmp_path / "buf.dat",
-        )
-        assert meta.size_bytes == 1024
-        assert meta.buffer_type == "mmap"
-        assert meta.is_active is True
-        assert isinstance(meta.buffer_id, str)
-        assert meta.pid == os.getpid()
-
-    def test_ipc_buffer_metadata_invalid_size_or_type(self) -> None:
-        """IPCBufferMetadata must reject non-positive size and invalid buffer types."""
-        with pytest.raises(ValidationError):
-            IPCBufferMetadata(
-                name="bad_size",
-                buffer_type="mmap",
-                size_bytes=0,
-            )
-
-        with pytest.raises(ValidationError):
-            IPCBufferMetadata(
-                name="bad_type",
-                buffer_type="unsupported_type",  # type: ignore[arg-type]
-                size_bytes=1024,
-            )
-
-    def test_bootstrapper_config_model(self, tmp_path: Path) -> None:
-        """BootstrapperConfig model validates filesystem paths and settings."""
-        cfg = BootstrapperConfig(
-            artifacts_dir=tmp_path / "artifacts",
-            scratch_dir=tmp_path / "scratch",
-            env_var="COCHEM_ARTIFACTS",
-            enforce_airgap=True,
-            clean_on_exit=True,
-        )
-        assert cfg.enforce_airgap is True
-        assert cfg.clean_on_exit is True
-        assert cfg.artifacts_dir == tmp_path / "artifacts"
-
-
-# ============================================================================
-# 4. IPC Buffer Creation, Read/Write, and Context Manager Tests
-# ============================================================================
-
-
-class TestIPCScratchBuffer:
-    """Tests verifying real memory-mapped files and SharedMemory buffers."""
-
-    def test_create_ipc_scratch_buffer_mmap(self, tmp_path: Path) -> None:
-        """create_ipc_scratch_buffer creates a physical mmap buffer."""
-        buf = create_ipc_scratch_buffer(
-            name="test_mmap_buffer",
-            size=2048,
-            buffer_type="mmap",
-            scratch_dir=tmp_path,
-            auto_register=True,
-        )
-        try:
-            assert buf.metadata.buffer_type == "mmap"
-            assert buf.size == 2048
-            assert buf.path is not None
-            assert buf.path.exists()
-            assert buf.path.stat().st_size == 2048
-
-            # Write and read data
-            payload = b"CoChem-TORQ-Physical-IPC-Data-Payload"
-            written = buf.write(payload, offset=0)
-            assert written == len(payload)
-
-            read_data = buf.read(size=len(payload), offset=0)
-            assert read_data == payload
-        finally:
-            buf.close()
-            buf.unlink()
-
-    def test_create_ipc_scratch_buffer_shm(self) -> None:
-        """create_ipc_scratch_buffer creates a POSIX/Windows SharedMemory segment."""
-        unique_name = f"cochem_shm_{uuid.uuid4().hex[:8]}"
-        buf = create_ipc_scratch_buffer(
-            name=unique_name,
-            size=1024,
-            buffer_type="shm",
-            auto_register=True,
-        )
-        try:
-            assert buf.metadata.buffer_type == "shm"
-            assert buf.size == 1024
-            assert buf.name == unique_name
-
-            payload = b"Quantum-Chemistry-SWMR-Buffer-Test"
-            written = buf.write(payload, offset=16)
-            assert written == len(payload)
-
-            read_data = buf.read(size=len(payload), offset=16)
-            assert read_data == payload
-        finally:
-            buf.close()
-            buf.unlink()
-
-    def test_ipc_buffer_context_manager_mmap(self, tmp_path: Path) -> None:
-        """IPCScratchBuffer context manager manages lifecycle and cleanup."""
-        target_path: Path | None = None
-        with create_ipc_scratch_buffer(
-            name="ctx_mmap",
-            size=512,
-            buffer_type="mmap",
-            scratch_dir=tmp_path,
-        ) as buf:
-            target_path = buf.path
-            assert target_path is not None and target_path.exists()
-            buf.write(b"Inside-Context-Manager")
-            assert buf.read(22) == b"Inside-Context-Manager"
-
-        assert buf.is_closed is True
-
-    def test_ipc_buffer_context_manager_shm(self) -> None:
-        """IPCScratchBuffer context manager manages SharedMemory lifecycle."""
-        shm_name = f"cochem_shm_ctx_{uuid.uuid4().hex[:8]}"
-        with create_ipc_scratch_buffer(
-            name=shm_name,
-            size=512,
-            buffer_type="shm",
-        ) as buf:
-            buf.write(b"SHM-Context-Payload")
-            assert buf.read(19) == b"SHM-Context-Payload"
-
-        assert buf.is_closed is True
-
-    def test_ipc_buffer_boundary_checks(self, tmp_path: Path) -> None:
-        """Writing or reading outside buffer boundaries must raise IPCBufferError."""
-        with create_ipc_scratch_buffer(size=128, scratch_dir=tmp_path) as buf:
-            # Writing payload that exceeds buffer size
-            overflow_data = b"X" * 200
-            with pytest.raises(IPCBufferError):
-                buf.write(overflow_data, offset=0)
-
-            # Writing with offset that exceeds buffer size
-            with pytest.raises(IPCBufferError):
-                buf.write(b"Hello", offset=150)
-
-            # Reading with invalid offset
-            with pytest.raises(IPCBufferError):
-                buf.read(size=10, offset=200)
-
-    def test_register_mmap_buffer_helper(self, tmp_path: Path) -> None:
-        """register_mmap_buffer must register standalone mmap and backing file."""
-        file_path = tmp_path / "raw_mmap.dat"
-        file_path.write_bytes(b"\x00" * 256)
-
-        f = open(file_path, "r+b")
-        try:
-            mm = mmap.mmap(f.fileno(), 256)
-        finally:
-            f.close()
-
-        register_mmap_buffer(mm, backing_path=file_path)
-
-        mm.write(b"Standalone-MMAP-Payload")
-        mm.seek(0)
-        assert mm.read(23) == b"Standalone-MMAP-Payload"
-
-        # Execute cleanup
-        cleanup_summary = cleanup_ipc_scratch()
-        assert cleanup_summary["mmaps_closed"] >= 1
-        assert cleanup_summary["files_removed"] >= 1
-        assert not file_path.exists()
-
-
-# ============================================================================
-# 5. Deterministic Resource Reclamation & Exit Handlers
-# ============================================================================
-
-
-class TestDeterministicCleanup:
-    """Tests verifying deterministic resource reclamation and tracking."""
-
-    def test_cleanup_ipc_scratch_files(self, tmp_path: Path) -> None:
-        """cleanup_ipc_scratch removes registered physical files and directories."""
-        f1 = tmp_path / "scratch_1.tmp"
-        f2 = tmp_path / "scratch_2.tmp"
-        d1 = tmp_path / "scratch_dir"
-        d1.mkdir()
-        (d1 / "nested.tmp").write_text("test")
-
-        f1.write_text("data1")
-        f2.write_text("data2")
-
-        register_ipc_cleanup(scratch_paths=[f1, f2, d1])
-        assert f1.exists() and f2.exists() and d1.exists()
-
-        summary = cleanup_ipc_scratch()
-        assert summary["files_removed"] >= 2
-        assert summary["directories_removed"] >= 1
-        assert not f1.exists()
-        assert not f2.exists()
-        assert not d1.exists()
-
-    def test_cleanup_ipc_scratch_shm(self) -> None:
-        """cleanup_ipc_scratch unlinks registered SharedMemory segments."""
-        shm_name = f"cochem_shm_clean_{uuid.uuid4().hex[:8]}"
-        shm_obj = sm.SharedMemory(name=shm_name, create=True, size=256)
-
-        register_ipc_cleanup(shm_names=[shm_name], shm_objects=[shm_obj])
-        summary = cleanup_ipc_scratch()
-        assert summary["shm_unlinked"] >= 1
-
-        # Verifying segment is unlinked: attempting to open should fail
-        with pytest.raises(FileNotFoundError):
-            sm.SharedMemory(name=shm_name, create=False)
-
-    def test_cleanup_ipc_scratch_idempotent(self, tmp_path: Path) -> None:
-        """cleanup_ipc_scratch must be completely safe to invoke repeatedly."""
-        f1 = tmp_path / "idempotent.tmp"
-        f1.write_text("test")
-        register_ipc_cleanup(scratch_paths=[f1])
-
-        first_summary = cleanup_ipc_scratch()
-        assert first_summary["files_removed"] >= 1
-
-        second_summary = cleanup_ipc_scratch()
-        assert second_summary["files_removed"] == 0
-        assert second_summary["shm_unlinked"] == 0
-
-
-# ============================================================================
-# 6. Live Subprocess Exit Handler (atexit) Verification
-# ============================================================================
-
-
-class TestSubprocessExitHandlers:
-    """Tests executing real child processes to verify atexit cleanup upon exit."""
-
-    def test_live_subprocess_atexit_cleanup_mmap(self, tmp_path: Path) -> None:
-        """Child process creates an mmap IPC buffer; on exit, buffer is cleaned up."""
-        scratch_dir = tmp_path / "proc_scratch"
-        scratch_dir.mkdir()
-
-        script = f"""
-import sys
-from pathlib import Path
-from Libraries.cochem_torq_init import create_ipc_scratch_buffer
-
-buf = create_ipc_scratch_buffer(
-    name="child_proc_mmap",
-    size=1024,
-    buffer_type="mmap",
-    scratch_dir=r"{scratch_dir}",
-    auto_register=True
-)
-buf.write(b"Subprocess-Test-Data")
-print("BUFFER_CREATED:" + str(buf.path))
-sys.stdout.flush()
-sys.exit(0)
-"""
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            text=True,
-            cwd=str(Path(__file__).parent.parent),
-            timeout=15,
-        )
-        assert proc.returncode == 0, f"Process failed: {proc.stderr}"
-        assert "BUFFER_CREATED:" in proc.stdout
-
-        for line in proc.stdout.splitlines():
-            if line.startswith("BUFFER_CREATED:"):
-                created_path = Path(line.split(":", 1)[1].strip())
-                assert not created_path.exists(), (
-                    f"Scratch file {created_path} still exists after process exit!"
-                )
-
-    def test_live_subprocess_atexit_cleanup_shm(self) -> None:
-        """Child process creates SharedMemory buffer; on exit, shm is unlinked."""
-        shm_name = f"cochem_subproc_shm_{uuid.uuid4().hex[:8]}"
-
-        script = f"""
-import sys
-from Libraries.cochem_torq_init import create_ipc_scratch_buffer
-
-buf = create_ipc_scratch_buffer(
-    name="{shm_name}",
-    size=512,
-    buffer_type="shm",
-    auto_register=True
-)
-buf.write(b"SHM-Subprocess-Payload")
-print("SHM_CREATED:" + "{shm_name}")
-sys.stdout.flush()
-sys.exit(0)
-"""
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            text=True,
-            cwd=str(Path(__file__).parent.parent),
-            timeout=15,
-        )
-        assert proc.returncode == 0, f"Process failed: {proc.stderr}"
-        assert "SHM_CREATED:" in proc.stdout
-
-        with pytest.raises(FileNotFoundError):
-            sm.SharedMemory(name=shm_name, create=False)
-
-
-# ============================================================================
-# 7. Environment Bootstrapper Integration Tests
-# ============================================================================
-
-
-class TestBootstrapEnvironment:
-    """Tests verifying the full bootstrap_environment lifecycle."""
-
-    def test_bootstrap_environment_success(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment resolves paths and registers IPC cleanup."""
-        artifacts_dir = tmp_path / "artifacts"
-        scratch_dir = tmp_path / "scratch"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(artifacts_dir))
-        monkeypatch.setenv("COCHEM_SCRATCH", str(scratch_dir))
-
-        config = bootstrap_environment(
-            artifacts_env="COCHEM_ARTIFACTS",
-            scratch_env="COCHEM_SCRATCH",
-            enforce_airgap=True,
-        )
-        assert isinstance(config, BootstrapperConfig)
-        assert config.artifacts_dir == artifacts_dir.resolve()
-        assert config.scratch_dir == scratch_dir.resolve()
-        assert config.artifacts_dir.exists()
-        assert config.scratch_dir.exists()
-
-    def test_bootstrap_environment_airgap_failure(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment raises AirGapViolationError if artifacts in cwd."""
-        repo_cwd = Path.cwd()
-        nested_artifacts = repo_cwd / "test_nested_artifacts_violation"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(nested_artifacts))
-
-        with pytest.raises(AirGapViolationError):
-            bootstrap_environment(
-                artifacts_env="COCHEM_ARTIFACTS",
-                enforce_airgap=True,
-            )
-
-    def test_bootstrap_environment_no_enforce(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment proceeds without error if enforce_airgap=False."""
-        repo_cwd = Path.cwd()
-        nested_artifacts = repo_cwd / "test_nested_artifacts_no_enforce"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(nested_artifacts))
-
-        config = bootstrap_environment(
-            artifacts_env="COCHEM_ARTIFACTS",
-            enforce_airgap=False,
-        )
-        assert config.artifacts_dir == nested_artifacts.resolve()
-        assert config.enforce_airgap is False
-        if nested_artifacts.exists():
-            nested_artifacts.rmdir()
-
-
-# ============================================================================
-# 8. Air-Gap Compliance Runtime Test
-# ============================================================================
-
-
-class TestAirGapRepositoryIntegrity:
-    """Asserts that no test or bootstrapper logic wrote runtime files to repo."""
-
-    def test_no_runtime_writes_to_repo(self, tmp_path: Path) -> None:
-        """Verify that scratch buffers do not produce repository artifacts."""
-        repo_path = Path(__file__).parent.parent.resolve()
-        initial_repo_files = {
-            p for p in repo_path.glob("**/*") if not p.name.startswith(".")
-        }
-
-        scratch_dir = tmp_path / "airgap_scratch"
-        with create_ipc_scratch_buffer(
-            name="integrity_test",
-            size=1024,
-            buffer_type="mmap",
-            scratch_dir=scratch_dir,
-        ) as buf:
-            buf.write(b"Air-gap runtime data")
-
-        current_repo_files = {
-            p for p in repo_path.glob("**/*") if not p.name.startswith(".")
-        }
-        new_repo_files = {
-            f
-            for f in (current_repo_files - initial_repo_files)
-            if "__pycache__" not in str(f) and ".pytest_cache" not in str(f)
-        }
-        assert (
-            len(new_repo_files) == 0
-        ), f"Unexpected runtime files in repository: {new_repo_files}"
-
-Validate Zero-Mock adherence. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ.
