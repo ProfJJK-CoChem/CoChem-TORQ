@@ -1,35 +1,35 @@
 {
   "0rchestrator": {
     "status": "SUCCESS",
-    "verdict": "SWARM AUDIT COMPLETED: 12/12 ZERO-MOCK TESTS VERIFIED (COCHEM-TORQ STAGE 5.5-6.0 CRYPTOGRAPHIC PAYLOAD SYNTHESIZER & PROVENANCE LOCK)",
-    "timestamp": "2026-08-23T15:23:00Z"
+    "verdict": "SWARM AUDIT COMPLETED: 11/11 ZERO-MOCK TESTS VERIFIED (COCHEM-TORQ TASK 12 STAGE 5.5-6.0 VISUAL & EVENT TELEMETRY STREAMER)",
+    "timestamp": "2026-08-23T15:32:00Z"
   },
   "cochem-coder": {
     "status": "SUCCESS",
     "artifacts": [
-      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_export.py",
-      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_export.py",
+      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py",
       "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\pytest.ini"
     ],
     "error_codes": [],
-    "timestamp": "2026-08-23T15:21:43Z"
+    "timestamp": "2026-08-23T15:31:40Z"
   },
   "cochem-audit": {
     "status": "SUCCESS",
     "artifacts": [
-      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_export.py",
-      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_export.py"
+      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py"
     ],
     "error_codes": [],
-    "timestamp": "2026-08-23T15:22:31Z"
+    "timestamp": "2026-08-23T15:31:13Z"
   },
   "adversary": {
     "status": "SUCCESS",
     "artifacts": [
-      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_export.py",
-      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_export.py"
+      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+      "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py"
     ],
     "error_codes": [],
-    "timestamp": "2026-08-23T15:22:30Z"
+    "timestamp": "2026-08-23T15:31:04Z"
   }
 }
