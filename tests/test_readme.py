@@ -1,26 +1,3 @@
-Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task1_readme.md.
-Original prompt:
-# Prompt: Repository README
-
-**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\README.md`
-
-## Objective
-Establish the immutable setup and repository usage instructions for CoChem-TORQ.
-
-## Instructions for Coder
-1. Create `README.md` at the root of the repository.
-2. Document the Bipartite Workspace Model (Filesystem Air-Gap Policy).
-3. Explain that all execution logic is in `Libraries/` and all artifacts are written to `COCHEM_ARTIFACTS` (default: `~/CoChem_Artifacts`).
-4. Detail the required Python environment (Python >= 3.10) and the primary entry point (`UI/Start_TORQ.ipynb`).
-
-## Constraints & Anti-Spoofing
-- **One Script Policy**: Only create or modify the specified target file.
-- **Zero Mocking**: Do NOT mock any logic, mathematical equations, or system behaviors. Must provide real physical implementation.
-- **Context-Safety**: Do not hallucinate imports. Any dependencies must be strictly limited to the `requirements.txt` environment for CoChem-TORQ.
-- **Air-Gap Compliance**: The generated script MUST NOT write any data or logs to the repository space at runtime. Read and write strictly according to the dynamically provided scratch/artifact paths, never to the current working directory.
-Modified files content:
-
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_readme.py ---
 """Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ README.md.
 
 Defends documentation integrity, Bipartite Workspace Model compliance,
@@ -547,5 +524,3 @@ def test_ast_compliance_on_test_suite() -> None:
                 pytest.fail(
                     f"Test function '{node.name}' has dummy docstring and 'pass'"
                 )
-
-Validate Zero-Mock adherence. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ.
