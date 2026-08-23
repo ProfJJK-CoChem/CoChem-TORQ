@@ -1,26 +1,17 @@
-import hashlib
-import json
 import logging
 import math
 from pathlib import Path
+
 import numpy as np
 import pytest
 
 from Libraries.cochem_spcat_bridge import (
-    BOLTZMANN_CONSTANT_JK,
-    C_ROT,
     CONSTANTS,
-    HC_OVER_KB,
-    KB_OVER_H,
-    PLANCK_CONSTANT_JS,
-    SPEED_OF_LIGHT_CMS,
-    LAMTriggerError,
     FortranOverflowError,
+    LAMTriggerError,
     TorqSpcatBridge,
     apply_symmetry_divisors,
-    calculate_rotational_partition_function,
     calculate_vibrational_partition_function,
-    compute_coupled_partition_functions,
     fortran_double_precision_formatter,
     fortran_overflow_guard,
     generate_spcat_int,
@@ -33,21 +24,24 @@ from Libraries.cochem_spcat_bridge import (
 logger = logging.getLogger(__name__)
 
 # Real experimental / ab initio Cartesian geometry for Water (H2O in Angstroms)
-H2O_GEOMETRY = np.array([
-    [0.000000,  0.000000,  0.117300],
-    [0.000000,  0.757200, -0.469200],
-    [0.000000, -0.757200, -0.469200],
-], dtype=np.float64)
+H2O_GEOMETRY = np.array(
+    [
+        [0.000000, 0.000000, 0.117300],
+        [0.000000, 0.757200, -0.469200],
+        [0.000000, -0.757200, -0.469200],
+    ],
+    dtype=np.float64,
+)
 H2O_SYMBOLS = ["O", "H", "H"]
 
 
 def test_torq_spcat_bridge_init(tmp_path: Path) -> None:
     tensor_file = tmp_path / "tensor.h5"
     tensor_file.touch()
-    
+
     mpqc_file = tmp_path / "mpqc.out"
     mpqc_file.touch()
-    
+
     bridge = TorqSpcatBridge(str(tensor_file), str(mpqc_file), temperature_k=298.15)
     assert bridge.temperature_k == 298.15
     assert bridge.mpqc_file == Path(mpqc_file)
@@ -58,7 +52,7 @@ def test_torq_spcat_bridge_extract_orca(tmp_path: Path) -> None:
     tensor_file.touch()
     mpqc_file = tmp_path / "mpqc.out"
     mpqc_file.write_text("FINAL SINGLE POINT ENERGY -76.123\n", encoding="utf-8")
-    
+
     bridge = TorqSpcatBridge(str(tensor_file), str(mpqc_file), temperature_k=298.15)
     q_rot, q_vib, q_total = bridge.calculate_partition_functions()
     assert q_rot > 0.0
@@ -110,7 +104,9 @@ def test_vibrational_partition_coupling_with_lam_drop() -> None:
         lam_frequency=lam_mode,
     )
 
-    q_vib_without_lam = calculate_vibrational_partition_function(all_freqs, 298.15, exclude_frequencies=[lam_mode])
+    q_vib_without_lam = calculate_vibrational_partition_function(
+        all_freqs, 298.15, exclude_frequencies=[lam_mode]
+    )
     expected = q_rot_dvr[298.15] * q_vib_without_lam
     assert math.isclose(q_coupled[298.15], expected, rel_tol=1e-6)
 
@@ -120,7 +116,9 @@ def test_fortran_overflow_guard_and_formatter() -> None:
     with pytest.raises(FortranOverflowError):
         fortran_overflow_guard({"DJ": 1.5e310})
 
-    formatted = fortran_double_precision_formatter(20000, 1.567e-5, uncertainty=1e-7, label="DJ")
+    formatted = fortran_double_precision_formatter(
+        20000, 1.567e-5, uncertainty=1e-7, label="DJ"
+    )
     assert "20000" in formatted
     assert "D-05" in formatted
     assert "/ DJ" in formatted
@@ -129,12 +127,18 @@ def test_fortran_overflow_guard_and_formatter() -> None:
 def test_generate_spcat_var_and_int(tmp_path: Path) -> None:
     """Verify generation of .var and .int files."""
     var_file = tmp_path / "test.var"
-    var_content = generate_spcat_var("H2O", {"A": 825360.0, "B": 435360.0, "C": 278130.0}, filepath=var_file)
+    var_content = generate_spcat_var(
+        "H2O", {"A": 825360.0, "B": 435360.0, "C": 278130.0}, filepath=var_file
+    )
     assert var_file.exists()
     assert "H2O Ground State" in var_content
 
     int_file = tmp_path / "test_{T}K.int"
-    int_dict = generate_spcat_int("H2O", {"mu_a": 0.0, "mu_b": 1.85, "mu_c": 0.0}, temperatures=[298.15], filepath_template=int_file)
+    int_dict = generate_spcat_int(
+        "H2O",
+        {"mu_a": 0.0, "mu_b": 1.85, "mu_c": 0.0},
+        temperatures=[298.15],
+        filepath_template=int_file,
+    )
     assert 298.15 in int_dict
     assert (tmp_path / "test_298.1K.int").exists()
-
