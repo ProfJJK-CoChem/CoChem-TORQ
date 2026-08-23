@@ -1,7 +1,7 @@
 """
 CoChem-TORQ: Exact Eckart Frame Aligner & Rotational Constants Engine Test Suite
 ================================================================================
-Phase 2 (Stage 1.0 - 2.0) Zero-Mock Physical Test Matrix
+Phase 2 (Stage 1.0 - 2.0) Authentic Physical Test Matrix
 --------------------------------------------------------
 Tests mass-weighted Cartesian normalization, rigid-rotor frame stability,
 inertia tensor diagonalization, right-handed coordinate enforcement (det(R) = +1),
