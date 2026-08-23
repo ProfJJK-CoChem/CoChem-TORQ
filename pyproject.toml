@@ -1,3 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CoChem-TORQ"
+version = "0.1.0"
+description = "Reaction Coordinate Optimization & Transition State location for the CoChem ecosystem."
+readme = "Readme.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "CoChem Swarm"}
+]
+dependencies = [
+    "pydantic",
+    "h5py",
+    "pyarrow",
+    "jax",
+    "jaxlib",
+    "psutil",
+    "networkx",
+    "scipy"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["Libraries*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/test_pyproject.py"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"
@@ -12,4 +56,3 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-
