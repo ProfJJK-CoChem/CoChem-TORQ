@@ -78,383 +78,55 @@ C_ROT_CM1: Final[float] = (C_ROT_MHZ * 1e6) / (
 # 2. CIAAW / AME2020 Exact Mono-Isotopic Mass Tables
 # =============================================================================
 
-EXACT_ISOTOPIC_MASSES: Final[dict[str, float]] = {
-    # Hydrogen & Isotopes
-    "H": 1.00782503223,
-    "1H": 1.00782503223,
-    "D": 2.01410177812,
-    "2H": 2.01410177812,
-    "T": 3.01604928132,
-    "3H": 3.01604928132,
-    # Helium
-    "3He": 3.0160293201,
-    "He": 4.00260325413,
-    "4He": 4.00260325413,
-    # Lithium
-    "6Li": 6.0151228874,
-    "Li": 7.0160034366,
-    "7Li": 7.0160034366,
-    # Beryllium
-    "Be": 9.012183065,
-    "9Be": 9.012183065,
-    # Boron
-    "10B": 10.01293695,
-    "B": 11.00930536,
-    "11B": 11.00930536,
-    # Carbon & Isotopes
-    "C": 12.00000000000,
-    "12C": 12.00000000000,
-    "13C": 13.00335483507,
-    "14C": 14.0032419884,
-    # Nitrogen & Isotopes
-    "N": 14.00307400443,
-    "14N": 14.00307400443,
-    "15N": 15.00010889888,
-    # Oxygen & Isotopes
-    "O": 15.99491461957,
-    "16O": 15.99491461957,
-    "17O": 16.99913175650,
-    "18O": 17.99915961286,
-    # Fluorine
-    "F": 18.99840316273,
-    "19F": 18.99840316273,
-    # Neon
-    "Ne": 19.9924401762,
-    "20Ne": 19.9924401762,
-    "21Ne": 20.99384669,
-    "22Ne": 21.99138511,
-    # Sodium
-    "Na": 22.9897692820,
-    "23Na": 22.9897692820,
-    # Magnesium
-    "Mg": 23.985041697,
-    "24Mg": 23.985041697,
-    "25Mg": 24.985836976,
-    "26Mg": 25.982592968,
-    # Aluminum
-    "Al": 26.98153853,
-    "27Al": 26.98153853,
-    # Silicon
-    "Si": 27.97692653465,
-    "28Si": 27.97692653465,
-    "29Si": 28.9764946649,
-    "30Si": 29.97377017,
-    # Phosphorus
-    "P": 30.97376199842,
-    "31P": 30.97376199842,
-    # Sulfur & Isotopes
-    "S": 31.9720711744,
-    "32S": 31.9720711744,
-    "33S": 32.9714589098,
-    "34S": 33.96786701,
-    "36S": 35.96708088,
-    # Chlorine & Isotopes
-    "Cl": 34.968852721,
-    "35Cl": 34.968852721,
-    "37Cl": 36.96590262,
-    # Argon
-    "36Ar": 35.967545105,
-    "38Ar": 37.96273211,
-    "Ar": 39.9623831237,
-    "40Ar": 39.9623831237,
-    # Potassium
-    "K": 38.9637064864,
-    "39K": 38.9637064864,
-    "40K": 39.963998166,
-    "41K": 40.9618252579,
-    # Calcium
-    "Ca": 39.962590863,
-    "40Ca": 39.962590863,
-    "42Ca": 41.95861783,
-    "44Ca": 43.95548156,
-    "48Ca": 47.95252276,
-    # Scandium
-    "Sc": 44.95590828,
-    "45Sc": 44.95590828,
-    # Titanium
-    "46Ti": 45.95262772,
-    "47Ti": 46.95175879,
-    "Ti": 47.94794198,
-    "48Ti": 47.94794198,
-    "49Ti": 48.94786568,
-    "50Ti": 49.94478689,
-    # Vanadium
-    "50V": 49.9471560,
-    "V": 50.9439570,
-    "51V": 50.9439570,
-    # Chromium
-    "50Cr": 49.9460418,
-    "Cr": 51.94050623,
-    "52Cr": 51.94050623,
-    "53Cr": 52.9406481,
-    "54Cr": 53.9388792,
-    # Manganese
-    "Mn": 54.93804391,
-    "55Mn": 54.93804391,
-    # Iron & Isotopes
-    "54Fe": 53.93960899,
-    "Fe": 55.93493633,
-    "56Fe": 55.93493633,
-    "57Fe": 56.93539284,
-    "58Fe": 57.93327443,
-    # Cobalt
-    "Co": 58.93319429,
-    "59Co": 58.93319429,
-    # Nickel
-    "Ni": 57.93534241,
-    "58Ni": 57.93534241,
-    "60Ni": 59.93078588,
-    "61Ni": 60.9310555,
-    "62Ni": 61.9283447,
-    "64Ni": 63.9279655,
-    # Copper
-    "Cu": 62.92959772,
-    "63Cu": 62.92959772,
-    "65Cu": 64.92778970,
-    # Zinc
-    "Zn": 63.92914201,
-    "64Zn": 63.92914201,
-    "66Zn": 65.92603381,
-    "67Zn": 66.92712775,
-    "68Zn": 67.92484455,
-    "70Zn": 69.9253192,
-    # Gallium
-    "Ga": 68.9255735,
-    "69Ga": 68.9255735,
-    "71Ga": 70.92470258,
-    # Germanium
-    "70Ge": 69.92424875,
-    "72Ge": 71.9220758,
-    "73Ge": 72.9234589,
-    "Ge": 73.92117776,
-    "74Ge": 73.92117776,
-    "76Ge": 75.9214027,
-    # Arsenic
-    "As": 74.92159457,
-    "75As": 74.92159457,
-    # Selenium
-    "74Se": 73.9224759,
-    "76Se": 75.9192137,
-    "77Se": 76.9199141,
-    "78Se": 77.9173095,
-    "Se": 79.9165218,
-    "80Se": 79.9165218,
-    "82Se": 81.9166995,
-    # Bromine & Isotopes
-    "Br": 78.9183376,
-    "79Br": 78.9183376,
-    "81Br": 80.9162897,
-    # Krypton
-    "78Kr": 77.9203649,
-    "80Kr": 79.9163780,
-    "82Kr": 81.9134836,
-    "83Kr": 82.9141271,
-    "Kr": 83.91149773,
-    "84Kr": 83.91149773,
-    "86Kr": 85.9106106,
-    # Rubidium
-    "Rb": 84.911789737,
-    "85Rb": 84.911789737,
-    "87Rb": 86.909180531,
-    # Strontium
-    "84Sr": 83.913425,
-    "86Sr": 85.9092606,
-    "87Sr": 86.9088775,
-    "Sr": 87.9056125,
-    "88Sr": 87.9056125,
-    # Yttrium
-    "Y": 88.9058479,
-    "89Y": 88.9058479,
-    # Zirconium
-    "Zr": 89.9046977,
-    "90Zr": 89.9046977,
-    "91Zr": 90.9056396,
-    "92Zr": 91.9050373,
-    "94Zr": 93.9063144,
-    "96Zr": 95.9082734,
-    # Molybdenum
-    "92Mo": 91.9068079,
-    "94Mo": 93.9050849,
-    "95Mo": 94.9058387,
-    "96Mo": 95.9046761,
-    "97Mo": 96.9060187,
-    "Mo": 97.9054048,
-    "98Mo": 97.9054048,
-    "100Mo": 99.9074744,
-    # Ruthenium
-    "96Ru": 95.9075943,
-    "98Ru": 97.9052868,
-    "99Ru": 98.9059341,
-    "100Ru": 99.9042143,
-    "101Ru": 100.9055768,
-    "Ru": 101.9043441,
-    "102Ru": 101.9043441,
-    "104Ru": 103.9054275,
-    # Rhodium
-    "Rh": 102.9054980,
-    "103Rh": 102.9054980,
-    # Palladium
-    "102Pd": 101.905602,
-    "104Pd": 103.9040305,
-    "105Pd": 104.9050796,
-    "Pd": 105.9034804,
-    "106Pd": 105.9034804,
-    "108Pd": 107.9038916,
-    "110Pd": 109.9051722,
-    # Silver
-    "Ag": 106.9050916,
-    "107Ag": 106.9050916,
-    "109Ag": 108.9047553,
-    # Cadmium
-    "106Cd": 105.9064599,
-    "108Cd": 107.9041834,
-    "110Cd": 109.9030066,
-    "111Cd": 110.9041818,
-    "112Cd": 111.9027613,
-    "113Cd": 112.9044081,
-    "Cd": 113.9033651,
-    "114Cd": 113.9033651,
-    "116Cd": 115.9047632,
-    # Indium
-    "113In": 112.9040611,
-    "In": 114.90387878,
-    "115In": 114.90387878,
-    # Tin
-    "112Sn": 111.9048238,
-    "114Sn": 113.9027827,
-    "115Sn": 114.9033447,
-    "116Sn": 115.9017428,
-    "117Sn": 116.9029540,
-    "118Sn": 117.9016066,
-    "119Sn": 118.9033111,
-    "Sn": 119.90220163,
-    "120Sn": 119.90220163,
-    "122Sn": 121.9034455,
-    "124Sn": 123.9052766,
-    # Antimony
-    "Sb": 120.9038120,
-    "121Sb": 120.9038120,
-    "123Sb": 122.9042132,
-    # Tellurium
-    "120Te": 119.904061,
-    "122Te": 121.9030543,
-    "123Te": 122.9042710,
-    "124Te": 123.9028180,
-    "125Te": 124.9044307,
-    "126Te": 125.9033117,
-    "128Te": 127.9044631,
-    "Te": 129.90622274,
-    "130Te": 129.90622274,
-    # Iodine
-    "I": 126.9044719,
-    "127I": 126.9044719,
-    # Xenon
-    "124Xe": 123.9058920,
-    "126Xe": 125.904274,
-    "128Xe": 127.9035310,
-    "129Xe": 128.90478086,
-    "130Xe": 129.90350935,
-    "131Xe": 130.90508406,
-    "Xe": 131.90415509,
-    "132Xe": 131.90415509,
-    "134Xe": 133.90539466,
-    "136Xe": 135.90721448,
-    # Cesium
-    "Cs": 132.90545196,
-    "133Cs": 132.90545196,
-    # Barium
-    "130Ba": 129.9063207,
-    "132Ba": 131.9050611,
-    "134Ba": 133.9045081,
-    "135Ba": 134.9056884,
-    "136Ba": 135.9045759,
-    "137Ba": 136.9058271,
-    "Ba": 137.9052470,
-    "138Ba": 137.9052470,
-    # Platinum
-    "190Pt": 189.959930,
-    "192Pt": 191.9610387,
-    "194Pt": 193.9626809,
-    "Pt": 194.9647917,
-    "195Pt": 194.9647917,
-    "196Pt": 195.9649521,
-    "198Pt": 197.9678947,
-    # Gold
-    "Au": 196.9665687,
-    "197Au": 196.9665687,
-    # Mercury
-    "196Hg": 195.9658326,
-    "198Hg": 197.9667686,
-    "199Hg": 198.9682806,
-    "200Hg": 199.9683266,
-    "201Hg": 200.9703028,
-    "Hg": 201.9706434,
-    "202Hg": 201.9706434,
-    "204Hg": 203.9734939,
-    # Lead
-    "204Pb": 203.9730440,
-    "206Pb": 205.9744657,
-    "207Pb": 206.9758973,
-    "Pb": 207.9766525,
-    "208Pb": 207.9766525,
-    # Bismuth
-    "Bi": 208.9803991,
-    "209Bi": 208.9803991,
-    # Uranium
-    "235U": 235.0439301,
-    "U": 238.0507884,
-    "238U": 238.0507884,
-}
-
-# Legacy dictionary alias for backward compatibility
-EXACT_MASSES: Final[dict[str, float]] = {
-    "H": 1.00782503223,
-    "C": 12.00000000000,
-    "N": 14.00307400443,
-    "O": 15.99491461957,
-    "F": 18.99840316273,
-    "P": 30.97376199842,
-    "S": 31.9720711744,
-    "Cl": 34.968852721,
-    "Br": 78.9183376,
-    "I": 126.9044719,
-}
-
-
 def get_atomic_mass(symbol: str) -> float:
-    """Retrieves exact mono-isotopic mass for an element or isotope.
+    """Retrieves exact mono-isotopic mass for an element or isotope using mendeleev.
 
     Supports notation such as: 'H', 'D', 'T', '13C', 'C13', '18O', 'O18', '37Cl'.
     """
     clean_sym = symbol.strip()
-    if clean_sym in EXACT_ISOTOPIC_MASSES:
-        return EXACT_ISOTOPIC_MASSES[clean_sym]
+    
+    # Handle specific common aliases
+    if clean_sym == "D":
+        clean_sym = "2H"
+    elif clean_sym == "T":
+        clean_sym = "3H"
 
-    # Check prefix mass number e.g. "13C"
     match_prefix = re.match(r"^(\d+)([a-zA-Z]+)$", clean_sym)
-    if match_prefix:
-        num, elem = match_prefix.groups()
-        canonical_key = f"{num}{elem.capitalize()}"
-        if canonical_key in EXACT_ISOTOPIC_MASSES:
-            return EXACT_ISOTOPIC_MASSES[canonical_key]
-
-    # Check postfix mass number e.g. "C13"
     match_postfix = re.match(r"^([a-zA-Z]+)(\d+)$", clean_sym)
-    if match_postfix:
-        elem, num = match_postfix.groups()
-        canonical_key = f"{num}{elem.capitalize()}"
-        if canonical_key in EXACT_ISOTOPIC_MASSES:
-            return EXACT_ISOTOPIC_MASSES[canonical_key]
-
-    # Capitalized chemical symbol
-    cap_sym = clean_sym.capitalize()
-    if cap_sym in EXACT_ISOTOPIC_MASSES:
-        return EXACT_ISOTOPIC_MASSES[cap_sym]
-
-    logger.warning(
-        f"Symbol '{symbol}' not found in isotopic mass table. Defaulting to 12.0 u."
-    )
+    
+    elem_str = clean_sym
+    mass_num = None
+    
+    if match_prefix:
+        mass_num = int(match_prefix.group(1))
+        elem_str = match_prefix.group(2)
+    elif match_postfix:
+        elem_str = match_postfix.group(1)
+        mass_num = int(match_postfix.group(2))
+        
+    elem_str = elem_str.capitalize()
+    
+    try:
+        from mendeleev import element
+        elem = element(elem_str)
+        if mass_num is not None:
+            for iso in elem.isotopes:
+                if iso.mass_number == mass_num and iso.mass is not None:
+                    return float(iso.mass)
+            logger.warning(f"Isotope {mass_num} for element {elem_str} not found. Defaulting to most abundant.")
+            
+        # Default to most abundant isotope
+        valid_isotopes = [iso for iso in elem.isotopes if iso.abundance is not None and iso.mass is not None]
+        if valid_isotopes:
+            most_abundant = sorted(valid_isotopes, key=lambda x: x.abundance, reverse=True)[0]
+            return float(most_abundant.mass)
+        elif elem.isotopes and elem.isotopes[0].mass is not None:
+            return float(elem.isotopes[0].mass)
+    except Exception as e:
+        logger.warning(f"Symbol '{symbol}' not found in mendeleev or error occurred: {e}. Defaulting to 12.0 u.")
+        
     return 12.0
+
 
 
 # =============================================================================
@@ -1738,7 +1410,13 @@ class TorqTensorExtractor:
                         arr = np.array(value)
                         if key in point_group:
                             del point_group[key]
-                        point_group.create_dataset(key, data=arr)
+                        if arr.dtype.kind in ("U", "S", "O"):
+                            dt = h5py.string_dtype(encoding="utf-8")
+                            point_group.create_dataset(
+                                key, data=np.array(value, dtype=object), dtype=dt
+                            )
+                        else:
+                            point_group.create_dataset(key, data=arr)
                     elif isinstance(value, int | float | str | bool):
                         point_group.attrs[key] = value
                     elif isinstance(value, dict):

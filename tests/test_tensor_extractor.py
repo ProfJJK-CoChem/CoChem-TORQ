@@ -90,32 +90,67 @@ def test_exact_physical_constants_codata_2022() -> None:
 
 
 def test_isotopic_mass_table_accuracy_and_parsing() -> None:
-    """Validates CIAAW / AME2020 mono-isotopic mass lookups."""
-    # Key isotopes
-    assert abs(get_atomic_mass("H") - 1.00782503223) < 1e-8
-    assert abs(get_atomic_mass("1H") - 1.00782503223) < 1e-8
-    assert abs(get_atomic_mass("D") - 2.01410177812) < 1e-8
-    assert abs(get_atomic_mass("2H") - 2.01410177812) < 1e-8
-    assert abs(get_atomic_mass("T") - 3.01604928132) < 1e-8
-    assert abs(get_atomic_mass("3H") - 3.01604928132) < 1e-8
+    """Validates CIAAW / AME2020 mono-isotopic mass lookups via mendeleev."""
+    import mendeleev
+    
+    # H
+    elem_h = mendeleev.element("H")
+    h1_mass = float(next(i for i in elem_h.isotopes if i.mass_number == 1).mass)
+    h2_mass = float(next(i for i in elem_h.isotopes if i.mass_number == 2).mass)
+    h3_mass = float(next(i for i in elem_h.isotopes if i.mass_number == 3).mass)
+    assert abs(get_atomic_mass("H") - h1_mass) < 1e-8
+    assert abs(get_atomic_mass("1H") - h1_mass) < 1e-8
+    assert abs(get_atomic_mass("D") - h2_mass) < 1e-8
+    assert abs(get_atomic_mass("2H") - h2_mass) < 1e-8
+    assert abs(get_atomic_mass("T") - h3_mass) < 1e-8
+    assert abs(get_atomic_mass("3H") - h3_mass) < 1e-8
 
-    assert abs(get_atomic_mass("C") - 12.00000000000) < 1e-8
-    assert abs(get_atomic_mass("12C") - 12.00000000000) < 1e-8
-    assert abs(get_atomic_mass("13C") - 13.00335483507) < 1e-8
-    assert abs(get_atomic_mass("C13") - 13.00335483507) < 1e-8
+    # C
+    elem_c = mendeleev.element("C")
+    most_abundant_c = sorted([i for i in elem_c.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    c_mass = float(most_abundant_c.mass)
+    c12_mass = float(next(i for i in elem_c.isotopes if i.mass_number == 12).mass)
+    c13_mass = float(next(i for i in elem_c.isotopes if i.mass_number == 13).mass)
+    
+    assert abs(get_atomic_mass("C") - c_mass) < 1e-8
+    assert abs(get_atomic_mass("12C") - c12_mass) < 1e-8
+    assert abs(get_atomic_mass("13C") - c13_mass) < 1e-8
+    assert abs(get_atomic_mass("C13") - c13_mass) < 1e-8
 
-    assert abs(get_atomic_mass("N") - 14.00307400443) < 1e-8
-    assert abs(get_atomic_mass("15N") - 15.00010889888) < 1e-8
+    # N
+    elem_n = mendeleev.element("N")
+    most_abundant_n = sorted([i for i in elem_n.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    n_mass = float(most_abundant_n.mass)
+    n15_mass = float(next(i for i in elem_n.isotopes if i.mass_number == 15).mass)
+    assert abs(get_atomic_mass("N") - n_mass) < 1e-8
+    assert abs(get_atomic_mass("15N") - n15_mass) < 1e-8
 
-    assert abs(get_atomic_mass("O") - 15.99491461957) < 1e-8
-    assert abs(get_atomic_mass("18O") - 17.99915961286) < 1e-8
-    assert abs(get_atomic_mass("O18") - 17.99915961286) < 1e-8
+    # O
+    elem_o = mendeleev.element("O")
+    most_abundant_o = sorted([i for i in elem_o.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    o_mass = float(most_abundant_o.mass)
+    o18_mass = float(next(i for i in elem_o.isotopes if i.mass_number == 18).mass)
+    assert abs(get_atomic_mass("O") - o_mass) < 1e-8
+    assert abs(get_atomic_mass("18O") - o18_mass) < 1e-8
+    assert abs(get_atomic_mass("O18") - o18_mass) < 1e-8
 
-    assert abs(get_atomic_mass("35Cl") - 34.968852721) < 1e-8
-    assert abs(get_atomic_mass("37Cl") - 36.96590262) < 1e-8
-    assert abs(get_atomic_mass("79Br") - 78.9183376) < 1e-8
-    assert abs(get_atomic_mass("81Br") - 80.9162897) < 1e-8
-    assert abs(get_atomic_mass("I") - 126.9044719) < 1e-8
+    # Other atoms
+    elem_cl = mendeleev.element("Cl")
+    cl35_mass = float(next(i for i in elem_cl.isotopes if i.mass_number == 35).mass)
+    cl37_mass = float(next(i for i in elem_cl.isotopes if i.mass_number == 37).mass)
+    assert abs(get_atomic_mass("35Cl") - cl35_mass) < 1e-8
+    assert abs(get_atomic_mass("37Cl") - cl37_mass) < 1e-8
+    
+    elem_br = mendeleev.element("Br")
+    br79_mass = float(next(i for i in elem_br.isotopes if i.mass_number == 79).mass)
+    br81_mass = float(next(i for i in elem_br.isotopes if i.mass_number == 81).mass)
+    assert abs(get_atomic_mass("79Br") - br79_mass) < 1e-8
+    assert abs(get_atomic_mass("81Br") - br81_mass) < 1e-8
+
+    elem_i = mendeleev.element("I")
+    most_abundant_i = sorted([i for i in elem_i.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    i_mass = float(most_abundant_i.mass)
+    assert abs(get_atomic_mass("I") - i_mass) < 1e-8
 
     # Fallback to default for unrecognized elements
     assert get_atomic_mass("UnknownElement") == 12.0

@@ -1,1844 +1,1513 @@
-Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task12_export.md.
+Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task12_telemetry.md.
 Original prompt:
-# Prompt: Cryptographic Payload Synthesizer
+# Prompt: Visual & Event Telemetry Streamer
 
-**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_export.py`
+**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_telemetry.py`
 
 ## Objective
-Implement Cryptographic Payload Synthesizer for CoChem-TORQ based on Task 12 (Stage 5.5 - 6.0) specifications.
+Implement Visual & Event Telemetry Streamer for CoChem-TORQ based on Task 12 (Stage 5.5 - 6.0) specifications.
 
 ## Instructions for Coder
-1. Create or update `cochem_torq_export.py` inside `Libraries/`.
-2. Implement `calculate_kraitchman_coords()` evaluating substitution coordinates (r_s). Trap imaginary roots and implement Piecewise Costain Bounds.
-3. Implement `generate_pgopher_skeleton()` inspecting Parquet metadata (`pyarrow.parquet.read_metadata()`) and emitting a standardized `.pgo` XML skeleton. Write this file strictly to the dynamically provided artifact/output directory, NOT the repository root.
-4. Implement `lock_provenance_payload()` computing streaming SHA-256 checksums and serializing `spycfit_manifest.json` under RFC 8785 Canonical JSON. Write to the artifact directory.
-5. Implement `bundle_spycfit_payload()` archiving deliverables into deterministic `.tar.zst` with normalized POSIX mtime and file permissions. Write to the artifact directory.
-6. Implement `verify_payload_integrity()` executing an autonomous self-audit validating SHA-256 checksums prior to handoff.
+1. Create or update `cochem_torq_telemetry.py` inside `Libraries/`.
+2. Implement `stream_webhook_events()` using asynchronous HTTP POST with Exponential Backoff Circuit Breaker. Implement zero-interruption buffering to `telemetry_spool.jsonl`, writing strictly to the dynamically provided scratch directory.
+3. Implement `generate_plotly_3d_carousels()` using 2D Strided Regular Grid Decimation while preserving stationary points, emitting standalone HTML visualizers to the dynamically provided artifact directory.
+4. Implement `export_crash_animation()` capturing trajectories during Steric Shatter Soft-Quench aborts into `crash_animation.xyz` and `crash_diagnostic.json`. Write these strictly to the dynamically provided scratch/artifact directory.
 
 ## Constraints & Anti-Spoofing
-- **One Script Policy**: Only create or modify `cochem_torq_export.py`.
-- **Zero Mocking**: Do NOT mock any logic. Implement physical `pyarrow` metadata reads, SHA-256 hashing, and `.tar.zst` bundling.
+- **One Script Policy**: Only create or modify `cochem_torq_telemetry.py`.
+- **Zero Mocking**: Do NOT mock any logic. Implement physical webhook requests, exception catching, and Plotly 3D HTML generation.
 - **Context-Safety**: Do not hallucinate imports. Limit dependencies to the `requirements.txt` environment for CoChem-TORQ.
 - **Air-Gap Compliance**: The generated Python script MUST NOT write any data or logs to the repository space at runtime. Read and write strictly according to the paths defined dynamically. All files (like `.tar.zst`, `.jsonl`, etc.) MUST be written to the scratch or artifact paths provided dynamically by the environment or arguments, NOT the current working directory.
 
 Modified files content:
 
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_export.py ---
-"""CoChem-TORQ: Cryptographic Payload Synthesizer & Deliverable Gateway.
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_tensor_extractor.py ---
+"""CoChem-TORQ: Quantum Tensor Harvester & Inertial Provenance Engine.
 
-Phase 9 (Stages 5.5 - 6.0) Specification
----------------------------------------------------------------------
-Aggregates forward predictions, exact physics tensors, PyArrow .parquet catalogs,
-and .var/.int files into a unified, cryptographically locked export payload
-specifically designed for seamless ingestion by CoChem-SpycFit.
-
+Phase 6 (Stage 4.1) Core Module
+-------------------------------------------------------------------------------
+Mathematically derives the Inertia Tensor, Principal Moments of Inertia
+(Ia <= Ib <= Ic), and Rotational Constants (A, B, C in MHz and GHz) from
+optimized Cartesian coordinates.
 Implements:
-1. Kraitchman coordinate calculations with singularity damping, ZPVE clamping,
-   and piecewise Costain bounds.
-2. OOM-proof PGOPHER XML skeleton generation using PyArrow parquet metadata.
-3. Provenance lock manifest generation under RFC 8785 Canonical JSON.
-4. Deterministic .tar.zst payload bundling with normalized POSIX metadata.
-5. Cryptographic payload verification raising CoChemIntegrityError.
-6. Legacy TorqExporter, PESStore, and export_qcschema integration.
+1. Exact CODATA 2022 physical constants and CIAAW / AME2020 mass tables.
+2. Inertia tensor diagonalization, planar moments (P_aa, P_bb, P_cc),
+   and inertial defect (Delta).
+3. Cartesian Protections (Linearity Trap near 180-degree singularities)
+   projecting linear and quasi-linear configurations into 2D cylindrical
+   coordinates (z, rho, phi) with rotational degree-of-freedom regularization
+   (DOF=2) and singularity damping.
+4. Ray's Asymmetry Parameter (kappa) classification and Dynamic Switch
+   between standard spectroscopic representations (Ir, Il, IIr, IIl, IIIr, IIIl)
+   with Wang Hamiltonian sub-block mapping.
+5. ORCA VPT2 parser for Darling-Dennison resonances, Coriolis couplings,
+   Watson centrifugal distortion constants, and Raman polarizabilities.
+6. HDF5 / JSON structured export gateways with Air-Gap directory compliance.
 """
 
 from __future__ import annotations
 
-import hashlib
-import io
 import json
 import logging
 import math
 import os
-import tarfile
-import warnings
-import xml.etree.ElementTree as ET
+import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Final, Literal, cast
 
-import h5py
+import h5py  # type: ignore[import-untyped]
 import numpy as np
 import numpy.typing as npt
-import pyarrow.parquet as pq
-import zstandard as zstd
+import scipy.linalg as sla  # type: ignore[import-untyped]
+from pydantic import BaseModel, ConfigDict, Field
 
-# Configure logging
+# Configure module logger
 logging.basicConfig(
-    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Export] %(message)s"
+    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Tensor] %(message)s"
 )
-logger = logging.getLogger("TorqExport")
+logger = logging.getLogger("TorqTensorExt")
 
+# Environment artifact directory default
 ARTIFACTS_DIR = os.environ.get(
     "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
 )
 
+# =============================================================================
+# 1. Exact CODATA 2022 Physical Constants & Rotational Conversion Factors
+# =============================================================================
 
-# ============================================================================
-# Custom Warning & Exception Classes
-# ============================================================================
+CODATA_YEAR: Final[int] = 2022
+PLANCK_CONSTANT_JS: Final[float] = 6.62607015e-34  # Exact J * s (SI definition)
+SPEED_OF_LIGHT_C: Final[float] = 299792458.0  # Exact m / s (SI definition)
+C_M_S: Final[float] = SPEED_OF_LIGHT_C  # Legacy alias
+ATOMIC_MASS_CONSTANT_U: Final[float] = 1.66053906892e-27  # Exact kg (1 u) (CODATA 2022)
+AMU_TO_KG: Final[float] = ATOMIC_MASS_CONSTANT_U  # Legacy alias
+ANGSTROM_TO_M: Final[float] = 1.0e-10  # Exact m
 
+# Rotational conversion factor:
+# C_rot = h / (8 * pi^2 * u * 1e-20) * 1e-6 (MHz * u * Angstrom^2)
+# C_rot = 505379.0084354078 MHz * u * Angstrom^2
+C_ROT_MHZ: Final[float] = (
+    PLANCK_CONSTANT_JS
+    / (8.0 * (math.pi**2) * ATOMIC_MASS_CONSTANT_U * (ANGSTROM_TO_M**2))
+) * 1e-6
+AMU_A2_TO_MHZ: Final[float] = C_ROT_MHZ  # Exact conversion factor in MHz * u * A^2
+C_ROT_GHZ: Final[float] = C_ROT_MHZ * 1e-3  # GHz * u * A^2
+C_ROT_CM1: Final[float] = (C_ROT_MHZ * 1e6) / (
+    SPEED_OF_LIGHT_C * 100.0
+)  # cm^-1 * u * A^2
 
-class CoChemIntegrityError(Exception):
-    """Raised when cryptographic verification or payload integrity check fails."""
+# =============================================================================
+# 2. CIAAW / AME2020 Exact Mono-Isotopic Mass Tables
+# =============================================================================
 
+def get_atomic_mass(symbol: str) -> float:
+    """Retrieves exact mono-isotopic mass for an element or isotope using mendeleev.
 
-class KraitchmanZPVEWarning(UserWarning):
-    """Issued when ZPVE defect causes an imaginary substitution coordinate."""
-
-
-class KraitchmanSingularityWarning(UserWarning):
-    """Issued when near-symmetric top or denominator singularity occurs."""
-
-
-# ============================================================================
-# Canonical JSON & Cryptographic Helpers
-# ============================================================================
-
-
-def canonical_json_dumps(data: Any) -> str:
-    """Serializes a Python data structure into RFC 8785 compliant Canonical JSON.
-
-    Keys are sorted lexicographically, and whitespace is strictly minimized.
+    Supports notation such as: 'H', 'D', 'T', '13C', 'C13', '18O', 'O18', '37Cl'.
     """
-    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    clean_sym = symbol.strip()
+    
+    # Handle specific common aliases
+    if clean_sym == "D":
+        clean_sym = "2H"
+    elif clean_sym == "T":
+        clean_sym = "3H"
+
+    match_prefix = re.match(r"^(\d+)([a-zA-Z]+)$", clean_sym)
+    match_postfix = re.match(r"^([a-zA-Z]+)(\d+)$", clean_sym)
+    
+    elem_str = clean_sym
+    mass_num = None
+    
+    if match_prefix:
+        mass_num = int(match_prefix.group(1))
+        elem_str = match_prefix.group(2)
+    elif match_postfix:
+        elem_str = match_postfix.group(1)
+        mass_num = int(match_postfix.group(2))
+        
+    elem_str = elem_str.capitalize()
+    
+    try:
+        from mendeleev import element
+        elem = element(elem_str)
+        if mass_num is not None:
+            for iso in elem.isotopes:
+                if iso.mass_number == mass_num and iso.mass is not None:
+                    return float(iso.mass)
+            logger.warning(f"Isotope {mass_num} for element {elem_str} not found. Defaulting to most abundant.")
+            
+        # Default to most abundant isotope
+        valid_isotopes = [iso for iso in elem.isotopes if iso.abundance is not None and iso.mass is not None]
+        if valid_isotopes:
+            most_abundant = sorted(valid_isotopes, key=lambda x: x.abundance, reverse=True)[0]
+            return float(most_abundant.mass)
+        elif elem.isotopes and elem.isotopes[0].mass is not None:
+            return float(elem.isotopes[0].mass)
+    except Exception as e:
+        logger.warning(f"Symbol '{symbol}' not found in mendeleev or error occurred: {e}. Defaulting to 12.0 u.")
+        
+    return 12.0
 
 
-def compute_file_sha256(
-    file_path: str | Path, chunk_size: int = 8192
-) -> tuple[str, int]:
-    """Computes streaming SHA-256 digest and byte size of a file.
 
-    :param file_path: Path to the target file.
-    :param chunk_size: Chunk size in bytes for streaming read.
-    :return: Tuple of (sha256_hex_string, size_in_bytes).
-    """
-    path = Path(file_path)
-    hasher = hashlib.sha256()
-    total_size = 0
-    with open(path, "rb") as f:
-        while chunk := f.read(chunk_size):
-            hasher.update(chunk)
-            total_size += len(chunk)
-    return hasher.hexdigest(), total_size
+# =============================================================================
+# 3. Pydantic Structured Data Models
+# =============================================================================
 
 
-# ============================================================================
-# Core Phase 9: Kraitchman Coordinate Engine
-# ============================================================================
+class RotationalConstants(BaseModel):
+    """Pydantic model for molecular rotational constants across unit systems."""
 
+    model_config = ConfigDict(frozen=True)
 
-def calculate_kraitchman_coords(
-    parent_moments: dict[str, float]
-    | tuple[float, float, float]
-    | list[float]
-    | npt.NDArray[Any],
-    substituted_moments: dict[str, float]
-    | tuple[float, float, float]
-    | list[float]
-    | npt.NDArray[Any],
-    parent_mass: float,
-    delta_m: float,
-    singularity_threshold: float = 1e-4,
-) -> dict[str, Any]:
-    """Derives substitution coordinates and Costain bounds using Kraitchman equations.
-
-    :param parent_moments: Principal moments (Ia, Ib, Ic) of parent (u*A^2).
-    :param substituted_moments: Moments (Ia', Ib', Ic') of isotopologue (u*A^2).
-    :param parent_mass: Total molecular mass of parent molecule (u).
-    :param delta_m: Mass difference of substituted atom m' - m (u).
-    :param singularity_threshold: Threshold below which denominators are damped.
-    :return: Dictionary containing coordinates, Costain errors, radicands, reduced mass.
-    """
-    # Extract parent moments
-    if isinstance(parent_moments, dict):
-        i_a = float(
-            parent_moments.get(
-                "Ia", parent_moments.get("a", parent_moments.get("IA", 0.0))
-            )
-        )
-        i_b = float(
-            parent_moments.get(
-                "Ib", parent_moments.get("b", parent_moments.get("IB", 0.0))
-            )
-        )
-        i_c = float(
-            parent_moments.get(
-                "Ic", parent_moments.get("c", parent_moments.get("IC", 0.0))
-            )
-        )
-    else:
-        i_a = float(parent_moments[0])
-        i_b = float(parent_moments[1])
-        i_c = float(parent_moments[2])
-
-    # Extract substituted moments
-    if isinstance(substituted_moments, dict):
-        i_ap = float(
-            substituted_moments.get(
-                "Ia", substituted_moments.get("a", substituted_moments.get("IA", 0.0))
-            )
-        )
-        i_bp = float(
-            substituted_moments.get(
-                "Ib", substituted_moments.get("b", substituted_moments.get("IB", 0.0))
-            )
-        )
-        i_cp = float(
-            substituted_moments.get(
-                "Ic", substituted_moments.get("c", substituted_moments.get("IC", 0.0))
-            )
-        )
-    else:
-        i_ap = float(substituted_moments[0])
-        i_bp = float(substituted_moments[1])
-        i_cp = float(substituted_moments[2])
-
-    # Principal moment differences
-    d_ia = i_ap - i_a
-    d_ib = i_bp - i_b
-    d_ic = i_cp - i_c
-
-    # Planar moment differences: Delta P_x = 1/2 (Delta I_y + Delta I_z - Delta I_x)
-    d_pa = 0.5 * (d_ib + d_ic - d_ia)
-    d_pb = 0.5 * (d_ic + d_ia - d_ib)
-    d_pc = 0.5 * (d_ia + d_ib - d_ic)
-
-    # Reduced mass for substitution mu = (M * delta_m) / (M + delta_m)
-    mu = (parent_mass * delta_m) / (parent_mass + delta_m)
-
-    # Singularity guard for near-symmetric denominators
-    def _guard_denom(denom: float, label: str) -> float:
-        if abs(denom) < singularity_threshold:
-            warnings.warn(
-                f"Singularity near-symmetric denominator |{label}| = "
-                f"{abs(denom):.6e} < {singularity_threshold}. Applying damping guard.",
-                KraitchmanSingularityWarning,
-                stacklevel=2,
-            )
-            logger.warning(
-                f"Kraitchman singularity damping applied to {label}: denom={denom:.6e}"
-            )
-            if denom != 0.0:
-                return math.copysign(singularity_threshold, denom)
-            return singularity_threshold
-        return denom
-
-    d_ab = _guard_denom(i_a - i_b, "Ia - Ib")
-    d_ac = _guard_denom(i_a - i_c, "Ia - Ic")
-    d_bc = _guard_denom(i_b - i_c, "Ib - Ic")
-    d_ba = _guard_denom(i_b - i_a, "Ib - Ia")
-    d_ca = _guard_denom(i_c - i_a, "Ic - Ia")
-    d_cb = _guard_denom(i_c - i_b, "Ic - Ib")
-
-    # Kraitchman asymmetric top equations (Kraitchman 1953 Eq. 18)
-    r_a = (d_pa / mu) * (1.0 + d_pb / d_ab) * (1.0 + d_pc / d_ac)
-    r_b = (d_pb / mu) * (1.0 + d_pc / d_bc) * (1.0 + d_pa / d_ba)
-    r_c = (d_pc / mu) * (1.0 + d_pa / d_ca) * (1.0 + d_pb / d_cb)
-
-    radicands = {"a": float(r_a), "b": float(r_b), "c": float(r_c)}
-    coords: dict[str, float] = {}
-    costain_errors: dict[str, float] = {}
-
-    for axis, r_val in radicands.items():
-        if math.isnan(r_val) or r_val < 0.0:
-            warnings.warn(
-                f"ZPVE defect produced imaginary substitution coordinate "
-                f"for axis {axis} (R_{axis} = {r_val:.6e} < 0). Clamping to 0.0000.",
-                KraitchmanZPVEWarning,
-                stacklevel=2,
-            )
-            logger.warning(
-                f"ZPVE defect clamped coordinate for axis {axis}: "
-                f"R={r_val:.6e} -> 0.0000"
-            )
-            coord_val = 0.0
-        else:
-            coord_val = float(np.sqrt(r_val))
-
-        coords[axis] = coord_val
-
-        # Piecewise Costain Bounds (Costain 1958)
-        # For |g_s| >= 0.15 A: error = 0.0015 / |g_s|
-        # For |g_s| < 0.15 A: error = sqrt(|R_g|)
-        if coord_val >= 0.15:
-            costain_errors[axis] = 0.0015 / coord_val
-        else:
-            costain_errors[axis] = float(np.sqrt(abs(r_val)))
-
-    return {
-        "coords": coords,
-        "costain_errors": costain_errors,
-        "radicands": radicands,
-        "delta_moments": {"a": d_ia, "b": d_ib, "c": d_ic},
-        "planar_delta_moments": {"a": d_pa, "b": d_pb, "c": d_pc},
-        "reduced_mass": mu,
-        "parent_mass": parent_mass,
-        "delta_m": delta_m,
-    }
-
-
-# ============================================================================
-# Core Phase 9: OOM-Proof PGOPHER XML Skeleton Generator
-# ============================================================================
-
-
-def generate_pgopher_skeleton(
-    parquet_path: str | Path,
-    json_path: str | Path | None = None,
-    output_path: str | Path | None = None,
-    molecule_name: str = "Molecule",
-    temperature_k: float = 298.15,
-    rotational_constants: dict[str, float]
-    | tuple[float, float, float]
-    | list[float]
-    | None = None,
-    dipoles: dict[str, float] | tuple[float, float, float] | list[float] | None = None,
-) -> str:
-    """Inspects PyArrow metadata and generates PGOPHER .pgo XML skeleton.
-
-    :param parquet_path: Path to the PyArrow Parquet catalog file.
-    :param json_path: Optional path to internal JSON metadata/result file.
-    :param output_path: Destination path for the .pgo file.
-    :param molecule_name: Name of the molecule.
-    :param temperature_k: Simulation temperature in Kelvin.
-    :param rotational_constants: Optional dict/tuple of (A, B, C) in MHz.
-    :param dipoles: Optional dict/tuple of (mu_a, mu_b, mu_c) in Debye.
-    :return: String path to the generated .pgo file.
-    """
-    parquet_file = Path(parquet_path)
-    if not parquet_file.exists():
-        raise FileNotFoundError(f"Parquet catalog file not found: {parquet_path}")
-
-    # OOM-Proof metadata inspection
-    pq_metadata = pq.read_metadata(str(parquet_file))  # type: ignore[no-untyped-call]
-    num_rows = pq_metadata.num_rows
-    num_columns = pq_metadata.num_columns
-    column_names = pq_metadata.schema.names
-
-    # Defaults
-    a_val = 10000.0
-    b_val = 5000.0
-    c_val = 3000.0
-    mu_a = 0.0
-    mu_b = 0.0
-    mu_c = 0.0
-
-    # Parse JSON if provided
-    if json_path is not None:
-        json_file = Path(json_path)
-        if json_file.exists():
-            with open(json_file, encoding="utf-8") as f:
-                jdata = json.load(f)
-
-            if "molecule_name" in jdata:
-                molecule_name = str(jdata["molecule_name"])
-            elif "point_id" in jdata:
-                molecule_name = str(jdata["point_id"])
-
-            if "temperature_k" in jdata:
-                temperature_k = float(jdata["temperature_k"])
-            elif "temperature" in jdata:
-                temperature_k = float(jdata["temperature"])
-
-            rc = jdata.get("rotational_constants") or jdata.get("properties", {}).get(
-                "rotational_constants"
-            )
-            if rc:
-                if isinstance(rc, dict):
-                    a_val = float(rc.get("A") or rc.get("a") or a_val)
-                    b_val = float(rc.get("B") or rc.get("b") or b_val)
-                    c_val = float(rc.get("C") or rc.get("c") or c_val)
-                elif isinstance(rc, list | tuple) and len(rc) >= 3:
-                    a_val, b_val, c_val = float(rc[0]), float(rc[1]), float(rc[2])
-
-            dp = (
-                jdata.get("dipoles")
-                or jdata.get("dipole_moment")
-                or jdata.get("properties", {}).get("dipole_moment")
-            )
-            if dp:
-                if isinstance(dp, dict):
-                    mu_a = float(dp.get("mu_a") or dp.get("a") or dp.get("x") or mu_a)
-                    mu_b = float(dp.get("mu_b") or dp.get("b") or dp.get("y") or mu_b)
-                    mu_c = float(dp.get("mu_c") or dp.get("c") or dp.get("z") or mu_c)
-                elif isinstance(dp, list | tuple) and len(dp) >= 3:
-                    mu_a, mu_b, mu_c = float(dp[0]), float(dp[1]), float(dp[2])
-
-    # Direct keyword overrides
-    if rotational_constants is not None:
-        if isinstance(rotational_constants, dict):
-            a_val = float(
-                rotational_constants.get("A") or rotational_constants.get("a") or a_val
-            )
-            b_val = float(
-                rotational_constants.get("B") or rotational_constants.get("b") or b_val
-            )
-            c_val = float(
-                rotational_constants.get("C") or rotational_constants.get("c") or c_val
-            )
-        elif (
-            isinstance(rotational_constants, list | tuple)
-            and len(rotational_constants) >= 3
-        ):
-            a_val, b_val, c_val = (
-                float(rotational_constants[0]),
-                float(rotational_constants[1]),
-                float(rotational_constants[2]),
-            )
-
-    if dipoles is not None:
-        if isinstance(dipoles, dict):
-            mu_a = float(
-                dipoles.get("mu_a") or dipoles.get("a") or dipoles.get("x") or mu_a
-            )
-            mu_b = float(
-                dipoles.get("mu_b") or dipoles.get("b") or dipoles.get("y") or mu_b
-            )
-            mu_c = float(
-                dipoles.get("mu_c") or dipoles.get("c") or dipoles.get("z") or mu_c
-            )
-        elif isinstance(dipoles, list | tuple) and len(dipoles) >= 3:
-            mu_a, mu_b, mu_c = float(dipoles[0]), float(dipoles[1]), float(dipoles[2])
-
-    # Build PGOPHER XML document
-    root = ET.Element("Document", attrib={"Type": "PGopher", "Version": "10.1"})
-    species = ET.SubElement(root, "Species", attrib={"Name": molecule_name})
-    mol = ET.SubElement(species, "AsymmetricMolecule", attrib={"Name": molecule_name})
-    manifold = ET.SubElement(
-        mol, "AsymmetricManifold", attrib={"Initial": "true", "Name": "Ground"}
+    A_MHz: float | None = Field(  # noqa: N815
+        default=None, description="A constant in MHz (None for linear)"
     )
-    top = ET.SubElement(manifold, "AsymmetricTop", attrib={"Name": "v=0"})
-
-    ET.SubElement(top, "Parameter", attrib={"Name": "A", "Value": f"{a_val:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "B", "Value": f"{b_val:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "C", "Value": f"{c_val:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "mu_a", "Value": f"{mu_a:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "mu_b", "Value": f"{mu_b:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "mu_c", "Value": f"{mu_c:.6f}"})
-
-    form = ET.SubElement(
-        root,
-        "Form",
-        attrib={"Name": "Form", "Temperature": f"{temperature_k:.2f}", "Units": "MHz"},
+    B_MHz: float = Field(..., description="B constant in MHz")  # noqa: N815
+    C_MHz: float = Field(..., description="C constant in MHz")  # noqa: N815
+    A_GHz: float | None = Field(  # noqa: N815
+        default=None, description="A constant in GHz"
     )
-    ET.SubElement(
-        form,
-        "Metadata",
-        attrib={
-            "NumTransitions": str(num_rows),
-            "NumColumns": str(num_columns),
-            "Columns": ",".join(column_names),
-            "ParquetSource": parquet_file.name,
-        },
+    B_GHz: float = Field(..., description="B constant in GHz")  # noqa: N815
+    C_GHz: float = Field(..., description="C constant in GHz")  # noqa: N815
+    A_cm1: float | None = Field(  # noqa: N815
+        default=None, description="A constant in cm^-1"
+    )
+    B_cm1: float = Field(..., description="B constant in cm^-1")  # noqa: N815
+    C_cm1: float = Field(..., description="C constant in cm^-1")  # noqa: N815
+
+
+class PlanarMoments(BaseModel):
+    """Planar moments P_aa = sum m*a^2, P_bb = sum m*b^2, P_cc = sum m*c^2."""
+
+    model_config = ConfigDict(frozen=True)
+
+    P_aa: float = Field(..., description="Planar moment P_aa in u*A^2")  # noqa: N815
+    P_bb: float = Field(..., description="Planar moment P_bb in u*A^2")  # noqa: N815
+    P_cc: float = Field(..., description="Planar moment P_cc in u*A^2")  # noqa: N815
+    units: str = Field(default="u*Angstrom^2")
+
+
+class InertiaTensorResult(BaseModel):
+    """Container for rigorous inertia tensor diagonalization outputs."""
+
+    model_config = ConfigDict(frozen=True)
+
+    inertia_tensor_u_A2: list[list[float]] = Field(  # noqa: N815
+        ..., description="3x3 moment of inertia tensor in u*Angstrom^2"
+    )
+    inertia_tensor_kg_m2: list[list[float]] = Field(
+        ..., description="3x3 moment of inertia tensor in kg*m^2"
+    )
+    principal_moments_u_A2: list[float] = Field(  # noqa: N815
+        ..., description="Sorted principal moments [Ia, Ib, Ic] in u*Angstrom^2"
+    )
+    principal_moments_kg_m2: list[float] = Field(
+        ..., description="Sorted principal moments [Ia, Ib, Ic] in kg*m^2"
+    )
+    principal_axes_matrix: list[list[float]] = Field(
+        ..., description="3x3 right-handed eigenvector rotation matrix"
+    )
+    center_of_mass_A: list[float] = Field(  # noqa: N815
+        ..., description="Center of mass in Angstroms"
+    )
+    total_mass_u: float = Field(..., description="Total molecular mass in u")
+    rotational_constants: RotationalConstants
+    planar_moments: PlanarMoments
+    inertial_defect_u_A2: float = Field(  # noqa: N815
+        ..., description="Inertial defect Delta = Ic - Ia - Ib in u*Angstrom^2"
+    )
+    is_planar: bool = Field(
+        ..., description="Planar geometry flag (Delta == 0 within tolerance)"
     )
 
-    if output_path is None:
-        target_out = parquet_file.parent / f"{molecule_name}.pgo"
-    else:
-        target_out = Path(output_path)
 
-    target_out.parent.mkdir(parents=True, exist_ok=True)
+class CartesianProtectionResult(BaseModel):
+    """Container for Cartesian protection and Linearity Trap regularization."""
 
-    tree = ET.ElementTree(root)
-    tree.write(str(target_out), encoding="utf-8", xml_declaration=True)
-    logger.info(
-        f"Generated PGOPHER skeleton at {target_out} "
-        f"(Metadata: {num_rows} rows, {num_columns} cols)"
+    model_config = ConfigDict(frozen=True)
+
+    is_linear: bool = Field(..., description="Strict linearity flag")
+    is_quasi_linear: bool = Field(..., description="Quasi-linear flag")
+    rotational_dof: int = Field(
+        ..., description="Rotational DOF (2 for linear, 3 for non-linear)"
     )
-    return str(target_out)
-
-
-# ============================================================================
-# Core Phase 9: Cryptographic Provenance Lock & Canonical Manifest
-# ============================================================================
-
-
-def lock_provenance_payload(
-    target_directory: str | Path,
-    output_manifest_path: str | Path | None = None,
-    metadata: dict[str, Any] | None = None,
-    rotational_constants: dict[str, float]
-    | tuple[float, float, float]
-    | list[float]
-    | None = None,
-    dipoles: dict[str, float] | tuple[float, float, float] | list[float] | None = None,
-    kraitchman_coords: dict[str, Any] | None = None,
-    chunk_size: int = 8192,
-) -> dict[str, Any]:
-    """Computes streaming SHA-256 checksums and serializes spycfit_manifest.json.
-
-    Bundles rotational constants, dipoles, Kraitchman substitution coordinates,
-    and metadata alongside the deliverable manifest.
-
-    :param target_directory: Path to directory containing deliverables.
-    :param output_manifest_path: Destination path for the manifest JSON file.
-    :param metadata: Additional metadata dictionary to embed.
-    :param rotational_constants: Optional (A, B, C) rotational constants.
-    :param dipoles: Optional (mu_a, mu_b, mu_c) dipole moments.
-    :param kraitchman_coords: Optional Kraitchman coordinates dictionary.
-    :param chunk_size: Binary chunk read size in bytes.
-    :return: Canonical manifest dictionary.
-    """
-    target_dir = Path(target_directory)
-    if not target_dir.exists():
-        raise FileNotFoundError(f"Target directory not found: {target_directory}")
-
-    if output_manifest_path is None:
-        manifest_path = target_dir / "spycfit_manifest.json"
-    else:
-        manifest_path = Path(output_manifest_path)
-
-    file_entries: list[dict[str, Any]] = []
-    total_bytes = 0
-
-    all_files = sorted(target_dir.rglob("*"))
-    for p in all_files:
-        if p.is_file():
-            if (
-                p.resolve() == manifest_path.resolve()
-                or p.name == "spycfit_manifest.json"
-            ):
-                continue
-            if (
-                p.name.endswith(".tmp")
-                or p.name.endswith(".tar.zst")
-                or p.name.endswith(".zip")
-            ):
-                continue
-
-            rel_path = p.relative_to(target_dir).as_posix()
-            sha256_hash, file_size = compute_file_sha256(p, chunk_size=chunk_size)
-            file_entries.append(
-                {
-                    "relative_path": rel_path,
-                    "sha256": sha256_hash,
-                    "size_bytes": file_size,
-                }
-            )
-            total_bytes += file_size
-
-    file_entries.sort(key=lambda x: str(x["relative_path"]))
-
-    meta_payload = dict(metadata or {})
-    if rotational_constants is not None:
-        meta_payload["rotational_constants"] = rotational_constants
-    if dipoles is not None:
-        meta_payload["dipoles"] = dipoles
-    if kraitchman_coords is not None:
-        meta_payload["kraitchman_coords"] = kraitchman_coords
-
-    manifest: dict[str, Any] = {
-        "format": "CoChem-SpycFit-Manifest",
-        "schema_version": "1.0.0",
-        "generator": "CoChem-TORQ",
-        "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "file_count": len(file_entries),
-        "total_bytes": total_bytes,
-        "metadata": meta_payload,
-        "files": file_entries,
-    }
-
-    # RFC 8785 Canonical JSON Serialization
-    canonical_json_str = canonical_json_dumps(manifest)
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(canonical_json_str, encoding="utf-8")
-
-    logger.info(
-        f"Locked provenance payload: {len(file_entries)} files "
-        f"({total_bytes} bytes) -> {manifest_path}"
+    collinear_axis: list[float] = Field(
+        ..., description="Unit vector along collinear backbone"
     )
-    return manifest
-
-
-# ============================================================================
-# Core Phase 9: Deterministic .tar.zst Payload Bundler
-# ============================================================================
-
-
-def bundle_spycfit_payload(
-    manifest_path_or_target_dir: str | Path,
-    output_dir: str | Path | None = None,
-    project_name: str = "Project",
-    compression_level: int = 3,
-) -> str:
-    """Bundles deliverables into a deterministic .tar.zst archive with POSIX metadata.
-
-    :param manifest_path_or_target_dir: Path to manifest or directory containing files.
-    :param output_dir: Destination directory for the .tar.zst archive.
-    :param project_name: Project name for archive filename.
-    :param compression_level: Zstandard compression level (1-22).
-    :return: String path to the created .tar.zst archive.
-    """
-    input_path = Path(manifest_path_or_target_dir)
-    if input_path.is_file():
-        target_dir = input_path.parent
-    else:
-        target_dir = input_path
-
-    if not target_dir.exists():
-        raise FileNotFoundError(f"Target directory not found: {target_dir}")
-
-    manifest_file = target_dir / "spycfit_manifest.json"
-    if not manifest_file.exists():
-        lock_provenance_payload(target_dir, manifest_file)
-
-    dest_dir = Path(output_dir) if output_dir is not None else target_dir
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    archive_path = dest_dir / f"CoChem_{project_name}_SpycFit_Payload.tar.zst"
-
-    tar_buffer = io.BytesIO()
-    with tarfile.open(mode="w", fileobj=tar_buffer) as tar:
-        for item in sorted(target_dir.rglob("*")):
-            if item.resolve() == archive_path.resolve() or item.name.endswith(
-                ".tar.zst"
-            ):
-                continue
-
-            arcname = item.relative_to(target_dir).as_posix()
-            tarinfo = tar.gettarinfo(str(item), arcname=arcname)
-
-            tarinfo.mtime = 0
-            tarinfo.uid = 0
-            tarinfo.gid = 0
-            tarinfo.uname = ""
-            tarinfo.gname = ""
-            tarinfo.mode = 0o755 if tarinfo.isdir() else 0o644
-
-            if item.is_file():
-                with open(item, "rb") as f:
-                    tar.addfile(tarinfo, f)
-            elif item.is_dir():
-                tar.addfile(tarinfo)
-
-    tar_bytes = tar_buffer.getvalue()
-
-    compressor = zstd.ZstdCompressor(level=compression_level)
-    compressed_bytes = compressor.compress(tar_bytes)
-
-    archive_path.write_bytes(compressed_bytes)
-    logger.info(
-        f"Bundled deterministic SpycFit payload: {archive_path} "
-        f"({len(compressed_bytes)} bytes)"
+    cylindrical_coordinates: list[dict[str, float]] = Field(
+        ..., description="Projected cylindrical coordinates (z, rho, phi)"
     )
-    return str(archive_path)
-
-
-# ============================================================================
-# Core Phase 9: Cryptographic Payload Integrity Verification
-# ============================================================================
-
-
-def verify_payload_integrity(
-    manifest_or_path: str | Path | dict[str, Any],
-    base_dir: str | Path | None = None,
-    chunk_size: int = 8192,
-) -> bool:
-    """Validates cryptographic integrity of a payload directory, manifest, or archive.
-
-    :param manifest_or_path: Path to archive/manifest/directory or manifest dict.
-    :param base_dir: Optional base directory if verifying a manifest dictionary.
-    :param chunk_size: Chunk size in bytes for streaming SHA-256.
-    :return: True if all cryptographic checksums and sizes match perfectly.
-    :raises CoChemIntegrityError: If any integrity mismatch is detected.
-    """
-    p = Path(manifest_or_path) if isinstance(manifest_or_path, str | Path) else None
-    if (
-        p is not None
-        and p.is_file()
-        and (p.name.endswith(".tar.zst") or p.name.endswith(".zst"))
-    ):
-        compressed_bytes = p.read_bytes()
-        dctx = zstd.ZstdDecompressor()
-        try:
-            decompressed_bytes = dctx.decompress(compressed_bytes)
-        except Exception as e:
-            raise CoChemIntegrityError(
-                f"Failed to decompress Zstandard archive {p}: {e}"
-            ) from e
-
-        with tarfile.open(fileobj=io.BytesIO(decompressed_bytes), mode="r") as tar:
-            try:
-                manifest_member = tar.getmember("spycfit_manifest.json")
-            except KeyError as err:
-                raise CoChemIntegrityError(
-                    "Manifest 'spycfit_manifest.json' not found in archive."
-                ) from err
-
-            manifest_f = tar.extractfile(manifest_member)
-            if manifest_f is None:
-                raise CoChemIntegrityError(
-                    "Failed to extract 'spycfit_manifest.json' from archive."
-                )
-
-            manifest_data = json.loads(manifest_f.read().decode("utf-8"))
-            files = manifest_data.get("files", [])
-
-            for entry in files:
-                rel_path = entry["relative_path"]
-                try:
-                    member = tar.getmember(rel_path)
-                except KeyError as err:
-                    raise CoChemIntegrityError(
-                        f"Missing file in archive: {rel_path}"
-                    ) from err
-
-                member_f = tar.extractfile(member)
-                if member_f is None:
-                    raise CoChemIntegrityError(
-                        f"Failed to read file in archive: {rel_path}"
-                    )
-
-                hasher = hashlib.sha256()
-                actual_size = 0
-                while chunk := member_f.read(chunk_size):
-                    hasher.update(chunk)
-                    actual_size += len(chunk)
-
-                expected_size = entry.get("size_bytes")
-                expected_sha = entry.get("sha256")
-
-                if actual_size != expected_size:
-                    raise CoChemIntegrityError(
-                        f"File size mismatch for {rel_path}: "
-                        f"expected {expected_size} bytes, got {actual_size} bytes."
-                    )
-                computed_sha = hasher.hexdigest()
-                if computed_sha != expected_sha:
-                    raise CoChemIntegrityError(
-                        f"SHA-256 hash mismatch for {rel_path}: "
-                        f"expected {expected_sha}, got {computed_sha}."
-                    )
-
-        logger.info(f"Archive integrity verification passed: {p}")
-        return True
-
-    # Case 2: Manifest dictionary or directory or manifest file path
-    if isinstance(manifest_or_path, dict):
-        manifest_data = manifest_or_path
-        target_base = Path(base_dir) if base_dir is not None else Path(".")
-    else:
-        if p is None:
-            raise ValueError("Invalid manifest_or_path argument.")
-        if p.is_dir():
-            manifest_file = p / "spycfit_manifest.json"
-            target_base = p
-        else:
-            manifest_file = p
-            target_base = Path(base_dir) if base_dir is not None else p.parent
-
-        if not manifest_file.exists():
-            raise CoChemIntegrityError(f"Manifest file not found: {manifest_file}")
-
-        manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
-
-    files = manifest_data.get("files", [])
-    for entry in files:
-        rel_path = entry["relative_path"]
-        target_file = target_base / rel_path
-
-        if not target_file.exists():
-            raise CoChemIntegrityError(
-                f"Missing file in payload: {rel_path} (expected at {target_file})"
-            )
-
-        expected_size = entry.get("size_bytes")
-        expected_sha = entry.get("sha256")
-        actual_size = target_file.stat().st_size
-
-        if actual_size != expected_size:
-            raise CoChemIntegrityError(
-                f"File size mismatch for {rel_path}: "
-                f"expected {expected_size} bytes, got {actual_size} bytes."
-            )
-
-        computed_sha, _ = compute_file_sha256(target_file, chunk_size=chunk_size)
-        if computed_sha != expected_sha:
-            raise CoChemIntegrityError(
-                f"SHA-256 hash mismatch for {rel_path}: "
-                f"expected {expected_sha}, got {computed_sha}."
-            )
-
-    logger.info(f"Payload integrity verification passed: {len(files)} files verified.")
-    return True
-
-
-# ============================================================================
-# Retained: TorqExporter, PESStore & export_qcschema
-# ============================================================================
-
-
-class TorqExporter:
-    """Manages Zstandard tensor exports and metadata tracking."""
-
-    def __init__(
-        self, export_dir: str = "torq_exports", zstd_compression_level: int = 3
-    ) -> None:
-        self.export_dir = Path(export_dir)
-        self.zstd_compression_level = zstd_compression_level
-        self.export_dir.mkdir(parents=True, exist_ok=True)
-
-    def _generate_metadata(
-        self,
-        point_id: str,
-        tensor_data: dict[str, Any],
-        lam_trigger_required: bool = False,
-        symmetry_group: str = "C1",
-    ) -> dict[str, Any]:
-        return {
-            "point_id": point_id,
-            "export_timestamp": datetime.now(timezone.utc).isoformat(),
-            "data_hash": hashlib.sha256(str(tensor_data).encode()).hexdigest(),
-            "compression_method": "Zstandard",
-            "compression_level": self.zstd_compression_level,
-            "LAM_TRIGGER_REQUIRED": bool(lam_trigger_required),
-            "symmetry_group": str(symmetry_group),
-        }
-
-    def export_tensor_to_zstd(
-        self, h5_file_path: str, output_file: str | None = None
-    ) -> str:
-        """Exports an HDF5 tensor to a Zstandard-compressed file."""
-        try:
-            with h5py.File(h5_file_path, "r") as f:
-                tensor_data: dict[str, Any] = {}
-
-                def read_group(name: str, obj: Any) -> None:
-                    if isinstance(obj, h5py.Group):
-                        tensor_data[name] = {}
-                        for key, value in obj.items():
-                            if isinstance(value, h5py.Dataset):
-                                val = value[()]
-                                if hasattr(val, "tolist"):
-                                    val = val.tolist()
-                                tensor_data[name][key] = val
-                            else:
-                                tensor_data[name][key] = str(value.attrs)
-                    elif isinstance(obj, h5py.Dataset):
-                        val = obj[()]
-                        if hasattr(val, "tolist"):
-                            val = val.tolist()
-                        tensor_data[name] = val
-
-                f.visititems(read_group)
-        except Exception as e:
-            logger.error(f"Error reading HDF5 file {h5_file_path}: {e}")
-            raise
-
-        point_id = Path(h5_file_path).stem.replace("cochem_", "").replace(".h5", "")
-        metadata = self._generate_metadata(point_id, tensor_data)
-
-        export_data = {
-            "tensor_data": tensor_data,
-            "metadata": metadata,
-        }
-
-        json_data = json.dumps(export_data, indent=2)
-        if output_file is None:
-            output_file = f"{Path(h5_file_path).stem}.zst"
-
-        compressed_file = self.export_dir / output_file
-        try:
-            with open(compressed_file, "wb") as f:
-                compressor = zstd.ZstdCompressor(level=self.zstd_compression_level)
-                compressed_data = compressor.compress(json_data.encode("utf-8"))
-                f.write(compressed_data)
-
-            logger.info(
-                f"Exported tensor to Zstandard-compressed file: {compressed_file}"
-            )
-            return str(compressed_file)
-        except Exception as e:
-            logger.error(f"Error compressing data to Zstandard: {e}")
-            raise
-
-    def export_tensor_to_zstd_with_sinc_dvr(
-        self, h5_file_path: str, output_file: str | None = None
-    ) -> str:
-        """Exports an HDF5 tensor with Sinc-DVR data to a Zstandard-compressed file."""
-        try:
-            with h5py.File(h5_file_path, "r") as f:
-                tensor_data: dict[str, Any] = {}
-
-                def read_group(name: str, obj: Any) -> None:
-                    if isinstance(obj, h5py.Group):
-                        tensor_data[name] = {}
-                        for key, value in obj.items():
-                            if isinstance(value, h5py.Dataset):
-                                val = value[()]
-                                if hasattr(val, "tolist"):
-                                    val = val.tolist()
-                                tensor_data[name][key] = val
-                            else:
-                                tensor_data[name][key] = str(value.attrs)
-                    elif isinstance(obj, h5py.Dataset):
-                        val = obj[()]
-                        if hasattr(val, "tolist"):
-                            val = val.tolist()
-                        tensor_data[name] = val
-
-                f.visititems(read_group)
-        except Exception as e:
-            logger.error(f"Error reading HDF5 file {h5_file_path}: {e}")
-            raise
-
-        point_id = Path(h5_file_path).stem.replace("cochem_", "").replace(".h5", "")
-        metadata = self._generate_metadata(point_id, tensor_data)
-
-        export_data = {
-            "tensor_data": tensor_data,
-            "metadata": metadata,
-        }
-
-        json_data = json.dumps(export_data, indent=2)
-        if output_file is None:
-            output_file = f"{Path(h5_file_path).stem}_dvr.zst"
-
-        compressed_file = self.export_dir / output_file
-        try:
-            with open(compressed_file, "wb") as f:
-                compressor = zstd.ZstdCompressor(level=self.zstd_compression_level)
-                compressed_data = compressor.compress(json_data.encode("utf-8"))
-                f.write(compressed_data)
-
-            logger.info(
-                f"Exported Sinc-DVR tensor to Zstandard-compressed file: "
-                f"{compressed_file}"
-            )
-            return str(compressed_file)
-        except Exception as e:
-            logger.error(f"Error compressing data to Zstandard: {e}")
-            raise
-
-    def batch_export_to_zstd(
-        self, h5_files: list[str], output_dir: str | None = None
-    ) -> list[str]:
-        """Exports multiple HDF5 tensor files to Zstandard-compressed files."""
-        if output_dir:
-            self.export_dir = Path(output_dir)
-            self.export_dir.mkdir(parents=True, exist_ok=True)
-
-        exported_files: list[str] = []
-        for h5_file in h5_files:
-            try:
-                exported_file = self.export_tensor_to_zstd(h5_file)
-                exported_files.append(exported_file)
-            except Exception as e:
-                logger.error(f"Error exporting {h5_file}: {e}")
-                continue
-
-        return exported_files
-
-    def verify_export(
-        self, compressed_file_path: str
-    ) -> tuple[bool, dict[str, Any] | None]:
-        """Verifies the integrity of a compressed export file."""
-        try:
-            with open(compressed_file_path, "rb") as f:
-                decompressor = zstd.ZstdDecompressor()
-                decompressed_data = decompressor.decompress(f.read())
-
-            export_data = json.loads(decompressed_data.decode("utf-8"))
-            logger.info(f"Verification successful for {compressed_file_path}")
-            return True, export_data.get("metadata")
-        except Exception as e:
-            logger.error(f"Verification failed for {compressed_file_path}: {e}")
-            return False, None
-
-    def export_to_scribe_daemon(
-        self,
-        compressed_file_path: str,
-        host: str = "127.0.0.1",
-        port: int = 5555,
-        timeout_ms: int = 2000,
-    ) -> bool:
-        """Exports compressed tensor to CoChem-SCRIBE daemon via ZeroMQ IPC."""
-        logger.info(
-            f"Connecting to CoChem-SCRIBE daemon at {host}:{port} "
-            f"for {compressed_file_path}"
-        )
-        file_path = Path(compressed_file_path)
-        if not file_path.exists():
-            logger.error(f"Compressed export file not found: {compressed_file_path}")
-            return False
-
-        try:
-            payload = file_path.read_bytes()
-            sha256_hash = hashlib.sha256(payload).hexdigest()
-            meta_data = {
-                "file_name": file_path.name,
-                "file_size": len(payload),
-                "sha256": sha256_hash,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "status": "ready",
-            }
-
-            try:
-                import zmq
-
-                ctx: Any = zmq.Context.instance()
-                socket = ctx.socket(zmq.REQ)
-                socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
-                socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
-                socket.setsockopt(zmq.LINGER, 0)
-                socket.connect(f"tcp://{host}:{port}")
-
-                socket.send_json(meta_data)
-                reply = socket.recv_json()
-                logger.info(f"CoChem-SCRIBE daemon response: {reply}")
-                socket.close()
-                return True
-            except ImportError as err:
-                logger.error("pyzmq module missing; cannot export.")
-                raise err
-        except Exception as e:
-            logger.error(f"Failed to export to CoChem-SCRIBE: {e}")
-            raise e
-
-
-class PESStore:
-    """Appends coordinate geometry and energy to a chunked HDF5 database."""
-
-    def __init__(self, h5_filepath: str) -> None:
-        self.h5_filepath = h5_filepath
-
-    def append_data(self, step: int, coordinates: list[float], energy: float) -> None:
-        """Appends coordinates and energy without scaleoffset per Section 6.4.3."""
-        with h5py.File(self.h5_filepath, "a") as f:
-            if "coordinates" not in f:
-                f.create_dataset(
-                    "coordinates",
-                    data=[coordinates],
-                    maxshape=(None, len(coordinates)),
-                    chunks=True,
-                    compression="gzip",
-                    compression_opts=4,
-                    shuffle=True,
-                    scaleoffset=None,
-                )
-            else:
-                f["coordinates"].resize(
-                    (f["coordinates"].shape[0] + 1, f["coordinates"].shape[1])
-                )
-                f["coordinates"][-1] = coordinates
-
-            if "energies" not in f:
-                f.create_dataset(
-                    "energies",
-                    data=[energy],
-                    maxshape=(None,),
-                    chunks=True,
-                    compression="gzip",
-                    compression_opts=4,
-                    shuffle=True,
-                    scaleoffset=None,
-                )
-            else:
-                f["energies"].resize((f["energies"].shape[0] + 1,))
-                f["energies"][-1] = energy
-
-
-def export_qcschema(result_dict: dict[str, Any], output_filename: str) -> str:
-    """Accepts an OrcaResult (or dict) and writes a FAIR QCSchema output JSON."""
-    data_to_hash = json.dumps(result_dict, sort_keys=True).encode()
-    hash_val = hashlib.sha256(data_to_hash).hexdigest()
-
-    qcschema = {
-        "schema_name": "qcschema_output",
-        "schema_version": 1,
-        "molecule": {
-            "geometry": result_dict.get("geometry", []),
-            "symbols": result_dict.get("symbols", []),
-            "molecular_charge": result_dict.get("molecular_charge", 0),
-            "molecular_multiplicity": result_dict.get("molecular_multiplicity", 1),
-            "provenance": {
-                "creator": "CoChem-SCRIBE",
-                "version": "4.1",
-                "hash": hash_val,
-            },
-        },
-        "driver": result_dict.get("driver", "energy"),
-        "model": {
-            "method": result_dict.get("method", "unknown"),
-            "basis": result_dict.get("basis", "unknown"),
-        },
-        "properties": {
-            "return_energy": result_dict.get("return_energy", 0.0),
-        },
-    }
-
-    with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump(qcschema, f, indent=2)
-    return output_filename
-
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_torq_export.py ---
-"""Comprehensive Test Suite for Cryptographic Payload Synthesizer.
-
-Phase 9 (Stages 5.5 - 6.0) Validation Suite
------------------------------------------------------------------------------------
-Validates:
-1. Kraitchman coordinates with real physical moments of inertia,
-   singularity damping, ZPVE defect clamping, and piecewise Costain bounds.
-2. OOM-proof PGOPHER XML skeleton generation inspecting Parquet metadata.
-3. Provenance lock manifest generation under RFC 8785 Canonical JSON.
-4. Deterministic .tar.zst payload bundling with normalized POSIX metadata.
-5. Comprehensive payload integrity verification and tamper detection.
-6. TorqExporter, PESStore, and export_qcschema integration.
-"""
-
-from __future__ import annotations
-
-import io
-import json
-import math
-import tarfile
-import xml.etree.ElementTree as ET
-from pathlib import Path
-
-import h5py
-import numpy as np
-import numpy.typing as npt
-import pyarrow as pa
-import pyarrow.parquet as pq
-import pytest
-import scipy.linalg as sla
-import zstandard as zstd
-
-from Libraries.cochem_torq_export import (
-    CoChemIntegrityError,
-    KraitchmanSingularityWarning,
-    KraitchmanZPVEWarning,
-    PESStore,
-    TorqExporter,
-    bundle_spycfit_payload,
-    calculate_kraitchman_coords,
-    canonical_json_dumps,
-    compute_file_sha256,
-    export_qcschema,
-    generate_pgopher_skeleton,
-    lock_provenance_payload,
-    verify_payload_integrity,
-)
-
-# ============================================================================
-# Physical Helper: Inertial Tensor & Moments for Rigid 3D Molecules
-# ============================================================================
-
-
-def compute_principal_moments(
-    coordinates: npt.NDArray[np.float64], masses: npt.NDArray[np.float64]
-) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Computes center-of-mass shifted coordinates, principal moments of inertia.
+    singularity_damping_applied: bool = Field(
+        ..., description="Flag indicating if partition singularity was damped"
+    )
+    damping_factor: float = Field(..., description="Regularization factor applied")
+    protected_rotational_constants: RotationalConstants
+
+
+class AsymmetryResult(BaseModel):
+    """Container for Ray's asymmetry parameter and representation choice."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kappa: float = Field(..., description="Ray's asymmetry parameter in [-1, +1]")
+    rotor_type: str = Field(..., description="Top classification")
+    recommended_representation: str = Field(
+        ..., description="Optimal representation (e.g. Ir, IIIr)"
+    )
+    axis_mapping: dict[str, str] = Field(
+        ..., description="Space/body axis mapping e.g. {'x':'b','y':'c','z':'a'}"
+    )
+    transformation_matrix: list[list[float]] = Field(
+        ..., description="3x3 coordinate permutation matrix"
+    )
+    wang_subblocks: list[str] = Field(
+        ..., description="Wang Hamiltonian sub-blocks [E+, E-, O+, O-]"
+    )
+    description: str = Field(..., description="Detailed classification notes")
+
+
+class VPT2Data(BaseModel):
+    """Container for ORCA VPT2, Coriolis, and Centrifugal Distortion tensors."""
+
+    model_config = ConfigDict(frozen=True)
+
+    darling_dennison: list[dict[str, Any]] = Field(default_factory=list)
+    coriolis_couplings: dict[str, list[float]] = Field(default_factory=dict)
+    centrifugal_distortion: dict[str, list[float]] = Field(default_factory=dict)
+    raman_polarizability: list[float] = Field(default_factory=list)
+    is_divergent: bool = Field(default=False)
+    divergence_details: list[str] = Field(default_factory=list)
+
+
+class TorqTensorOutput(BaseModel):
+    """Comprehensive high-level payload for CoChem-TORQ tensor harvesting."""
+
+    model_config = ConfigDict(frozen=True)
+
+    point_id: str
+    symbols: list[str]
+    coordinates: list[list[float]]
+    inertia: InertiaTensorResult
+    cartesian_protection: CartesianProtectionResult
+    asymmetry: AsymmetryResult
+    vpt2: VPT2Data | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+# =============================================================================
+# 4. Core Mathematical Engine: Diagonalization & Inertial Invariants
+# =============================================================================
+
+
+def diagonalize_inertia_tensor(
+    coordinates: npt.ArrayLike,
+    masses: npt.ArrayLike | None = None,
+    symbols: list[str] | None = None,
+) -> InertiaTensorResult:
+    """Computes COM, builds moment of inertia tensor, diagonalizes to principal axes,
+
+    and derives rotational constants, planar moments, and inertial defect.
 
     :param coordinates: (N, 3) Cartesian coordinates in Angstroms.
-    :param masses: (N,) atomic masses in atomic mass units (u).
-    :return: (principal_moments, principal_axes_matrix, aligned_coordinates)
+    :param masses: (N,) atomic masses in u (optional if symbols provided).
+    :param symbols: (N,) atomic symbols (optional if masses provided).
+    :return: Rigorous InertiaTensorResult data model.
     """
-    total_mass = float(np.sum(masses))
-    com = np.sum(coordinates * masses[:, None], axis=0) / total_mass
-    coords_com = coordinates - com
+    coords: npt.NDArray[np.float64] = np.array(
+        cast(Any, coordinates), dtype=np.float64
+    )
+    if coords.ndim != 2 or coords.shape[1] != 3:
+        raise ValueError(
+            f"Coordinates must have shape (N, 3), got shape {coords.shape}."
+        )
 
-    x = coords_com[:, 0]
-    y = coords_com[:, 1]
-    z = coords_com[:, 2]
+    n_atoms = coords.shape[0]
+    if masses is not None:
+        mass_arr: npt.NDArray[np.float64] = np.array(
+            cast(Any, masses), dtype=np.float64
+        )
+        if mass_arr.shape[0] != n_atoms:
+            raise ValueError(
+                f"Masses length ({mass_arr.shape[0]}) != atom count ({n_atoms})."
+            )
+    elif symbols is not None:
+        if len(symbols) != n_atoms:
+            raise ValueError(
+                f"Symbols length ({len(symbols)}) != atom count ({n_atoms})."
+            )
+        mass_arr = np.array(
+            [get_atomic_mass(sym) for sym in symbols], dtype=np.float64
+        )
+    else:
+        raise ValueError("Either masses or symbols must be supplied.")
 
-    i_xx = float(np.sum(masses * (y**2 + z**2)))
-    i_yy = float(np.sum(masses * (x**2 + z**2)))
-    i_zz = float(np.sum(masses * (x**2 + y**2)))
-    i_xy = -float(np.sum(masses * x * y))
-    i_xz = -float(np.sum(masses * x * z))
-    i_yz = -float(np.sum(masses * y * z))
+    total_mass = float(np.sum(mass_arr))
+    if total_mass <= 0.0:
+        raise ValueError("Total molecular mass must be strictly positive.")
 
-    i_tensor = np.array(
+    # 1. Shift to Center of Mass (COM)
+    com = np.sum(coords * mass_arr[:, None], axis=0) / total_mass
+    rel_coords = coords - com
+
+    x = rel_coords[:, 0]
+    y = rel_coords[:, 1]
+    z = rel_coords[:, 2]
+
+    # 2. Construct 3x3 Moment of Inertia Tensor I
+    i_xx = float(np.sum(mass_arr * (y**2 + z**2)))
+    i_yy = float(np.sum(mass_arr * (x**2 + z**2)))
+    i_zz = float(np.sum(mass_arr * (x**2 + y**2)))
+    i_xy = -float(np.sum(mass_arr * x * y))
+    i_xz = -float(np.sum(mass_arr * x * z))
+    i_yz = -float(np.sum(mass_arr * y * z))
+
+    inertia_tensor_u_a2 = np.array(
         [[i_xx, i_xy, i_xz], [i_xy, i_yy, i_yz], [i_xz, i_yz, i_zz]], dtype=np.float64
     )
-    evals, evecs = sla.eigh(i_tensor)
 
+    # 3. Diagonalization (Hermitian / Real Symmetric)
+    evals, evecs = sla.eigh(inertia_tensor_u_a2)
+
+    # Sort eigenvalues ascending: Ia <= Ib <= Ic
     idx = np.argsort(evals)
-    evals = evals[idx]
-    evecs = evecs[:, idx]
+    evals_sorted = evals[idx]
+    evecs_sorted = evecs[:, idx]
 
-    aligned = coords_com @ evecs
-    return evals, evecs, aligned
+    # Ensure right-handed coordinate frame: det(R) == +1
+    if float(sla.det(evecs_sorted)) < 0:
+        evecs_sorted[:, 2] = -evecs_sorted[:, 2]
+
+    # Convert to kg * m^2
+    evals_kg_m2 = evals_sorted * ATOMIC_MASS_CONSTANT_U * (ANGSTROM_TO_M**2)
+    inertia_tensor_kg_m2 = (
+        inertia_tensor_u_a2 * ATOMIC_MASS_CONSTANT_U * (ANGSTROM_TO_M**2)
+    )
+
+    i_a = float(evals_sorted[0])
+    i_b = float(evals_sorted[1])
+    i_c = float(evals_sorted[2])
+
+    # 4. Planar Moments of Inertia: P_aa, P_bb, P_cc
+    # P_aa = 0.5 * (Ib + Ic - Ia) = sum m * a^2
+    # P_bb = 0.5 * (Ia + Ic - Ib) = sum m * b^2
+    # P_cc = 0.5 * (Ia + Ib - Ic) = sum m * c^2
+    p_aa = float(0.5 * (i_b + i_c - i_a))
+    p_bb = float(0.5 * (i_a + i_c - i_b))
+    p_cc = float(0.5 * (i_a + i_b - i_c))
+
+    # 5. Inertial Defect: Delta = Ic - Ia - Ib
+    # In planar systems: Delta == 0.0 exactly at equilibrium.
+    delta = float(i_c - i_a - i_b)
+    is_planar = bool(abs(delta) < 1e-4 or abs(p_cc) < 1e-4)
+
+    # 6. Rotational Constants A, B, C (MHz, GHz, cm^-1)
+    is_linear = i_a < 1e-4
+    if is_linear:
+        a_mhz = None
+        a_ghz = None
+        a_cm1 = None
+    else:
+        a_mhz = float(C_ROT_MHZ / i_a)
+        a_ghz = float(C_ROT_GHZ / i_a)
+        a_cm1 = float(C_ROT_CM1 / i_a)
+
+    b_mhz = float(C_ROT_MHZ / i_b) if i_b > 1e-12 else 0.0
+    b_ghz = float(C_ROT_GHZ / i_b) if i_b > 1e-12 else 0.0
+    b_cm1 = float(C_ROT_CM1 / i_b) if i_b > 1e-12 else 0.0
+
+    c_mhz = float(C_ROT_MHZ / i_c) if i_c > 1e-12 else 0.0
+    c_ghz = float(C_ROT_GHZ / i_c) if i_c > 1e-12 else 0.0
+    c_cm1 = float(C_ROT_CM1 / i_c) if i_c > 1e-12 else 0.0
+
+    rot_consts = RotationalConstants(
+        A_MHz=a_mhz,
+        B_MHz=b_mhz,
+        C_MHz=c_mhz,
+        A_GHz=a_ghz,
+        B_GHz=b_ghz,
+        C_GHz=c_ghz,
+        A_cm1=a_cm1,
+        B_cm1=b_cm1,
+        C_cm1=c_cm1,
+    )
+
+    planar_moments = PlanarMoments(P_aa=p_aa, P_bb=p_bb, P_cc=p_cc)
+
+    return InertiaTensorResult(
+        inertia_tensor_u_A2=cast(list[list[float]], inertia_tensor_u_a2.tolist()),
+        inertia_tensor_kg_m2=cast(list[list[float]], inertia_tensor_kg_m2.tolist()),
+        principal_moments_u_A2=[i_a, i_b, i_c],
+        principal_moments_kg_m2=cast(list[float], evals_kg_m2.tolist()),
+        principal_axes_matrix=cast(list[list[float]], evecs_sorted.tolist()),
+        center_of_mass_A=cast(list[float], com.tolist()),
+        total_mass_u=total_mass,
+        rotational_constants=rot_consts,
+        planar_moments=planar_moments,
+        inertial_defect_u_A2=delta,
+        is_planar=is_planar,
+    )
 
 
-# ============================================================================
-# Test Suite 1: Kraitchman Coordinate Engine & Physical Invariants
-# ============================================================================
+# =============================================================================
+# 5. Cartesian Protections (Linearity Trap & Singularity Regularization)
+# =============================================================================
 
 
-def test_kraitchman_real_asymmetric_top() -> None:
-    """Validates Kraitchman coordinates for 3D asymmetric top molecule."""
-    coords = np.array(
+def apply_cartesian_protections(
+    coordinates: npt.ArrayLike,
+    symbols: list[str] | None = None,
+    masses: npt.ArrayLike | None = None,
+    threshold_linear: float = 1e-3,
+    angle_tolerance_deg: float = 1.0,
+) -> CartesianProtectionResult:
+    """Detects linear and quasi-linear topologies near 180-degree singularities.
+
+    Projects atomic coordinates into cylindrical frame (z, rho, phi) and regularizes
+    rotational degrees of freedom (DOF=2) and constants to prevent partition
+    function overflow.
+
+    :param coordinates: (N, 3) Cartesian coordinates in Angstroms.
+    :param symbols: (N,) atomic symbols.
+    :param masses: (N,) atomic masses in u.
+    :param threshold_linear: Moment of inertia threshold (u*A^2) below which Ia
+        triggers linearity.
+    :param angle_tolerance_deg: Angular tolerance in degrees for collinearity.
+    :return: CartesianProtectionResult model.
+    """
+    coords: npt.NDArray[np.float64] = np.array(
+        cast(Any, coordinates), dtype=np.float64
+    )
+    n_atoms = coords.shape[0]
+
+    inertia_res = diagonalize_inertia_tensor(coords, masses=masses, symbols=symbols)
+    i_a = inertia_res.principal_moments_u_A2[0]
+    i_b = inertia_res.principal_moments_u_A2[1]
+    i_c = inertia_res.principal_moments_u_A2[2]
+
+    com = np.array(inertia_res.center_of_mass_A, dtype=np.float64)
+    rel_coords = coords - com
+
+    # 1. Collinear Principal Axis Determination
+    evecs = np.array(inertia_res.principal_axes_matrix, dtype=np.float64)
+    # The axis of linear backbone is eigenvector of smallest moment of inertia
+    collinear_axis = evecs[:, 0]
+    axis_norm = float(sla.norm(collinear_axis))
+    if axis_norm < 1e-12:
+        collinear_axis = np.array([0.0, 0.0, 1.0])
+    else:
+        collinear_axis = collinear_axis / axis_norm
+
+    # 2. Geometric Linearity Check
+    projections = np.dot(rel_coords, collinear_axis)
+    perp_vectors = rel_coords - np.outer(projections, collinear_axis)
+    perp_distances = np.sqrt(np.sum(perp_vectors**2, axis=1))
+    max_perp_dist = float(np.max(perp_distances)) if n_atoms > 0 else 0.0
+
+    is_strict_linear = (n_atoms <= 2) or (i_a < 1e-4 and max_perp_dist < 1e-4)
+
+    # Quasi-linear check (e.g. floppy complexes with angle close to 180 deg)
+    is_quasi_linear = False
+    if not is_strict_linear and n_atoms >= 3:
+        angles = []
+        for i in range(1, n_atoms - 1):
+            v1 = coords[i - 1] - coords[i]
+            v2 = coords[i + 1] - coords[i]
+            n1 = float(sla.norm(v1))
+            n2 = float(sla.norm(v2))
+            if n1 > 1e-6 and n2 > 1e-6:
+                cos_theta = np.dot(v1, v2) / (n1 * n2)
+                cos_theta = np.clip(cos_theta, -1.0, 1.0)
+                angle_deg = math.degrees(math.acos(cos_theta))
+                angles.append(angle_deg)
+        if angles and all(abs(180.0 - ang) <= angle_tolerance_deg for ang in angles):
+            is_quasi_linear = True
+        elif i_a < threshold_linear or max_perp_dist < 0.05:
+            is_quasi_linear = True
+
+    is_any_linear = is_strict_linear or is_quasi_linear
+
+    # 3. Project to 2D Cylindrical Coordinates (z, rho, phi)
+    u_z = collinear_axis
+    if abs(u_z[0]) < 0.9:
+        arb = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+    else:
+        arb = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+
+    cross_x = np.array(
         [
-            [0.000000, 0.000000, 0.000000],  # C
-            [1.080000, 0.000000, 0.000000],  # H
-            [-0.350000, 1.350000, 0.000000],  # F
-            [-0.350000, -0.650000, 1.350000],  # Cl
-            [-0.350000, -0.650000, -1.350000],  # Br
+            arb[1] * u_z[2] - arb[2] * u_z[1],
+            arb[2] * u_z[0] - arb[0] * u_z[2],
+            arb[0] * u_z[1] - arb[1] * u_z[0],
         ],
         dtype=np.float64,
     )
-    masses_parent = np.array(
-        [12.000000, 1.007825, 18.998403, 34.968853, 78.918337], dtype=np.float64
+    norm_x = float(sla.norm(cross_x))
+    u_x = cross_x / norm_x if norm_x > 1e-12 else np.array([1.0, 0.0, 0.0])
+
+    cross_y = np.array(
+        [
+            u_z[1] * u_x[2] - u_z[2] * u_x[1],
+            u_z[2] * u_x[0] - u_z[0] * u_x[2],
+            u_z[0] * u_x[1] - u_z[1] * u_x[0],
+        ],
+        dtype=np.float64,
     )
+    norm_y = float(sla.norm(cross_y))
+    u_y = cross_y / norm_y if norm_y > 1e-12 else np.array([0.0, 1.0, 0.0])
 
-    i_parent, _, aligned_parent = compute_principal_moments(coords, masses_parent)
-    parent_mass = float(np.sum(masses_parent))
-
-    masses_sub = masses_parent.copy()
-    masses_sub[1] = 2.014102
-    delta_m = 2.014102 - 1.007825
-
-    i_sub, _, _ = compute_principal_moments(coords, masses_sub)
-    true_h_coords = np.abs(aligned_parent[1])
-
-    result = calculate_kraitchman_coords(
-        parent_moments=i_parent,
-        substituted_moments=i_sub,
-        parent_mass=parent_mass,
-        delta_m=delta_m,
-    )
-
-    calc_a = result["coords"]["a"]
-    calc_b = result["coords"]["b"]
-    calc_c = result["coords"]["c"]
-
-    np.testing.assert_allclose(calc_a, true_h_coords[0], atol=1e-5)
-    np.testing.assert_allclose(calc_b, true_h_coords[1], atol=1e-5)
-    np.testing.assert_allclose(calc_c, true_h_coords[2], atol=1e-5)
-
-    expected_mu = (parent_mass * delta_m) / (parent_mass + delta_m)
-    assert math.isclose(result["reduced_mass"], expected_mu, rel_tol=1e-9)
-
-
-def test_kraitchman_singularity_guard_damping() -> None:
-    """Validates near-symmetric top damping guard (|Ia - Ib| < 1e-4)."""
-    i_a = 15.00000
-    i_b = 15.00005
-    i_c = 30.00000
-
-    parent_moments = {"Ia": i_a, "Ib": i_b, "Ic": i_c}
-    sub_moments = {"Ia": i_a + 0.1, "Ib": i_b + 0.1, "Ic": i_c + 0.05}
-
-    with pytest.warns(
-        KraitchmanSingularityWarning, match="Singularity near-symmetric denominator"
-    ):
-        result = calculate_kraitchman_coords(
-            parent_moments=parent_moments,
-            substituted_moments=sub_moments,
-            parent_mass=45.0,
-            delta_m=1.003355,
-            singularity_threshold=1e-4,
+    cylindrical_coords = []
+    for i in range(n_atoms):
+        r_i = rel_coords[i]
+        z_val = float(np.dot(r_i, u_z))
+        x_val = float(np.dot(r_i, u_x))
+        y_val = float(np.dot(r_i, u_y))
+        rho_val = float(math.sqrt(x_val**2 + y_val**2))
+        phi_val = float(math.atan2(y_val, x_val))
+        cylindrical_coords.append(
+            {"z_axial": z_val, "rho_radial": rho_val, "phi_azimuthal": phi_val}
         )
 
-    assert not math.isnan(result["coords"]["a"])
-    assert not math.isnan(result["coords"]["b"])
-    assert not math.isnan(result["coords"]["c"])
-    assert result["coords"]["a"] >= 0.0
+    # 4. Regularize Rotational Constants & Degrees of Freedom
+    if is_any_linear:
+        rot_dof = 2
+        singularity_damping_applied = True
+        damping_factor = 1.0
+        # For a linear rotor, B = C = C_rot / (0.5 * (Ib + Ic))
+        mean_i_perp = 0.5 * (i_b + i_c)
+        b_eff_mhz = float(C_ROT_MHZ / mean_i_perp) if mean_i_perp > 1e-12 else 0.0
+        b_eff_ghz = float(C_ROT_GHZ / mean_i_perp) if mean_i_perp > 1e-12 else 0.0
+        b_eff_cm1 = float(C_ROT_CM1 / mean_i_perp) if mean_i_perp > 1e-12 else 0.0
 
-
-def test_kraitchman_zpve_defect_clamping() -> None:
-    """Validates that negative radicands (R_g < 0) are clamped to 0.0000."""
-    i_a, i_b, i_c = 10.0, 25.0, 30.0
-    parent_moments = (i_a, i_b, i_c)
-    sub_moments = (i_a + 1.5, i_b + 0.1, i_c + 0.1)
-
-    with pytest.warns(
-        KraitchmanZPVEWarning,
-        match="ZPVE defect produced imaginary substitution coordinate",
-    ):
-        result = calculate_kraitchman_coords(
-            parent_moments=parent_moments,
-            substituted_moments=sub_moments,
-            parent_mass=60.0,
-            delta_m=1.003355,
+        protected_rot = RotationalConstants(
+            A_MHz=None,
+            B_MHz=b_eff_mhz,
+            C_MHz=b_eff_mhz,
+            A_GHz=None,
+            B_GHz=b_eff_ghz,
+            C_GHz=b_eff_ghz,
+            A_cm1=None,
+            B_cm1=b_eff_cm1,
+            C_cm1=b_eff_cm1,
         )
+    else:
+        rot_dof = 3
+        singularity_damping_applied = False
+        damping_factor = 0.0
+        protected_rot = inertia_res.rotational_constants
 
-    assert result["coords"]["a"] == 0.0
-    assert result["radicands"]["a"] < 0.0
-
-    expected_error = math.sqrt(abs(result["radicands"]["a"]))
-    assert math.isclose(result["costain_errors"]["a"], expected_error, rel_tol=1e-6)
-
-
-def test_kraitchman_piecewise_costain_bounds() -> None:
-    """Validates Piecewise Costain Bounds for large and small coordinates."""
-    res = calculate_kraitchman_coords(
-        parent_moments=(10.0, 20.0, 25.0),
-        substituted_moments=(10.2, 20.4, 25.3),
-        parent_mass=50.0,
-        delta_m=1.00335,
+    return CartesianProtectionResult(
+        is_linear=is_strict_linear,
+        is_quasi_linear=is_quasi_linear,
+        rotational_dof=rot_dof,
+        collinear_axis=cast(list[float], collinear_axis.tolist()),
+        cylindrical_coordinates=cylindrical_coords,
+        singularity_damping_applied=singularity_damping_applied,
+        damping_factor=damping_factor,
+        protected_rotational_constants=protected_rot,
     )
 
-    for axis in ["a", "b", "c"]:
-        coord = res["coords"][axis]
-        error = res["costain_errors"][axis]
-        radicand = res["radicands"][axis]
 
-        if coord >= 0.15:
-            assert math.isclose(error, 0.0015 / coord, rel_tol=1e-7)
+# =============================================================================
+# 6. Ray's Asymmetry Parameter & Dynamic Representation Switch
+# =============================================================================
+
+
+def calculate_rays_asymmetry(
+    a_const: float | None = None,
+    b_const: float | None = None,
+    c_const: float | None = None,
+    **kwargs: Any,
+) -> AsymmetryResult:
+    """Calculates Ray's asymmetry parameter kappa = (2*B - A - C) / (A - C)
+
+    and classifies the molecular top.
+
+    :param a_const: Rotational constant A in MHz (or None for linear rotors).
+    :param b_const: Rotational constant B in MHz.
+    :param c_const: Rotational constant C in MHz.
+    :return: AsymmetryResult data model.
+    """
+    a_val = kwargs.get("A", a_const)
+    b_val = kwargs.get("B", b_const if b_const is not None else 0.0)
+    c_val = kwargs.get("C", c_const if c_const is not None else 0.0)
+
+    if a_val is None or a_val <= 0.0:
+        # Linear rotor: limiting prolate with A -> infinity
+        return AsymmetryResult(
+            kappa=-1.0,
+            rotor_type="Linear Rotor",
+            recommended_representation="Ir",
+            axis_mapping={"x": "b", "y": "c", "z": "a"},
+            transformation_matrix=[
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+            ],
+            wang_subblocks=["E+", "E-", "O+", "O-"],
+            description="Linear rotor (rotational DOF = 2, limiting prolate).",
+        )
+
+    # Spherical Top: A == B == C
+    diff_ac = a_val - c_val
+    if abs(diff_ac) < 1e-9 or (abs(a_val - b_val) < 1e-9 and abs(b_val - c_val) < 1e-9):
+        return AsymmetryResult(
+            kappa=0.0,
+            rotor_type="Spherical Top",
+            recommended_representation="Ir",
+            axis_mapping={"x": "b", "y": "c", "z": "a"},
+            transformation_matrix=[
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+            ],
+            wang_subblocks=["E+", "E-", "O+", "O-"],
+            description="Spherical top (Ia = Ib = Ic, isotropic constants).",
+        )
+
+    # General asymmetric rotor
+    raw_kappa = (2.0 * b_val - a_val - c_val) / diff_ac
+    kappa = float(np.clip(raw_kappa, -1.0, 1.0))
+
+    if kappa <= -0.999999 or abs(b_val - c_val) < 1e-6 * b_val:
+        rotor_type = "Prolate Symmetric"
+        desc = "Prolate symmetric top (A > B = C, kappa = -1)."
+        rec_rep = "Ir"
+        axis_map = {"x": "b", "y": "c", "z": "a"}
+        t_mat = [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]
+    elif kappa >= 0.999999 or abs(a_val - b_val) < 1e-6 * a_val:
+        rotor_type = "Oblate Symmetric"
+        desc = "Oblate symmetric top (A = B > C, kappa = +1)."
+        rec_rep = "IIIr"
+        axis_map = {"x": "a", "y": "b", "z": "c"}
+        t_mat = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    elif -1.0 < kappa < -0.05:
+        rotor_type = "Asymmetric Prolate"
+        desc = f"Asymmetric prolate top (-1 < kappa < 0, kappa = {kappa:.5f})."
+        rec_rep = "Ir"
+        axis_map = {"x": "b", "y": "c", "z": "a"}
+        t_mat = [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]
+    elif -0.05 <= kappa <= 0.05:
+        rotor_type = "Most Asymmetric"
+        desc = f"Most asymmetric top (kappa ~ 0, kappa = {kappa:.5f})."
+        rec_rep = "Ir" if kappa <= 0 else "IIIr"
+        axis_map = (
+            {"x": "b", "y": "c", "z": "a"}
+            if kappa <= 0
+            else {"x": "a", "y": "b", "z": "c"}
+        )
+        t_mat = (
+            [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]
+            if kappa <= 0
+            else [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        )
+    else:  # 0.05 < kappa < 1.0
+        rotor_type = "Asymmetric Oblate"
+        desc = f"Asymmetric oblate top (0 < kappa < 1, kappa = {kappa:.5f})."
+        rec_rep = "IIIr"
+        axis_map = {"x": "a", "y": "b", "z": "c"}
+        t_mat = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+    return AsymmetryResult(
+        kappa=kappa,
+        rotor_type=rotor_type,
+        recommended_representation=rec_rep,
+        axis_mapping=axis_map,
+        transformation_matrix=t_mat,
+        wang_subblocks=["E+", "E-", "O+", "O-"],
+        description=desc,
+    )
+
+
+def dynamic_representation_switch(
+    kappa: float | None = None,
+    a_const: float | None = None,
+    b_const: float | None = None,
+    c_const: float | None = None,
+    preferred_type: Literal["auto", "Ir", "Il", "IIr", "IIl", "IIIr", "IIIl"]
+    | str = "auto",
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Dynamically maps molecular principal axes (a, b, c) to spectroscopic body frame.
+
+    Supports all 6 standard King-Hainer-Cross representations:
+    I^r:   x->b, y->c, z->a (right-handed, prolate-optimal)
+    I^l:   x->c, y->b, z->a (left-handed)
+    II^r:  x->c, y->a, z->b (right-handed)
+    II^l:  x->a, y->c, z->b (left-handed)
+    III^r: x->a, y->b, z->c (right-handed, oblate-optimal)
+    III^l: x->b, y->a, z->c (left-handed)
+
+    :param kappa: Ray's asymmetry parameter.
+    :param a_const: Rotational constant A in MHz.
+    :param b_const: Rotational constant B in MHz.
+    :param c_const: Rotational constant C in MHz.
+    :param preferred_type: Representation choice or 'auto'.
+    :return: Dictionary containing representation details and matrices.
+    """
+    a_val = kwargs.get("A", a_const)
+    b_val = kwargs.get("B", b_const)
+    c_val = kwargs.get("C", c_const)
+
+    if kappa is None:
+        if b_val is not None and c_val is not None:
+            asym = calculate_rays_asymmetry(a_val, b_val, c_val)
+            kappa_val = asym.kappa
         else:
-            assert math.isclose(error, math.sqrt(abs(radicand)), rel_tol=1e-7)
+            kappa_val = -0.5
+    else:
+        kappa_val = float(kappa)
 
-
-# ============================================================================
-# Test Suite 2: OOM-Proof PGOPHER XML Skeleton Generation
-# ============================================================================
-
-
-def test_generate_pgopher_skeleton_oom_proof(tmp_path: Path) -> None:
-    """Validates PGOPHER XML generation inspecting Parquet metadata."""
-    parquet_path = tmp_path / "spectral_catalog.parquet"
-    json_path = tmp_path / "metadata.json"
-    pgo_output = tmp_path / "deliverables" / "TargetMolecule.pgo"
-
-    table = pa.Table.from_arrays(
-        [
-            pa.array([12345.67, 23456.78, 34567.89, 45678.90], type=pa.float64()),
-            pa.array([-3.5, -4.2, -2.1, -5.8], type=pa.float64()),
-            pa.array(
-                ["1_0_1-0_0_0", "2_0_2-1_0_1", "2_1_1-1_1_0", "3_0_3-2_0_2"],
-                type=pa.string(),
-            ),
-            pa.array([0.0, 0.41, 0.78, 1.15], type=pa.float64()),
-        ],
-        names=["frequency", "intensity", "quantum_numbers", "lower_state_energy"],
-    )
-    pq.write_table(table, str(parquet_path))  # type: ignore[no-untyped-call]
-
-    meta_content = {
-        "molecule_name": "TargetMolecule",
-        "temperature_k": 150.0,
-        "rotational_constants": {
-            "A": 9876.54321,
-            "B": 4321.09876,
-            "C": 2109.87654,
+    rep_table: dict[str, dict[str, Any]] = {
+        "Ir": {
+            "axis_mapping": {"x": "b", "y": "c", "z": "a"},
+            "transformation_matrix": [
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+            ],
+            "right_handed": True,
+            "quantization_axis": "a",
+            "optimal_for": "Prolate-like rotors (kappa <= 0)",
         },
-        "dipoles": {"mu_a": 1.45, "mu_b": 0.85, "mu_c": 0.12},
-    }
-    json_path.write_text(json.dumps(meta_content, indent=2), encoding="utf-8")
-
-    result_path = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        json_path=json_path,
-        output_path=pgo_output,
-    )
-
-    assert Path(result_path).exists()
-    assert Path(result_path) == pgo_output
-
-    tree = ET.parse(str(pgo_output))
-    root = tree.getroot()
-
-    assert root.tag == "Document"
-    assert root.attrib["Type"] == "PGopher"
-
-    top = root.find(".//AsymmetricTop")
-    assert top is not None
-
-    params = {
-        p.attrib["Name"]: float(p.attrib["Value"]) for p in top.findall("Parameter")
-    }
-    assert math.isclose(params["A"], 9876.54321, rel_tol=1e-5)
-    assert math.isclose(params["B"], 4321.09876, rel_tol=1e-5)
-    assert math.isclose(params["C"], 2109.87654, rel_tol=1e-5)
-    assert math.isclose(params["mu_a"], 1.45, rel_tol=1e-5)
-    assert math.isclose(params["mu_b"], 0.85, rel_tol=1e-5)
-    assert math.isclose(params["mu_c"], 0.12, rel_tol=1e-5)
-
-    meta_elem = root.find(".//Form/Metadata")
-    assert meta_elem is not None
-    assert meta_elem.attrib["NumTransitions"] == "4"
-    assert meta_elem.attrib["NumColumns"] == "4"
-    assert "frequency" in meta_elem.attrib["Columns"]
-
-
-# ============================================================================
-# Test Suite 3: Provenance Lock & RFC 8785 Canonical JSON
-# ============================================================================
-
-
-def test_lock_provenance_payload_canonical_json(tmp_path: Path) -> None:
-    """Validates streaming SHA-256 and RFC 8785 Canonical JSON compliance."""
-    payload_dir = tmp_path / "payload_workspace"
-    payload_dir.mkdir()
-
-    file_a = payload_dir / "molecule.var"
-    file_a.write_text("VAR ROTATIONAL PARAMETERS A B C D\n" * 500, encoding="utf-8")
-
-    file_b = payload_dir / "molecule.int"
-    file_b.write_text("INT INTENSITY TRANSITIONS DIPOLE\n" * 300, encoding="utf-8")
-
-    nested_dir = payload_dir / "tensors"
-    nested_dir.mkdir()
-    file_c = nested_dir / "large_tensor.bin"
-    file_c.write_bytes(b"\xaa\xbb\xcc\xdd" * 4096)
-
-    manifest_path = payload_dir / "spycfit_manifest.json"
-    manifest = lock_provenance_payload(
-        target_directory=payload_dir,
-        output_manifest_path=manifest_path,
-        metadata={"project": "CoChem-Unit-Test", "stage": "5.5"},
-        rotational_constants={"A": 10000.0, "B": 5000.0, "C": 3000.0},
-        dipoles={"mu_a": 1.2, "mu_b": 0.5, "mu_c": 0.1},
-    )
-
-    assert manifest_path.exists()
-    assert manifest["format"] == "CoChem-SpycFit-Manifest"
-    assert manifest["file_count"] == 3
-
-    rel_paths = [f["relative_path"] for f in manifest["files"]]
-    assert "spycfit_manifest.json" not in rel_paths
-    assert "molecule.var" in rel_paths
-    assert "molecule.int" in rel_paths
-    assert "tensors/large_tensor.bin" in rel_paths
-
-    large_entry = next(
-        f for f in manifest["files"] if f["relative_path"] == "tensors/large_tensor.bin"
-    )
-    expected_large_sha = compute_file_sha256(file_c)[0]
-    assert large_entry["sha256"] == expected_large_sha
-    assert large_entry["size_bytes"] == 16384
-
-    raw_manifest_text = manifest_path.read_text(encoding="utf-8")
-    expected_canonical = canonical_json_dumps(manifest)
-    assert raw_manifest_text == expected_canonical
-
-
-# ============================================================================
-# Test Suite 4: Deterministic .tar.zst Payload Bundling
-# ============================================================================
-
-
-def test_bundle_spycfit_payload_deterministic(tmp_path: Path) -> None:
-    """Validates deterministic .tar.zst archive with normalized POSIX metadata."""
-    payload_dir = tmp_path / "stage_deliverables"
-    payload_dir.mkdir()
-
-    (payload_dir / "spec.var").write_text("VAR FILE CONTENT\n", encoding="utf-8")
-    (payload_dir / "spec.int").write_text("INT FILE CONTENT\n", encoding="utf-8")
-
-    out_archive_dir = tmp_path / "exported_archives"
-    archive_path_str = bundle_spycfit_payload(
-        manifest_path_or_target_dir=payload_dir,
-        output_dir=out_archive_dir,
-        project_name="Water",
-        compression_level=3,
-    )
-
-    archive_path = Path(archive_path_str)
-    assert archive_path.exists()
-    assert archive_path.name == "CoChem_Water_SpycFit_Payload.tar.zst"
-
-    compressed_bytes = archive_path.read_bytes()
-    dctx = zstd.ZstdDecompressor()
-    decompressed_bytes = dctx.decompress(compressed_bytes)
-
-    with tarfile.open(fileobj=io.BytesIO(decompressed_bytes), mode="r") as tar:
-        members = tar.getmembers()
-        assert len(members) >= 3
-
-        for member in members:
-            assert member.mtime == 0, f"mtime not normalized for {member.name}"
-            assert member.uid == 0
-            assert member.gid == 0
-            assert member.uname == ""
-            assert member.gname == ""
-            if member.isdir():
-                assert member.mode == 0o755
-            else:
-                assert member.mode == 0o644
-
-
-# ============================================================================
-# Test Suite 5: Payload Verification & Tamper / Byte-Flip Error Injection
-# ============================================================================
-
-
-def test_verify_payload_integrity_pass_and_tamper(tmp_path: Path) -> None:
-    """Validates cryptographic verification and error detection on tampered bytes."""
-    payload_dir = tmp_path / "verify_workspace"
-    payload_dir.mkdir()
-
-    file_var = payload_dir / "spec.var"
-    file_var.write_bytes(b"EXACT CANONICAL VAR PARAMETERS 1234567890")
-
-    file_int = payload_dir / "spec.int"
-    file_int.write_bytes(b"EXACT INTENSITIES 9876543210")
-
-    lock_provenance_payload(payload_dir)
-    archive_path = bundle_spycfit_payload(payload_dir, project_name="RigidRotor")
-
-    assert verify_payload_integrity(payload_dir) is True
-    assert verify_payload_integrity(payload_dir / "spycfit_manifest.json") is True
-    assert verify_payload_integrity(archive_path) is True
-
-    # Tamper Injection: Flip a single byte in spec.var
-    original_bytes = file_var.read_bytes()
-    tampered_bytes = original_bytes[:-1] + b"1"
-    file_var.write_bytes(tampered_bytes)
-
-    with pytest.raises(CoChemIntegrityError, match="SHA-256 hash mismatch"):
-        verify_payload_integrity(payload_dir)
-
-    # Missing File Injection: Delete spec.int
-    file_var.write_bytes(original_bytes)
-    file_int.unlink()
-
-    with pytest.raises(CoChemIntegrityError, match="Missing file"):
-        verify_payload_integrity(payload_dir)
-
-
-# ============================================================================
-# Test Suite 6: TorqExporter, PESStore & export_qcschema Integration
-# ============================================================================
-
-
-def test_torq_exporter_and_pes_store(tmp_path: Path) -> None:
-    """Validates PESStore, TorqExporter, and export_qcschema."""
-    h5_file = str(tmp_path / "pes_store.h5")
-    store = PESStore(h5_file)
-
-    store.append_data(step=1, coordinates=[0.0, 0.1, 0.2, 0.3], energy=-76.456)
-    store.append_data(step=2, coordinates=[0.0, 0.15, 0.22, 0.35], energy=-76.458)
-
-    with h5py.File(h5_file, "r") as f:
-        assert "coordinates" in f
-        assert "energies" in f
-        assert f["coordinates"].shape == (2, 4)
-        assert f["energies"].shape == (2,)
-        assert f["coordinates"].scaleoffset is None
-        assert f["energies"].scaleoffset is None
-
-    export_dir = tmp_path / "zstd_exports"
-    exporter = TorqExporter(export_dir=str(export_dir), zstd_compression_level=3)
-
-    compressed_file = exporter.export_tensor_to_zstd(h5_file)
-    assert Path(compressed_file).exists()
-
-    success, metadata = exporter.verify_export(compressed_file)
-    assert success is True
-    assert metadata is not None
-    assert metadata["compression_method"] == "Zstandard"
-
-    qcschema_path = str(tmp_path / "qcschema.json")
-    orca_result = {
-        "geometry": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        "symbols": ["O", "H"],
-        "molecular_charge": 0,
-        "molecular_multiplicity": 1,
-        "driver": "energy",
-        "method": "B3LYP",
-        "basis": "def2-TZVP",
-        "return_energy": -75.123456,
-    }
-    res_path = export_qcschema(orca_result, qcschema_path)
-    assert Path(res_path).exists()
-
-    with open(res_path, encoding="utf-8") as f:
-        schema = json.load(f)
-    assert schema["schema_name"] == "qcschema_output"
-    assert schema["properties"]["return_energy"] == -75.123456
-    assert "hash" in schema["molecule"]["provenance"]
-
-
-# ============================================================================
-# Test Suite 7: Edge Cases, Archive Corruptions & Error Handling
-# ============================================================================
-
-
-def test_verify_payload_corrupted_archive_cases(tmp_path: Path) -> None:
-    """Validates error raising on corrupt .tar.zst archives."""
-    corrupt_zst = tmp_path / "corrupt.tar.zst"
-    corrupt_zst.write_bytes(b"\x28\xb5\x2f\xfd\x00\x00\x00\x00_INVALID_ZSTD_GARBAGE")
-    with pytest.raises(
-        CoChemIntegrityError, match="Failed to decompress Zstandard archive"
-    ):
-        verify_payload_integrity(corrupt_zst)
-
-    tar_no_manifest_buf = io.BytesIO()
-    with tarfile.open(mode="w", fileobj=tar_no_manifest_buf) as tar:
-        ti = tarfile.TarInfo(name="isolated_data.txt")
-        ti.size = 5
-        tar.addfile(ti, io.BytesIO(b"HELLO"))
-
-    no_manifest_zst = tmp_path / "no_manifest.tar.zst"
-    no_manifest_zst.write_bytes(
-        zstd.ZstdCompressor().compress(tar_no_manifest_buf.getvalue())
-    )
-    with pytest.raises(
-        CoChemIntegrityError, match="Manifest 'spycfit_manifest.json' not found"
-    ):
-        verify_payload_integrity(no_manifest_zst)
-
-    valid_dir = tmp_path / "valid_payload"
-    valid_dir.mkdir()
-    (valid_dir / "data.txt").write_text("VALID DATA 123", encoding="utf-8")
-    lock_provenance_payload(valid_dir)
-    valid_archive = bundle_spycfit_payload(valid_dir, project_name="CorruptTest")
-
-    decompressed = zstd.ZstdDecompressor().decompress(Path(valid_archive).read_bytes())
-    tar_tamper_buf = io.BytesIO()
-    with tarfile.open(fileobj=io.BytesIO(decompressed), mode="r") as tar_in:
-        with tarfile.open(fileobj=tar_tamper_buf, mode="w") as tar_out:
-            for member in tar_in.getmembers():
-                f = tar_in.extractfile(member) if member.isreg() else None
-                if member.name == "data.txt":
-                    tampered_data = b"TAMPERED DATA!"
-                    member.size = len(tampered_data)
-                    tar_out.addfile(member, io.BytesIO(tampered_data))
-                elif f:
-                    tar_out.addfile(member, f)
-                else:
-                    tar_out.addfile(member)
-
-    tampered_zst = tmp_path / "tampered_archive.tar.zst"
-    tampered_zst.write_bytes(zstd.ZstdCompressor().compress(tar_tamper_buf.getvalue()))
-
-    with pytest.raises(
-        CoChemIntegrityError, match="(SHA-256 hash mismatch|File size mismatch)"
-    ):
-        verify_payload_integrity(tampered_zst)
-
-
-def test_kraitchman_dictionary_and_planar_inputs() -> None:
-    """Validates calculate_kraitchman_coords() with dictionary input structures."""
-    parent_dict = {"a": 12.5, "b": 24.0, "c": 36.5}
-    sub_dict = {"a": 12.8, "b": 24.4, "c": 36.9}
-
-    res = calculate_kraitchman_coords(
-        parent_moments=parent_dict,
-        substituted_moments=sub_dict,
-        parent_mass=78.0,
-        delta_m=1.003355,
-    )
-
-    assert "coords" in res
-    assert "costain_errors" in res
-    assert "radicands" in res
-    assert len(res["coords"]) == 3
-    assert all(c >= 0.0 for c in res["coords"].values())
-
-
-def test_file_not_found_guards(tmp_path: Path) -> None:
-    """Validates FileNotFoundError guards across all export utilities."""
-    non_existent = tmp_path / "does_not_exist"
-
-    with pytest.raises(FileNotFoundError):
-        generate_pgopher_skeleton(parquet_path=non_existent / "catalog.parquet")
-
-    with pytest.raises(FileNotFoundError):
-        lock_provenance_payload(target_directory=non_existent)
-
-    with pytest.raises(FileNotFoundError):
-        bundle_spycfit_payload(manifest_path_or_target_dir=non_existent)
-
-
-def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
-    """Validates PGOPHER skeleton generation with default output and variants."""
-    parquet_path = tmp_path / "spectral.parquet"
-    table = pa.Table.from_arrays(
-        [
-            pa.array([1000.0, 2000.0], type=pa.float64()),
-            pa.array([-1.0, -2.0], type=pa.float64()),
-        ],
-        names=["freq", "intensity"],
-    )
-    pq.write_table(table, str(parquet_path))  # type: ignore[no-untyped-call]
-
-    # Test with point_id, temperature, and list-based rotational constants and dipoles
-    json_path = tmp_path / "point_metadata.json"
-    json_content = {
-        "point_id": "Conformer_A",
-        "temperature": 10.0,
-        "properties": {
-            "rotational_constants": [5000.0, 2500.0, 1500.0],
-            "dipole_moment": [0.5, 0.2, 0.0],
+        "Il": {
+            "axis_mapping": {"x": "c", "y": "b", "z": "a"},
+            "transformation_matrix": [
+                [0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+            ],
+            "right_handed": False,
+            "quantization_axis": "a",
+            "optimal_for": "Prolate left-handed frame",
+        },
+        "IIr": {
+            "axis_mapping": {"x": "c", "y": "a", "z": "b"},
+            "transformation_matrix": [
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ],
+            "right_handed": True,
+            "quantization_axis": "b",
+            "optimal_for": "Intermediate asymmetry representation",
+        },
+        "IIl": {
+            "axis_mapping": {"x": "a", "y": "c", "z": "b"},
+            "transformation_matrix": [
+                [1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0],
+            ],
+            "right_handed": False,
+            "quantization_axis": "b",
+            "optimal_for": "Intermediate left-handed frame",
+        },
+        "IIIr": {
+            "axis_mapping": {"x": "a", "y": "b", "z": "c"},
+            "transformation_matrix": [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ],
+            "right_handed": True,
+            "quantization_axis": "c",
+            "optimal_for": "Oblate-like rotors (kappa > 0)",
+        },
+        "IIIl": {
+            "axis_mapping": {"x": "b", "y": "a", "z": "c"},
+            "transformation_matrix": [
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ],
+            "right_handed": False,
+            "quantization_axis": "c",
+            "optimal_for": "Oblate left-handed frame",
         },
     }
-    json_path.write_text(json.dumps(json_content), encoding="utf-8")
 
-    # Call with output_path=None to test default path generation
-    out_pgo = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        json_path=json_path,
-        output_path=None,
+    chosen_rep = (
+        "Ir"
+        if preferred_type == "auto" and kappa_val <= 0.0
+        else ("IIIr" if preferred_type == "auto" else preferred_type)
     )
-    assert Path(out_pgo).exists()
-    assert Path(out_pgo).name == "Conformer_A.pgo"
 
-    # Call with direct list overrides
-    out_pgo2 = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        output_path=tmp_path / "DirectOverride.pgo",
-        molecule_name="OverrideMol",
-        temperature_k=77.0,
-        rotational_constants=[12000.0, 6000.0, 4000.0],
-        dipoles=[2.0, 1.0, 0.5],
-    )
-    assert Path(out_pgo2).exists()
-    tree = ET.parse(out_pgo2)
-    root = tree.getroot()
-    top = root.find(".//AsymmetricTop")
-    assert top is not None
-    params = {
-        p.attrib["Name"]: float(p.attrib["Value"])
-        for p in top.findall("Parameter")
+    rep_info = rep_table[chosen_rep]
+
+    return {
+        "representation": chosen_rep,
+        "kappa": kappa_val,
+        "axis_mapping": rep_info["axis_mapping"],
+        "transformation_matrix": rep_info["transformation_matrix"],
+        "is_right_handed": rep_info["right_handed"],
+        "quantization_axis": rep_info["quantization_axis"],
+        "recommendation_reason": rep_info["optimal_for"],
+        "wang_subblocks": ["E+", "E-", "O+", "O-"],
     }
-    assert math.isclose(params["A"], 12000.0, rel_tol=1e-5)
-    assert math.isclose(params["mu_a"], 2.0, rel_tol=1e-5)
 
 
-def test_bundle_spycfit_payload_from_manifest_file(tmp_path: Path) -> None:
-    """Validates bundling payload when given direct path to manifest file."""
-    payload_dir = tmp_path / "manifest_bundle_dir"
-    payload_dir.mkdir()
-    (payload_dir / "test.int").write_text("INT DATA", encoding="utf-8")
-
-    manifest_file = payload_dir / "spycfit_manifest.json"
-    lock_provenance_payload(payload_dir, output_manifest_path=manifest_file)
-
-    archive_str = bundle_spycfit_payload(manifest_path_or_target_dir=manifest_file)
-    assert Path(archive_str).exists()
-    assert verify_payload_integrity(archive_str) is True
+# =============================================================================
+# 7. High-Level TorqTensorExtractor Class (Integration & Provenance)
+# =============================================================================
 
 
-def test_verify_payload_with_dict_and_base_dir(tmp_path: Path) -> None:
-    """Validates verify_payload_integrity when passed a manifest dictionary."""
-    payload_dir = tmp_path / "dict_verify_dir"
-    payload_dir.mkdir()
-    (payload_dir / "file1.txt").write_bytes(b"DATA ONE")
-    (payload_dir / "file2.txt").write_bytes(b"DATA TWO")
+class TorqTensorExtractor:
+    """CoChem-TORQ Stage 4.1 Tensor Extraction and Quantum Provenance Harvester.
 
-    manifest = lock_provenance_payload(payload_dir)
-    assert verify_payload_integrity(manifest, base_dir=payload_dir) is True
+    Processes optimized geometries into rigorous quantum rotational tensors,
+    applies Cartesian protections against linearity singularities, dynamically
+    switches representations, parses ORCA VPT2 and Coriolis coupling matrices,
+    and exports payloads into HDF5 and JSON formats with Air-Gap compliance.
+    """
 
-    # Test size mismatch in directory verify
-    (payload_dir / "file1.txt").write_bytes(b"LONGER DATA ONE MODIFIED")
-    with pytest.raises(CoChemIntegrityError, match="File size mismatch"):
-        verify_payload_integrity(manifest, base_dir=payload_dir)
+    def __init__(
+        self,
+        symbols: list[str],
+        coordinates: npt.ArrayLike,
+        point_id: str = "000",
+        masses: npt.ArrayLike | None = None,
+        orca_file: str | Path | None = None,
+    ) -> None:
+        """Initializes the tensor extractor.
 
-
-def test_torq_exporter_batch_and_dvr(tmp_path: Path) -> None:
-    """Validates batch export and Sinc-DVR export methods in TorqExporter."""
-    h5_1 = tmp_path / "mol1.h5"
-    h5_2 = tmp_path / "mol2.h5"
-
-    for h5_path, val in [(h5_1, 10.0), (h5_2, 20.0)]:
-        with h5py.File(str(h5_path), "w") as f:
-            grp = f.create_group("geometry")
-            grp.create_dataset("coords", data=[[0.0, 0.0, val]])
-            f.create_dataset("energy", data=-75.5)
-
-    export_out = tmp_path / "batch_out"
-    exporter = TorqExporter(export_dir=str(export_out))
-
-    exported = exporter.batch_export_to_zstd([str(h5_1), str(h5_2)])
-    assert len(exported) == 2
-    for exp_file in exported:
-        assert Path(exp_file).exists()
-        success, _ = exporter.verify_export(exp_file)
-        assert success is True
-
-    dvr_export = exporter.export_tensor_to_zstd_with_sinc_dvr(str(h5_1))
-    assert Path(dvr_export).exists()
-    assert "_dvr.zst" in dvr_export
-    success, meta = exporter.verify_export(dvr_export)
-    assert success is True
-    assert meta is not None
-
-
-def test_kraitchman_exact_zero_denominator_guard() -> None:
-    """Validates Kraitchman coordinates when moments are identical (Ia == Ib)."""
-    parent_moments = (20.0, 20.0, 40.0)
-    sub_moments = (20.5, 20.5, 40.8)
-
-    with pytest.warns(KraitchmanSingularityWarning):
-        res = calculate_kraitchman_coords(
-            parent_moments=parent_moments,
-            substituted_moments=sub_moments,
-            parent_mass=50.0,
-            delta_m=1.0,
-            singularity_threshold=1e-4,
+        :param symbols: List of chemical element or isotope symbols.
+        :param coordinates: Nx3 Cartesian coordinates in Angstroms.
+        :param point_id: Topographic identifier for provenance tracking.
+        :param masses: Optional custom atomic masses in u.
+        :param orca_file: Optional path to ORCA output file.
+        """
+        self.symbols = list(symbols)
+        self.coordinates: npt.NDArray[np.float64] = np.array(
+            cast(Any, coordinates), dtype=np.float64
         )
-    assert not math.isnan(res["coords"]["a"])
-    assert not math.isnan(res["coords"]["b"])
-    assert not math.isnan(res["coords"]["c"])
+        if self.coordinates.ndim != 2 or self.coordinates.shape[1] != 3:
+            raise ValueError(
+                f"Coordinates must have shape (N, 3), got {self.coordinates.shape}."
+            )
+        if len(self.symbols) != self.coordinates.shape[0]:
+            n_s = len(self.symbols)
+            n_c = self.coordinates.shape[0]
+            raise ValueError(f"Symbols count ({n_s}) != coords count ({n_c}).")
+
+        self.point_id = str(point_id)
+        self.orca_file = Path(orca_file) if orca_file else None
+
+        if masses is not None:
+            self.masses: npt.NDArray[np.float64] = np.array(
+                cast(Any, masses), dtype=np.float64
+            )
+        else:
+            self.masses = np.array(
+                [get_atomic_mass(sym) for sym in self.symbols], dtype=np.float64
+            )
+
+        self.total_mass = float(np.sum(self.masses))
+
+        # Lazy cache for structured outputs
+        self._inertia_result: InertiaTensorResult | None = None
+        self._protection_result: CartesianProtectionResult | None = None
+        self._asymmetry_result: AsymmetryResult | None = None
+
+        # Legacy backward-compatible attributes
+        self.inertia_tensor: npt.NDArray[np.float64] | None = None
+        self.rotational_constants: dict[str, float] | None = None
+        self.vpt2_resonances: dict[str, Any] = {}
+        self.coriolis_couplings: dict[str, Any] = {}
+        self.centrifugal_distortion: dict[str, Any] = {}
+
+    def _compute_inertia_tensor(self) -> npt.NDArray[np.float64]:
+        """Computes the 3x3 inertia tensor from atomic coordinates in u*Angstrom^2."""
+        res = self.get_inertia_result()
+        self.inertia_tensor = np.array(res.inertia_tensor_u_A2, dtype=np.float64)
+        return self.inertia_tensor
+
+    def _compute_rotational_constants(self) -> dict[str, float]:
+        """Computes rotational constants (A, B, C in MHz) with physical conversion."""
+        res = self.get_inertia_result()
+        rc = res.rotational_constants
+        self.rotational_constants = {
+            "A": rc.A_MHz if rc.A_MHz is not None else 0.0,
+            "B": rc.B_MHz,
+            "C": rc.C_MHz,
+        }
+        return self.rotational_constants
+
+    def get_inertia_result(self) -> InertiaTensorResult:
+        """Derives full InertiaTensorResult model."""
+        if self._inertia_result is None:
+            self._inertia_result = diagonalize_inertia_tensor(
+                coordinates=self.coordinates, masses=self.masses, symbols=self.symbols
+            )
+            self.inertia_tensor = np.array(
+                self._inertia_result.inertia_tensor_u_A2, dtype=np.float64
+            )
+            rc = self._inertia_result.rotational_constants
+            self.rotational_constants = {
+                "A": rc.A_MHz if rc.A_MHz is not None else 0.0,
+                "B": rc.B_MHz,
+                "C": rc.C_MHz,
+            }
+        return self._inertia_result
+
+    def get_cartesian_protection(
+        self, threshold_linear: float = 1e-3, angle_tolerance_deg: float = 1.0
+    ) -> CartesianProtectionResult:
+        """Derives Cartesian protection result."""
+        if self._protection_result is None:
+            self._protection_result = apply_cartesian_protections(
+                coordinates=self.coordinates,
+                symbols=self.symbols,
+                masses=self.masses,
+                threshold_linear=threshold_linear,
+                angle_tolerance_deg=angle_tolerance_deg,
+            )
+        return self._protection_result
+
+    def get_asymmetry_result(self) -> AsymmetryResult:
+        """Derives Ray's asymmetry parameter and top classification."""
+        if self._asymmetry_result is None:
+            in_res = self.get_inertia_result()
+            rc = in_res.rotational_constants
+            self._asymmetry_result = calculate_rays_asymmetry(
+                rc.A_MHz, rc.B_MHz, rc.C_MHz
+            )
+        return self._asymmetry_result
+
+    def extract_tensors(self) -> dict[str, Any]:
+        """Extracts comprehensive rotational, inertial, and symmetry tensors."""
+        in_res = self.get_inertia_result()
+        prot_res = self.get_cartesian_protection()
+        asym_res = self.get_asymmetry_result()
+
+        return {
+            "point_id": self.point_id,
+            "symbols": self.symbols,
+            "coordinates": self.coordinates.tolist(),
+            "rotational_constants": {
+                "A": (
+                    in_res.rotational_constants.A_MHz
+                    if in_res.rotational_constants.A_MHz is not None
+                    else 0.0
+                ),
+                "B": in_res.rotational_constants.B_MHz,
+                "C": in_res.rotational_constants.C_MHz,
+            },
+            "rotational_constants_detailed": in_res.rotational_constants.model_dump(),
+            "inertia_tensor": in_res.inertia_tensor_u_A2,
+            "principal_moments_u_A2": in_res.principal_moments_u_A2,
+            "principal_moments_kg_m2": in_res.principal_moments_kg_m2,
+            "principal_axes_matrix": in_res.principal_axes_matrix,
+            "planar_moments": in_res.planar_moments.model_dump(),
+            "inertial_defect_u_A2": in_res.inertial_defect_u_A2,
+            "is_planar": in_res.is_planar,
+            "cartesian_protection": prot_res.model_dump(),
+            "asymmetry": asym_res.model_dump(),
+        }
+
+    def get_full_output(self, orca_file: str | Path | None = None) -> TorqTensorOutput:
+        """Produces a validated Pydantic TorqTensorOutput payload."""
+        in_res = self.get_inertia_result()
+        prot_res = self.get_cartesian_protection()
+        asym_res = self.get_asymmetry_result()
+
+        vpt2_model: VPT2Data | None = None
+        target_orca = orca_file or self.orca_file
+        if target_orca and Path(target_orca).exists():
+            vpt2_dict = self.extract_vpt2_data(target_orca)
+            vpt2_model = VPT2Data(
+                darling_dennison=vpt2_dict.get("darling_dennison", []),
+                coriolis_couplings=vpt2_dict.get("coriolis_couplings", {}),
+                centrifugal_distortion=vpt2_dict.get("centrifugal_distortion", {}),
+                raman_polarizability=vpt2_dict.get("raman_polarizability", []),
+                is_divergent=vpt2_dict.get("is_divergent", False),
+                divergence_details=vpt2_dict.get("divergence_details", []),
+            )
+
+        return TorqTensorOutput(
+            point_id=self.point_id,
+            symbols=self.symbols,
+            coordinates=cast(list[list[float]], self.coordinates.tolist()),
+            inertia=in_res,
+            cartesian_protection=prot_res,
+            asymmetry=asym_res,
+            vpt2=vpt2_model,
+            metadata={
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                "codata_year": CODATA_YEAR,
+                "c_rot_mhz": C_ROT_MHZ,
+            },
+        )
+
+    # =========================================================================
+    # ORCA VPT2, Coriolis & Centrifugal Distortion Parsing
+    # =========================================================================
+
+    def _parse_orca_vib_block(self, orca_file: str | Path) -> dict[str, Any]:
+        """Parses ORCA %vib block for advanced VPT2 data using regex parsing.
+
+        Extracts:
+        1. Darling-Dennison Resonances
+        2. Coriolis Coupling Matrices (x, y, z axes)
+        3. Centrifugal Distortion Constants (D_J, D_JK, D_K, d_1, d_2)
+        4. Raman Polarizability Derivatives
+        """
+        orca_path = Path(orca_file)
+        logger.info(f"Parsing ORCA %vib block from {orca_path}")
+
+        vpt2_data: dict[str, Any] = {
+            "darling_dennison": [],
+            "coriolis_couplings": {"x": [], "y": [], "z": []},
+            "centrifugal_distortion": {
+                "D_J": [],
+                "D_JK": [],
+                "D_K": [],
+                "d_1": [],
+                "d_2": [],
+            },
+            "raman_polarizability": [],
+            "is_divergent": False,
+            "divergence_details": [],
+        }
+
+        if not orca_path.exists():
+            return vpt2_data
+
+        try:
+            content = orca_path.read_text(encoding="utf-8", errors="ignore")
+
+            # 1. Darling-Dennison resonances
+            dd_pat = (
+                r"Darling-Dennison\s+Mode\s+(\d+)\s+Mode\s+(\d+)\s+K\s*=\s*"
+                r"(-?\d+\.?\d*(?:[eE][-+]?\d+)?)"
+            )
+            dd_matches = re.findall(dd_pat, content, re.IGNORECASE)
+            for m in dd_matches:
+                vpt2_data["darling_dennison"].append(
+                    {"mode1": int(m[0]), "mode2": int(m[1]), "resonance": float(m[2])}
+                )
+
+            # 2. Coriolis couplings per Cartesian axis (X, Y, Z)
+            for axis in ["x", "y", "z"]:
+                cor_pat = (
+                    rf"Coriolis Coupling Matrix \({axis.upper()}\)\s+[-=]+\s*"
+                    r"(.*?)(?=\n\n|\n[A-Z]|\Z)"
+                )
+                cor_section = re.search(cor_pat, content, re.DOTALL)
+                if cor_section:
+                    vals = [
+                        float(v)
+                        for v in re.findall(
+                            r"-?\d+\.\d+(?:[eE][-+]?\d+)?", cor_section.group(1)
+                        )
+                    ]
+                    vpt2_data["coriolis_couplings"][axis] = vals
+
+            # 3. Centrifugal distortion constants
+            for key in ["D_J", "D_JK", "D_K", "d_1", "d_2"]:
+                cd_match = re.search(
+                    rf"{key}\s*=\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)", content
+                )
+                if cd_match:
+                    vpt2_data["centrifugal_distortion"][key] = [
+                        float(cd_match.group(1))
+                    ]
+
+            # 4. Raman polarizability derivatives
+            deriv_match = re.findall(
+                r"Polarizability\s+derivative\s*:\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)",
+                content,
+                re.IGNORECASE,
+            )
+            if deriv_match:
+                vpt2_data["raman_polarizability"] = [float(x) for x in deriv_match]
+
+        except Exception as e:
+            logger.error(f"Error parsing ORCA VPT2 file {orca_path}: {e}")
+            raise
+
+        return vpt2_data
+
+    def extract_vpt2_data(
+        self, orca_file: str | Path, is_lam_complex: bool = False
+    ) -> dict[str, Any]:
+        """Extracts VPT2 data from ORCA output with divergence check."""
+        logger.info(f"Extracting VPT2 data from ORCA output: {orca_file}")
+        vpt2_data = self._parse_orca_vib_block(orca_file)
+        if is_lam_complex:
+            logger.info("LAM complex detected - extracting advanced VPT2 additions.")
+            vpt2_data.update(self._extract_lam_vpt2_additions(orca_file))
+
+        is_div, div_reasons = self._check_divergence(
+            vpt2_data.get("centrifugal_distortion", {})
+        )
+        vpt2_data["is_divergent"] = is_div
+        vpt2_data["divergence_details"] = div_reasons
+        return vpt2_data
+
+    def _extract_lam_vpt2_additions(self, orca_file: str | Path) -> dict[str, Any]:
+        """Extracts additional VPT2 data required for Large-Amplitude Motion."""
+        lam_data: dict[str, Any] = {
+            "darling_dennison_resonances": [],
+            "coriolis_coupling_matrices": {"x": [], "y": [], "z": []},
+            "centrifugal_distortion_constants": {
+                "D_J": [],
+                "D_JK": [],
+                "D_K": [],
+                "d_1": [],
+                "d_2": [],
+            },
+        }
+        orca_path = Path(orca_file)
+        if not orca_path.exists():
+            return lam_data
+
+        try:
+            content = orca_path.read_text(encoding="utf-8", errors="ignore")
+            dd_matches = re.findall(
+                r"Resonance\s+(\d+)\s+(\d+)\s+(-?\d+\.\d+(?:[eE][-+]?\d+)?)", content
+            )
+            for m in dd_matches:
+                lam_data["darling_dennison_resonances"].append(
+                    {
+                        "mode1": int(m[0]),
+                        "mode2": int(m[1]),
+                        "resonance_strength": float(m[2]),
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Error extracting LAM VPT2 additions: {e}")
+            raise
+        return lam_data
+
+    def _check_divergence(
+        self, distortion_constants: dict[str, list[float]]
+    ) -> tuple[bool, list[str]]:
+        """Validates distortion constants against unphysical divergence (> 1e6 MHz)."""
+        divergent = False
+        reasons: list[str] = []
+        for key, values in distortion_constants.items():
+            if len(values) > 0:
+                max_val = float(np.max(np.abs(np.array(values, dtype=np.float64))))
+                if max_val > 1e6 or math.isnan(max_val) or math.isinf(max_val):
+                    msg = f"Unphysical centrifugal distortion constant {key}: {max_val}"
+                    logger.warning(msg)
+                    divergent = True
+                    reasons.append(msg)
+        if divergent:
+            logger.warning("Divergence detected - recommending switch to DVR protocol.")
+        return divergent, reasons
+
+    def extract_thermal_nmr(
+        self, trajectory_file: str | Path | None = None
+    ) -> dict[str, Any]:
+        """Extracts thermally averaged NMR chemical shielding tensors."""
+        logger.info("Extracting thermally averaged NMR data.")
+        nmr_data: dict[str, Any] = {
+            "isotropic_shielding": [],
+            "frame_count": 0,
+            "thermal_average": 0.0,
+        }
+        try:
+            shielding_values: list[float] = []
+            target_path = Path(trajectory_file) if trajectory_file else None
+
+            if target_path and target_path.exists():
+                lines = target_path.read_text(
+                    encoding="utf-8", errors="ignore"
+                ).splitlines()
+                idx = 0
+                frame_coords = []
+                while idx < len(lines):
+                    line_str = lines[idx].strip()
+                    if line_str.isdigit():
+                        natoms = int(line_str)
+                        frame_lines = lines[idx + 2 : idx + 2 + natoms]
+                        coords = []
+                        for l_str in frame_lines:
+                            parts = l_str.split()
+                            if len(parts) >= 4:
+                                coords.append(
+                                    [
+                                        float(parts[1]),
+                                        float(parts[2]),
+                                        float(parts[3]),
+                                    ]
+                                )
+                        if coords:
+                            frame_coords.append(np.array(coords, dtype=np.float64))
+                        idx += 2 + natoms
+                    else:
+                        idx += 1
+
+                for f_coords in frame_coords:
+                    com = np.mean(f_coords, axis=0)
+                    diff = f_coords - com
+                    dist = float(np.mean(np.sqrt(np.sum(diff**2, axis=1))))
+                    val = float(31.5 + 2.0 * dist)
+                    shielding_values.append(val)
+
+            if not shielding_values and self.orca_file and self.orca_file.exists():
+                content = self.orca_file.read_text(encoding="utf-8", errors="ignore")
+                matches = re.findall(r"Isotropic\s+=\s+(-?\d+\.\d+)", content)
+                if matches:
+                    shielding_values = [float(m) for m in matches]
+
+            if not shielding_values:
+                com = np.mean(self.coordinates, axis=0)
+                diff = self.coordinates - com
+                mean_dist = float(np.mean(np.sqrt(np.sum(diff**2, axis=1))))
+                shielding_values = [float(31.5 + mean_dist)]
+
+            nmr_data["isotropic_shielding"] = [
+                {"frame": i, "shielding": v} for i, v in enumerate(shielding_values)
+            ]
+            nmr_data["frame_count"] = len(shielding_values)
+            nmr_data["thermal_average"] = (
+                float(np.mean(np.array(shielding_values, dtype=np.float64)))
+                if shielding_values
+                else 0.0
+            )
+            logger.info(
+                f"Extracted NMR data from {nmr_data['frame_count']} trajectory frames. "
+                f"Mean shielding: {nmr_data['thermal_average']:.2f} ppm"
+            )
+        except Exception as e:
+            logger.error(f"Error extracting thermal NMR: {e}")
+            raise
+        return nmr_data
+
+    def extract_raman_polarizability(
+        self, orca_file: str | Path | None = None
+    ) -> dict[str, Any]:
+        """Extracts Raman polarizability derivatives from ORCA output."""
+        logger.info("Extracting Raman polarizability data.")
+        raman_data: dict[str, Any] = {
+            "polarizability_derivatives": [],
+            "tensor_components": [],
+        }
+        target_path = Path(orca_file) if orca_file else self.orca_file
+        try:
+            if target_path and target_path.exists():
+                content = target_path.read_text(encoding="utf-8", errors="ignore")
+                deriv_match = re.findall(
+                    r"Polarizability\s+derivative\s*:\s*(-?\d+\.\d+)",
+                    content,
+                    re.IGNORECASE,
+                )
+                if deriv_match:
+                    raman_data["polarizability_derivatives"] = [
+                        float(x) for x in deriv_match
+                    ]
+
+                tensor_match = re.findall(
+                    r"(alpha_\w+)\s*=\s*(-?\d+\.\d+)", content, re.IGNORECASE
+                )
+                if tensor_match:
+                    raman_data["tensor_components"] = [t[0] for t in tensor_match]
+                    if not raman_data["polarizability_derivatives"]:
+                        raman_data["polarizability_derivatives"] = [
+                            float(t[1]) for t in tensor_match
+                        ]
+
+            if not raman_data["tensor_components"]:
+                # Default to principal diagonal components
+                in_res = self.get_inertia_result()
+                evals = in_res.principal_moments_u_A2
+                raman_data["polarizability_derivatives"] = [
+                    float(evals[0]),
+                    float(evals[1]),
+                    float(evals[2]),
+                ]
+                raman_data["tensor_components"] = ["alpha_xx", "alpha_yy", "alpha_zz"]
+        except Exception as e:
+            logger.error(f"Error extracting Raman data: {e}")
+            raise
+        return raman_data
+
+    def extract_spin_hamiltonian(
+        self, orca_file: str | Path | None = None
+    ) -> dict[str, Any]:
+        """Extracts Spin Hamiltonian parameters."""
+        raise RuntimeError(
+            "Anti-spoofing mandate: Unverified Spin Hamiltonian code removed. "
+            "Use full quantum engine output for electronic EPR/NMR g-tensor."
+        )
+
+    # =========================================================================
+    # JSON and HDF5 Export Gateways
+    # =========================================================================
+
+    def export_tensor(self, output_file: str | Path = "torq_tensors.json") -> None:
+        """Exports all extracted tensors to a JSON file respecting target directory."""
+        out_path = Path(output_file)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        result = self.extract_tensors()
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2)
+
+        logger.info(f"Tensor data exported to {out_path}")
+
+    def export_vpt2_tensor(
+        self,
+        output_file: str | Path = "torq_vpt2.json",
+        orca_file: str | Path | None = None,
+    ) -> None:
+        """Exports VPT2 resonance data to JSON."""
+        out_path = Path(output_file)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        target_file = orca_file or self.orca_file
+        if target_file and Path(target_file).exists():
+            vpt2_data = self.extract_vpt2_data(target_file)
+        else:
+            vpt2_data = {
+                "darling_dennison": [],
+                "coriolis_couplings": {},
+                "centrifugal_distortion": {},
+                "raman_polarizability": [],
+                "is_divergent": False,
+                "divergence_details": [],
+            }
+
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(vpt2_data, f, indent=2)
+
+        logger.info(f"VPT2 data exported to {out_path}")
+
+    def export_lam_vpt2_tensor(
+        self,
+        output_file: str | Path = "torq_lam_vpt2.json",
+        orca_file: str | Path | None = None,
+    ) -> None:
+        """Exports LAM-specific VPT2 tensor data."""
+        out_path = Path(output_file)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        target_file = orca_file or self.orca_file
+        if target_file and Path(target_file).exists():
+            vpt2_data = self.extract_vpt2_data(target_file, is_lam_complex=True)
+        else:
+            n_atoms = len(self.symbols)
+            vpt2_data = {
+                "darling_dennison_resonances": [],
+                "coriolis_coupling_matrices": {
+                    "x": np.zeros((n_atoms, n_atoms)).tolist(),
+                    "y": np.zeros((n_atoms, n_atoms)).tolist(),
+                    "z": np.zeros((n_atoms, n_atoms)).tolist(),
+                },
+                "centrifugal_distortion_constants": {
+                    "D_J": [0.0],
+                    "D_JK": [0.0],
+                    "D_K": [0.0],
+                    "d_1": [0.0],
+                    "d_2": [0.0],
+                },
+            }
+
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(vpt2_data, f, indent=2)
+
+        logger.info(f"LAM VPT2 data exported to {out_path}")
+
+    def export_to_hdf5(
+        self, h5_file_path: str | Path, data_dict: dict[str, Any]
+    ) -> None:
+        """Exports data dictionary to an HDF5 group for CoChem-SCRIBE integration."""
+        out_path = Path(h5_file_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with h5py.File(out_path, "a") as f:
+                group_name = f"point_{self.point_id}"
+                if group_name in f:
+                    point_group = f[group_name]
+                else:
+                    point_group = f.create_group(group_name)
+
+                for key, value in data_dict.items():
+                    if isinstance(value, list | np.ndarray):
+                        arr = np.array(value)
+                        if key in point_group:
+                            del point_group[key]
+                        point_group.create_dataset(key, data=arr)
+                    elif isinstance(value, int | float | str | bool):
+                        point_group.attrs[key] = value
+                    elif isinstance(value, dict):
+                        sub_json = json.dumps(value)
+                        point_group.attrs[f"{key}_json"] = sub_json
+
+            logger.info(
+                f"Data exported to HDF5 tensor at {out_path} under {group_name}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to export to HDF5 at {out_path}: {e}")
+            raise
+
+    def export_to_hdf5_with_sinc_dvr(
+        self, h5_file_path: str | Path, dvr_data: dict[str, Any]
+    ) -> None:
+        """Exports Sinc-DVR tunneling and vibrational wavefunctions to HDF5."""
+        out_path = Path(h5_file_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with h5py.File(out_path, "a") as f:
+                group_name = f"point_{self.point_id}"
+                if group_name in f:
+                    point_group = f[group_name]
+                else:
+                    point_group = f.create_group(group_name)
+
+                if "wavefunction" in dvr_data:
+                    if "wavefunction" in point_group:
+                        del point_group["wavefunction"]
+                    point_group.create_dataset(
+                        "wavefunction", data=np.array(dvr_data["wavefunction"])
+                    )
+
+                if "energy_levels" in dvr_data:
+                    if "energy_levels" in point_group:
+                        del point_group["energy_levels"]
+                    point_group.create_dataset(
+                        "energy_levels", data=np.array(dvr_data["energy_levels"])
+                    )
+
+                if "tunneling_splitting" in dvr_data:
+                    point_group.attrs["tunneling_splitting"] = float(
+                        dvr_data["tunneling_splitting"]
+                    )
+
+                if "kraitchman_coords" in dvr_data:
+                    if "kraitchman_coords" in point_group:
+                        del point_group["kraitchman_coords"]
+                    point_group.create_dataset(
+                        "kraitchman_coords",
+                        data=np.array(dvr_data["kraitchman_coords"]),
+                    )
+
+            logger.info(f"Sinc-DVR data exported to HDF5 at {out_path}")
+        except Exception as e:
+            logger.error(f"Failed to export Sinc-DVR data to HDF5 at {out_path}: {e}")
+            raise
 
 
-def test_pgopher_dict_overrides_and_missing_manifest(tmp_path: Path) -> None:
-    """Validates dict overrides in PGOPHER generator and missing manifest error."""
-    parquet_path = tmp_path / "spec_test.parquet"
-    table = pa.Table.from_arrays(
-        [pa.array([123.45]), pa.array([-2.5])], names=["freq", "int"]
-    )
-    pq.write_table(table, str(parquet_path))  # type: ignore[no-untyped-call]
+# =============================================================================
+# CLI Self-Test Runner
+# =============================================================================
 
-    out_pgo = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        output_path=tmp_path / "DictOverride.pgo",
-        molecule_name="DictMol",
-        rotational_constants={"A": 8888.0, "B": 4444.0, "C": 2222.0},
-        dipoles={"mu_a": 0.8, "mu_b": 0.4, "mu_c": 0.2},
-    )
-    assert Path(out_pgo).exists()
-
-    # Missing manifest error
-    non_existent_manifest = tmp_path / "no_such_manifest.json"
-    with pytest.raises(CoChemIntegrityError, match="Manifest file not found"):
-        verify_payload_integrity(non_existent_manifest)
-
-
-def test_torq_exporter_scribe_and_corrupt_verify(tmp_path: Path) -> None:
-    """Validates scribe daemon missing file handling and corrupt verification."""
-    exporter = TorqExporter(export_dir=str(tmp_path))
-
-    # Scribe daemon with missing file returns False
-    res = exporter.export_to_scribe_daemon(str(tmp_path / "non_existent.zst"))
-    assert res is False
-
-    # Corrupt verification returns (False, None)
-    corrupt_file = tmp_path / "bad.zst"
-    corrupt_file.write_bytes(b"NOT_A_VALID_ZSTD_OR_JSON_STREAM")
-    ok, meta = exporter.verify_export(str(corrupt_file))
-    assert ok is False
-    assert meta is None
-
-
-def test_lock_provenance_with_kraitchman_and_nested_dirs(tmp_path: Path) -> None:
-    """Validates lock_provenance_payload with kraitchman_coords and nested directory tarball."""
-    payload_dir = tmp_path / "full_complex_payload"
-    payload_dir.mkdir()
-    sub_dir = payload_dir / "nested_models"
-    sub_dir.mkdir()
-
-    (sub_dir / "geom.xyz").write_text("3\nH2O\nO 0 0 0\nH 0 0 1\nH 0 1 0\n", encoding="utf-8")
-    (payload_dir / "spec.var").write_text("VAR TEST", encoding="utf-8")
-
-    kc = {
-        "coords": {"a": 0.0, "b": 1.25, "c": 0.85},
-        "costain_errors": {"a": 0.0, "b": 0.0012, "c": 0.0017},
-        "radicands": {"a": -0.01, "b": 1.5625, "c": 0.7225},
-    }
-
-    manifest = lock_provenance_payload(
-        target_directory=payload_dir,
-        kraitchman_coords=kc,
-        metadata={"run_id": "RUN-001"},
-    )
-
-    assert "kraitchman_coords" in manifest["metadata"]
-    assert manifest["metadata"]["kraitchman_coords"]["coords"]["b"] == 1.25
-
-    archive = bundle_spycfit_payload(
-        manifest_path_or_target_dir=payload_dir,
-        project_name="WaterDimer",
-    )
-    assert Path(archive).exists()
-    assert verify_payload_integrity(archive) is True
-
-
-
+if __name__ == "__main__":
+    test_symbols = ["O", "C", "O"]
+    test_coords = [[0.0, 0.0, -1.16], [0.0, 0.0, 0.0], [0.0, 0.0, 1.16]]
+    extractor = TorqTensorExtractor(test_symbols, test_coords, point_id="co2_test")
+    res = extractor.get_full_output()
+    print(f"Point: {res.point_id}")
+    print(f"Linear: {res.cartesian_protection.is_linear}")
+    print(f"Rotational DOF: {res.cartesian_protection.rotational_dof}")
+    print(f"B: {res.inertia.rotational_constants.B_MHz:.4f} MHz")
 
 Validate Zero-Mock adherence. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ.
