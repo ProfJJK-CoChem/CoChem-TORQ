@@ -31,10 +31,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import h5py  # type: ignore[import-untyped]
+import h5py
 import numpy as np
 import numpy.typing as npt
-import pyarrow.parquet as pq  # type: ignore[import-untyped]
+import pyarrow.parquet as pq
 import zstandard as zstd
 
 # Configure logging
@@ -56,19 +56,13 @@ ARTIFACTS_DIR = os.environ.get(
 class CoChemIntegrityError(Exception):
     """Raised when cryptographic verification or payload integrity check fails."""
 
-    pass
-
 
 class KraitchmanZPVEWarning(UserWarning):
     """Issued when ZPVE defect causes an imaginary substitution coordinate."""
 
-    pass
-
 
 class KraitchmanSingularityWarning(UserWarning):
     """Issued when near-symmetric top or denominator singularity occurs."""
-
-    pass
 
 
 # ============================================================================
@@ -112,11 +106,11 @@ def calculate_kraitchman_coords(
     parent_moments: dict[str, float]
     | tuple[float, float, float]
     | list[float]
-    | npt.NDArray[np.floating[Any]],
+    | npt.NDArray[Any],
     substituted_moments: dict[str, float]
     | tuple[float, float, float]
     | list[float]
-    | npt.NDArray[np.floating[Any]],
+    | npt.NDArray[Any],
     parent_mass: float,
     delta_m: float,
     singularity_threshold: float = 1e-4,
@@ -291,7 +285,7 @@ def generate_pgopher_skeleton(
         raise FileNotFoundError(f"Parquet catalog file not found: {parquet_path}")
 
     # OOM-Proof metadata inspection
-    pq_metadata = pq.read_metadata(str(parquet_file))
+    pq_metadata: Any = pq.read_metadata(str(parquet_file))
     num_rows = pq_metadata.num_rows
     num_columns = pq_metadata.num_columns
     column_names = pq_metadata.schema.names
@@ -788,7 +782,10 @@ class TorqExporter:
                         tensor_data[name] = {}
                         for key, value in obj.items():
                             if isinstance(value, h5py.Dataset):
-                                tensor_data[name][key] = value[()]
+                                val = value[()]
+                                if hasattr(val, "tolist"):
+                                    val = val.tolist()
+                                tensor_data[name][key] = val
                             else:
                                 tensor_data[name][key] = str(value.attrs)
                     elif isinstance(obj, h5py.Dataset):
@@ -842,7 +839,10 @@ class TorqExporter:
                         tensor_data[name] = {}
                         for key, value in obj.items():
                             if isinstance(value, h5py.Dataset):
-                                tensor_data[name][key] = value[()]
+                                val = value[()]
+                                if hasattr(val, "tolist"):
+                                    val = val.tolist()
+                                tensor_data[name][key] = val
                             else:
                                 tensor_data[name][key] = str(value.attrs)
                     elif isinstance(obj, h5py.Dataset):

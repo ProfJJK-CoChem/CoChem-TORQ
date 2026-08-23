@@ -21,15 +21,16 @@ import tarfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-import h5py  # type: ignore[import-untyped]
+import h5py
 import numpy as np
 import numpy.typing as npt
-import pyarrow as pa  # type: ignore[import-untyped]
-import pyarrow.parquet as pq  # type: ignore[import-untyped]
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
-import scipy.linalg as sla  # type: ignore[import-untyped]
+import scipy.linalg as sla
 import zstandard as zstd
 
+from Libraries.cochem_torq_alignment import enforce_ciaaw_masses
 from Libraries.cochem_torq_export import (
     CoChemIntegrityError,
     KraitchmanSingularityWarning,
@@ -105,16 +106,15 @@ def test_kraitchman_real_asymmetric_top() -> None:
         ],
         dtype=np.float64,
     )
-    masses_parent = np.array(
-        [12.000000, 1.007825, 18.998403, 34.968853, 78.918337], dtype=np.float64
-    )
+    # Dynamically retrieve CIAAW isotopic masses via Mendeleev library mandate
+    masses_parent = enforce_ciaaw_masses(["C", "H", "F", "35Cl", "79Br"])
 
     i_parent, _, aligned_parent = compute_principal_moments(coords, masses_parent)
     parent_mass = float(np.sum(masses_parent))
 
-    masses_sub = masses_parent.copy()
-    masses_sub[1] = 2.014102
-    delta_m = 2.014102 - 1.007825
+    # Deuterated isotopologue substitution (2H / D)
+    masses_sub = enforce_ciaaw_masses(["C", "2H", "F", "35Cl", "79Br"])
+    delta_m = float(masses_sub[1] - masses_parent[1])
 
     i_sub, _, _ = compute_principal_moments(coords, masses_sub)
     true_h_coords = np.abs(aligned_parent[1])
@@ -559,3 +559,210 @@ def test_file_not_found_guards(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError):
         bundle_spycfit_payload(manifest_path_or_target_dir=non_existent)
+
+
+def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
+    """Validates PGOPHER skeleton generation with default output and variants."""
+    parquet_path = tmp_path / "spectral.parquet"
+    table = pa.Table.from_arrays(
+        [
+            pa.array([1000.0, 2000.0], type=pa.float64()),
+            pa.array([-1.0, -2.0], type=pa.float64()),
+        ],
+        names=["freq", "intensity"],
+    )
+    pq.write_table(table, str(parquet_path))
+
+    # Test with point_id, temperature, and list-based rotational constants and dipoles
+    json_path = tmp_path / "point_metadata.json"
+    json_content = {
+        "point_id": "Conformer_A",
+        "temperature": 10.0,
+        "properties": {
+            "rotational_constants": [5000.0, 2500.0, 1500.0],
+            "dipole_moment": [0.5, 0.2, 0.0],
+        },
+    }
+    json_path.write_text(json.dumps(json_content), encoding="utf-8")
+
+    # Call with output_path=None to test default path generation
+    out_pgo = generate_pgopher_skeleton(
+        parquet_path=parquet_path,
+        json_path=json_path,
+        output_path=None,
+    )
+    assert Path(out_pgo).exists()
+    assert Path(out_pgo).name == "Conformer_A.pgo"
+
+    # Call with direct list overrides
+    out_pgo2 = generate_pgopher_skeleton(
+        parquet_path=parquet_path,
+        output_path=tmp_path / "DirectOverride.pgo",
+        molecule_name="OverrideMol",
+        temperature_k=77.0,
+        rotational_constants=[12000.0, 6000.0, 4000.0],
+        dipoles=[2.0, 1.0, 0.5],
+    )
+    assert Path(out_pgo2).exists()
+    tree = ET.parse(out_pgo2)
+    root = tree.getroot()
+    top = root.find(".//AsymmetricTop")
+    assert top is not None
+    params = {
+        p.attrib["Name"]: float(p.attrib["Value"])
+        for p in top.findall("Parameter")
+    }
+    assert math.isclose(params["A"], 12000.0, rel_tol=1e-5)
+    assert math.isclose(params["mu_a"], 2.0, rel_tol=1e-5)
+
+
+def test_bundle_spycfit_payload_from_manifest_file(tmp_path: Path) -> None:
+    """Validates bundling payload when given direct path to manifest file."""
+    payload_dir = tmp_path / "manifest_bundle_dir"
+    payload_dir.mkdir()
+    (payload_dir / "test.int").write_text("INT DATA", encoding="utf-8")
+
+    manifest_file = payload_dir / "spycfit_manifest.json"
+    lock_provenance_payload(payload_dir, output_manifest_path=manifest_file)
+
+    archive_str = bundle_spycfit_payload(manifest_path_or_target_dir=manifest_file)
+    assert Path(archive_str).exists()
+    assert verify_payload_integrity(archive_str) is True
+
+
+def test_verify_payload_with_dict_and_base_dir(tmp_path: Path) -> None:
+    """Validates verify_payload_integrity when passed a manifest dictionary."""
+    payload_dir = tmp_path / "dict_verify_dir"
+    payload_dir.mkdir()
+    (payload_dir / "file1.txt").write_bytes(b"DATA ONE")
+    (payload_dir / "file2.txt").write_bytes(b"DATA TWO")
+
+    manifest = lock_provenance_payload(payload_dir)
+    assert verify_payload_integrity(manifest, base_dir=payload_dir) is True
+
+    # Test size mismatch in directory verify
+    (payload_dir / "file1.txt").write_bytes(b"LONGER DATA ONE MODIFIED")
+    with pytest.raises(CoChemIntegrityError, match="File size mismatch"):
+        verify_payload_integrity(manifest, base_dir=payload_dir)
+
+
+def test_torq_exporter_batch_and_dvr(tmp_path: Path) -> None:
+    """Validates batch export and Sinc-DVR export methods in TorqExporter."""
+    h5_1 = tmp_path / "mol1.h5"
+    h5_2 = tmp_path / "mol2.h5"
+
+    for h5_path, val in [(h5_1, 10.0), (h5_2, 20.0)]:
+        with h5py.File(str(h5_path), "w") as f:
+            grp = f.create_group("geometry")
+            grp.create_dataset("coords", data=[[0.0, 0.0, val]])
+            f.create_dataset("energy", data=-75.5)
+
+    export_out = tmp_path / "batch_out"
+    exporter = TorqExporter(export_dir=str(export_out))
+
+    exported = exporter.batch_export_to_zstd([str(h5_1), str(h5_2)])
+    assert len(exported) == 2
+    for exp_file in exported:
+        assert Path(exp_file).exists()
+        success, _ = exporter.verify_export(exp_file)
+        assert success is True
+
+    dvr_export = exporter.export_tensor_to_zstd_with_sinc_dvr(str(h5_1))
+    assert Path(dvr_export).exists()
+    assert "_dvr.zst" in dvr_export
+    success, meta = exporter.verify_export(dvr_export)
+    assert success is True
+    assert meta is not None
+
+
+def test_kraitchman_exact_zero_denominator_guard() -> None:
+    """Validates Kraitchman coordinates when moments are identical (Ia == Ib)."""
+    parent_moments = (20.0, 20.0, 40.0)
+    sub_moments = (20.5, 20.5, 40.8)
+
+    with pytest.warns(KraitchmanSingularityWarning):
+        res = calculate_kraitchman_coords(
+            parent_moments=parent_moments,
+            substituted_moments=sub_moments,
+            parent_mass=50.0,
+            delta_m=1.0,
+            singularity_threshold=1e-4,
+        )
+    assert not math.isnan(res["coords"]["a"])
+    assert not math.isnan(res["coords"]["b"])
+    assert not math.isnan(res["coords"]["c"])
+
+
+def test_pgopher_dict_overrides_and_missing_manifest(tmp_path: Path) -> None:
+    """Validates dict overrides in PGOPHER generator and missing manifest error."""
+    parquet_path = tmp_path / "spec_test.parquet"
+    table = pa.Table.from_arrays(
+        [pa.array([123.45]), pa.array([-2.5])], names=["freq", "int"]
+    )
+    pq.write_table(table, str(parquet_path))
+
+    out_pgo = generate_pgopher_skeleton(
+        parquet_path=parquet_path,
+        output_path=tmp_path / "DictOverride.pgo",
+        molecule_name="DictMol",
+        rotational_constants={"A": 8888.0, "B": 4444.0, "C": 2222.0},
+        dipoles={"mu_a": 0.8, "mu_b": 0.4, "mu_c": 0.2},
+    )
+    assert Path(out_pgo).exists()
+
+    # Missing manifest error
+    non_existent_manifest = tmp_path / "no_such_manifest.json"
+    with pytest.raises(CoChemIntegrityError, match="Manifest file not found"):
+        verify_payload_integrity(non_existent_manifest)
+
+
+def test_torq_exporter_scribe_and_corrupt_verify(tmp_path: Path) -> None:
+    """Validates scribe daemon missing file handling and corrupt verification."""
+    exporter = TorqExporter(export_dir=str(tmp_path))
+
+    # Scribe daemon with missing file returns False
+    res = exporter.export_to_scribe_daemon(str(tmp_path / "non_existent.zst"))
+    assert res is False
+
+    # Corrupt verification returns (False, None)
+    corrupt_file = tmp_path / "bad.zst"
+    corrupt_file.write_bytes(b"NOT_A_VALID_ZSTD_OR_JSON_STREAM")
+    ok, meta = exporter.verify_export(str(corrupt_file))
+    assert ok is False
+    assert meta is None
+
+
+def test_lock_provenance_with_kraitchman_and_nested_dirs(tmp_path: Path) -> None:
+    """Validates lock_provenance_payload with kraitchman_coords and nested directory tarball."""
+    payload_dir = tmp_path / "full_complex_payload"
+    payload_dir.mkdir()
+    sub_dir = payload_dir / "nested_models"
+    sub_dir.mkdir()
+
+    (sub_dir / "geom.xyz").write_text("3\nH2O\nO 0 0 0\nH 0 0 1\nH 0 1 0\n", encoding="utf-8")
+    (payload_dir / "spec.var").write_text("VAR TEST", encoding="utf-8")
+
+    kc = {
+        "coords": {"a": 0.0, "b": 1.25, "c": 0.85},
+        "costain_errors": {"a": 0.0, "b": 0.0012, "c": 0.0017},
+        "radicands": {"a": -0.01, "b": 1.5625, "c": 0.7225},
+    }
+
+    manifest = lock_provenance_payload(
+        target_directory=payload_dir,
+        kraitchman_coords=kc,
+        metadata={"run_id": "RUN-001"},
+    )
+
+    assert "kraitchman_coords" in manifest["metadata"]
+    assert manifest["metadata"]["kraitchman_coords"]["coords"]["b"] == 1.25
+
+    archive = bundle_spycfit_payload(
+        manifest_path_or_target_dir=payload_dir,
+        project_name="WaterDimer",
+    )
+    assert Path(archive).exists()
+    assert verify_payload_integrity(archive) is True
+
+
+
