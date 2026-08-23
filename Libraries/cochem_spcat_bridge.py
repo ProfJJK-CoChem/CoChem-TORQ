@@ -856,25 +856,26 @@ def fortran_overflow_guard(
         elif isinstance(val, np.ndarray):
             try:
                 max_val = float(np.max(np.abs(val))) if val.size > 0 else 0.0
-                if max_val > max_limit or math.isinf(max_val) or math.isnan(max_val):
-                    msg = (
-                        f"CRITICAL: Fortran Double Precision overflow detected in array '{path}': "
-                        f"max magnitude {max_val} exceeds limit {max_limit:.1e}"
-                    )
-                    logger.critical("[FORTRAN_OVERFLOW] %s", msg)
-                    if clamp_on_overflow:
-                        return np.clip(val, -max_limit, max_limit)
-                    raise FortranOverflowError(
-                        message=msg,
-                        error_code=ProvenanceErrorCode.FORTRAN_OVERFLOW,
-                        details={
-                            "path": path,
-                            "max_magnitude": float(max_val),
-                            "limit": float(max_limit),
-                        },
-                    )
             except (TypeError, ValueError):
-                pass
+                return val
+
+            if max_val > max_limit or math.isinf(max_val) or math.isnan(max_val):
+                msg = (
+                    f"CRITICAL: Fortran Double Precision overflow detected in array '{path}': "
+                    f"max magnitude {max_val} exceeds limit {max_limit:.1e}"
+                )
+                logger.critical("[FORTRAN_OVERFLOW] %s", msg)
+                if clamp_on_overflow:
+                    return np.clip(val, -max_limit, max_limit)
+                raise FortranOverflowError(
+                    message=msg,
+                    error_code=ProvenanceErrorCode.FORTRAN_OVERFLOW,
+                    details={
+                        "path": path,
+                        "max_magnitude": float(max_val),
+                        "limit": float(max_limit),
+                    },
+                )
             return val
         elif isinstance(val, (int, float)):
             fval = float(val)

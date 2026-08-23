@@ -1,19 +1,18 @@
-Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_p2_jax_builder.md.
+Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_p2_spcat.md.
 Original prompt:
-# Prompt: Phase 7 (Stage 5.0) Hardware-Accelerated Physics Engine
+# Prompt: Phase 8 (Stage 5.1) Symmetry & Statistics Router
 
-**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_jax_builder.py`
+**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_spcat_bridge.py`
 
 ## Objective
-Implement Phase 7 (Stage 5.0) Hardware-Accelerated Physics Engine for CoChem-TORQ.
+Implement Phase 8 (Stage 5.1) Symmetry & Statistics Router for CoChem-TORQ.
 
 ## Instructions for Coder
-1. Create `cochem_jax_builder.py` inside `Libraries/`.
-2. Enforce `JAX_ENABLE_X64=True` strictly on startup.
-3. Implement `build_dvr_hamiltonian()` to construct a 1D or 2D DVR matrix from the PES.
-4. Implement `jit_eigen_solver()` to offload matrix diagonalization to JAX, with dynamic mapping for JIT/GPU, Apple MPS, and CPU fallback.
-5. Implement `nan_tensor_watchdog()` to catch divergent eigenvalues and memory faults.
-6. Implement `localized_vpt2_coupling()` to merge exact internal rotor energies with VPT2 outputs.
+1. Create `cochem_spcat_bridge.py` inside `Libraries/`.
+2. Implement `vibrational_partition_coupling()` to correctly couple Q_rot and Q_vib, avoiding the decoupled RRHO approximation for LAMs.
+3. Implement `apply_symmetry_divisors()` using `molsym` to algorithmically detect the point group and apply the symmetry number divisor.
+4. Implement `low_frequency_trap()` to isolate harmonic frequencies < 50 cm^-1.
+5. Enforce the 3-Tier Routing Protocol (MPQC Primary, ORCA secondary, CFOUR legacy).
 
 ## Constraints & Anti-Spoofing
 - **One Script Policy**: Only create or modify the specified target file.
@@ -22,1978 +21,2089 @@ Implement Phase 7 (Stage 5.0) Hardware-Accelerated Physics Engine for CoChem-TOR
 - **Air-Gap Compliance**: The generated script MUST NOT write any data or logs to the repository space at runtime. Read and write strictly according to the dynamically provided scratch/artifact paths, never to the current working directory.
 Modified files content:
 
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_jax_builder.py ---
-"""
-CoChem-TORQ 0.0.11
-Stage 5.0: The Hardware-Accelerated Physics Engine (JAX DVR)
------------------------------------------------------------
-Implements exact 1D and 2D Discrete Variable Representation (DVR) solvers
-using Google JAX with XLA Just-In-Time (JIT) compilation. Replaces inaccurate
-Rigid-Rotor Harmonic-Oscillator (RRHO) approximations for Large Amplitude
-Motions (LAMs) with exact quantum mechanical nuclear Schrödinger solutions.
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_spcat_bridge.py ---
+"""Stage 5.1: Statistical Mechanics & Pickett SPCAT Bridge.
 
-Compliant with Method Matrix v4 (§4.4, §8C, Table 2) and Phase 7 specifications.
+Authoritative Module for CoChem-BASE / CoChem-TORQ (Phase 8 / Stage 5.1).
+Implements the mathematical statistical mechanics translation layer and rigid
+Fortran-77 ASCII parameter generators (.var and .int) for Pickett's SPCAT/SPFIT suite.
+
+Key Capabilities:
+1. Exact CODATA 2022 fundamental physical constants for all thermodynamic and rotational formulations.
+2. Low-frequency Large Amplitude Motion (LAM) trap (< 50 cm^-1) requiring Phase 7 DVR solvers.
+3. MolSym point-group symmetry resolver, rotational symmetry numbers (sigma),
+   and nuclear spin statistical weights (e.g. H2O ortho/para 3:1 ratio).
+4. Strict Double-Counting Guardrail between 1/sigma divisor and nuclear spin statistical weights.
+5. Vibrational partition coupling across temperature gradients with automatic LAM mode dropping.
+6. Double Precision Fortran overflow guard (|val| > 1e308) blocking corrupt VPT2 parameters.
+7. Rigid character alignment and 'D' exponent formatting for Pickett's ASCII files (.var / .int).
+8. Tripartite Filesystem Air-Gap compliance and SHA-256 cryptographic provenance manifests.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import math
 import os
+import re
+from collections.abc import Callable, Sequence
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-ARTIFACTS_DIR = os.environ.get(
-    "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
-)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-JAX-DVR] %(message)s"
-)
-logger = logging.getLogger("TorqJaxDVR")
-
-# CODATA 2022 Physical Constants (Exact)
-PLANCK_CONSTANT_JS = 6.62607015e-34  # Exact h (J s)
-BOLTZMANN_CONSTANT_JK = 1.380649e-23  # Exact kB (J/K)
-SPEED_OF_LIGHT_CMS = 29979245800.0  # Exact c (cm/s)
-HBAR_JS = PLANCK_CONSTANT_JS / (2.0 * math.pi)
-# Conversion factor hbar^2 / (2 * m_u) in cm^-1 * Angstrom^2 * amu
-HBAR_SQ_OVER_2M_U_CM1_A2 = 16.857629206
-
-# Try importing JAX and configuring float64 precision
 try:
-    import jax
-    import jax.numpy as jnp
+    import molsym  # type: ignore[import-untyped]
 
-    # Force 64-bit precision immediately upon module import
-    jax.config.update("jax_enable_x64", True)
-    JAX_AVAILABLE = True
+    _MOLSYM_AVAILABLE = True
 except ImportError:
-    JAX_AVAILABLE = False
-    logger.warning(
-        "JAX not installed in runtime environment; fallback mode will be limited."
+    _MOLSYM_AVAILABLE = False
+
+try:
+    from cochem_base.config_loader import (
+        get_base_root,
+        get_repo_root,
     )
-
-
-class CoChemPrecisionError(RuntimeError):
-    """Raised when JAX float64 precision cannot be enforced."""
-
-    pass
-
-
-class DVRConvergenceError(RuntimeError):
-    """Raised when the DVR eigenvalue solver fails to converge."""
-
-    pass
-
-
-def enforce_jax_precision() -> dict[str, Any]:
-    """
-    Enforces JAX 64-bit floating point precision (float64) and identifies hardware.
-
-    Spectroscopic tunneling splittings can exist on the order of 10^-6 cm^-1.
-    Standard 32-bit floating point precision causes numerical underflow.
-
-    :return: Dictionary containing detected hardware platform, devices, and x64 status.
-    :raises CoChemPrecisionError: If 64-bit precision cannot be activated.
-    """
-    if not JAX_AVAILABLE:
-        raise CoChemPrecisionError(
-            "JAX is not installed. Cannot enforce precision or allocate GPU memory."
-        )
-
-    # Update and verify x64 configuration
-    jax.config.update("jax_enable_x64", True)
-
-    test_tensor = jnp.zeros((2,), dtype=jnp.float64)
-    if test_tensor.dtype != jnp.float64:
-        raise CoChemPrecisionError(
-            f"Failed to enforce JAX 64-bit precision. Dtype: {test_tensor.dtype}."
-        )
-
-    devices = jax.devices()
-    default_backend = jax.default_backend()
-
-    device_info = {
-        "platform": default_backend,
-        "devices": [str(d) for d in devices],
-        "device_count": len(devices),
-        "x64_enabled": True,
-        "dtype": "float64",
-    }
-
-    logger.info(
-        f"JAX float64 precision enforced on {default_backend.upper()} "
-        f"({len(devices)} device(s): {devices[0]})"
+    from cochem_base.exceptions import (
+        AirGapViolationError,
+        FortranOverflowError,
+        LAMTriggerError,
+        ProvenanceErrorCode,
+        SPCATBridgeError,
     )
-    return device_info
+except ImportError:
+
+    class ProvenanceErrorCode:  # type: ignore[no-redef]
+        AIRGAP_VIOLATION = "AIRGAP_VIOLATION"
+        FORTRAN_OVERFLOW = "FORTRAN_OVERFLOW"
+        LAM_TRIGGER = "LAM_TRIGGER"
+        SPCAT_BRIDGE_ERROR = "SPCAT_BRIDGE_ERROR"
+
+    class SPCATBridgeError(Exception):  # type: ignore[no-redef]
+        def __init__(
+            self,
+            message: str,
+            error_code: Any = ProvenanceErrorCode.SPCAT_BRIDGE_ERROR,
+            details: dict[str, Any] | None = None,
+        ) -> None:
+            super().__init__(message)
+            self.message = message
+            self.error_code = error_code
+            self.details = details or {}
+
+    class AirGapViolationError(SPCATBridgeError):  # type: ignore[no-redef]
+        pass
+
+    class FortranOverflowError(SPCATBridgeError):  # type: ignore[no-redef]
+        pass
+
+    class LAMTriggerError(SPCATBridgeError):  # type: ignore[no-redef]
+        pass
+
+    def get_repo_root() -> Path:  # type: ignore[no-redef]
+        return Path(__file__).resolve().parent.parent
+
+    def get_base_root() -> Path:  # type: ignore[no-redef]
+        cand = Path(__file__).resolve().parent.parent.parent / "CoChem-BASE"
+        return cand if cand.exists() else get_repo_root()
 
 
-def _construct_1d_kinetic_matrix(
-    n_pts: int, delta_x: float, kinetic_factor: float, periodic: bool = False
-) -> np.ndarray:
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# 1. Fundamental Physical Constants (CODATA 2022 Exact Recommended Values)
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class CODATA2022:
+    """Exact fundamental physical constants from CODATA 2022 recommended values."""
+
+    # Planck constant (exact, SI definition 2019) [J * s]
+    H: float = 6.62607015e-34
+    # Boltzmann constant (exact, SI definition 2019) [J * K^-1]
+    K_B: float = 1.380649e-23
+    # Speed of light in vacuum (exact) [m * s^-1]
+    C_M_S: float = 299792458.0
+    # Speed of light in vacuum (exact) [cm * s^-1]
+    C_CM_S: float = 29979245800.0
+    # Rotational constant factor C_rot = h / (8 * pi^2) in [MHz * u * Angstrom^2]
+    # h / (8 * pi^2 * u * 1e-20) * 1e-6 MHz = 505379.008435
+    C_ROT: float = 505379.008435
+    # Avogadro constant (exact) [mol^-1]
+    N_A: float = 6.02214076e23
+    # Atomic mass constant [kg]
+    AMU_KG: float = 1.66053906660e-27
+    # h * c / k_B conversion factor [K * cm]
+    # (6.62607015e-34 * 29979245800.0) / 1.380649e-23 = 1.4387768775039336
+    HC_OVER_KB: float = 1.4387768775039336
+    # k_B / h factor for rotational partition function [Hz / K] = [s^-1 * K^-1]
+    KB_OVER_H: float = 1.380649e-23 / 6.62607015e-34  # ~ 20836619124.62 Hz/K
+
+
+CONSTANTS = CODATA2022()
+
+# Module-level aliases for immutable CODATA 2022 constants
+CODATA_YEAR: int = 2022
+PLANCK_CONSTANT_JS: float = CONSTANTS.H
+BOLTZMANN_CONSTANT_JK: float = CONSTANTS.K_B
+SPEED_OF_LIGHT_CMS: float = CONSTANTS.C_CM_S
+SPEED_OF_LIGHT_MS: float = CONSTANTS.C_M_S
+ROTATIONAL_FACTOR_C_ROT: float = CONSTANTS.C_ROT
+C_ROT: float = CONSTANTS.C_ROT
+HC_OVER_KB: float = CONSTANTS.HC_OVER_KB
+KB_OVER_H: float = CONSTANTS.KB_OVER_H
+
+
+# =============================================================================
+# 2. Data Structures and Transfer Objects
+# =============================================================================
+
+
+@dataclass
+class SymmetryDivisorResult:
+    """Structured result of point-group symmetry resolution and spin weight assignment."""
+
+    point_group: str
+    sigma: int
+    spin_statistical_weights: list[int]
+    spin_weight_ratio_str: str
+    effective_divisor: float
+    guardrail_status: str
+    equivalent_atom_groups: dict[str, list[int]] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert record to serializable dictionary."""
+        return asdict(self)
+
+
+@dataclass
+class PartitionFunctionResult:
+    """Structured internal partition function evaluation across a temperature grid."""
+
+    temperatures: list[float]
+    q_rot: dict[float, float]
+    q_vib: dict[float, float]
+    q_total: dict[float, float]
+    dropped_lam_frequencies: list[float] = field(default_factory=list)
+    stiff_frequencies: list[float] = field(default_factory=list)
+    is_dvr_coupled: bool = False
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert record to serializable dictionary."""
+        return asdict(self)
+
+
+@dataclass
+class SPCATParameter:
+    """Rigidly formatted parameter record for Pickett's SPCAT .var/.par file."""
+
+    param_id: int
+    value: float
+    uncertainty: float
+    label: str
+    formatted_line: str
+
+
+@dataclass
+class SPCATPayload:
+    """Complete package of SPCAT input files, cryptographic hashes, and provenance manifest."""
+
+    molecule_name: str
+    var_content: str
+    int_contents: dict[float, str]
+    provenance_manifest: dict[str, Any]
+    sha256_var: str
+    sha256_int: dict[float, str]
+    var_filepath: str | None = None
+    int_filepaths: dict[float, str] = field(default_factory=dict)
+    provenance_filepath: str | None = None
+
+
+# Point group to rotational symmetry number sigma mapping
+_POINT_GROUP_SIGMAS: dict[str, int] = {
+    "C1": 1,
+    "Cs": 1,
+    "Ci": 1,
+    "C2": 2,
+    "C2v": 2,
+    "C2h": 2,
+    "C3": 3,
+    "C3v": 3,
+    "C3h": 3,
+    "C4": 4,
+    "C4v": 4,
+    "C4h": 4,
+    "C5": 5,
+    "C5v": 5,
+    "C5h": 5,
+    "C6": 6,
+    "C6v": 6,
+    "C6h": 6,
+    "D2": 4,
+    "D2h": 4,
+    "D2d": 4,
+    "D3": 6,
+    "D3h": 6,
+    "D3d": 6,
+    "D4": 8,
+    "D4h": 8,
+    "D4d": 8,
+    "D5": 10,
+    "D5h": 10,
+    "D5d": 10,
+    "D6": 12,
+    "D6h": 12,
+    "D6d": 12,
+    "Td": 12,
+    "Th": 12,
+    "Oh": 24,
+    "O": 24,
+    "Ih": 60,
+    "I": 60,
+    "Cinfv": 1,
+    "Dinfh": 2,
+    "Kh": 1,
+}
+
+
+def _pg_to_sigma(pg: str) -> int:
+    """Resolve rotational symmetry number sigma from Schoenflies point group string."""
+    clean = pg.strip()
+    return _POINT_GROUP_SIGMAS.get(clean, 1)
+
+
+# =============================================================================
+# 3. Low-Frequency LAM Trap (Physical Guardrail against RRHO Failure)
+# =============================================================================
+
+
+def low_frequency_lam_trap(
+    harmonic_frequencies: Sequence[float],
+    threshold_cm1: float = 50.0,
+    zero_mode_cutoff: float = 1e-4,
+) -> list[float]:
+    """Trap vibrational normal mode frequencies below threshold (< 50 cm^-1).
+
+    Under the Rigid-Rotor Harmonic-Oscillator (RRHO) approximation, low-frequency
+    vibrational modes (< 50 cm^-1) correspond to Large Amplitude Motions (LAM)
+    such as methyl internal rotation, ring puckering, or low-barrier torsion.
+    Simple harmonic partition functions diverge and fail catastrophically for LAM.
+    This guardrail intercepts these modes, raises a LAMTriggerError with
+    LAM_TRIGGER error code, and demands execution of Phase 7 DVR solvers.
+
+    Args:
+        harmonic_frequencies: Sequence of vibrational normal mode frequencies (cm^-1).
+        threshold_cm1: Critical LAM frequency threshold in cm^-1 (default: 50.0).
+        zero_mode_cutoff: Tolerance below which modes are treated as zero/translational (default: 1e-4).
+
+    Returns:
+        Validated list of stiff vibrational frequencies (all >= threshold_cm1).
+
+    Raises:
+        LAMTriggerError: If any genuine vibrational mode is below threshold_cm1.
     """
-    Constructs a 1D Colbert-Miller sinc-DVR or Periodic sinc-DVR kinetic matrix.
+    flagged_lam_modes: list[float] = []
+    stiff_modes: list[float] = []
 
-    :param n_pts: Number of grid points.
-    :param delta_x: Grid spacing.
-    :param kinetic_factor: Kinetic prefactor (e.g. B in cm^-1).
-    :param periodic: If True, applies Meyer/Colbert-Miller periodic boundaries.
-    :return: (n_pts x n_pts) Kinetic energy matrix as numpy array.
-    """
-    t_matrix = np.zeros((n_pts, n_pts), dtype=np.float64)
-
-    if periodic:
-        # Periodic Sinc-DVR (Meyer-Colbert-Miller formalism for [0, 2pi))
-        is_odd = n_pts % 2 == 1
-        for i in range(n_pts):
-            for j in range(n_pts):
-                diff = i - j
-                if diff == 0:
-                    if is_odd:
-                        t_matrix[i, i] = kinetic_factor * ((n_pts**2 - 1.0) / 12.0)
-                    else:
-                        t_matrix[i, i] = kinetic_factor * ((n_pts**2 + 2.0) / 12.0)
-                else:
-                    arg = np.pi * diff / float(n_pts)
-                    sin_sq = np.sin(arg) ** 2
-                    if sin_sq < 1e-16:
-                        sin_sq = 1e-16
-                    if is_odd:
-                        t_matrix[i, j] = kinetic_factor * (
-                            (((-1.0) ** diff) * np.cos(arg)) / (2.0 * sin_sq)
-                        )
-                    else:
-                        t_matrix[i, j] = kinetic_factor * (
-                            ((-1.0) ** diff) / (2.0 * sin_sq)
-                        )
-    else:
-        # Standard Colbert-Miller Sinc-DVR (infinite / Dirichlet domain)
-        factor = kinetic_factor / (delta_x**2)
-        for i in range(n_pts):
-            for j in range(n_pts):
-                diff = i - j
-                if diff == 0:
-                    t_matrix[i, i] = factor * (np.pi**2 / 3.0)
-                else:
-                    t_matrix[i, j] = factor * (2.0 * ((-1.0) ** diff) / (diff**2))
-
-    return t_matrix
-
-
-def build_dvr_hamiltonian(
-    pes_spline_array: list[float] | np.ndarray | Any,
-    kinetic_operator: float | tuple[float, float] | np.ndarray | Any = 1.0,
-    grid_points: list[float] | np.ndarray | tuple[Any, ...] | None = None,
-    dimensions: int = 1,
-    periodic: bool = False,
-) -> Any:
-    """
-    Constructs the discretized quantum mechanical Hamiltonian matrix (H = T + V).
-
-    :param pes_spline_array: 1D or 2D potential energy values (cm^-1 or hartree).
-    :param kinetic_operator: Rotational constant B, reduced mass, or explicit matrix.
-    :param grid_points: 1D coordinate array or tuple of (grid_x, grid_y) for 2D.
-    :param dimensions: Coordinate dimensionality (1 or 2).
-    :param periodic: If True, uses periodic sinc-DVR for angular torsions.
-    :return: Discretized Hamiltonian matrix as a JAX float64 array.
-    """
-    if not JAX_AVAILABLE:
-        raise CoChemPrecisionError("JAX is required for build_dvr_hamiltonian.")
-
-    enforce_jax_precision()
-    pes = np.asarray(pes_spline_array, dtype=np.float64)
-
-    if dimensions == 1:
-        n_pts = len(pes)
-        if n_pts == 0:
-            raise ValueError("Potential energy array cannot be empty.")
-
-        if grid_points is not None:
-            pts = np.asarray(grid_points, dtype=np.float64)
-            if len(pts) != n_pts:
-                raise ValueError(
-                    f"Grid points length ({len(pts)}) does not match PES ({n_pts})."
-                )
-            delta_x = float(pts[1] - pts[0]) if n_pts > 1 else 1.0
-            if n_pts > 2 and not np.allclose(
-                np.diff(pts), delta_x, rtol=1e-5, atol=1e-8
-            ):
-                logger.warning("Non-uniform grid spacing detected for sinc-DVR.")
+    for raw_freq in harmonic_frequencies:
+        freq = float(raw_freq)
+        # Skip pure zero / translational-rotational residual modes
+        if abs(freq) <= zero_mode_cutoff:
+            continue
+        if freq < threshold_cm1:
+            flagged_lam_modes.append(freq)
         else:
-            delta_x = 2.0 * np.pi / n_pts if periodic else 1.0
+            stiff_modes.append(freq)
 
-        if isinstance(kinetic_operator, int | float):
-            if periodic:
-                # Rotational constant B (cm^-1) for periodic rotor
-                b_const = float(kinetic_operator)
-                t_mat = _construct_1d_kinetic_matrix(
-                    n_pts, delta_x, b_const, periodic=True
-                )
+    if flagged_lam_modes:
+        min_lam = min(flagged_lam_modes)
+        error_msg = (
+            f"LAM detected: vibrational frequency {min_lam:.2f} cm^-1 is below "
+            f"threshold {threshold_cm1:.1f} cm^-1. Rigid-Rotor Harmonic-Oscillator (RRHO) "
+            f"approximation is invalid. Phase 7 DVR solvers are physically required."
+        )
+        logger.warning(
+            "[LAM_TRIGGER] %s (Flagged modes: %s)", error_msg, flagged_lam_modes
+        )
+        raise LAMTriggerError(
+            message=error_msg,
+            error_code=ProvenanceErrorCode.LAM_TRIGGER,
+            details={
+                "flagged_frequencies": [float(f) for f in flagged_lam_modes],
+                "threshold_cm1": float(threshold_cm1),
+                "stiff_frequencies_count": len(stiff_modes),
+                "total_frequencies_evaluated": len(harmonic_frequencies),
+                "min_lam_frequency": float(min_lam),
+            },
+        )
+
+    return stiff_modes
+
+
+# Backward-compatible alias
+low_frequency_trap = low_frequency_lam_trap
+
+
+# =============================================================================
+# 4. MolSym Symmetry Solver & Nuclear Spin Statistical Weights
+# =============================================================================
+
+
+def _resolve_nuclear_spin_ratio(
+    point_group: str,
+    symbols: Sequence[str],
+    equivalent_groups: dict[str, list[int]],
+) -> tuple[list[int], str]:
+    """Derive nuclear spin statistical weights and ratio string from point group and equivalent atoms.
+
+    Args:
+        point_group: Schoenflies point group string (e.g. 'C2v', 'C3v', 'Cs', 'D2h').
+        symbols: List of element symbols.
+        equivalent_groups: Mapping of group label to atom indices.
+
+    Returns:
+        Tuple of (spin_statistical_weights_list, ratio_string e.g. '3 1').
+    """
+    pg_clean = point_group.strip()
+
+    # Determine spin of equivalent hydrogen/halogen atoms
+    h_indices: list[int] = [
+        i for i, sym in enumerate(symbols) if sym.strip() in ("H", "1H")
+    ]
+
+    if pg_clean in ("C2v", "C2", "C2h"):
+        # For H2O, CH2O, H2S, etc. with 2 equivalent protons:
+        # Ortho (symmetric, I_tot=1, wt=3) : Para (antisymmetric, I_tot=0, wt=1)
+        if len(h_indices) >= 2:
+            return [3, 1], "3 1"
+        return [1, 1], "1 1"
+
+    elif pg_clean in ("C3v", "C3", "D3h"):
+        # For NH3, CH3X (3 equivalent protons, I = 1/2):
+        # A1/A2 (ortho, I_tot=3/2, wt=4), E (para, I_tot=1/2, wt=2) -> ratio 4:2 = 2:1
+        if len(h_indices) >= 3:
+            return [4, 2], "2 1"
+        return [1, 1], "1 1"
+
+    elif pg_clean in ("D2h", "D2", "D2d"):
+        # For Ethylene (C2H4, 4 protons):
+        # 7 (B3u), 3 (Ag), 3 (B1g), 3 (B2u)
+        if len(h_indices) >= 4:
+            return [7, 3, 3, 3], "7 3 3 3"
+        return [3, 1], "3 1"
+
+    elif pg_clean in ("C1", "Cs", "Ci"):
+        # Asymmetric / planar with no non-trivial rotational symmetry (sigma = 1)
+        return [1], "1"
+
+    elif pg_clean in ("Td", "Oh", "Ih"):
+        if len(h_indices) >= 4:
+            return [5, 2, 3], "5 2 3"
+        return [1, 1, 1], "1 1 1"
+
+    # Default fallback
+    return [1], "1"
+
+
+def apply_symmetry_divisors(
+    geometry_array: np.ndarray | Sequence[Sequence[float]] | Sequence[float],
+    symbols: Sequence[str] | None = None,
+    use_nuclear_spin: bool = False,
+    enforce_guardrail: bool = True,
+) -> SymmetryDivisorResult:
+    """Resolve molecular point group, rotational symmetry number (sigma), and nuclear spin weights.
+
+    Interfaces with MolSym to identify Schoenflies point group (e.g. C2v for H2O),
+    computes the rotational symmetry divisor sigma (e.g. sigma=2 for H2O), and assigns
+    the nuclear spin statistical weights ratio (e.g. '3 1' for H2O ortho/para).
+
+    Double-Counting Guardrail:
+    Enforces a strict selection rule: apply EITHER the exact nuclear spin statistical
+    weights OR the classical 1/sigma divisor to the partition function, but NEVER both
+    simultaneously. Applying both would artificially deflate the state density twice,
+    since exact nuclear spin weights already account for point-group symmetry.
+
+    Args:
+        geometry_array: Cartesian coordinates of atoms in Angstroms (shape N x 3 or flattened).
+        symbols: List of atom element symbols (e.g. ['O', 'H', 'H']).
+        use_nuclear_spin: If True, uses exact nuclear spin weights and sets effective_divisor=1.0.
+        enforce_guardrail: If True, validates and enforces the double-counting selection rule.
+
+    Returns:
+        SymmetryDivisorResult containing point group, sigma, spin weights, ratio string,
+        effective divisor, and guardrail status.
+
+    Raises:
+        SPCATBridgeError: If MolSym resolution or geometry parsing fails.
+    """
+    flat_coords: list[float] = []
+    if isinstance(geometry_array, np.ndarray):
+        flat_coords = [float(x) for x in geometry_array.flatten()]
+    else:
+        for item in geometry_array:
+            if isinstance(item, (list, tuple, np.ndarray, Sequence)):
+                for x in item:
+                    flat_coords.append(float(x))
             else:
-                # Mass-based kinetic factor in cm^-1: hbar^2 / (2 * m)
-                mass = float(kinetic_operator)
-                kinetic_factor = HBAR_SQ_OVER_2M_U_CM1_A2 / mass if mass > 0 else 1.0
-                t_mat = _construct_1d_kinetic_matrix(
-                    n_pts, delta_x, kinetic_factor, periodic=False
-                )
-        else:
-            t_mat = np.asarray(kinetic_operator, dtype=np.float64)
-            if t_mat.shape != (n_pts, n_pts):
-                raise ValueError(
-                    f"Kinetic matrix shape {t_mat.shape} must match ({n_pts}, {n_pts})."
-                )
+                flat_coords.append(float(item))
 
-        v_mat = np.diag(pes)
-        h_mat = t_mat + v_mat
-        return jnp.array(h_mat, dtype=jnp.float64)
-
-    elif dimensions == 2:
-        if pes.ndim == 2:
-            nx, ny = pes.shape
-            v_flat = pes.flatten()
-        elif pes.ndim == 1:
-            if (
-                grid_points is None
-                or not isinstance(grid_points, tuple)
-                or len(grid_points) != 2
-            ):
-                raise ValueError(
-                    "2D DVR with 1D PES array requires grid_points=(grid_x, grid_y)."
-                )
-            nx = len(grid_points[0])
-            ny = len(grid_points[1])
-            if len(pes) != nx * ny:
-                raise ValueError(
-                    f"1D PES length ({len(pes)}) does not match 2D grid ({nx}x{ny})."
-                )
-            v_flat = pes
-        else:
-            raise ValueError(f"Invalid PES array shape for 2D DVR: {pes.shape}")
-
-        if (
-            grid_points is not None
-            and isinstance(grid_points, tuple)
-            and len(grid_points) == 2
-        ):
-            gx, gy = np.asarray(grid_points[0]), np.asarray(grid_points[1])
-            dx = float(gx[1] - gx[0]) if len(gx) > 1 else 1.0
-            dy = float(gy[1] - gy[0]) if len(gy) > 1 else 1.0
-        else:
-            dx = 2.0 * np.pi / nx if periodic else 1.0
-            dy = 2.0 * np.pi / ny if periodic else 1.0
-
-        if isinstance(kinetic_operator, tuple) and len(kinetic_operator) == 2:
-            bx, by = float(kinetic_operator[0]), float(kinetic_operator[1])
-            tx = _construct_1d_kinetic_matrix(nx, dx, bx, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, by, periodic=periodic)
-        elif isinstance(kinetic_operator, int | float):
-            b = float(kinetic_operator)
-            tx = _construct_1d_kinetic_matrix(nx, dx, b, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, b, periodic=periodic)
-        else:
-            raise ValueError(
-                "Kinetic operator for 2D DVR must be a tuple (Bx, By) or scalar."
-            )
-
-        # 2D Kinetic operator via Kronecker product: T_2D = Tx (x) I_y + I_x (x) Ty
-        ix = np.eye(nx, dtype=np.float64)
-        iy = np.eye(ny, dtype=np.float64)
-        t_2d = np.kron(tx, iy) + np.kron(ix, ty)
-
-        v_2d = np.diag(v_flat)
-        h_2d = t_2d + v_2d
-        return jnp.array(h_2d, dtype=jnp.float64)
-
-    else:
-        raise ValueError(
-            f"Unsupported dimensionality {dimensions}. Supported dimensions: 1 or 2."
+    if len(flat_coords) % 3 != 0:
+        raise SPCATBridgeError(
+            message=f"Invalid flattened coordinate size {len(flat_coords)}, must be multiple of 3",
+            error_code=ProvenanceErrorCode.SPCAT_BRIDGE_ERROR,
         )
 
+    coords_np = np.array(flat_coords).reshape(-1, 3)
+    num_atoms = coords_np.shape[0]
 
-if JAX_AVAILABLE:
-
-    @jax.jit
-    def _jit_eigh_core(h: Any) -> tuple[Any, Any]:
-        """Internal JIT-compiled XLA eigenvalue solver."""
-        return jnp.linalg.eigh(h)
-
-
-def jit_eigen_solver(
-    hamiltonian_matrix: np.ndarray | Any,
-) -> tuple[Any, Any]:
-    """
-    Solves the eigenvalue problem for the discretized DVR Hamiltonian via JAX JIT.
-
-    Guarantees float64 precision and real eigenvalues via XLA-compiled eigh.
-
-    :param hamiltonian_matrix: Real symmetric or complex Hermitian Hamiltonian.
-    :return: Tuple of (eigenvalues, eigenvectors) as JAX float64 arrays.
-    """
-    if not JAX_AVAILABLE:
-        raise CoChemPrecisionError("JAX is required for jit_eigen_solver.")
-
-    enforce_jax_precision()
-    h_jax = jnp.asarray(hamiltonian_matrix, dtype=jnp.float64)
-
-    # Symmetrize matrix to prevent tiny numerical asymmetry artifacts
-    h_sym = 0.5 * (h_jax + h_jax.T)
-
-    evals, evecs = _jit_eigh_core(h_sym)
-    return evals, evecs
-
-
-def nan_tensor_watchdog(
-    eigenvalues: np.ndarray | Any | None = None,
-    hamiltonian: np.ndarray | Any | None = None,
-    wavefunctions: np.ndarray | Any | None = None,
-    alpha_regularization: float = 1e-6,
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Intercepts divergent eigenvalues, NaNs, Infs, or ill-conditioned DVR matrices.
-
-    Applies Tikhonov Regularization (H_reg = H + alpha * I) to stabilize ill-conditioned
-    Hamiltonian matrices and restore positive-definite stability.
-
-    :param eigenvalues: Array of eigenvalues to check for NaNs/Infs (optional).
-    :param hamiltonian: Input Hamiltonian matrix to regularize if corrupted.
-    :param wavefunctions: Wavefunctions corresponding to eigenvalues (optional).
-    :param alpha_regularization: Damping coefficient for Tikhonov regularization.
-    :return: Tuple of validated, finite (eigenvalues, wavefunctions).
-    :raises ValueError: If neither eigenvalues nor hamiltonian are provided.
-    :raises DVRConvergenceError: If regularization fails to resolve NaNs.
-    """
-    if eigenvalues is None and hamiltonian is None:
-        raise ValueError(
-            "At least one of eigenvalues or hamiltonian must be provided "
-            "to nan_tensor_watchdog."
+    if symbols is None:
+        symbols = ["X"] * num_atoms
+    elif len(symbols) != num_atoms:
+        raise SPCATBridgeError(
+            message=f"Symbols length ({len(symbols)}) does not match atom count ({num_atoms})",
+            error_code=ProvenanceErrorCode.SPCAT_BRIDGE_ERROR,
         )
 
-    has_nan_evals = eigenvalues is not None and (
-        np.isnan(np.asarray(eigenvalues)).any()
-        or np.isinf(np.asarray(eigenvalues)).any()
-    )
+    point_group = "C1"
+    sigma = 1
+    equivalent_groups: dict[str, list[int]] = {}
 
-    has_nan_h = hamiltonian is not None and (
-        np.isnan(np.asarray(hamiltonian)).any()
-        or np.isinf(np.asarray(hamiltonian)).any()
-    )
-
-    if not has_nan_evals and not has_nan_h:
-        if eigenvalues is not None:
-            evals_np = np.asarray(eigenvalues, dtype=np.float64)
-            if len(evals_np) > 1 and (evals_np[1] - evals_np[0]) < -1e-12:
-                logger.warning(
-                    f"Non-physical inverted eigenvalue spectrum detected "
-                    f"(E1={evals_np[1]:.4f} < E0={evals_np[0]:.4f})."
-                )
-            evecs_np = (
-                np.asarray(wavefunctions, dtype=np.float64)
-                if wavefunctions is not None
-                else np.empty((0, 0))
-            )
-            return evals_np, evecs_np
-        elif hamiltonian is not None:
-            h_clean = np.asarray(hamiltonian, dtype=np.float64)
-            h_sym = 0.5 * (h_clean + h_clean.T)
-            evals_np, evecs_np = np.linalg.eigh(h_sym)
-            return evals_np, evecs_np
-
-    logger.warning(
-        f"NaN/Inf tensor divergence detected! Intercepting crash and applying "
-        f"Tikhonov Regularization (lambda = {alpha_regularization:.2e})."
-    )
-
-    if hamiltonian is None:
-        raise DVRConvergenceError(
-            "NaN/Inf detected in eigenvalues, but Hamiltonian matrix was "
-            "not provided for regularization."
-        )
-
-    h_cleaned = np.asarray(hamiltonian, copy=True, dtype=np.float64)
-    nan_mask = np.isnan(h_cleaned) | np.isinf(h_cleaned)
-    h_cleaned[nan_mask] = 0.0
-
-    # Symmetrize
-    h_cleaned = 0.5 * (h_cleaned + h_cleaned.T)
-
-    # Apply Tikhonov Regularization: H_reg = H + alpha * I
-    n = h_cleaned.shape[0]
-    h_reg = h_cleaned + alpha_regularization * np.eye(n, dtype=np.float64)
-
-    # Diagonalize regularized matrix
-    if JAX_AVAILABLE:
+    if _MOLSYM_AVAILABLE:
         try:
-            evals_jax, evecs_jax = jit_eigen_solver(h_reg)
-            evals_np = np.asarray(evals_jax, dtype=np.float64)
-            evecs_np = np.asarray(evecs_jax, dtype=np.float64)
-        except Exception as e:
-            logger.warning(
-                f"JAX diagonalization failed during recovery ({e}); "
-                "using NumPy fallback."
-            )
-            evals_np, evecs_np = np.linalg.eigh(h_reg)
-    else:
-        evals_np, evecs_np = np.linalg.eigh(h_reg)
+            schema = {
+                "symbols": [str(s).strip() for s in symbols],
+                "geometry": flat_coords,
+            }
+            mol = molsym.Molecule.from_schema(schema)
+            try:
+                sym = molsym.Symtext.from_molecule(mol)
+                point_group = str(sym.pg).strip()
+                sigma = int(sym.rotational_symmetry_number)
+            except Exception:
+                pg_info = molsym.find_point_group(mol)
+                point_group = str(pg_info[0]).strip()
+                sigma = _pg_to_sigma(point_group)
 
-    if np.isnan(evals_np).any() or np.isinf(evals_np).any():
-        raise DVRConvergenceError(
-            "DVR matrix remains unsolvable and divergent after Tikhonov Regularization."
+            # Extract symmetry equivalent atom sets
+            try:
+                seas = mol.find_SEAs()
+                for idx, sea in enumerate(seas):
+                    subset = [int(i) for i in getattr(sea, "subset", [])]
+                    equivalent_groups[f"SEA_{idx}"] = subset
+            except Exception as sea_err:
+                logger.debug("MolSym find_SEAs non-fatal error: %s", sea_err)
+
+        except Exception as err:
+            logger.warning(
+                "MolSym analysis encountered exception: %s. Falling back to geometric solver.",
+                err,
+            )
+            point_group, sigma = _fallback_point_group_solver(coords_np, symbols)
+    else:
+        point_group, sigma = _fallback_point_group_solver(coords_np, symbols)
+
+    spin_weights, ratio_str = _resolve_nuclear_spin_ratio(
+        point_group, symbols, equivalent_groups
+    )
+
+    # Enforce Double-Counting Guardrail
+    if use_nuclear_spin:
+        effective_divisor = 1.0
+        guardrail_status = (
+            "GUARDRAIL_ENFORCED_EXACT_NUCLEAR_SPIN_APPLIED_SIGMA_BYPASSED"
+        )
+    else:
+        effective_divisor = float(sigma)
+        guardrail_status = "GUARDRAIL_ENFORCED_CLASSICAL_SIGMA_APPLIED"
+
+    return SymmetryDivisorResult(
+        point_group=point_group,
+        sigma=sigma,
+        spin_statistical_weights=spin_weights,
+        spin_weight_ratio_str=ratio_str,
+        effective_divisor=effective_divisor,
+        guardrail_status=guardrail_status,
+        equivalent_atom_groups=equivalent_groups,
+        metadata={
+            "num_atoms": num_atoms,
+            "symbols": list(symbols),
+            "use_nuclear_spin": bool(use_nuclear_spin),
+            "enforce_guardrail": bool(enforce_guardrail),
+        },
+    )
+
+
+def _fallback_point_group_solver(
+    coords: np.ndarray, symbols: Sequence[str]
+) -> tuple[str, int]:
+    """Fallback geometric symmetry analyzer when MolSym is unavailable or coordinates are approximate."""
+    num_atoms = coords.shape[0]
+    if num_atoms == 1:
+        return "Kh", 1
+    if num_atoms == 2:
+        return ("Dinfh", 2) if symbols[0] == symbols[1] else ("Cinfv", 1)
+
+    com = np.mean(coords, axis=0)
+    centered = coords - com
+
+    # Check for planar C2v geometry (e.g. H2O: 3 atoms, 2 identical)
+    if num_atoms == 3:
+        unique_syms = set(symbols)
+        if len(unique_syms) == 2:
+            sym_counts = {s: symbols.count(s) for s in unique_syms}
+            eq_sym = [s for s, c in sym_counts.items() if c == 2][0]
+            eq_indices = [i for i, s in enumerate(symbols) if s == eq_sym]
+            d1 = float(
+                np.sqrt(
+                    np.sum(
+                        (
+                            centered[eq_indices[0]]
+                            - centered[[i for i in range(3) if i not in eq_indices][0]]
+                        )
+                        ** 2
+                    )
+                )
+            )
+            d2 = float(
+                np.sqrt(
+                    np.sum(
+                        (
+                            centered[eq_indices[1]]
+                            - centered[[i for i in range(3) if i not in eq_indices][0]]
+                        )
+                        ** 2
+                    )
+                )
+            )
+            if abs(d1 - d2) < 1e-2:
+                return "C2v", 2
+
+    # Check for pyramidal C3v geometry (e.g. NH3: 4 atoms, 3 identical)
+    if num_atoms == 4:
+        unique_syms = set(symbols)
+        if len(unique_syms) == 2:
+            sym_counts = {s: symbols.count(s) for s in unique_syms}
+            eq_sym_list = [s for s, c in sym_counts.items() if c == 3]
+            if eq_sym_list:
+                eq_indices = [i for i, s in enumerate(symbols) if s == eq_sym_list[0]]
+                d1 = float(
+                    np.sqrt(
+                        np.sum((centered[eq_indices[0]] - centered[eq_indices[1]]) ** 2)
+                    )
+                )
+                d2 = float(
+                    np.sqrt(
+                        np.sum((centered[eq_indices[1]] - centered[eq_indices[2]]) ** 2)
+                    )
+                )
+                d3 = float(
+                    np.sqrt(
+                        np.sum((centered[eq_indices[2]] - centered[eq_indices[0]]) ** 2)
+                    )
+                )
+                if abs(d1 - d2) < 1e-2 and abs(d2 - d3) < 1e-2:
+                    return "C3v", 3
+
+    # Check for planar D2h geometry (e.g. C2H4: 6 atoms, 2 C and 4 H)
+    if num_atoms == 6:
+        unique_syms = set(symbols)
+        if len(unique_syms) == 2:
+            sym_counts = {s: symbols.count(s) for s in unique_syms}
+            if 2 in sym_counts.values() and 4 in sym_counts.values():
+                return "D2h", 4
+
+    return "Cs", 1
+
+
+# =============================================================================
+# 5. Statistical Mechanics Partition Functions & Vibrational Coupling
+# =============================================================================
+
+
+def calculate_rotational_partition_function(
+    a_mhz: float,
+    b_mhz: float,
+    c_mhz: float,
+    temp_k: float,
+    sigma: float = 1.0,
+    is_linear: bool = False,
+) -> float:
+    """Calculate rotational partition function Q_rot(T) using exact CODATA 2022 constants.
+
+    Formulations:
+    - Asymmetric Top: Q_rot(T) = (sqrt(pi) / sigma) * (k_B * T / (h * 1e6))^(3/2) / sqrt(A * B * C)
+    - Linear Rotor:   Q_rot(T) = (k_B * T) / (sigma * (h * 1e6) * B)
+
+    Args:
+        a_mhz: Rotational constant A in MHz.
+        b_mhz: Rotational constant B in MHz.
+        c_mhz: Rotational constant C in MHz.
+        temp_k: Thermodynamic temperature in Kelvin.
+        sigma: Rotational symmetry number (default: 1.0).
+        is_linear: True if molecule is a linear rotor.
+
+    Returns:
+        Rotational partition function Q_rot(T) (dimensionless).
+    """
+    if temp_k <= 0.0:
+        return 1.0
+
+    sigma_eff = max(1.0, float(sigma))
+    kb_over_h_mhz = CONSTANTS.K_B / (CONSTANTS.H * 1e6)
+
+    if is_linear:
+        b_eff = max(1e-12, float(b_mhz))
+        return (kb_over_h_mhz * temp_k) / (sigma_eff * b_eff)
+
+    a_eff = max(1e-12, float(a_mhz))
+    b_eff = max(1e-12, float(b_mhz))
+    c_eff = max(1e-12, float(c_mhz))
+
+    factor = (kb_over_h_mhz * temp_k) ** 1.5
+    abc_sqrt = math.sqrt(a_eff * b_eff * c_eff)
+    q_rot = (math.sqrt(math.pi) / sigma_eff) * (factor / abc_sqrt)
+    return float(q_rot)
+
+
+def calculate_vibrational_partition_function(
+    frequencies_cm1: Sequence[float],
+    temp_k: float,
+    exclude_frequencies: Sequence[float] | None = None,
+) -> float:
+    """Calculate vibrational partition function Q_vib(T) referenced to ZPVE.
+
+    Q_vib(T) = prod_{i, nu_i not in exclude} [ 1 / (1 - exp(- h * c * nu_i / (k_B * T))) ]
+
+    Args:
+        frequencies_cm1: Sequence of normal mode harmonic frequencies in cm^-1.
+        temp_k: Thermodynamic temperature in Kelvin.
+        exclude_frequencies: Frequencies to drop (e.g. LAM modes handled by DVR).
+
+    Returns:
+        Vibrational partition function Q_vib(T) (dimensionless).
+    """
+    if temp_k <= 0.0:
+        return 1.0
+
+    excluded_set: list[float] = (
+        [float(x) for x in exclude_frequencies] if exclude_frequencies else []
+    )
+    q_vib = 1.0
+    hc_over_kb = CONSTANTS.HC_OVER_KB  # ~ 1.4387768775 K*cm
+
+    for raw_f in frequencies_cm1:
+        f = float(raw_f)
+        if f <= 0.0:
+            continue
+        if any(abs(f - excl) < 0.1 for excl in excluded_set):
+            continue
+
+        x = (hc_over_kb * f) / temp_k
+        if x > 500.0:
+            factor = 1.0
+        else:
+            exp_neg_x = math.exp(-x)
+            factor = 1.0 / (1.0 - exp_neg_x)
+
+        q_vib *= factor
+
+    return float(q_vib)
+
+
+def vibrational_partition_coupling(
+    q_rot_dvr: dict[float, float] | Sequence[float] | float | Callable[[float], float],
+    q_vib_orca: dict[float, float] | Sequence[float] | np.ndarray | float,
+    temp_array: Sequence[float],
+    lam_frequency: float | None = None,
+    all_frequencies: Sequence[float] | None = None,
+) -> dict[float, float]:
+    """Compute total coupled internal partition function Q_total(T) = Q_vib(T) * Q_rot(T).
+
+    When Phase 7 DVR rotational partition functions are coupled with ORCA harmonic
+    frequencies, any identified LAM frequency (nu_lam < 50 cm^-1) is explicitly
+    dropped from the Q_vib product to prevent thermodynamic double-counting.
+
+    Args:
+        q_rot_dvr: Precomputed DVR rotational partition function mapping {T: Q_rot},
+                   callable f(T), list matching temp_array, or scalar.
+        q_vib_orca: Precomputed Q_vib mapping {T: Q_vib}, list of harmonic frequencies (cm^-1),
+                    or scalar.
+        temp_array: Sequence of temperatures in Kelvin (e.g. [2.0, 10.0, 50.0, 298.15]).
+        lam_frequency: Specific LAM mode frequency (cm^-1) to drop from Q_vib.
+        all_frequencies: Full set of normal mode harmonic frequencies (cm^-1).
+
+    Returns:
+        Dictionary mapping temperature T -> Q_total(T).
+    """
+    results: dict[float, float] = {}
+    temps = [float(t) for t in temp_array]
+
+    excluded: list[float] = []
+    if lam_frequency is not None:
+        excluded.append(float(lam_frequency))
+
+    is_freq_list = False
+    raw_freqs: list[float] = []
+    if all_frequencies is not None:
+        is_freq_list = True
+        raw_freqs = [float(x) for x in all_frequencies]
+    elif isinstance(q_vib_orca, (list, tuple, np.ndarray)):
+        arr = np.array(q_vib_orca, dtype=float)
+        if arr.ndim == 1 and arr.size > 0:
+            if len(arr) != len(temps) or any(float(x) >= 20.0 for x in arr):
+                is_freq_list = True
+                raw_freqs = [float(x) for x in arr]
+
+    for idx, t in enumerate(temps):
+        if callable(q_rot_dvr):
+            q_rot_val = float(q_rot_dvr(t))
+        elif isinstance(q_rot_dvr, dict):
+            q_rot_val = float(q_rot_dvr.get(t, 1.0))
+        elif isinstance(q_rot_dvr, (list, tuple, np.ndarray)):
+            q_rot_val = float(q_rot_dvr[idx]) if idx < len(q_rot_dvr) else 1.0
+        elif isinstance(q_rot_dvr, (int, float)):
+            q_rot_val = float(q_rot_dvr)
+        else:
+            q_rot_val = 1.0
+
+        if is_freq_list:
+            q_vib_val = calculate_vibrational_partition_function(
+                frequencies_cm1=raw_freqs,
+                temp_k=t,
+                exclude_frequencies=excluded,
+            )
+        elif isinstance(q_vib_orca, dict):
+            q_vib_val = float(q_vib_orca.get(t, 1.0))
+        elif isinstance(q_vib_orca, (list, tuple, np.ndarray)):
+            q_vib_val = float(q_vib_orca[idx]) if idx < len(q_vib_orca) else 1.0
+        elif isinstance(q_vib_orca, (int, float)):
+            q_vib_val = float(q_vib_orca)
+        else:
+            q_vib_val = 1.0
+
+        results[t] = float(q_rot_val * q_vib_val)
+
+    return results
+
+
+def compute_coupled_partition_functions(
+    a_mhz: float,
+    b_mhz: float,
+    c_mhz: float,
+    frequencies_cm1: Sequence[float],
+    temp_array: Sequence[float],
+    sigma: float = 1.0,
+    lam_frequency: float | None = None,
+    is_dvr: bool = False,
+) -> PartitionFunctionResult:
+    """Compute complete coupled partition functions with metadata tracking."""
+    temps = [float(t) for t in temp_array]
+    q_rot_dict: dict[float, float] = {}
+    q_vib_dict: dict[float, float] = {}
+    q_total_dict: dict[float, float] = {}
+
+    excluded = [float(lam_frequency)] if lam_frequency is not None else []
+    stiff = [
+        f for f in frequencies_cm1 if not any(abs(f - ex) < 0.1 for ex in excluded)
+    ]
+
+    for t in temps:
+        q_r = calculate_rotational_partition_function(
+            a_mhz, b_mhz, c_mhz, t, sigma=sigma
+        )
+        q_v = calculate_vibrational_partition_function(
+            frequencies_cm1, t, exclude_frequencies=excluded
+        )
+        q_rot_dict[t] = q_r
+        q_vib_dict[t] = q_v
+        q_total_dict[t] = q_r * q_v
+
+    return PartitionFunctionResult(
+        temperatures=temps,
+        q_rot=q_rot_dict,
+        q_vib=q_vib_dict,
+        q_total=q_total_dict,
+        dropped_lam_frequencies=excluded,
+        stiff_frequencies=stiff,
+        is_dvr_coupled=bool(is_dvr),
+    )
+
+
+# =============================================================================
+# 6. Fortran Overflow Guard
+# =============================================================================
+
+
+def fortran_overflow_guard(
+    tensor_dictionary: dict[str, Any] | Sequence[Any] | float | int | np.ndarray,
+    max_limit: float = 1e308,
+    clamp_on_overflow: bool = False,
+) -> Any:
+    """Trap values exceeding Double Precision mathematical ceilings (|val| > 1e308).
+
+    Un-deperturbed resonances from VPT2 or divergent perturbation calculations can
+    yield wildly oscillating constants that exceed Fortran REAL*8 limits (~10^308),
+    causing SPCAT to crash or emit 'NON-POSITIVE DEFINITE' matrix errors.
+    This guard actively scans incoming parameter tensors, logs a CRITICAL warning,
+    and raises FortranOverflowError to block corrupted parameters.
+
+    Args:
+        tensor_dictionary: Dictionary, nested list, array, or scalar of parameters.
+        max_limit: Hard double precision magnitude limit (default: 1e308).
+        clamp_on_overflow: If True, clamps value to +/- max_limit instead of raising.
+
+    Returns:
+        Validated (and optionally clamped) data structure.
+
+    Raises:
+        FortranOverflowError: If any value exceeds max_limit and clamp_on_overflow is False.
+    """
+
+    def _inspect_and_guard(val: Any, path: str) -> Any:
+        if isinstance(val, dict):
+            return {
+                k: _inspect_and_guard(v, f"{path}.{k}" if path else str(k))
+                for k, v in val.items()
+            }
+        elif isinstance(val, (list, tuple)):
+            return [
+                _inspect_and_guard(item, f"{path}[{i}]") for i, item in enumerate(val)
+            ]
+        elif isinstance(val, np.ndarray):
+            try:
+                max_val = float(np.max(np.abs(val))) if val.size > 0 else 0.0
+            except (TypeError, ValueError):
+                return val
+
+            if max_val > max_limit or math.isinf(max_val) or math.isnan(max_val):
+                msg = (
+                    f"CRITICAL: Fortran Double Precision overflow detected in array '{path}': "
+                    f"max magnitude {max_val} exceeds limit {max_limit:.1e}"
+                )
+                logger.critical("[FORTRAN_OVERFLOW] %s", msg)
+                if clamp_on_overflow:
+                    return np.clip(val, -max_limit, max_limit)
+                raise FortranOverflowError(
+                    message=msg,
+                    error_code=ProvenanceErrorCode.FORTRAN_OVERFLOW,
+                    details={
+                        "path": path,
+                        "max_magnitude": float(max_val),
+                        "limit": float(max_limit),
+                    },
+                )
+            return val
+        elif isinstance(val, (int, float)):
+            fval = float(val)
+            if math.isinf(fval) or math.isnan(fval) or abs(fval) > max_limit:
+                msg = (
+                    f"CRITICAL: Fortran Double Precision overflow detected for parameter '{path}': "
+                    f"value {fval} exceeds hard limit {max_limit:.1e}"
+                )
+                logger.critical("[FORTRAN_OVERFLOW] %s", msg)
+                if clamp_on_overflow:
+                    return (
+                        math.copysign(max_limit, fval) if not math.isnan(fval) else 0.0
+                    )
+                raise FortranOverflowError(
+                    message=msg,
+                    error_code=ProvenanceErrorCode.FORTRAN_OVERFLOW,
+                    details={
+                        "parameter": path,
+                        "value": str(val),
+                        "limit": float(max_limit),
+                    },
+                )
+            return val
+        return val
+
+    return _inspect_and_guard(tensor_dictionary, "")
+
+
+# =============================================================================
+# 7. Fortran Double Precision Formatter & Alignment Engine
+# =============================================================================
+
+
+def format_fortran_double(
+    val: float,
+    width: int = 22,
+    precision: int = 15,
+    compact: bool = False,
+) -> str:
+    """Convert a Python float into strict Fortran Double Precision scientific notation ('D').
+
+    Examples:
+        1.567e-05 -> '1.567D-05' (compact) or ' 1.567000000000000D-05' (fixed width).
+
+    Args:
+        val: Numerical float value.
+        width: Field width for right alignment (ignored if compact=True).
+        precision: Decimal precision in mantissa.
+        compact: If True, returns minimal scientific representation without trailing zeros.
+
+    Returns:
+        Formatted Fortran Double Precision string.
+    """
+    fval = float(val)
+    if fval == 0.0:
+        base = "0.000D+00" if compact else f"0.{'0' * precision}D+00"
+        return base if compact else f"{base:>{width}}"
+
+    sci_str = f"{fval:.{precision}e}"
+    if "e" in sci_str or "E" in sci_str:
+        mantissa, exponent = sci_str.replace("E", "e").split("e")
+        exp_int = int(exponent)
+        exp_sign = "+" if exp_int >= 0 else "-"
+        exp_formatted = f"{exp_sign}{abs(exp_int):02d}"
+        if compact:
+            parts = mantissa.split(".")
+            if len(parts) == 2:
+                dec = parts[1].rstrip("0")
+                if len(dec) < 3:
+                    dec = dec.ljust(3, "0")
+                mantissa = f"{parts[0]}.{dec}"
+            return f"{mantissa}D{exp_formatted}"
+        else:
+            return f"{f'{mantissa}D{exp_formatted}':>{width}}"
+
+    formatted = f"{sci_str}".replace("e", "D").replace("E", "D")
+    return formatted if compact else f"{formatted:>{width}}"
+
+
+def fortran_double_precision_formatter(
+    val_or_id: Any,
+    val: float | None = None,
+    uncertainty: float = 0.0,
+    label: str = "",
+    width: int = 22,
+    precision: int = 15,
+    compact: bool = False,
+) -> str | list[str]:
+    """Format single floats, parameter lines, or parameter dictionaries into Pickett Fortran strings.
+
+    Signatures supported:
+    1. Single float value:
+       `fortran_double_precision_formatter(0.00001567)` -> `'1.567D-05'`
+    2. Parameter line:
+       `fortran_double_precision_formatter(20000, 0.00001567, uncertainty=1e-7, label="DJ")`
+       -> `'     20000   1.567000000000000D-05   1.000000000000000D-07  / DJ'`
+    3. Dictionary of parameters:
+       `fortran_double_precision_formatter({'20000': 1.567e-5, '10000': 435360.0})` -> list of lines
+
+    Args:
+        val_or_id: Numerical float value, integer parameter ID (e.g. 20000), or parameter dict.
+        val: Parameter value when val_or_id is a parameter ID.
+        uncertainty: Estimated uncertainty in MHz (default: 0.0).
+        label: Descriptive comment label (e.g. 'DJ', 'A').
+        width: Column width for numbers (default: 22).
+        precision: Mantissa precision (default: 15).
+        compact: If True, uses compact scientific notation (e.g. '1.567D-05').
+
+    Returns:
+        Formatted Fortran string or list of formatted lines.
+    """
+    if isinstance(val_or_id, dict):
+        lines: list[str] = []
+        for p_id, p_val in val_or_id.items():
+            if isinstance(p_val, (tuple, list)):
+                p_v = float(p_val[0])
+                p_u = float(p_val[1]) if len(p_val) > 1 else 0.0
+                p_lbl = str(p_val[2]) if len(p_val) > 2 else ""
+            else:
+                p_v = float(p_val)
+                p_u = 0.0
+                p_lbl = ""
+            line = fortran_double_precision_formatter(
+                val_or_id=p_id,
+                val=p_v,
+                uncertainty=p_u,
+                label=p_lbl,
+                width=width,
+                precision=precision,
+                compact=compact,
+            )
+            lines.append(str(line))
+        return lines
+
+    if val is not None:
+        param_id_int = int(val_or_id)
+        val_str = format_fortran_double(
+            val, width=width, precision=precision, compact=compact
+        )
+        unc_str = format_fortran_double(
+            uncertainty, width=width, precision=precision, compact=compact
+        )
+        lbl_part = f"  / {label}" if label else ""
+        return f"{param_id_int:>10}  {val_str}  {unc_str}{lbl_part}"
+
+    if isinstance(val_or_id, (int, float)):
+        return format_fortran_double(
+            float(val_or_id), width=width, precision=precision, compact=compact
         )
 
-    logger.info(
-        f"Successfully recovered finite DVR eigenvalue spectrum via "
-        f"Tikhonov Regularization. Ground state: {evals_np[0]:.6f} cm^-1."
+    return str(val_or_id)
+
+
+# =============================================================================
+# 8. Pickett SPCAT .var and .int ASCII Generation
+# =============================================================================
+
+PICKETT_PARAMETER_CODES: dict[str, int] = {
+    "B_C_AVG": 10000,
+    "B_MINUS_C": 30000,
+    "A_REDUCED": 20000,
+    "A": 20000,
+    "B": 10000,
+    "C": 30000,
+    "DJ": 200,
+    "DJK": 1100,
+    "DK": 2000,
+    "d1": 40100,
+    "d2": 41000,
+    "DELTA_J": 200,
+    "DELTA_JK": 1100,
+    "DELTA_K": 2000,
+    "delta_j": 40100,
+    "delta_k": 41000,
+}
+
+
+def generate_spcat_var(
+    molecule_name: str,
+    parameters: dict[str, Any],
+    title: str | None = None,
+    nopt: int = 0,
+    nwarn: int = 0,
+    erpar: float = 1.0,
+    wtfac: float = 1.0,
+    scale: float = 1.0,
+    maxit: int = 50,
+    filepath: str | Path | None = None,
+) -> str:
+    """Generate exact Pickett SPCAT .var ASCII parameter file content."""
+    guarded_params = fortran_overflow_guard(parameters)
+
+    title_str = (
+        title if title else f"{molecule_name} Ground State - CoChem SPCAT Bridge"
     )
-    return evals_np, evecs_np
 
-
-def localized_vpt2_coupling(
-    dvr_energies: list[float] | np.ndarray,
-    vpt2_matrix: list[list[float]] | np.ndarray,
-    harmonic_frequencies: list[float] | np.ndarray,
-    lam_mode_indices: list[int] | None = None,
-    temperature_k: float = 298.15,
-) -> dict[str, Any]:
-    """
-    Merges exact internal rotor energies with VPT2 outputs for orthogonal stiff modes.
-
-    Drops harmonic modes corresponding to Large Amplitude Motions (LAM) to avoid
-    thermodynamic double-counting, coupling stiff modes with the exact DVR manifold.
-
-    :param dvr_energies: Array of exact DVR eigenvalues in cm^-1.
-    :param vpt2_matrix: Anharmonic X_ij matrix in cm^-1.
-    :param harmonic_frequencies: List of all harmonic frequencies in cm^-1.
-    :param lam_mode_indices: Indices of normal modes to drop (omega < 50 cm^-1 default).
-    :param temperature_k: Temperature in Kelvin for partition function evaluation.
-    :return: Dictionary with decoupled stiff frequencies and partition functions.
-    """
-    dvr_e = np.sort(np.asarray(dvr_energies, dtype=np.float64))
-    vpt2_x = np.asarray(vpt2_matrix, dtype=np.float64)
-    harm_freqs = np.asarray(harmonic_frequencies, dtype=np.float64)
-    n_modes = len(harm_freqs)
-
-    # Determine which modes to drop as LAM
-    if lam_mode_indices is None:
-        dropped_modes = [i for i, freq in enumerate(harm_freqs) if freq < 50.0]
-    else:
-        dropped_modes = list(lam_mode_indices)
-
-    stiff_mode_indices = [i for i in range(n_modes) if i not in dropped_modes]
-    stiff_frequencies = harm_freqs[stiff_mode_indices]
-
-    logger.info(
-        f"Localized VPT2 Coupling: Dropping {len(dropped_modes)} LAM mode(s) "
-        f"{dropped_modes} from harmonic set. Retaining {len(stiff_frequencies)} "
-        "stiff orthogonal modes."
-    )
-
-    if temperature_k <= 0.0:
-        return {
-            "dropped_lam_modes": dropped_modes,
-            "stiff_harmonic_frequencies": stiff_frequencies.tolist(),
-            "q_dvr_rot": 1.0,
-            "q_stiff_vib": 1.0,
-            "q_coupled_total": 1.0,
-            "dvr_ground_state_energy_cm1": float(dvr_e[0]) if len(dvr_e) > 0 else 0.0,
-            "stiff_zpe_cm1": 0.0,
-            "coupled_ground_state_energy_cm1": float(dvr_e[0])
-            if len(dvr_e) > 0
-            else 0.0,
-            "temperature_k": float(temperature_k),
-        }
-
-    # Exact DVR torsional partition function Q_dvr
-    # Q_dvr = sum_n exp(- (E_n - E_0) / (kB * T))
-    hc_cm = PLANCK_CONSTANT_JS * SPEED_OF_LIGHT_CMS  # Joules per cm^-1
-    kt_j = BOLTZMANN_CONSTANT_JK * temperature_k
-
-    e0 = dvr_e[0] if len(dvr_e) > 0 else 0.0
-    relative_dvr_e = dvr_e - e0
-
-    q_dvr = 0.0
-    for energy_cm1 in relative_dvr_e:
-        e_j = energy_cm1 * hc_cm
-        arg = -e_j / kt_j
-        if arg > -700.0:
-            q_dvr += math.exp(arg)
-
-    # Stiff vibrational partition function Q_stiff
-    # Q_stiff = prod_i [ 1 / (1 - exp(- h c nu_i / (kB T))) ]
-    q_stiff = 1.0
-    for nu in stiff_frequencies:
-        nu_clamped = max(float(nu), 10.0)
-        e_vib_j = nu_clamped * hc_cm
-        exp_arg = -e_vib_j / kt_j
-        if exp_arg < -700.0:
-            mode_q = 1.0
+    param_records: list[SPCATParameter] = []
+    for key, val in guarded_params.items():
+        if isinstance(val, (tuple, list)):
+            v = float(val[0])
+            u = float(val[1]) if len(val) > 1 else 1e-4
+            lbl = str(val[2]) if len(val) > 2 else str(key)
         else:
-            denom = 1.0 - math.exp(exp_arg)
-            mode_q = 1.0 / denom if abs(denom) > 1e-12 else 1.0
-        q_stiff *= mode_q
+            v = float(val)
+            u = 1e-4
+            lbl = str(key)
 
-    q_coupled_total = q_dvr * q_stiff
+        if str(key).isdigit():
+            p_id = int(key)
+        elif key in PICKETT_PARAMETER_CODES:
+            p_id = PICKETT_PARAMETER_CODES[key]
+        else:
+            p_id = 10000
 
-    # Compute anharmonic zero-point energy of stiff modes using upper triangular sum:
-    # E_anh_ZPE = 0.25 * sum_{i <= j} X_{ij}
-    stiff_x = (
-        vpt2_x[np.ix_(stiff_mode_indices, stiff_mode_indices)]
-        if vpt2_x.ndim == 2 and vpt2_x.shape[0] == n_modes
-        else np.zeros((len(stiff_frequencies), len(stiff_frequencies)))
+        line_str = fortran_double_precision_formatter(
+            val_or_id=p_id,
+            val=v,
+            uncertainty=u,
+            label=lbl,
+            width=22,
+            precision=15,
+            compact=False,
+        )
+        param_records.append(SPCATParameter(p_id, v, u, lbl, str(line_str)))
+
+    npar = len(param_records)
+    nline = 100
+
+    erpar_str = format_fortran_double(erpar, width=22, precision=15)
+    wtfac_str = format_fortran_double(wtfac, width=22, precision=15)
+    scale_str = format_fortran_double(scale, width=22, precision=15)
+
+    control_line = f"{npar:>4}{nline:>6}{nopt:>5}{nwarn:>5}  {erpar_str}  {wtfac_str}  {scale_str}{maxit:>5}"
+
+    var_lines = [title_str, control_line]
+    for p in param_records:
+        var_lines.append(p.formatted_line)
+
+    content = "\n".join(var_lines) + "\n"
+
+    if filepath is not None:
+        target = Path(filepath).resolve()
+        validate_airgap_boundary(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temp_file = target.with_suffix(
+            f".tmp_{os.getpid()}_{int(datetime.now().timestamp())}"
+        )
+        temp_file.write_text(content, encoding="utf-8")
+        temp_file.replace(target)
+
+    return content
+
+
+def generate_spcat_int(
+    molecule_name: str,
+    dipoles: dict[str, float] | Sequence[float],
+    temperatures: float | Sequence[float] = 298.15,
+    tag: int = 1,
+    ver: int = 1,
+    ibx: int = 0,
+    nq: int = 0,
+    rrot: float = 0.0,
+    tem: float = 0.0,
+    sthk: float = 0.0,
+    wtk: float = 0.0,
+    title: str | None = None,
+    filepath_template: str | Path | None = None,
+) -> dict[float, str]:
+    """Generate exact Pickett SPCAT .int ASCII intensity files for target temperatures."""
+    temps = (
+        [float(temperatures)]
+        if isinstance(temperatures, (int, float))
+        else [float(t) for t in temperatures]
     )
-    harmonic_zpe = 0.5 * float(np.sum(stiff_frequencies))
-    anharmonic_zpe_correction = 0.25 * float(np.sum(np.triu(stiff_x)))
-    total_stiff_zpe = harmonic_zpe + anharmonic_zpe_correction
 
-    coupled_ground_state_energy = float(e0 + total_stiff_zpe)
+    if isinstance(dipoles, dict):
+        mu_a = float(dipoles.get("mu_a", dipoles.get("a", dipoles.get("mua", 0.0))))
+        mu_b = float(dipoles.get("mu_b", dipoles.get("b", dipoles.get("mub", 0.0))))
+        mu_c = float(dipoles.get("mu_c", dipoles.get("c", dipoles.get("muc", 0.0))))
+    else:
+        d_list = [float(x) for x in dipoles]
+        mu_a = d_list[0] if len(d_list) > 0 else 0.0
+        mu_b = d_list[1] if len(d_list) > 1 else 0.0
+        mu_c = d_list[2] if len(d_list) > 2 else 0.0
 
-    return {
-        "dropped_lam_modes": dropped_modes,
-        "stiff_harmonic_frequencies": stiff_frequencies.tolist(),
-        "q_dvr_rot": float(q_dvr),
-        "q_stiff_vib": float(q_stiff),
-        "q_coupled_total": float(q_coupled_total),
-        "dvr_ground_state_energy_cm1": float(e0),
-        "stiff_zpe_cm1": float(total_stiff_zpe),
-        "coupled_ground_state_energy_cm1": coupled_ground_state_energy,
-        "temperature_k": float(temperature_k),
+    fortran_overflow_guard({"mu_a": mu_a, "mu_b": mu_b, "mu_c": mu_c})
+
+    results: dict[float, str] = {}
+
+    for t in temps:
+        title_str = (
+            title
+            if title
+            else f"{molecule_name} Ground State - CoChem SPCAT Bridge (T={t:.2f}K)"
+        )
+
+        control_line = (
+            f"{tag:>3}{ver:>3}{ibx:>3}{nq:>3}"
+            f"  {rrot:>6.1f}  {tem:>6.1f}  {sthk:>6.1f}  {wtk:>6.1f}  {t:>8.2f}"
+        )
+
+        int_lines = [
+            title_str,
+            control_line,
+            f"  1  {mu_a:>12.6f}   / mua",
+            f"  2  {mu_b:>12.6f}   / mub",
+            f"  3  {mu_c:>12.6f}   / muc",
+        ]
+
+        content = "\n".join(int_lines) + "\n"
+        results[t] = content
+
+        if filepath_template is not None:
+            path_str = str(filepath_template).format(
+                T=f"{t:.1f}", temp=f"{t:.1f}", molecule=molecule_name
+            )
+            target = Path(path_str).resolve()
+            validate_airgap_boundary(target)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temp_file = target.with_suffix(
+                f".tmp_{os.getpid()}_{int(datetime.now().timestamp())}"
+            )
+            temp_file.write_text(content, encoding="utf-8")
+            temp_file.replace(target)
+
+    return results
+
+
+# =============================================================================
+# 9. Tripartite Filesystem Air-Gap & Cryptographic Provenance Manifest
+# =============================================================================
+
+
+def validate_airgap_boundary(target_path: str | Path) -> Path:
+    """Validate that target output path adheres to the Tripartite Air-Gap isolation boundary.
+
+    Ring 1: Static Repository Root (Domain A) is read-only for runtime scratch/log files.
+    Directly writing volatile simulation scratch files into Ring 1 static repository
+    (outside authorized test/scratch directories) raises an AirGapViolationError.
+
+    Args:
+        target_path: Target filesystem path to validate.
+
+    Returns:
+        Resolved absolute Path.
+
+    Raises:
+        AirGapViolationError: If target attempts to write directly into protected Ring 1 static root.
+    """
+    resolved = Path(target_path).resolve()
+    base_root = get_base_root().resolve()
+    repo_root = get_repo_root().resolve()
+
+    # Check if target is located within static execution boundaries
+    for root_dir in (base_root, repo_root):
+        try:
+            rel = resolved.relative_to(root_dir)
+            rel_parts = rel.parts
+            if not rel_parts:
+                continue
+            # If target is within CoChem-BASE root
+            if rel_parts[0] == "CoChem-BASE":
+                sub_parts = rel_parts[1:]
+            else:
+                sub_parts = rel_parts
+
+            if sub_parts and sub_parts[0] in (
+                "test_suite",
+                "tests",
+                ".pytest_cache",
+                "scratch",
+            ):
+                return resolved
+
+            raise AirGapViolationError(
+                message=f"Air-Gap violation: forbidden write into Ring 1 static execution tier: {resolved}",
+                error_code=ProvenanceErrorCode.AIRGAP_VIOLATION,
+                details={
+                    "path": str(resolved),
+                    "ring": "Ring 1 (Domain A)",
+                    "base_root": str(base_root),
+                    "repo_root": str(repo_root),
+                },
+            )
+        except ValueError:
+            pass
+
+    return resolved
+
+
+def compute_sha256(content: str | bytes) -> str:
+    """Compute deterministic SHA-256 hexadecimal hash string."""
+    raw = content.encode("utf-8") if isinstance(content, str) else content
+    return hashlib.sha256(raw).hexdigest()
+
+
+def generate_spcat_provenance_manifest(
+    molecule_name: str,
+    var_content: str,
+    int_contents: dict[float, str],
+    symmetry_result: SymmetryDivisorResult,
+    partition_results: dict[float, float],
+    output_path: str | Path | None = None,
+    extra_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Generate SHA-256 cryptographic provenance manifest for SPCAT execution package."""
+    sha256_var = compute_sha256(var_content)
+    sha256_int = {str(t): compute_sha256(c) for t, c in int_contents.items()}
+
+    manifest: dict[str, Any] = {
+        "schema_version": "1.0.0",
+        "stage": "Stage 5.1 (Statistical Mechanics & SPCAT Bridge)",
+        "molecule_name": molecule_name,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "codata_constants": {
+            "h_j_s": CONSTANTS.H,
+            "k_b_j_k": CONSTANTS.K_B,
+            "c_cm_s": CONSTANTS.C_CM_S,
+            "c_rot_mhz_u_ang2": CONSTANTS.C_ROT,
+            "hc_over_kb_k_cm": CONSTANTS.HC_OVER_KB,
+        },
+        "symmetry": symmetry_result.to_dict(),
+        "partition_functions": {str(k): v for k, v in partition_results.items()},
+        "cryptographic_hashes": {
+            "sha256_var": sha256_var,
+            "sha256_int": sha256_int,
+        },
+        "airgap_rings": {
+            "ring_1_domain_a": "Static Execution Tier (Read-Only Repo)",
+            "ring_2_domain_c": "Ephemeral Scratch Tier (RAM-Disk /dev/shm)",
+            "ring_3_domain_b": "Dynamic Artifact Vault ($COCHEM_ARTIFACTS_DIR)",
+        },
+        "metadata": extra_metadata if extra_metadata is not None else {},
     }
 
-
-class JaxDVRBuilder:
-    """
-    High-level orchestration class for hardware-accelerated DVR Schrödinger solvers.
-    """
-
-    def __init__(self, dimensions: int = 1, enable_x64: bool = True) -> None:
-        """
-        Initializes the JAX DVR Builder engine.
-
-        :param dimensions: Coordinate dimensionality (1 or 2).
-        :param enable_x64: Strictly enforce 64-bit precision.
-        """
-        self.dimensions = dimensions
-        if enable_x64:
-            self.device_info = enforce_jax_precision()
-        else:
-            self.device_info = {}
-
-    def solve_1d_rotor(
-        self,
-        grid_points: list[float] | np.ndarray,
-        energies_cm1: list[float] | np.ndarray,
-        rotational_constant_cm1: float = 1.0,
-        periodic: bool = True,
-    ) -> dict[str, Any]:
-        """
-        Builds and solves the 1D DVR Hamiltonian for a hindered internal rotor.
-
-        :param grid_points: Torsional angles in radians.
-        :param energies_cm1: Potential energy values at each grid point in cm^-1.
-        :param rotational_constant_cm1: Rotational constant B (in cm^-1).
-        :param periodic: Use periodic boundary conditions (Meyer-Colbert-Miller).
-        :return: Dictionary with eigenvalues, wavefunctions, and ground state.
-        """
-        h_matrix = build_dvr_hamiltonian(
-            pes_spline_array=energies_cm1,
-            kinetic_operator=rotational_constant_cm1,
-            grid_points=grid_points,
-            dimensions=1,
-            periodic=periodic,
+    if output_path is not None:
+        target = Path(output_path).resolve()
+        validate_airgap_boundary(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temp_file = target.with_suffix(
+            f".tmp_{os.getpid()}_{int(datetime.now().timestamp())}"
         )
+        temp_file.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        temp_file.replace(target)
 
-        evals, evecs = jit_eigen_solver(h_matrix)
+    return manifest
 
-        # Pass through NaN watchdog for validation with wavefunctions
-        evals_clean, evecs_clean = nan_tensor_watchdog(
-            eigenvalues=evals,
-            hamiltonian=h_matrix,
-            wavefunctions=evecs,
-        )
 
-        tunneling = (
-            float(evals_clean[1] - evals_clean[0]) if len(evals_clean) > 1 else 0.0
-        )
+def build_complete_spcat_payload(
+    molecule_name: str,
+    geometry: np.ndarray | Sequence[Sequence[float]],
+    symbols: Sequence[str],
+    rotational_constants_mhz: dict[str, float],
+    dipoles_debye: dict[str, float],
+    harmonic_frequencies_cm1: Sequence[float],
+    temperatures: Sequence[float] = (2.0, 10.0, 50.0, 298.15),
+    quartic_distortion: dict[str, float] | None = None,
+    lam_frequency: float | None = None,
+    output_dir: str | Path | None = None,
+) -> SPCATPayload:
+    """Build complete, fully validated, air-gapped SPCAT execution payload with provenance manifest."""
+    sym_res = apply_symmetry_divisors(geometry_array=geometry, symbols=symbols)
 
+    a = float(rotational_constants_mhz.get("A", 0.0))
+    b = float(rotational_constants_mhz.get("B", 0.0))
+    c = float(rotational_constants_mhz.get("C", 0.0))
+    part_res = compute_coupled_partition_functions(
+        a_mhz=a,
+        b_mhz=b,
+        c_mhz=c,
+        frequencies_cm1=harmonic_frequencies_cm1,
+        temp_array=temperatures,
+        sigma=sym_res.sigma,
+        lam_frequency=lam_frequency,
+    )
+
+    combined_params: dict[str, Any] = {
+        "A": a,
+        "B": b,
+        "C": c,
+    }
+    if quartic_distortion:
+        combined_params.update(quartic_distortion)
+
+    var_path = Path(output_dir) / f"{molecule_name}.var" if output_dir else None
+    var_content = generate_spcat_var(
+        molecule_name=molecule_name,
+        parameters=combined_params,
+        filepath=var_path,
+    )
+
+    int_tpl = Path(output_dir) / f"{molecule_name}_{{T}}K.int" if output_dir else None
+    int_contents = generate_spcat_int(
+        molecule_name=molecule_name,
+        dipoles=dipoles_debye,
+        temperatures=temperatures,
+        filepath_template=int_tpl,
+    )
+
+    prov_path = (
+        Path(output_dir) / f"{molecule_name}_spcat_provenance.json"
+        if output_dir
+        else None
+    )
+    manifest = generate_spcat_provenance_manifest(
+        molecule_name=molecule_name,
+        var_content=var_content,
+        int_contents=int_contents,
+        symmetry_result=sym_res,
+        partition_results=part_res.q_total,
+        output_path=prov_path,
+    )
+
+    return SPCATPayload(
+        molecule_name=molecule_name,
+        var_content=var_content,
+        int_contents=int_contents,
+        provenance_manifest=manifest,
+        sha256_var=compute_sha256(var_content),
+        sha256_int={t: compute_sha256(c) for t, c in int_contents.items()},
+        var_filepath=str(var_path) if var_path else None,
+        int_filepaths={
+            t: str(Path(output_dir) / f"{molecule_name}_{t:.1f}K.int")
+            for t in temperatures
+        }
+        if output_dir
+        else {},
+        provenance_filepath=str(prov_path) if prov_path else None,
+    )
+
+
+# =============================================================================
+# 10. 3-Tier Routing Protocol (MPQC Primary, ORCA Secondary, CFOUR Legacy)
+# =============================================================================
+
+
+@dataclass
+class ThreeTierRoutingResult:
+    """Structured resolution of the 3-Tier Ab Initio Routing Protocol."""
+
+    selected_tier: int
+    primary_engine: str
+    electronic_energy_hartree: float | None
+    harmonic_frequencies: list[float]
+    vpt2_x_matrix: np.ndarray | None
+    dipole_moments_debye: dict[str, float]
+    is_mpqc_primary: bool
+    is_analytic_vpt2_active: bool
+    routing_metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize routing result to dictionary."""
         return {
-            "hamiltonian": h_matrix,
-            "eigenvalues": evals_clean,
-            "wavefunctions": evecs_clean,
-            "ground_state_energy_cm1": float(evals_clean[0]),
-            "tunneling_splitting_cm1": tunneling,
-            "num_points": len(evals_clean),
+            "selected_tier": self.selected_tier,
+            "primary_engine": self.primary_engine,
+            "electronic_energy_hartree": self.electronic_energy_hartree,
+            "harmonic_frequencies": [float(f) for f in self.harmonic_frequencies],
+            "vpt2_x_matrix": self.vpt2_x_matrix.tolist()
+            if self.vpt2_x_matrix is not None
+            else None,
+            "dipole_moments_debye": self.dipole_moments_debye,
+            "is_mpqc_primary": self.is_mpqc_primary,
+            "is_analytic_vpt2_active": self.is_analytic_vpt2_active,
+            "routing_metadata": self.routing_metadata,
         }
 
-    def solve_2d_coupled_rotors(
+
+def route_3tier_abinitio_payload(
+    mpqc_data: dict[str, Any] | None = None,
+    orca_data: dict[str, Any] | None = None,
+    cfour_data: dict[str, Any] | None = None,
+    require_analytic_vpt2: bool = False,
+) -> ThreeTierRoutingResult:
+    """Enforces the authoritative 3-Tier Routing Protocol (MPQC Primary).
+
+    Protocol Hierarchy:
+    - Tier 1 (Primary Benchmark): MPQC (the Valeev Stack). Parsed for exact CCSD(T)-F12
+      single-point energetics and reference energies.
+    - Tier 2 (Primary Vibrational): ORCA. Parsed for analytic VPT2, harmonic frequencies,
+      and dipole surface tensors.
+    - Tier 3 (Legacy Alternate): CFOUR. Demoted fallback parsed only when analytic VPT2
+      or high-order coupled cluster corrections require proprietary CFOUR outputs.
+
+    Args:
+        mpqc_data: Parsed dictionary from MPQC (CCSD(T)-F12 calculations).
+        orca_data: Parsed dictionary from ORCA (VPT2 / force fields).
+        cfour_data: Parsed dictionary from CFOUR (Legacy / fallback).
+        require_analytic_vpt2: If True, prioritizes Tier 2 / Tier 3 containing full VPT2 X-matrices.
+
+    Returns:
+        ThreeTierRoutingResult with resolved energies, frequencies, and provenance.
+    """
+    # Tier 1: MPQC Primary for energy benchmarks
+    if mpqc_data is not None and not require_analytic_vpt2:
+        energy = mpqc_data.get(
+            "energy_hartree", mpqc_data.get("ccsd_t_f12_energy", None)
+        )
+        freqs = mpqc_data.get("frequencies", [])
+        dipoles = mpqc_data.get("dipoles", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0})
+        x_mat = mpqc_data.get("x_matrix", None)
+        return ThreeTierRoutingResult(
+            selected_tier=1,
+            primary_engine="MPQC",
+            electronic_energy_hartree=float(energy) if energy is not None else None,
+            harmonic_frequencies=[float(f) for f in freqs],
+            vpt2_x_matrix=np.asarray(x_mat, dtype=np.float64)
+            if x_mat is not None
+            else None,
+            dipole_moments_debye=dipoles,
+            is_mpqc_primary=True,
+            is_analytic_vpt2_active=x_mat is not None,
+            routing_metadata={
+                "tier_description": "Tier 1: MPQC CCSD(T)-F12 Primary Benchmark",
+                "raw": mpqc_data,
+            },
+        )
+
+    # Tier 2: ORCA Primary for analytic VPT2
+    if orca_data is not None:
+        energy = orca_data.get(
+            "energy_hartree", orca_data.get("electronic_energy", None)
+        )
+        freqs = orca_data.get("frequencies", orca_data.get("harmonic_frequencies", []))
+        dipoles = orca_data.get(
+            "dipoles",
+            orca_data.get("dipole_moments", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0}),
+        )
+        x_mat = orca_data.get("x_matrix", orca_data.get("anharmonic_x_matrix", None))
+        return ThreeTierRoutingResult(
+            selected_tier=2,
+            primary_engine="ORCA",
+            electronic_energy_hartree=float(energy) if energy is not None else None,
+            harmonic_frequencies=[float(f) for f in freqs],
+            vpt2_x_matrix=np.asarray(x_mat, dtype=np.float64)
+            if x_mat is not None
+            else None,
+            dipole_moments_debye=dipoles,
+            is_mpqc_primary=False,
+            is_analytic_vpt2_active=x_mat is not None,
+            routing_metadata={
+                "tier_description": "Tier 2: ORCA Analytic VPT2 Primary",
+                "raw": orca_data,
+            },
+        )
+
+    # Tier 3: CFOUR Legacy Alternate
+    if cfour_data is not None:
+        energy = cfour_data.get("energy_hartree", cfour_data.get("eccsd_t", None))
+        freqs = cfour_data.get("frequencies", [])
+        dipoles = cfour_data.get("dipoles", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0})
+        x_mat = cfour_data.get("x_matrix", None)
+        return ThreeTierRoutingResult(
+            selected_tier=3,
+            primary_engine="CFOUR",
+            electronic_energy_hartree=float(energy) if energy is not None else None,
+            harmonic_frequencies=[float(f) for f in freqs],
+            vpt2_x_matrix=np.asarray(x_mat, dtype=np.float64)
+            if x_mat is not None
+            else None,
+            dipole_moments_debye=dipoles,
+            is_mpqc_primary=False,
+            is_analytic_vpt2_active=x_mat is not None,
+            routing_metadata={
+                "tier_description": "Tier 3: CFOUR Legacy Alternate Fallback",
+                "raw": cfour_data,
+            },
+        )
+
+    if mpqc_data is not None:
+        energy = mpqc_data.get("energy_hartree", None)
+        freqs = mpqc_data.get("frequencies", [])
+        dipoles = mpqc_data.get("dipoles", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0})
+        return ThreeTierRoutingResult(
+            selected_tier=1,
+            primary_engine="MPQC",
+            electronic_energy_hartree=float(energy) if energy is not None else None,
+            harmonic_frequencies=[float(f) for f in freqs],
+            vpt2_x_matrix=None,
+            dipole_moments_debye=dipoles,
+            is_mpqc_primary=True,
+            is_analytic_vpt2_active=False,
+            routing_metadata={
+                "tier_description": "Tier 1: MPQC CCSD(T)-F12 Single-Point",
+                "raw": mpqc_data,
+            },
+        )
+
+    raise ValueError("No ab initio data provided to 3-Tier Routing Protocol.")
+
+
+# =============================================================================
+# 11. TorqSpcatBridge Compatibility Adapter
+# =============================================================================
+
+
+class TorqSpcatBridge:
+    """Torq SPCAT bridge class for backwards-compatibility with CoChem-TORQ workflow."""
+
+    def __init__(
         self,
-        grid_points_x: list[float] | np.ndarray,
-        grid_points_y: list[float] | np.ndarray,
-        pes_2d_cm1: np.ndarray,
-        rotational_constants_cm1: tuple[float, float] = (1.0, 1.0),
-        periodic: bool = True,
-    ) -> dict[str, Any]:
-        """
-        Builds and solves the 2D DVR Hamiltonian for coupled internal rotors.
+        tensor_json_path: str | Path,
+        mpqc_out_path: str | Path,
+        temperature_k: float = 298.15,
+    ) -> None:
+        self.tensor_file = Path(tensor_json_path)
+        self.mpqc_file = Path(mpqc_out_path)
+        self.orca_file = self.mpqc_file
+        self.temperature = float(temperature_k)
+        self.temperature_k = float(temperature_k)
 
-        :param grid_points_x: Grid points along dihedral coordinate 1.
-        :param grid_points_y: Grid points along dihedral coordinate 2.
-        :param pes_2d_cm1: 2D potential energy surface matrix (Nx x Ny).
-        :param rotational_constants_cm1: Tuple of (Bx, By) in cm^-1.
-        :param periodic: Use periodic boundary conditions.
-        :return: Dictionary with 2D eigenvalues, wavefunctions, and ground state.
-        """
-        h_2d = build_dvr_hamiltonian(
-            pes_spline_array=pes_2d_cm1,
-            kinetic_operator=rotational_constants_cm1,
-            grid_points=(grid_points_x, grid_points_y),
-            dimensions=2,
-            periodic=periodic,
+        self.tensor_data = self._load_json(self.tensor_file)
+        self.point_id = str(self.tensor_data.get("point_id", "000"))
+        self.is_linear = bool(self.tensor_data.get("is_linear", False))
+
+        constants_dict = self.tensor_data.get("tensors", {}).get(
+            "rotational_constants_MHz", {}
+        )
+        self.rot_A_MHz = float(constants_dict.get("A", 10000.0) or 10000.0)
+        self.rot_B_MHz = float(constants_dict.get("B", 5000.0) or 5000.0)
+        self.rot_C_MHz = float(constants_dict.get("C", 3333.33) or 3333.33)
+
+        self.sigma = self._determine_symmetry_divisor()
+        self.frequencies_cm1: list[float] = []
+        self.dipole_moments: dict[str, float] = {"a": 0.0, "b": 0.0, "c": 0.0}
+
+    def _load_json(self, filepath: Path) -> dict[str, Any]:
+        if not filepath.exists():
+            raise FileNotFoundError(
+                f"Tensor file {filepath} not found. Run Stage 4.1 first."
+            )
+        if filepath.stat().st_size == 0:
+            return {}
+        try:
+            with open(filepath, encoding="utf-8") as f:
+                return json.loads(f.read())
+        except Exception:
+            return {}
+
+    def _determine_symmetry_divisor(self) -> int:
+        coords = self.tensor_data.get("coordinates", [])
+        symbols = self.tensor_data.get("symbols", [])
+        if coords and symbols:
+            try:
+                sym_res = apply_symmetry_divisors(coords, symbols)
+                return sym_res.sigma
+            except Exception:
+                pass
+        return 1
+
+    def parse_mpqc_observables(self) -> None:
+        if not self.mpqc_file.exists():
+            logger.error(
+                "MPQC output %s missing. Cannot parse vibrational partition functions.",
+                self.mpqc_file,
+            )
+            return
+
+        freqs: list[float] = []
+        try:
+            with open(self.mpqc_file, errors="ignore", encoding="utf-8") as f:
+                content = f.read()
+
+            dipole_match = re.search(
+                r"Total Dipole Moment\s+:\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)",
+                content,
+            )
+            if dipole_match:
+                dx, dy, dz = map(float, dipole_match.groups())
+                self.dipole_moments = {"a": abs(dx), "b": abs(dy), "c": abs(dz)}
+
+            freq_section = re.search(
+                r"VIBRATIONAL FREQUENCIES\s+[-=]+\s*(.*?)(?=\n\n|\n[A-Z]|\Z)",
+                content,
+                re.DOTALL,
+            )
+            if freq_section:
+                for line in freq_section.group(1).strip().splitlines():
+                    m = re.search(r"^\s*\d+:\s+(-?\d+\.\d+)\s+cm\*\*-1", line)
+                    if m:
+                        val = float(m.group(1))
+                        if val > 0.1:
+                            freqs.append(val)
+        except Exception as e:
+            logger.warning("Error reading MPQC file: %s", e)
+
+        self.frequencies_cm1 = freqs
+        if self.frequencies_cm1:
+            try:
+                low_frequency_lam_trap(self.frequencies_cm1)
+            except LAMTriggerError:
+                logger.warning(
+                    "LAM trap triggered for mode < 50 cm^-1 in MPQC observables."
+                )
+
+    def calculate_partition_functions(self) -> tuple[float, float, float]:
+        q_rot = calculate_rotational_partition_function(
+            a_mhz=self.rot_A_MHz,
+            b_mhz=self.rot_B_MHz,
+            c_mhz=self.rot_C_MHz,
+            temp_k=self.temperature_k,
+            sigma=float(self.sigma),
+            is_linear=self.is_linear,
+        )
+        q_vib = calculate_vibrational_partition_function(
+            frequencies_cm1=self.frequencies_cm1,
+            temp_k=self.temperature_k,
+        )
+        q_total = q_rot * q_vib
+        return q_rot, q_vib, q_total
+
+    def generate_spcat_files(self) -> None:
+        artifact_dir = Path(os.environ.get("COCHEM_ARTIFACT_DIR", ".")) / "spcat"
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        var_file = artifact_dir / f"spcat_{self.point_id}.var"
+        int_file = artifact_dir / f"spcat_{self.point_id}.int"
+
+        generate_spcat_var(
+            molecule_name=f"spcat_{self.point_id}",
+            parameters={"A": self.rot_A_MHz, "B": self.rot_B_MHz, "C": self.rot_C_MHz},
+            filepath=var_file,
+        )
+        generate_spcat_int(
+            molecule_name=f"spcat_{self.point_id}",
+            dipoles=self.dipole_moments,
+            temperatures=[self.temperature_k],
+            filepath_template=int_file,
         )
 
-        evals, evecs = jit_eigen_solver(h_2d)
-        evals_clean, evecs_clean = nan_tensor_watchdog(
-            eigenvalues=evals,
-            hamiltonian=h_2d,
-            wavefunctions=evecs,
-        )
+    def export_spcat_catalog(self) -> None:
+        self.generate_spcat_files()
 
-        return {
-            "hamiltonian_2d": h_2d,
-            "eigenvalues": evals_clean,
-            "wavefunctions": evecs_clean,
-            "ground_state_energy_cm1": float(evals_clean[0]),
-            "num_states": len(evals_clean),
-        }
 
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\refactor_code.py ---
-from pathlib import Path
+__all__ = [
+    "ThreeTierRoutingResult",
+    "route_3tier_abinitio_payload",
+    "TorqSpcatBridge",
+    "CODATA2022",
+    "CONSTANTS",
+    "CODATA_YEAR",
+    "PLANCK_CONSTANT_JS",
+    "BOLTZMANN_CONSTANT_JK",
+    "SPEED_OF_LIGHT_CMS",
+    "SPEED_OF_LIGHT_MS",
+    "ROTATIONAL_FACTOR_C_ROT",
+    "C_ROT",
+    "HC_OVER_KB",
+    "KB_OVER_H",
+    "SymmetryDivisorResult",
+    "PartitionFunctionResult",
+    "SPCATParameter",
+    "SPCATPayload",
+    "PICKETT_PARAMETER_CODES",
+    "low_frequency_lam_trap",
+    "low_frequency_trap",
+    "apply_symmetry_divisors",
+    "calculate_rotational_partition_function",
+    "calculate_vibrational_partition_function",
+    "vibrational_partition_coupling",
+    "compute_coupled_partition_functions",
+    "fortran_overflow_guard",
+    "format_fortran_double",
+    "fortran_double_precision_formatter",
+    "generate_spcat_var",
+    "generate_spcat_int",
+    "validate_airgap_boundary",
+    "compute_sha256",
+    "generate_spcat_provenance_manifest",
+    "build_complete_spcat_payload",
+]
 
-jax_builder_code = '''"""
-CoChem-TORQ 0.0.11
-Stage 5.0: The Hardware-Accelerated Physics Engine (JAX DVR)
------------------------------------------------------------
-Implements exact 1D and 2D Discrete Variable Representation (DVR) solvers
-using Google JAX with XLA Just-In-Time (JIT) compilation. Replaces inaccurate
-Rigid-Rotor Harmonic-Oscillator (RRHO) approximations for Large Amplitude
-Motions (LAMs) with exact quantum mechanical nuclear Schrödinger solutions.
-
-Compliant with Method Matrix v4 (§4.4, §8C, Table 2) and Phase 7 specifications.
-"""
-
-from __future__ import annotations
-
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_spcat.py ---
+import json
 import logging
 import math
-import os
 from pathlib import Path
-from typing import Any
 
-import numpy as np
-
-ARTIFACTS_DIR = os.environ.get(
-    "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
-)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-JAX-DVR] %(message)s"
-)
-logger = logging.getLogger("TorqJaxDVR")
-
-# CODATA 2022 Physical Constants (Exact)
-PLANCK_CONSTANT_JS = 6.62607015e-34  # Exact h (J s)
-BOLTZMANN_CONSTANT_JK = 1.380649e-23  # Exact kB (J/K)
-SPEED_OF_LIGHT_CMS = 29979245800.0  # Exact c (cm/s)
-HBAR_JS = PLANCK_CONSTANT_JS / (2.0 * math.pi)
-# Conversion factor hbar^2 / (2 * m_u) in cm^-1 * Angstrom^2 * amu
-HBAR_SQ_OVER_2M_U_CM1_A2 = 16.857629206
-
-# Try importing JAX and configuring float64 precision
-try:
-    import jax
-    import jax.numpy as jnp
-
-    # Force 64-bit precision immediately upon module import
-    jax.config.update("jax_enable_x64", True)
-    JAX_AVAILABLE = True
-except ImportError:
-    JAX_AVAILABLE = False
-    logger.warning(
-        "JAX not installed in runtime environment; fallback mode will be limited."
-    )
-
-
-class CoChemPrecisionError(RuntimeError):
-    """Raised when JAX float64 precision cannot be enforced."""
-
-    pass
-
-
-class DVRConvergenceError(RuntimeError):
-    """Raised when the DVR eigenvalue solver fails to converge."""
-
-    pass
-
-
-def enforce_jax_precision() -> dict[str, Any]:
-    """
-    Enforces JAX 64-bit floating point precision (float64) and identifies hardware.
-
-    Spectroscopic tunneling splittings can exist on the order of 10^-6 cm^-1.
-    Standard 32-bit floating point precision causes numerical underflow.
-
-    :return: Dictionary containing detected hardware platform, devices, and x64 status.
-    :raises CoChemPrecisionError: If 64-bit precision cannot be activated.
-    """
-    if not JAX_AVAILABLE:
-        raise CoChemPrecisionError(
-            "JAX is not installed. Cannot enforce precision or allocate GPU memory."
-        )
-
-    # Update and verify x64 configuration
-    jax.config.update("jax_enable_x64", True)
-
-    test_tensor = jnp.zeros((2,), dtype=jnp.float64)
-    if test_tensor.dtype != jnp.float64:
-        raise CoChemPrecisionError(
-            f"Failed to enforce JAX 64-bit precision. Dtype: {test_tensor.dtype}."
-        )
-
-    devices = jax.devices()
-    default_backend = jax.default_backend()
-
-    device_info = {
-        "platform": default_backend,
-        "devices": [str(d) for d in devices],
-        "device_count": len(devices),
-        "x64_enabled": True,
-        "dtype": "float64",
-    }
-
-    logger.info(
-        f"JAX float64 precision enforced on {default_backend.upper()} "
-        f"({len(devices)} device(s): {devices[0]})"
-    )
-    return device_info
-
-
-def _construct_1d_kinetic_matrix(
-    n_pts: int, delta_x: float, kinetic_factor: float, periodic: bool = False
-) -> np.ndarray:
-    """
-    Constructs a 1D Colbert-Miller sinc-DVR or Periodic sinc-DVR kinetic matrix.
-
-    :param n_pts: Number of grid points.
-    :param delta_x: Grid spacing.
-    :param kinetic_factor: Kinetic prefactor (e.g. B in cm^-1).
-    :param periodic: If True, applies Meyer/Colbert-Miller periodic boundaries.
-    :return: (n_pts x n_pts) Kinetic energy matrix as numpy array.
-    """
-    t_matrix = np.zeros((n_pts, n_pts), dtype=np.float64)
-
-    if periodic:
-        # Periodic Sinc-DVR (Meyer-Colbert-Miller formalism for [0, 2pi))
-        is_odd = n_pts % 2 == 1
-        for i in range(n_pts):
-            for j in range(n_pts):
-                diff = i - j
-                if diff == 0:
-                    if is_odd:
-                        t_matrix[i, i] = kinetic_factor * ((n_pts**2 - 1.0) / 12.0)
-                    else:
-                        t_matrix[i, i] = kinetic_factor * ((n_pts**2 + 2.0) / 12.0)
-                else:
-                    arg = np.pi * diff / float(n_pts)
-                    sin_sq = np.sin(arg) ** 2
-                    if sin_sq < 1e-16:
-                        sin_sq = 1e-16
-                    if is_odd:
-                        t_matrix[i, j] = kinetic_factor * (
-                            (((-1.0) ** diff) * np.cos(arg)) / (2.0 * sin_sq)
-                        )
-                    else:
-                        t_matrix[i, j] = kinetic_factor * (
-                            ((-1.0) ** diff) / (2.0 * sin_sq)
-                        )
-    else:
-        # Standard Colbert-Miller Sinc-DVR (infinite / Dirichlet domain)
-        factor = kinetic_factor / (delta_x**2)
-        for i in range(n_pts):
-            for j in range(n_pts):
-                diff = i - j
-                if diff == 0:
-                    t_matrix[i, i] = factor * (np.pi**2 / 3.0)
-                else:
-                    t_matrix[i, j] = factor * (2.0 * ((-1.0) ** diff) / (diff**2))
-
-    return t_matrix
-
-
-def build_dvr_hamiltonian(
-    pes_spline_array: list[float] | np.ndarray | Any,
-    kinetic_operator: float | tuple[float, float] | np.ndarray | Any = 1.0,
-    grid_points: list[float] | np.ndarray | tuple[Any, ...] | None = None,
-    dimensions: int = 1,
-    periodic: bool = False,
-) -> Any:
-    """
-    Constructs the discretized quantum mechanical Hamiltonian matrix (H = T + V).
-
-    :param pes_spline_array: 1D or 2D potential energy values (cm^-1 or hartree).
-    :param kinetic_operator: Rotational constant B, reduced mass, or explicit matrix.
-    :param grid_points: 1D coordinate array or tuple of (grid_x, grid_y) for 2D.
-    :param dimensions: Coordinate dimensionality (1 or 2).
-    :param periodic: If True, uses periodic sinc-DVR for angular torsions.
-    :return: Discretized Hamiltonian matrix as a JAX float64 array.
-    """
-    if not JAX_AVAILABLE:
-        raise CoChemPrecisionError("JAX is required for build_dvr_hamiltonian.")
-
-    enforce_jax_precision()
-    pes = np.asarray(pes_spline_array, dtype=np.float64)
-
-    if dimensions == 1:
-        n_pts = len(pes)
-        if n_pts == 0:
-            raise ValueError("Potential energy array cannot be empty.")
-
-        if grid_points is not None:
-            pts = np.asarray(grid_points, dtype=np.float64)
-            if len(pts) != n_pts:
-                raise ValueError(
-                    f"Grid points length ({len(pts)}) does not match PES ({n_pts})."
-                )
-            delta_x = float(pts[1] - pts[0]) if n_pts > 1 else 1.0
-            if n_pts > 2 and not np.allclose(
-                np.diff(pts), delta_x, rtol=1e-5, atol=1e-8
-            ):
-                logger.warning("Non-uniform grid spacing detected for sinc-DVR.")
-        else:
-            delta_x = 2.0 * np.pi / n_pts if periodic else 1.0
-
-        if isinstance(kinetic_operator, (int, float)):
-            if periodic:
-                # Rotational constant B (cm^-1) for periodic rotor
-                b_const = float(kinetic_operator)
-                t_mat = _construct_1d_kinetic_matrix(
-                    n_pts, delta_x, b_const, periodic=True
-                )
-            else:
-                # Mass-based kinetic factor in cm^-1: hbar^2 / (2 * m)
-                mass = float(kinetic_operator)
-                kinetic_factor = (
-                    HBAR_SQ_OVER_2M_U_CM1_A2 / mass if mass > 0 else 1.0
-                )
-                t_mat = _construct_1d_kinetic_matrix(
-                    n_pts, delta_x, kinetic_factor, periodic=False
-                )
-        else:
-            t_mat = np.asarray(kinetic_operator, dtype=np.float64)
-            if t_mat.shape != (n_pts, n_pts):
-                raise ValueError(
-                    f"Kinetic matrix shape {t_mat.shape} must match ({n_pts}, {n_pts})."
-                )
-
-        v_mat = np.diag(pes)
-        h_mat = t_mat + v_mat
-        return jnp.array(h_mat, dtype=jnp.float64)
-
-    elif dimensions == 2:
-        if pes.ndim == 2:
-            nx, ny = pes.shape
-            v_flat = pes.flatten()
-        elif pes.ndim == 1:
-            if (
-                grid_points is None
-                or not isinstance(grid_points, tuple)
-                or len(grid_points) != 2
-            ):
-                raise ValueError(
-                    "2D DVR with 1D PES array requires grid_points=(grid_x, grid_y)."
-                )
-            nx = len(grid_points[0])
-            ny = len(grid_points[1])
-            if len(pes) != nx * ny:
-                raise ValueError(
-                    f"1D PES length ({len(pes)}) does not match 2D grid ({nx}x{ny})."
-                )
-            v_flat = pes
-        else:
-            raise ValueError(f"Invalid PES array shape for 2D DVR: {pes.shape}")
-
-        if (
-            grid_points is not None
-            and isinstance(grid_points, tuple)
-            and len(grid_points) == 2
-        ):
-            gx, gy = np.asarray(grid_points[0]), np.asarray(grid_points[1])
-            dx = float(gx[1] - gx[0]) if len(gx) > 1 else 1.0
-            dy = float(gy[1] - gy[0]) if len(gy) > 1 else 1.0
-        else:
-            dx = 2.0 * np.pi / nx if periodic else 1.0
-            dy = 2.0 * np.pi / ny if periodic else 1.0
-
-        if isinstance(kinetic_operator, tuple) and len(kinetic_operator) == 2:
-            bx, by = float(kinetic_operator[0]), float(kinetic_operator[1])
-            tx = _construct_1d_kinetic_matrix(nx, dx, bx, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, by, periodic=periodic)
-        elif isinstance(kinetic_operator, (int, float)):
-            b = float(kinetic_operator)
-            tx = _construct_1d_kinetic_matrix(nx, dx, b, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, b, periodic=periodic)
-        else:
-            raise ValueError(
-                "Kinetic operator for 2D DVR must be a tuple (Bx, By) or scalar."
-            )
-
-        # 2D Kinetic operator via Kronecker product: T_2D = Tx (x) I_y + I_x (x) Ty
-        ix = np.eye(nx, dtype=np.float64)
-        iy = np.eye(ny, dtype=np.float64)
-        t_2d = np.kron(tx, iy) + np.kron(ix, ty)
-
-        v_2d = np.diag(v_flat)
-        h_2d = t_2d + v_2d
-        return jnp.array(h_2d, dtype=jnp.float64)
-
-    else:
-        raise ValueError(
-            f"Unsupported dimensionality {dimensions}. Supported dimensions: 1 or 2."
-        )
-
-
-if JAX_AVAILABLE:
-
-    @jax.jit
-    def _jit_eigh_core(h: Any) -> tuple[Any, Any]:
-        """Internal JIT-compiled XLA eigenvalue solver."""
-        return jnp.linalg.eigh(h)
-
-
-def jit_eigen_solver(
-    hamiltonian_matrix: np.ndarray | Any,
-) -> tuple[Any, Any]:
-    """
-    Solves the eigenvalue problem for the discretized DVR Hamiltonian via JAX JIT.
-
-    Guarantees float64 precision and real eigenvalues via XLA-compiled eigh.
-
-    :param hamiltonian_matrix: Real symmetric or complex Hermitian Hamiltonian.
-    :return: Tuple of (eigenvalues, eigenvectors) as JAX float64 arrays.
-    """
-    if not JAX_AVAILABLE:
-        raise CoChemPrecisionError("JAX is required for jit_eigen_solver.")
-
-    enforce_jax_precision()
-    h_jax = jnp.asarray(hamiltonian_matrix, dtype=jnp.float64)
-
-    # Symmetrize matrix to prevent tiny numerical asymmetry artifacts
-    h_sym = 0.5 * (h_jax + h_jax.T)
-
-    evals, evecs = _jit_eigh_core(h_sym)
-    return evals, evecs
-
-
-def nan_tensor_watchdog(
-    eigenvalues: np.ndarray | Any | None = None,
-    hamiltonian: np.ndarray | Any | None = None,
-    wavefunctions: np.ndarray | Any | None = None,
-    alpha_regularization: float = 1e-6,
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Intercepts divergent eigenvalues, NaNs, Infs, or ill-conditioned DVR matrices.
-
-    Applies Tikhonov Regularization (H_reg = H + alpha * I) to stabilize ill-conditioned
-    Hamiltonian matrices and restore positive-definite stability.
-
-    :param eigenvalues: Array of eigenvalues to check for NaNs/Infs (optional).
-    :param hamiltonian: Input Hamiltonian matrix to regularize if corrupted.
-    :param wavefunctions: Wavefunctions corresponding to eigenvalues (optional).
-    :param alpha_regularization: Damping coefficient for Tikhonov regularization.
-    :return: Tuple of validated, finite (eigenvalues, wavefunctions).
-    :raises ValueError: If neither eigenvalues nor hamiltonian are provided.
-    :raises DVRConvergenceError: If regularization fails to resolve NaNs.
-    """
-    if eigenvalues is None and hamiltonian is None:
-        raise ValueError(
-            "At least one of eigenvalues or hamiltonian must be provided "
-            "to nan_tensor_watchdog."
-        )
-
-    has_nan_evals = eigenvalues is not None and (
-        np.isnan(np.asarray(eigenvalues)).any()
-        or np.isinf(np.asarray(eigenvalues)).any()
-    )
-
-    has_nan_h = hamiltonian is not None and (
-        np.isnan(np.asarray(hamiltonian)).any()
-        or np.isinf(np.asarray(hamiltonian)).any()
-    )
-
-    if not has_nan_evals and not has_nan_h:
-        if eigenvalues is not None:
-            evals_np = np.asarray(eigenvalues, dtype=np.float64)
-            if len(evals_np) > 1 and (evals_np[1] - evals_np[0]) < -1e-12:
-                logger.warning(
-                    f"Non-physical inverted eigenvalue spectrum detected "
-                    f"(E1={evals_np[1]:.4f} < E0={evals_np[0]:.4f})."
-                )
-            evecs_np = (
-                np.asarray(wavefunctions, dtype=np.float64)
-                if wavefunctions is not None
-                else np.empty((0, 0))
-            )
-            return evals_np, evecs_np
-        elif hamiltonian is not None:
-            h_clean = np.asarray(hamiltonian, dtype=np.float64)
-            h_sym = 0.5 * (h_clean + h_clean.T)
-            evals_np, evecs_np = np.linalg.eigh(h_sym)
-            return evals_np, evecs_np
-
-    logger.warning(
-        f"NaN/Inf tensor divergence detected! Intercepting crash and applying "
-        f"Tikhonov Regularization (lambda = {alpha_regularization:.2e})."
-    )
-
-    if hamiltonian is None:
-        raise DVRConvergenceError(
-            "NaN/Inf detected in eigenvalues, but Hamiltonian matrix was "
-            "not provided for regularization."
-        )
-
-    h_cleaned = np.asarray(hamiltonian, copy=True, dtype=np.float64)
-    nan_mask = np.isnan(h_cleaned) | np.isinf(h_cleaned)
-    h_cleaned[nan_mask] = 0.0
-
-    # Symmetrize
-    h_cleaned = 0.5 * (h_cleaned + h_cleaned.T)
-
-    # Apply Tikhonov Regularization: H_reg = H + alpha * I
-    n = h_cleaned.shape[0]
-    h_reg = h_cleaned + alpha_regularization * np.eye(n, dtype=np.float64)
-
-    # Diagonalize regularized matrix
-    if JAX_AVAILABLE:
-        try:
-            evals_jax, evecs_jax = jit_eigen_solver(h_reg)
-            evals_np = np.asarray(evals_jax, dtype=np.float64)
-            evecs_np = np.asarray(evecs_jax, dtype=np.float64)
-        except Exception as e:
-            logger.warning(
-                f"JAX diagonalization failed during recovery ({e}); "
-                "using NumPy fallback."
-            )
-            evals_np, evecs_np = np.linalg.eigh(h_reg)
-    else:
-        evals_np, evecs_np = np.linalg.eigh(h_reg)
-
-    if np.isnan(evals_np).any() or np.isinf(evals_np).any():
-        raise DVRConvergenceError(
-            "DVR matrix remains unsolvable and divergent after Tikhonov Regularization."
-        )
-
-    logger.info(
-        f"Successfully recovered finite DVR eigenvalue spectrum via "
-        f"Tikhonov Regularization. Ground state: {evals_np[0]:.6f} cm^-1."
-    )
-    return evals_np, evecs_np
-
-
-def localized_vpt2_coupling(
-    dvr_energies: list[float] | np.ndarray,
-    vpt2_matrix: list[list[float]] | np.ndarray,
-    harmonic_frequencies: list[float] | np.ndarray,
-    lam_mode_indices: list[int] | None = None,
-    temperature_k: float = 298.15,
-) -> dict[str, Any]:
-    """
-    Merges exact internal rotor energies with VPT2 outputs for orthogonal stiff modes.
-
-    Drops harmonic modes corresponding to Large Amplitude Motions (LAM) to avoid
-    thermodynamic double-counting, coupling stiff modes with the exact DVR manifold.
-
-    :param dvr_energies: Array of exact DVR eigenvalues in cm^-1.
-    :param vpt2_matrix: Anharmonic X_ij matrix in cm^-1.
-    :param harmonic_frequencies: List of all harmonic frequencies in cm^-1.
-    :param lam_mode_indices: Indices of normal modes to drop (omega < 50 cm^-1 default).
-    :param temperature_k: Temperature in Kelvin for partition function evaluation.
-    :return: Dictionary with decoupled stiff frequencies and partition functions.
-    """
-    dvr_e = np.sort(np.asarray(dvr_energies, dtype=np.float64))
-    vpt2_x = np.asarray(vpt2_matrix, dtype=np.float64)
-    harm_freqs = np.asarray(harmonic_frequencies, dtype=np.float64)
-    n_modes = len(harm_freqs)
-
-    # Determine which modes to drop as LAM
-    if lam_mode_indices is None:
-        dropped_modes = [i for i, freq in enumerate(harm_freqs) if freq < 50.0]
-    else:
-        dropped_modes = list(lam_mode_indices)
-
-    stiff_mode_indices = [i for i in range(n_modes) if i not in dropped_modes]
-    stiff_frequencies = harm_freqs[stiff_mode_indices]
-
-    logger.info(
-        f"Localized VPT2 Coupling: Dropping {len(dropped_modes)} LAM mode(s) "
-        f"{dropped_modes} from harmonic set. Retaining {len(stiff_frequencies)} "
-        "stiff orthogonal modes."
-    )
-
-    if temperature_k <= 0.0:
-        return {
-            "dropped_lam_modes": dropped_modes,
-            "stiff_harmonic_frequencies": stiff_frequencies.tolist(),
-            "q_dvr_rot": 1.0,
-            "q_stiff_vib": 1.0,
-            "q_coupled_total": 1.0,
-            "dvr_ground_state_energy_cm1": float(dvr_e[0]) if len(dvr_e) > 0 else 0.0,
-            "stiff_zpe_cm1": 0.0,
-            "coupled_ground_state_energy_cm1": float(dvr_e[0])
-            if len(dvr_e) > 0
-            else 0.0,
-            "temperature_k": float(temperature_k),
-        }
-
-    # Exact DVR torsional partition function Q_dvr
-    # Q_dvr = sum_n exp(- (E_n - E_0) / (kB * T))
-    hc_cm = PLANCK_CONSTANT_JS * SPEED_OF_LIGHT_CMS  # Joules per cm^-1
-    kt_j = BOLTZMANN_CONSTANT_JK * temperature_k
-
-    e0 = dvr_e[0] if len(dvr_e) > 0 else 0.0
-    relative_dvr_e = dvr_e - e0
-
-    q_dvr = 0.0
-    for energy_cm1 in relative_dvr_e:
-        e_j = energy_cm1 * hc_cm
-        arg = -e_j / kt_j
-        if arg > -700.0:
-            q_dvr += math.exp(arg)
-
-    # Stiff vibrational partition function Q_stiff
-    # Q_stiff = prod_i [ 1 / (1 - exp(- h c nu_i / (kB T))) ]
-    q_stiff = 1.0
-    for nu in stiff_frequencies:
-        nu_clamped = max(float(nu), 10.0)
-        e_vib_j = nu_clamped * hc_cm
-        exp_arg = -e_vib_j / kt_j
-        if exp_arg < -700.0:
-            mode_q = 1.0
-        else:
-            denom = 1.0 - math.exp(exp_arg)
-            mode_q = 1.0 / denom if abs(denom) > 1e-12 else 1.0
-        q_stiff *= mode_q
-
-    q_coupled_total = q_dvr * q_stiff
-
-    # Compute anharmonic zero-point energy of stiff modes using upper triangular sum:
-    # E_anh_ZPE = 0.25 * sum_{i <= j} X_{ij}
-    stiff_x = (
-        vpt2_x[np.ix_(stiff_mode_indices, stiff_mode_indices)]
-        if vpt2_x.ndim == 2 and vpt2_x.shape[0] == n_modes
-        else np.zeros((len(stiff_frequencies), len(stiff_frequencies)))
-    )
-    harmonic_zpe = 0.5 * float(np.sum(stiff_frequencies))
-    anharmonic_zpe_correction = 0.25 * float(np.sum(np.triu(stiff_x)))
-    total_stiff_zpe = harmonic_zpe + anharmonic_zpe_correction
-
-    coupled_ground_state_energy = float(e0 + total_stiff_zpe)
-
-    return {
-        "dropped_lam_modes": dropped_modes,
-        "stiff_harmonic_frequencies": stiff_frequencies.tolist(),
-        "q_dvr_rot": float(q_dvr),
-        "q_stiff_vib": float(q_stiff),
-        "q_coupled_total": float(q_coupled_total),
-        "dvr_ground_state_energy_cm1": float(e0),
-        "stiff_zpe_cm1": float(total_stiff_zpe),
-        "coupled_ground_state_energy_cm1": coupled_ground_state_energy,
-        "temperature_k": float(temperature_k),
-    }
-
-
-class JaxDVRBuilder:
-    """
-    High-level orchestration class for hardware-accelerated DVR Schrödinger solvers.
-    """
-
-    def __init__(self, dimensions: int = 1, enable_x64: bool = True) -> None:
-        """
-        Initializes the JAX DVR Builder engine.
-
-        :param dimensions: Coordinate dimensionality (1 or 2).
-        :param enable_x64: Strictly enforce 64-bit precision.
-        """
-        self.dimensions = dimensions
-        if enable_x64:
-            self.device_info = enforce_jax_precision()
-        else:
-            self.device_info = {}
-
-    def solve_1d_rotor(
-        self,
-        grid_points: list[float] | np.ndarray,
-        energies_cm1: list[float] | np.ndarray,
-        rotational_constant_cm1: float = 1.0,
-        periodic: bool = True,
-    ) -> dict[str, Any]:
-        """
-        Builds and solves the 1D DVR Hamiltonian for a hindered internal rotor.
-
-        :param grid_points: Torsional angles in radians.
-        :param energies_cm1: Potential energy values at each grid point in cm^-1.
-        :param rotational_constant_cm1: Rotational constant B (in cm^-1).
-        :param periodic: Use periodic boundary conditions (Meyer-Colbert-Miller).
-        :return: Dictionary with eigenvalues, wavefunctions, and ground state.
-        """
-        h_matrix = build_dvr_hamiltonian(
-            pes_spline_array=energies_cm1,
-            kinetic_operator=rotational_constant_cm1,
-            grid_points=grid_points,
-            dimensions=1,
-            periodic=periodic,
-        )
-
-        evals, evecs = jit_eigen_solver(h_matrix)
-
-        # Pass through NaN watchdog for validation with wavefunctions
-        evals_clean, evecs_clean = nan_tensor_watchdog(
-            eigenvalues=evals,
-            hamiltonian=h_matrix,
-            wavefunctions=evecs,
-        )
-
-        tunneling = (
-            float(evals_clean[1] - evals_clean[0])
-            if len(evals_clean) > 1
-            else 0.0
-        )
-
-        return {
-            "hamiltonian": h_matrix,
-            "eigenvalues": evals_clean,
-            "wavefunctions": evecs_clean,
-            "ground_state_energy_cm1": float(evals_clean[0]),
-            "tunneling_splitting_cm1": tunneling,
-            "num_points": len(evals_clean),
-        }
-
-    def solve_2d_coupled_rotors(
-        self,
-        grid_points_x: list[float] | np.ndarray,
-        grid_points_y: list[float] | np.ndarray,
-        pes_2d_cm1: np.ndarray,
-        rotational_constants_cm1: tuple[float, float] = (1.0, 1.0),
-        periodic: bool = True,
-    ) -> dict[str, Any]:
-        """
-        Builds and solves the 2D DVR Hamiltonian for coupled internal rotors.
-
-        :param grid_points_x: Grid points along dihedral coordinate 1.
-        :param grid_points_y: Grid points along dihedral coordinate 2.
-        :param pes_2d_cm1: 2D potential energy surface matrix (Nx x Ny).
-        :param rotational_constants_cm1: Tuple of (Bx, By) in cm^-1.
-        :param periodic: Use periodic boundary conditions.
-        :return: Dictionary with 2D eigenvalues, wavefunctions, and ground state.
-        """
-        h_2d = build_dvr_hamiltonian(
-            pes_spline_array=pes_2d_cm1,
-            kinetic_operator=rotational_constants_cm1,
-            grid_points=(grid_points_x, grid_points_y),
-            dimensions=2,
-            periodic=periodic,
-        )
-
-        evals, evecs = jit_eigen_solver(h_2d)
-        evals_clean, evecs_clean = nan_tensor_watchdog(
-            eigenvalues=evals,
-            hamiltonian=h_2d,
-            wavefunctions=evecs,
-        )
-
-        return {
-            "hamiltonian_2d": h_2d,
-            "eigenvalues": evals_clean,
-            "wavefunctions": evecs_clean,
-            "ground_state_energy_cm1": float(evals_clean[0]),
-            "num_states": len(evals_clean),
-        }
-'''
-
-test_jax_builder_code = '''"""
-CoChem-TORQ: Unit Tests for Hardware-Accelerated Physics Engine (JAX DVR)
-Phase 7 (Stage 5.0) Validation Suite
-Adhering to Zero-Approximation Mandate and Real Physical Solvers
-"""
-
-import time
-from typing import Any
-
-import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from Libraries.cochem_jax_builder import (
-    JaxDVRBuilder,
-    build_dvr_hamiltonian,
-    enforce_jax_precision,
-    jit_eigen_solver,
-    localized_vpt2_coupling,
-    nan_tensor_watchdog,
+from Libraries.cochem_spcat_bridge import (
+    CONSTANTS,
+    FortranOverflowError,
+    LAMTriggerError,
+    SPCATBridgeError,
+    ThreeTierRoutingResult,
+    TorqSpcatBridge,
+    apply_symmetry_divisors,
+    build_complete_spcat_payload,
+    calculate_rotational_partition_function,
+    calculate_vibrational_partition_function,
+    compute_coupled_partition_functions,
+    compute_sha256,
+    format_fortran_double,
+    fortran_double_precision_formatter,
+    fortran_overflow_guard,
+    generate_spcat_int,
+    generate_spcat_provenance_manifest,
+    generate_spcat_var,
+    low_frequency_lam_trap,
+    low_frequency_trap,
+    route_3tier_abinitio_payload,
+    validate_airgap_boundary,
+    vibrational_partition_coupling,
 )
 
+logger = logging.getLogger(__name__)
 
-def test_enforce_jax_precision() -> None:
-    """
-    Test 1: Float64 Precision Truncation Guard & Architecture Detection.
-    Verifies that float64 is strictly enforced in JAX and returns device info.
-    """
-    device_info = enforce_jax_precision()
-    assert "platform" in device_info
-    assert "x64_enabled" in device_info
-    assert device_info["x64_enabled"] is True
-
-    # Verify default tensor float precision is float64
-    x = jnp.array([1.0, 2.0])
-    assert x.dtype == jnp.float64
-
-
-def test_double_well_tunneling_splitting_precision() -> None:
-    """
-    Test 2: Double-well potential tunneling splitting precision guard.
-    Verifies that high-symmetry dual-well produces non-zero tunneling splitting.
-    """
-    enforce_jax_precision()
-    n_points = 200
-    grid_phi = np.linspace(-np.pi, np.pi, n_points, endpoint=False)
-
-    # Symmetric double well: V(phi) = 0.5 * V_0 * (1 - cos(2*phi))
-    barrier_cm1 = 500.0
-    rot_b_cm1 = 10.0
-    v_pot = 0.5 * barrier_cm1 * (1.0 - np.cos(2.0 * grid_phi))
-
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=rot_b_cm1,
-        grid_points=grid_phi,
-        dimensions=1,
-        periodic=True,
-    )
-
-    evals, evecs = jit_eigen_solver(h_matrix)
-
-    assert evals.dtype == jnp.float64
-    assert evecs.dtype == jnp.float64
-    assert len(evals) == n_points
-
-    # Ground state and first excited state (tunneling doublet)
-    e0 = float(evals[0])
-    e1 = float(evals[1])
-    delta_e = e1 - e0
-
-    # Tunneling splitting must be strictly positive and finite
-    assert delta_e > 0.0, f"Tunneling splitting collapsed to {delta_e}"
-    assert np.isfinite(delta_e)
-
-
-def test_xla_compilation_speedup() -> None:
-    """
-    Test 3: XLA Compilation Speedup Test.
-    Verifies that execution of jit_eigen_solver leverages XLA compilation.
-    """
-    enforce_jax_precision()
-    matrix_size = 400
-    np.random.seed(42)
-    # Generate real symmetric matrix
-    random_mat = np.random.randn(matrix_size, matrix_size)
-    h_benchmark = (random_mat + random_mat.T) / 2.0
-    h_jax = jnp.array(h_benchmark, dtype=jnp.float64)
-
-    # First execution (includes XLA compilation)
-    t0 = time.perf_counter()
-    evals1, _ = jit_eigen_solver(h_jax)
-    evals1.block_until_ready()
-    t_first = time.perf_counter() - t0
-
-    # Second execution (cached XLA graph)
-    t0 = time.perf_counter()
-    evals2, _ = jit_eigen_solver(h_jax)
-    evals2.block_until_ready()
-    t_second = time.perf_counter() - t0
-
-    assert len(evals1) == matrix_size
-    assert np.allclose(np.array(evals1), np.array(evals2))
-    assert t_first > 0.0
-    assert t_second >= 0.0
-    assert t_second < max(t_first, 0.5)
-
-
-def test_nan_tensor_watchdog_and_tikhonov_recovery() -> None:
-    """
-    Test 4: NaN Tensor Watchdog & Tikhonov Regularization Recovery.
-    Verifies corrupt/NaN inputs are intercepted and regularized.
-    """
-    enforce_jax_precision()
-    n_pts = 50
-    grid_phi = np.linspace(-np.pi, np.pi, n_pts, endpoint=False)
-    v_pot = np.zeros(n_pts)
-
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=5.0,
-        grid_points=grid_phi,
-        dimensions=1,
-    )
-
-    # Corrupt Hamiltonian by placing NaN and Inf
-    h_corrupted = np.array(h_matrix, copy=True)
-    h_corrupted[5, 5] = np.nan
-    h_corrupted[10, 12] = np.inf
-    h_corrupted[12, 10] = np.inf
-
-    evals_recovered, evecs_recovered = nan_tensor_watchdog(
-        eigenvalues=None,
-        hamiltonian=h_corrupted,
-        alpha_regularization=1e-5,
-    )
-
-    assert not np.isnan(evals_recovered).any(), "NaN found in recovered evals"
-    assert not np.isinf(evals_recovered).any(), "Inf found in recovered evals"
-    assert len(evals_recovered) == n_pts
-
-
-def test_free_rotor_analytic_parity() -> None:
-    """
-    Test 5: Free Quantum Rotor Analytic Parity.
-    Verifies that flat potential periodic sinc-DVR matches E_m = B * m^2.
-    """
-    enforce_jax_precision()
-    n_pts = 101
-    grid_phi = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
-    b_rot = 2.75  # Rotational constant in cm^-1
-    v_pot = np.zeros(n_pts)
-
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=b_rot,
-        grid_points=grid_phi,
-        dimensions=1,
-        periodic=True,
-    )
-
-    evals, _ = jit_eigen_solver(h_matrix)
-    evals_np = np.array(evals)
-
-    # Verify analytical free rotor solutions: E_0 = 0, E_1 = E_2 = B*1^2, etc.
-    assert abs(evals_np[0] - 0.0) < 1e-8
-    for m in range(1, 10):
-        e_analytic = b_rot * (m**2)
-        idx1 = 2 * m - 1
-        idx2 = 2 * m
-        e_comp1 = evals_np[idx1]
-        e_comp2 = evals_np[idx2]
-        assert abs(e_comp1 - e_analytic) < 1e-8
-        assert abs(e_comp2 - e_analytic) < 1e-8
-
-
-def test_2d_coupled_dvr_hamiltonian() -> None:
-    """
-    Test 6: 2D Coupled Rotor DVR Hamiltonian Construction and Diagonalization.
-    Verifies 2D grid tensor product Hamiltonian and eigensolution.
-    """
-    enforce_jax_precision()
-    nx = 20
-    ny = 20
-    phi_x = np.linspace(-np.pi, np.pi, nx, endpoint=False)
-    phi_y = np.linspace(-np.pi, np.pi, ny, endpoint=False)
-
-    px, py = np.meshgrid(phi_x, phi_y, indexing="ij")
-    v_2d = (
-        100.0 * (1.0 - np.cos(3.0 * px))
-        + 80.0 * (1.0 - np.cos(3.0 * py))
-        + 20.0 * np.cos(3.0 * px + 3.0 * py)
-    )
-
-    h_2d = build_dvr_hamiltonian(
-        pes_spline_array=v_2d,
-        kinetic_operator=(5.0, 4.0),
-        grid_points=(phi_x, phi_y),
-        dimensions=2,
-        periodic=True,
-    )
-
-    assert h_2d.shape == (nx * ny, nx * ny)
-    evals, evecs = jit_eigen_solver(h_2d)
-
-    assert len(evals) == nx * ny
-    assert evecs.shape == (nx * ny, nx * ny)
-    assert not np.isnan(np.asarray(evals)).any()
-    evals_arr = np.asarray(evals)
-    assert np.all(np.diff(evals_arr) >= -1e-12)
-
-
-def test_localized_vpt2_coupling() -> None:
-    """
-    Test 7: Localized VPT2 Coupling.
-    Verifies dropping low-frequency LAM mode and coupling stiff modes with DVR.
-    """
-    enforce_jax_precision()
-    dvr_energies = np.array([0.0, 12.5, 45.0, 95.0, 160.0, 240.0, 335.0, 445.0])
-    harmonic_freqs = [35.0, 520.0, 850.0, 1200.0, 1650.0, 3050.0]
-
-    n_modes = len(harmonic_freqs)
-    vpt2_x_matrix = np.zeros((n_modes, n_modes))
-    for i in range(n_modes):
-        vpt2_x_matrix[i, i] = -0.01 * harmonic_freqs[i]
-        for j in range(i + 1, n_modes):
-            vpt2_x_matrix[i, j] = -0.5
-            vpt2_x_matrix[j, i] = -0.5
-
-    result = localized_vpt2_coupling(
-        dvr_energies=dvr_energies,
-        vpt2_matrix=vpt2_x_matrix,
-        harmonic_frequencies=harmonic_freqs,
-        lam_mode_indices=[0],
-        temperature_k=298.15,
-    )
-
-    assert "dropped_lam_modes" in result
-    assert result["dropped_lam_modes"] == [0]
-    assert "stiff_harmonic_frequencies" in result
-    assert len(result["stiff_harmonic_frequencies"]) == 5
-    assert 35.0 not in result["stiff_harmonic_frequencies"]
-    assert "q_dvr_rot" in result
-    assert result["q_dvr_rot"] > 1.0
-    assert "q_stiff_vib" in result
-    assert result["q_stiff_vib"] >= 1.0
-    assert "q_coupled_total" in result
-    assert result["q_coupled_total"] == result["q_dvr_rot"] * result["q_stiff_vib"]
-    assert "coupled_ground_state_energy_cm1" in result
-
-
-def test_jax_dvr_builder_class_orchestration() -> None:
-    """
-    Test 8: JaxDVRBuilder high-level class interface.
-    Verifies complete workflow from 1D PES scan to eigenvalues.
-    """
-    builder = JaxDVRBuilder(dimensions=1, enable_x64=True)
-
-    n_pts = 90
-    phi = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
-    v3_barrier = 350.0  # cm^-1
-    b_rot = 5.25  # cm^-1 (methyl rotor approx)
-    v_pot = 0.5 * v3_barrier * (1.0 - np.cos(3.0 * phi))
-
-    results = builder.solve_1d_rotor(
-        grid_points=phi,
-        energies_cm1=v_pot,
-        rotational_constant_cm1=b_rot,
-        periodic=True,
-    )
-
-    assert "eigenvalues" in results
-    assert "wavefunctions" in results
-    assert "ground_state_energy_cm1" in results
-    assert len(results["eigenvalues"]) == n_pts
-
-    evals = np.array(results["eigenvalues"])
-    e0 = evals[0]
-    e1 = evals[1]
-    e2 = evals[2]
-    assert abs(e2 - e1) < 1e-8, f"E states e1={e1}, e2={e2} should be degenerate"
-    assert e1 > e0, f"E states e1={e1} must exhibit tunneling splitting over e0={e0}"
-    tunneling_split = e1 - e0
-    assert tunneling_split > 1e-4
-
-
-def test_vpt2_triangular_anharmonic_zpe() -> None:
-    """
-    Test 9: VPT2 Upper-Triangular Anharmonic ZPE Summation.
-    Verifies off-diagonal anharmonic corrections are computed as 0.25*sum_{i<=j} X_ij.
-    """
-    dvr_e = [0.0, 50.0]
-    harm_freqs = [1000.0, 2000.0]
-    vpt2_x = np.array([[-10.0, -30.0], [-30.0, -20.0]])
-
-    result = localized_vpt2_coupling(
-        dvr_energies=dvr_e,
-        vpt2_matrix=vpt2_x,
-        harmonic_frequencies=harm_freqs,
-        lam_mode_indices=[],
-        temperature_k=298.15,
-    )
-
-    harm_zpe = 0.5 * (1000.0 + 2000.0)  # 1500.0
-    # 0.25 * (-10.0 + -20.0 + -30.0) = -15.0
-    expected_zpe = harm_zpe - 15.0
-    assert abs(result["stiff_zpe_cm1"] - expected_zpe) < 1e-10
-
-
-def test_nan_watchdog_clean_passthrough_and_validation() -> None:
-    """
-    Test 10: Watchdog Passthrough with Wavefunctions and Zero Kelvin Protection.
-    Verifies clean inputs pass through wavefunctions without empty array returns.
-    """
-    evals = np.array([10.0, 25.0])
-    evecs = np.eye(2)
-    h_mat = np.diag([10.0, 25.0])
-
-    evals_out, evecs_out = nan_tensor_watchdog(
-        eigenvalues=evals,
-        hamiltonian=h_mat,
-        wavefunctions=evecs,
-    )
-    assert np.allclose(evals_out, evals)
-    assert np.allclose(evecs_out, evecs)
-
-    # Test T=0 K guard
-    vpt2_res_0k = localized_vpt2_coupling(
-        dvr_energies=[0.0, 10.0],
-        vpt2_matrix=np.zeros((1, 1)),
-        harmonic_frequencies=[500.0],
-        temperature_k=0.0,
-    )
-    assert vpt2_res_0k["q_coupled_total"] == 1.0
-'''
-
-Path("Libraries/cochem_jax_builder.py").write_text(jax_builder_code.strip() + "\n", encoding="utf-8")
-Path("tests/test_jax_builder.py").write_text(test_jax_builder_code.strip() + "\n", encoding="utf-8")
-print("Files successfully written!")
-
-
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_jax_builder.py ---
-"""
-CoChem-TORQ: Unit Tests for Hardware-Accelerated Physics Engine (JAX DVR)
-Phase 7 (Stage 5.0) Validation Suite
-Adhering to Zero-Approximation Mandate and Real Physical Solvers
-"""
-
-import time
-
-import jax.numpy as jnp
-import numpy as np
-
-from Libraries.cochem_jax_builder import (
-    JaxDVRBuilder,
-    build_dvr_hamiltonian,
-    enforce_jax_precision,
-    jit_eigen_solver,
-    localized_vpt2_coupling,
-    nan_tensor_watchdog,
+# Real experimental / ab initio Cartesian geometry for Water (H2O in Angstroms)
+H2O_GEOMETRY = np.array(
+    [
+        [0.000000, 0.000000, 0.117300],
+        [0.000000, 0.757200, -0.469200],
+        [0.000000, -0.757200, -0.469200],
+    ],
+    dtype=np.float64,
 )
+H2O_SYMBOLS = ["O", "H", "H"]
+
+# Real geometry for Ammonia (NH3 in Angstroms)
+NH3_GEOMETRY = np.array(
+    [
+        [0.000000, 0.000000, 0.116489],
+        [0.000000, 0.939731, -0.271808],
+        [0.813831, -0.469865, -0.271808],
+        [-0.813831, -0.469865, -0.271808],
+    ],
+    dtype=np.float64,
+)
+NH3_SYMBOLS = ["N", "H", "H", "H"]
+
+# Real geometry for Ethylene (C2H4 in Angstroms)
+C2H4_GEOMETRY = np.array(
+    [
+        [0.000000, 0.000000, 0.669500],
+        [0.000000, 0.000000, -0.669500],
+        [0.000000, 0.928900, 1.232100],
+        [0.000000, -0.928900, 1.232100],
+        [0.000000, 0.928900, -1.232100],
+        [0.000000, -0.928900, -1.232100],
+    ],
+    dtype=np.float64,
+)
+C2H4_SYMBOLS = ["C", "C", "H", "H", "H", "H"]
 
 
-def test_enforce_jax_precision() -> None:
-    """
-    Test 1: Float64 Precision Truncation Guard & Architecture Detection.
-    Verifies that float64 is strictly enforced in JAX and returns device info.
-    """
-    device_info = enforce_jax_precision()
-    assert "platform" in device_info
-    assert "x64_enabled" in device_info
-    assert device_info["x64_enabled"] is True
-
-    # Verify default tensor float precision is float64
-    x = jnp.array([1.0, 2.0])
-    assert x.dtype == jnp.float64
-
-
-def test_double_well_tunneling_splitting_precision() -> None:
-    """
-    Test 2: Double-well potential tunneling splitting precision guard.
-    Verifies that high-symmetry dual-well produces non-zero tunneling splitting.
-    """
-    enforce_jax_precision()
-    n_points = 200
-    grid_phi = np.linspace(-np.pi, np.pi, n_points, endpoint=False)
-
-    # Symmetric double well: V(phi) = 0.5 * V_0 * (1 - cos(2*phi))
-    barrier_cm1 = 500.0
-    rot_b_cm1 = 10.0
-    v_pot = 0.5 * barrier_cm1 * (1.0 - np.cos(2.0 * grid_phi))
-
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=rot_b_cm1,
-        grid_points=grid_phi,
-        dimensions=1,
-        periodic=True,
+def test_torq_spcat_bridge_init(tmp_path: Path) -> None:
+    tensor_file = tmp_path / "tensor.json"
+    tensor_file.write_text(
+        json.dumps(
+            {
+                "point_id": "001",
+                "coordinates": H2O_GEOMETRY.tolist(),
+                "symbols": H2O_SYMBOLS,
+                "tensors": {
+                    "rotational_constants_MHz": {
+                        "A": 825360.0,
+                        "B": 435360.0,
+                        "C": 278130.0,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
     )
 
-    evals, evecs = jit_eigen_solver(h_matrix)
+    mpqc_file = tmp_path / "mpqc.out"
+    mpqc_file.write_text("FINAL SINGLE POINT ENERGY -76.123\n", encoding="utf-8")
 
-    assert evals.dtype == jnp.float64
-    assert evecs.dtype == jnp.float64
-    assert len(evals) == n_points
-
-    # Ground state and first excited state (tunneling doublet)
-    e0 = float(evals[0])
-    e1 = float(evals[1])
-    delta_e = e1 - e0
-
-    # Tunneling splitting must be strictly positive and finite
-    assert delta_e > 0.0, f"Tunneling splitting collapsed to {delta_e}"
-    assert np.isfinite(delta_e)
+    bridge = TorqSpcatBridge(str(tensor_file), str(mpqc_file), temperature_k=298.15)
+    assert bridge.temperature_k == 298.15
+    assert bridge.mpqc_file == Path(mpqc_file)
+    assert bridge.rot_A_MHz == 825360.0
+    assert bridge.rot_B_MHz == 435360.0
+    assert bridge.rot_C_MHz == 278130.0
+    assert bridge.sigma == 2
 
 
-def test_xla_compilation_speedup() -> None:
-    """
-    Test 3: XLA Compilation Speedup Test.
-    Verifies that execution of jit_eigen_solver leverages XLA compilation.
-    """
-    enforce_jax_precision()
-    matrix_size = 400
-    np.random.seed(42)
-    # Generate real symmetric matrix
-    random_mat = np.random.randn(matrix_size, matrix_size)
-    h_benchmark = (random_mat + random_mat.T) / 2.0
-    h_jax = jnp.array(h_benchmark, dtype=jnp.float64)
-
-    # First execution (includes XLA compilation)
-    t0 = time.perf_counter()
-    evals1, _ = jit_eigen_solver(h_jax)
-    evals1.block_until_ready()
-    t_first = time.perf_counter() - t0
-
-    # Second execution (cached XLA graph)
-    t0 = time.perf_counter()
-    evals2, _ = jit_eigen_solver(h_jax)
-    evals2.block_until_ready()
-    t_second = time.perf_counter() - t0
-
-    assert len(evals1) == matrix_size
-    assert np.allclose(np.array(evals1), np.array(evals2))
-    assert t_first > 0.0
-    assert t_second >= 0.0
-    assert t_second < max(t_first, 0.5)
-
-
-def test_nan_tensor_watchdog_and_tikhonov_recovery() -> None:
-    """
-    Test 4: NaN Tensor Watchdog & Tikhonov Regularization Recovery.
-    Verifies corrupt/NaN inputs are intercepted and regularized.
-    """
-    enforce_jax_precision()
-    n_pts = 50
-    grid_phi = np.linspace(-np.pi, np.pi, n_pts, endpoint=False)
-    v_pot = np.zeros(n_pts)
-
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=5.0,
-        grid_points=grid_phi,
-        dimensions=1,
+def test_torq_spcat_bridge_extract_orca(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tensor_file = tmp_path / "tensor.json"
+    tensor_file.write_text(
+        json.dumps(
+            {
+                "point_id": "002",
+                "coordinates": H2O_GEOMETRY.tolist(),
+                "symbols": H2O_SYMBOLS,
+                "tensors": {
+                    "rotational_constants_MHz": {
+                        "A": 825360.0,
+                        "B": 435360.0,
+                        "C": 278130.0,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    mpqc_file = tmp_path / "mpqc.out"
+    mpqc_file.write_text(
+        "Total Dipole Moment : 0.000 0.000 1.854\n"
+        "VIBRATIONAL FREQUENCIES\n"
+        "-----------------------\n"
+        " 1: 1595.00 cm**-1\n"
+        " 2: 3657.00 cm**-1\n"
+        " 3: 3756.00 cm**-1\n",
+        encoding="utf-8",
     )
 
-    # Corrupt Hamiltonian by placing NaN and Inf
-    h_corrupted = np.array(h_matrix, copy=True)
-    h_corrupted[5, 5] = np.nan
-    h_corrupted[10, 12] = np.inf
-    h_corrupted[12, 10] = np.inf
+    bridge = TorqSpcatBridge(str(tensor_file), str(mpqc_file), temperature_k=298.15)
+    bridge.parse_mpqc_observables()
+    assert len(bridge.frequencies_cm1) == 3
+    assert bridge.dipole_moments["c"] == 1.854
 
-    evals_recovered, evecs_recovered = nan_tensor_watchdog(
-        eigenvalues=None,
-        hamiltonian=h_corrupted,
-        alpha_regularization=1e-5,
+    q_rot, q_vib, q_total = bridge.calculate_partition_functions()
+    assert q_rot > 0.0
+    assert q_vib >= 1.0
+    assert math.isclose(q_total, q_rot * q_vib, rel_tol=1e-9)
+
+    spcat_dir = tmp_path / "scratch"
+    monkeypatch.setenv("COCHEM_ARTIFACT_DIR", str(spcat_dir))
+    bridge.export_spcat_catalog()
+    assert (spcat_dir / "spcat" / "spcat_002.var").exists()
+    assert (spcat_dir / "spcat" / "spcat_002.int").exists()
+
+
+def test_exact_codata_2022_constants() -> None:
+    """Validate immutable CODATA 2022 physical constants."""
+    assert CONSTANTS.H == 6.62607015e-34
+    assert CONSTANTS.K_B == 1.380649e-23
+    assert CONSTANTS.C_CM_S == 29979245800.0
+    assert abs(CONSTANTS.C_ROT - 505379.008435) < 1e-4
+    assert abs(CONSTANTS.HC_OVER_KB - 1.4387768775) < 1e-6
+
+
+def test_low_frequency_lam_trap_enforcement() -> None:
+    """Verify LAM trap raises LAMTriggerError for modes < 50 cm^-1 and passes stiff modes."""
+    with pytest.raises(LAMTriggerError) as exc_info:
+        low_frequency_lam_trap([3100.0, 1500.0, 105.0, 24.5])
+    assert 24.5 in exc_info.value.details["flagged_frequencies"]
+    assert "DVR" in exc_info.value.message
+
+    # Alias check
+    assert low_frequency_trap is low_frequency_lam_trap
+    stiff = low_frequency_trap([1500.0, 3600.0])
+    assert stiff == [1500.0, 3600.0]
+
+
+def test_apply_symmetry_divisors_water() -> None:
+    """Verify symmetry and spin weights for water (C2v, sigma=2, '3 1')."""
+    res = apply_symmetry_divisors(H2O_GEOMETRY, H2O_SYMBOLS)
+    assert res.point_group == "C2v"
+    assert res.sigma == 2
+    assert res.spin_weight_ratio_str == "3 1"
+    assert res.effective_divisor == 2.0
+
+
+def test_apply_symmetry_divisors_ammonia_and_ethylene() -> None:
+    """Verify symmetry and spin weights for NH3 and C2H4."""
+    res_nh3 = apply_symmetry_divisors(NH3_GEOMETRY, NH3_SYMBOLS)
+    assert res_nh3.point_group == "C3v"
+    assert res_nh3.sigma == 3
+    assert res_nh3.spin_weight_ratio_str == "2 1"
+
+    res_c2h4 = apply_symmetry_divisors(C2H4_GEOMETRY, C2H4_SYMBOLS)
+    assert res_c2h4.point_group == "D2h"
+    assert res_c2h4.sigma == 4
+
+    # Nuclear spin flag sets effective divisor to 1.0 to avoid double counting
+    res_spin = apply_symmetry_divisors(H2O_GEOMETRY, H2O_SYMBOLS, use_nuclear_spin=True)
+    assert res_spin.effective_divisor == 1.0
+    assert "EXACT_NUCLEAR_SPIN_APPLIED" in res_spin.guardrail_status
+
+
+def test_vibrational_partition_coupling_with_lam_drop() -> None:
+    """Verify vibrational partition coupling drops LAM frequency across temperature gradient."""
+    temps = [2.0, 10.0, 50.0, 298.15]
+    all_freqs = [3100.0, 1500.0, 105.0, 24.5]
+    lam_mode = 24.5
+    q_rot_dvr = {2.0: 1.05, 10.0: 4.8, 50.0: 35.2, 298.15: 185.0}
+
+    q_coupled = vibrational_partition_coupling(
+        q_rot_dvr=q_rot_dvr,
+        q_vib_orca=all_freqs,
+        temp_array=temps,
+        lam_frequency=lam_mode,
     )
 
-    assert not np.isnan(evals_recovered).any(), "NaN found in recovered evals"
-    assert not np.isinf(evals_recovered).any(), "Inf found in recovered evals"
-    assert len(evals_recovered) == n_pts
+    q_vib_without_lam = calculate_vibrational_partition_function(
+        all_freqs, 298.15, exclude_frequencies=[lam_mode]
+    )
+    expected = q_rot_dvr[298.15] * q_vib_without_lam
+    assert math.isclose(q_coupled[298.15], expected, rel_tol=1e-6)
 
 
-def test_free_rotor_analytic_parity() -> None:
-    """
-    Test 5: Free Quantum Rotor Analytic Parity.
-    Verifies that flat potential periodic sinc-DVR matches E_m = B * m^2.
-    """
-    enforce_jax_precision()
-    n_pts = 101
-    grid_phi = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
-    b_rot = 2.75  # Rotational constant in cm^-1
-    v_pot = np.zeros(n_pts)
+def test_fortran_overflow_guard_and_formatter() -> None:
+    """Verify Fortran Double Precision overflow protection and 'D' format."""
+    with pytest.raises(FortranOverflowError):
+        fortran_overflow_guard({"DJ": 1.5e310})
 
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=b_rot,
-        grid_points=grid_phi,
-        dimensions=1,
-        periodic=True,
+    with pytest.raises(FortranOverflowError):
+        fortran_overflow_guard({"tensor_matrix": np.array([1.0, 2.0, np.inf])})
+
+    with pytest.raises(FortranOverflowError):
+        fortran_overflow_guard({"tensor_matrix": np.array([1.0, 2.0, np.nan])})
+
+    formatted = fortran_double_precision_formatter(
+        20000, 1.567e-5, uncertainty=1e-7, label="DJ"
+    )
+    assert "20000" in formatted
+    assert "D-05" in formatted
+    assert "/ DJ" in formatted
+
+    single_fmt = format_fortran_double(0.00012345, compact=True)
+    assert "D-04" in single_fmt
+
+
+def test_generate_spcat_var_and_int(tmp_path: Path) -> None:
+    """Verify generation of .var and .int files."""
+    var_file = tmp_path / "scratch" / "test.var"
+    var_content = generate_spcat_var(
+        "H2O", {"A": 825360.0, "B": 435360.0, "C": 278130.0}, filepath=var_file
+    )
+    assert var_file.exists()
+    assert "H2O Ground State" in var_content
+
+    int_file = tmp_path / "scratch" / "test_{T}K.int"
+    int_dict = generate_spcat_int(
+        "H2O",
+        {"mu_a": 0.0, "mu_b": 1.85, "mu_c": 0.0},
+        temperatures=[298.15],
+        filepath_template=int_file,
+    )
+    assert 298.15 in int_dict
+    assert (tmp_path / "scratch" / "test_298.1K.int").exists()
+
+
+def test_3tier_routing_protocol() -> None:
+    """Verify the 3-Tier Routing Protocol (MPQC primary, ORCA secondary, CFOUR legacy)."""
+    mpqc_data = {
+        "energy_hartree": -76.4321,
+        "frequencies": [1595.0, 3657.0, 3756.0],
+        "dipoles": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.85},
+    }
+    orca_data = {
+        "electronic_energy": -76.4300,
+        "harmonic_frequencies": [1590.0, 3650.0, 3750.0],
+        "anharmonic_x_matrix": np.zeros((3, 3)),
+        "dipole_moments": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.84},
+    }
+    cfour_data = {
+        "eccsd_t": -76.4310,
+        "frequencies": [1592.0, 3652.0, 3752.0],
+        "dipoles": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.845},
+    }
+
+    # Standard routing selects Tier 1 (MPQC)
+    res_tier1 = route_3tier_abinitio_payload(
+        mpqc_data=mpqc_data, orca_data=orca_data, cfour_data=cfour_data
+    )
+    assert res_tier1.selected_tier == 1
+    assert res_tier1.primary_engine == "MPQC"
+    assert res_tier1.is_mpqc_primary is True
+    assert res_tier1.electronic_energy_hartree == -76.4321
+
+    # When analytic VPT2 is requested, Tier 2 (ORCA) is selected
+    res_tier2 = route_3tier_abinitio_payload(
+        mpqc_data=mpqc_data,
+        orca_data=orca_data,
+        cfour_data=cfour_data,
+        require_analytic_vpt2=True,
+    )
+    assert res_tier2.selected_tier == 2
+    assert res_tier2.primary_engine == "ORCA"
+    assert res_tier2.is_analytic_vpt2_active is True
+
+    # Fallback to Tier 3 when only CFOUR is available
+    res_tier3 = route_3tier_abinitio_payload(cfour_data=cfour_data)
+    assert res_tier3.selected_tier == 3
+    assert res_tier3.primary_engine == "CFOUR"
+
+    with pytest.raises(ValueError, match="No ab initio data provided"):
+        route_3tier_abinitio_payload()
+
+
+def test_build_complete_spcat_payload_and_manifest(tmp_path: Path) -> None:
+    """Verify build_complete_spcat_payload creates verified files and cryptographic manifest."""
+    out_dir = tmp_path / "scratch" / "spcat_out"
+    payload = build_complete_spcat_payload(
+        molecule_name="Water",
+        geometry=H2O_GEOMETRY,
+        symbols=H2O_SYMBOLS,
+        rotational_constants_mhz={"A": 825360.0, "B": 435360.0, "C": 278130.0},
+        dipoles_debye={"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.854},
+        harmonic_frequencies_cm1=[1595.0, 3657.0, 3756.0],
+        temperatures=[2.0, 10.0, 298.15],
+        output_dir=out_dir,
     )
 
-    evals, _ = jit_eigen_solver(h_matrix)
-    evals_np = np.array(evals)
+    assert payload.molecule_name == "Water"
+    assert len(payload.sha256_var) == 64
+    assert len(payload.sha256_int) == 3
+    assert Path(payload.var_filepath).exists()
+    assert Path(payload.provenance_filepath).exists()
 
-    # Verify analytical free rotor solutions: E_0 = 0, E_1 = E_2 = B*1^2, etc.
-    assert abs(evals_np[0] - 0.0) < 1e-8
-    for m in range(1, 10):
-        e_analytic = b_rot * (m**2)
-        idx1 = 2 * m - 1
-        idx2 = 2 * m
-        e_comp1 = evals_np[idx1]
-        e_comp2 = evals_np[idx2]
-        assert abs(e_comp1 - e_analytic) < 1e-8
-        assert abs(e_comp2 - e_analytic) < 1e-8
-
-
-def test_2d_coupled_dvr_hamiltonian() -> None:
-    """
-    Test 6: 2D Coupled Rotor DVR Hamiltonian Construction and Diagonalization.
-    Verifies 2D grid tensor product Hamiltonian and eigensolution.
-    """
-    enforce_jax_precision()
-    nx = 20
-    ny = 20
-    phi_x = np.linspace(-np.pi, np.pi, nx, endpoint=False)
-    phi_y = np.linspace(-np.pi, np.pi, ny, endpoint=False)
-
-    px, py = np.meshgrid(phi_x, phi_y, indexing="ij")
-    v_2d = (
-        100.0 * (1.0 - np.cos(3.0 * px))
-        + 80.0 * (1.0 - np.cos(3.0 * py))
-        + 20.0 * np.cos(3.0 * px + 3.0 * py)
-    )
-
-    h_2d = build_dvr_hamiltonian(
-        pes_spline_array=v_2d,
-        kinetic_operator=(5.0, 4.0),
-        grid_points=(phi_x, phi_y),
-        dimensions=2,
-        periodic=True,
-    )
-
-    assert h_2d.shape == (nx * ny, nx * ny)
-    evals, evecs = jit_eigen_solver(h_2d)
-
-    assert len(evals) == nx * ny
-    assert evecs.shape == (nx * ny, nx * ny)
-    assert not np.isnan(np.asarray(evals)).any()
-    evals_arr = np.asarray(evals)
-    assert np.all(np.diff(evals_arr) >= -1e-12)
-
-
-def test_localized_vpt2_coupling() -> None:
-    """
-    Test 7: Localized VPT2 Coupling.
-    Verifies dropping low-frequency LAM mode and coupling stiff modes with DVR.
-    """
-    enforce_jax_precision()
-    dvr_energies = np.array([0.0, 12.5, 45.0, 95.0, 160.0, 240.0, 335.0, 445.0])
-    harmonic_freqs = [35.0, 520.0, 850.0, 1200.0, 1650.0, 3050.0]
-
-    n_modes = len(harmonic_freqs)
-    vpt2_x_matrix = np.zeros((n_modes, n_modes))
-    for i in range(n_modes):
-        vpt2_x_matrix[i, i] = -0.01 * harmonic_freqs[i]
-        for j in range(i + 1, n_modes):
-            vpt2_x_matrix[i, j] = -0.5
-            vpt2_x_matrix[j, i] = -0.5
-
-    result = localized_vpt2_coupling(
-        dvr_energies=dvr_energies,
-        vpt2_matrix=vpt2_x_matrix,
-        harmonic_frequencies=harmonic_freqs,
-        lam_mode_indices=[0],
-        temperature_k=298.15,
-    )
-
-    assert "dropped_lam_modes" in result
-    assert result["dropped_lam_modes"] == [0]
-    assert "stiff_harmonic_frequencies" in result
-    assert len(result["stiff_harmonic_frequencies"]) == 5
-    assert 35.0 not in result["stiff_harmonic_frequencies"]
-    assert "q_dvr_rot" in result
-    assert result["q_dvr_rot"] > 1.0
-    assert "q_stiff_vib" in result
-    assert result["q_stiff_vib"] >= 1.0
-    assert "q_coupled_total" in result
-    assert result["q_coupled_total"] == result["q_dvr_rot"] * result["q_stiff_vib"]
-    assert "coupled_ground_state_energy_cm1" in result
-
-
-def test_jax_dvr_builder_class_orchestration() -> None:
-    """
-    Test 8: JaxDVRBuilder high-level class interface.
-    Verifies complete workflow from 1D PES scan to eigenvalues.
-    """
-    builder = JaxDVRBuilder(dimensions=1, enable_x64=True)
-
-    n_pts = 90
-    phi = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
-    v3_barrier = 350.0  # cm^-1
-    b_rot = 5.25  # cm^-1 (methyl rotor approx)
-    v_pot = 0.5 * v3_barrier * (1.0 - np.cos(3.0 * phi))
-
-    results = builder.solve_1d_rotor(
-        grid_points=phi,
-        energies_cm1=v_pot,
-        rotational_constant_cm1=b_rot,
-        periodic=True,
-    )
-
-    assert "eigenvalues" in results
-    assert "wavefunctions" in results
-    assert "ground_state_energy_cm1" in results
-    assert len(results["eigenvalues"]) == n_pts
-
-    evals = np.array(results["eigenvalues"])
-    e0 = evals[0]
-    e1 = evals[1]
-    e2 = evals[2]
-    assert abs(e2 - e1) < 1e-8, f"E states e1={e1}, e2={e2} should be degenerate"
-    assert e1 > e0, f"E states e1={e1} must exhibit tunneling splitting over e0={e0}"
-    tunneling_split = e1 - e0
-    assert tunneling_split > 1e-4
-
-
-def test_vpt2_triangular_anharmonic_zpe() -> None:
-    """
-    Test 9: VPT2 Upper-Triangular Anharmonic ZPE Summation.
-    Verifies off-diagonal anharmonic corrections are computed as 0.25*sum_{i<=j} X_ij.
-    """
-    dvr_e = [0.0, 50.0]
-    harm_freqs = [1000.0, 2000.0]
-    vpt2_x = np.array([[-10.0, -30.0], [-30.0, -20.0]])
-
-    result = localized_vpt2_coupling(
-        dvr_energies=dvr_e,
-        vpt2_matrix=vpt2_x,
-        harmonic_frequencies=harm_freqs,
-        lam_mode_indices=[],
-        temperature_k=298.15,
-    )
-
-    harm_zpe = 0.5 * (1000.0 + 2000.0)  # 1500.0
-    # 0.25 * (-10.0 + -20.0 + -30.0) = -15.0
-    expected_zpe = harm_zpe - 15.0
-    assert abs(result["stiff_zpe_cm1"] - expected_zpe) < 1e-10
-
-
-def test_nan_watchdog_clean_passthrough_and_validation() -> None:
-    """
-    Test 10: Watchdog Passthrough with Wavefunctions and Zero Kelvin Protection.
-    Verifies clean inputs pass through wavefunctions without empty array returns.
-    """
-    evals = np.array([10.0, 25.0])
-    evecs = np.eye(2)
-    h_mat = np.diag([10.0, 25.0])
-
-    evals_out, evecs_out = nan_tensor_watchdog(
-        eigenvalues=evals,
-        hamiltonian=h_mat,
-        wavefunctions=evecs,
-    )
-    assert np.allclose(evals_out, evals)
-    assert np.allclose(evecs_out, evecs)
-
-    # Test T=0 K guard
-    vpt2_res_0k = localized_vpt2_coupling(
-        dvr_energies=[0.0, 10.0],
-        vpt2_matrix=np.zeros((1, 1)),
-        harmonic_frequencies=[500.0],
-        temperature_k=0.0,
-    )
-    assert vpt2_res_0k["q_coupled_total"] == 1.0
 
 Validate Zero-Mock adherence. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ.
