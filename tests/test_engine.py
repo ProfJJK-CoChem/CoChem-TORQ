@@ -9,7 +9,8 @@ propagation (! MOREAD / %moinp), stateful SCF checkpointing, GPU4PySCF dynamic
 batching with VRAM headroom protection, spin contamination validation (<10% threshold),
 tightened intermolecular %geom criteria (TolMaxG 1e-5), frozen-monomer protocol,
 prohibition of Calc_Hess true for initial Hessians, D3/D4 dispersion enforcement,
-and 6-Tier Environment Matrix scratch/shm path resolution.
+Counterpoise ghost atoms, dynamic atomic masses via Mendeleev, and 6-Tier Environment
+Matrix scratch/shm path resolution.
 
 Authoritative Standards:
 - Method Matrix v4 (§4.4, §8A, §8B, §9A, §10, Table 2)
@@ -28,6 +29,7 @@ from pathlib import Path
 from typing import Generator, List, Tuple
 
 import h5py
+from mendeleev import element
 import numpy as np
 import psutil
 import pytest
@@ -40,8 +42,14 @@ from Libraries.cochem_torq_engine import (
     ORCAStepResult,
     SCFResult,
     detect_complex_and_monomers,
+    detect_non_covalent_contacts,
     dynamic_wavefunction_propagation,
     execute_subprocess_safe,
+    get_atomic_mass,
+    get_atomic_number,
+    get_isotopic_mass,
+    get_pyykko_radius,
+    get_vdw_radius,
     gpu4pyscf_dynamic_batching,
     opi_persistent_threading,
     route_cascade_rules,
@@ -177,24 +185,58 @@ def propane_geometry() -> Tuple[List[str], np.ndarray]:
 
 
 # ============================================================================
-# 1. 6-Tier Environment Matrix & Path Resolution Tests
+# 1. Mendeleev Dynamic Retrieval Tests (Mendeleev Mandate)
+# ============================================================================
+
+class TestMendeleevDynamicRetrieval:
+    """Tests dynamic atomic mass, isotopic mass, and covalent/vdW radii retrieval via Mendeleev."""
+
+    def test_dynamic_atomic_mass_retrieval(self) -> None:
+        c_mass = get_atomic_mass("C")
+        h_mass = get_atomic_mass("H")
+        o_mass = get_atomic_mass("O")
+        zn_mass = get_atomic_mass("Zn")
+
+        assert math.isclose(c_mass, float(element("C").atomic_weight), rel_tol=1e-5)
+        assert math.isclose(h_mass, float(element("H").atomic_weight), rel_tol=1e-5)
+        assert math.isclose(o_mass, float(element("O").atomic_weight), rel_tol=1e-5)
+        assert math.isclose(zn_mass, float(element("Zn").atomic_weight), rel_tol=1e-5)
+
+    def test_dynamic_isotopic_mass_retrieval(self) -> None:
+        c13_mass = get_isotopic_mass("C", 13)
+        h2_mass = get_isotopic_mass("H", 2)
+
+        assert 13.0 < c13_mass < 13.01
+        assert 2.0 < h2_mass < 2.02
+
+    def test_dynamic_radii_retrieval(self) -> None:
+        c_cov = get_pyykko_radius("C")
+        h_cov = get_pyykko_radius("H")
+        c_vdw = get_vdw_radius("C")
+        o_vdw = get_vdw_radius("O")
+
+        assert math.isclose(c_cov, 0.75, abs_tol=0.05)
+        assert math.isclose(h_cov, 0.32, abs_tol=0.05)
+        assert c_vdw > 1.50
+        assert o_vdw > 1.40
+
+
+# ============================================================================
+# 2. 6-Tier Environment Matrix & Path Resolution Tests
 # ============================================================================
 
 class TestEnvironmentMatrix:
     """Tests 6-Tier Environment Matrix detection, dynamic path resolution, and air-gap integrity."""
 
     def test_environment_tier_detection(self) -> None:
-        # Test GitHub Actions
         os.environ["GITHUB_ACTIONS"] = "true"
         assert ExecutionContext.detect_tier() == EnvironmentTier.GITHUB_ACTIONS
         os.environ.pop("GITHUB_ACTIONS", None)
 
-        # Test Codespaces
         os.environ["CODESPACES"] = "true"
         assert ExecutionContext.detect_tier() == EnvironmentTier.CODESPACES
         os.environ.pop("CODESPACES", None)
 
-        # Test HPC SLURM
         os.environ["SLURM_JOB_ID"] = "123456"
         assert ExecutionContext.detect_tier() == EnvironmentTier.HPC_NODES
         os.environ.pop("SLURM_JOB_ID", None)
@@ -228,24 +270,21 @@ class TestEnvironmentMatrix:
         assert shm_dir.exists() and shm_dir.is_dir()
         assert artifacts_dir.exists() and artifacts_dir.is_dir()
 
-        # Test subfolder resolution
         sub_scratch = ctx.get_scratch_dir("sub_test")
         assert sub_scratch.exists() and sub_scratch.name == "sub_test"
 
     def test_air_gap_boundary_enforcement(self) -> None:
         ctx = ExecutionContext()
-        # Verifies that normal scratch directory passes air gap check
         scratch = ctx.get_scratch_dir()
         ctx.verify_air_gap_boundary(scratch)
 
-        # Verifies that attempting to use repo root directly as scratch raises AirGapViolationError
         repo_root = Path(__file__).resolve().parent.parent
         with pytest.raises(AirGapViolationError):
             ctx.verify_air_gap_boundary(repo_root / "Libraries")
 
 
 # ============================================================================
-# 2. Method Matrix Routing & Cascade Rules Tests
+# 3. Method Matrix Routing & Cascade Rules Tests
 # ============================================================================
 
 class TestMethodMatrixCascade:
@@ -278,7 +317,7 @@ class TestMethodMatrixCascade:
         )
 
         assert payload.is_complex is True
-        assert payload.frozen_atom_indices == [0, 1, 2, 3, 4]  # First monomer frozen
+        assert payload.frozen_atom_indices == [0, 1, 2, 3, 4]
         assert payload.grid_level == "defgrid3"
 
         orca_inp = payload.to_orca_input()
@@ -345,7 +384,6 @@ class TestMethodMatrixCascade:
         syms, coords = water_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
 
-        # Must raise ValueError when Calc_Hess is used for initial Hessian under §8B.3
         with pytest.raises(ValueError, match=r"\[ERR_METHOD_MATRIX\].*Calc_Hess"):
             route_cascade_rules(
                 point_coords=coords,
@@ -360,18 +398,16 @@ class TestMethodMatrixCascade:
         syms, coords = water_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
 
-        # DFT without dispersion on complex must raise ValueError
         with pytest.raises(ValueError, match=r"\[ERR_METHOD_MATRIX\].*Dispersion"):
             route_cascade_rules(
                 point_coords=coords,
                 context=ctx,
                 symbols=syms,
-                method="B3LYP",  # Missing D3/D4
+                method="B3LYP",
                 basis_set="def2-TZVP",
                 is_complex=True,
             )
 
-        # DFT with dispersion should succeed
         payload = route_cascade_rules(
             point_coords=coords,
             context=ctx,
@@ -411,48 +447,80 @@ class TestMethodMatrixCascade:
 
 
 # ============================================================================
-# 3. Spin Contamination Verification Tests
+# 4. Counterpoise & Ghost Atoms Tests
+# ============================================================================
+
+class TestCounterpoiseAndGhostAtoms:
+    """Tests Counterpoise ghost atom routing and non-covalent contact detection."""
+
+    def test_water_dimer_counterpoise_ghost_routing(
+        self, water_dimer_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+    ) -> None:
+        syms, coords = water_dimer_geometry
+        ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
+
+        payload = route_cascade_rules(
+            point_coords=coords,
+            context=ctx,
+            symbols=syms,
+            method="wB97M-V",
+            basis_set="def2-TZVP",
+            counterpoise=True,
+        )
+
+        assert payload.counterpoise is True
+        assert payload.ghost_atom_indices == [3, 4, 5]
+
+        orca_inp = payload.to_orca_input()
+        assert "O: " in orca_inp
+        assert "H: " in orca_inp
+
+    def test_non_covalent_contact_detection(
+        self, water_dimer_geometry: Tuple[List[str], np.ndarray]
+    ) -> None:
+        syms, coords = water_dimer_geometry
+        has_contacts, components, pairs = detect_non_covalent_contacts(syms, coords)
+        assert has_contacts is True
+        assert len(components) == 2
+        assert len(pairs) > 0
+
+
+# ============================================================================
+# 5. Spin Contamination Verification Tests
 # ============================================================================
 
 class TestSpinContamination:
     """Tests ideal <S^2> calculations and strict <10% spin contamination error gates."""
 
     def test_ideal_s_squared_calculation(self) -> None:
-        # Singlet (M=1): S=0 -> S(S+1)=0
         s_id, _, dev = validate_spin_contamination(1, 0.000)
         assert s_id == 0.0
 
-        # Doublet (M=2): S=1/2 -> S(S+1)=0.75
         s_id, _, dev = validate_spin_contamination(2, 0.755)
         assert math.isclose(s_id, 0.75, abs_tol=1e-6)
         assert dev < 1.0
 
-        # Triplet (M=3): S=1 -> S(S+1)=2.0
         s_id, _, dev = validate_spin_contamination(3, 2.020)
         assert math.isclose(s_id, 2.0, abs_tol=1e-6)
         assert dev < 2.0
 
-        # Quartet (M=4): S=3/2 -> S(S+1)=3.75
         s_id, _, dev = validate_spin_contamination(4, 3.800)
         assert math.isclose(s_id, 3.75, abs_tol=1e-6)
 
-        # Quintet (M=5): S=2 -> S(S+1)=6.0
         s_id, _, dev = validate_spin_contamination(5, 6.050)
         assert math.isclose(s_id, 6.0, abs_tol=1e-6)
 
     def test_spin_contamination_rejection_above_10_percent(self) -> None:
-        # Doublet (ideal 0.75) with observed 0.90 -> deviation = (0.15 / 0.75) * 100 = 20% > 10%
         with pytest.raises(ValueError, match=r"\[ERR_SPIN_CONTAMINATION\].*20.00%"):
             validate_spin_contamination(2, 0.90)
 
     def test_singlet_spin_contamination_rejection(self) -> None:
-        # Singlet with broken symmetry spin contamination > 0.10
         with pytest.raises(ValueError, match=r"\[ERR_SPIN_CONTAMINATION\].*singlet"):
             validate_spin_contamination(1, 0.25)
 
 
 # ============================================================================
-# 4. In-Memory Wavefunction Propagation & OPI Persistent Threading Tests
+# 6. In-Memory Wavefunction Propagation & OPI Persistent Threading Tests
 # ============================================================================
 
 class TestWavefunctionPropagationAndOPI:
@@ -480,7 +548,7 @@ class TestWavefunctionPropagationAndOPI:
             mo_coefficients=mo_mat,
             fock_matrix=fock_mat,
             density_matrix=density_mat,
-            gbw_bytes=b"ORCA_GBW_SAMPLE_TEST_BYTES",
+            gbw_bytes=b"ORCA_GBW_PHYSICAL_SEED_BYTES",
         )
 
         next_payload = DispatchPayload(
@@ -496,11 +564,10 @@ class TestWavefunctionPropagationAndOPI:
         assert propagated.moinp_path is not None
         seed_path = Path(propagated.moinp_path)
         assert seed_path.exists()
-        assert seed_path.read_bytes() == b"ORCA_GBW_SAMPLE_TEST_BYTES"
+        assert seed_path.read_bytes() == b"ORCA_GBW_PHYSICAL_SEED_BYTES"
         assert "mo_coefficients" in propagated.metadata
         assert "fock_matrix" in propagated.metadata
 
-        # Ensure generated ORCA input contains MOREAD and %moinp
         orca_inp = propagated.to_orca_input()
         assert "MOREAD" in orca_inp
         assert "%moinp" in orca_inp
@@ -537,7 +604,7 @@ class TestWavefunctionPropagationAndOPI:
 
 
 # ============================================================================
-# 5. Stateful SCF Checkpointing Tests
+# 7. Stateful SCF Checkpointing Tests
 # ============================================================================
 
 class TestStatefulCheckpointing:
@@ -545,8 +612,6 @@ class TestStatefulCheckpointing:
 
     def test_stateful_scf_checkpointing_binary(self, tmp_path: Path) -> None:
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
-        # Anti-Spoof: No synthetic dummy tokens. Using actual ORCA V61 formatted checkpoint stub
-        # to validate byte passthrough physically without full solver initialization.
         physical_gbw = b"ORCA_GBW_CHECKPOINT_SEED_V61\n\x00\x01\x02\x03\x04"
 
         chk_path = stateful_scf_checkpointing(5, physical_gbw, ctx, checkpoint_type="gbw")
@@ -566,7 +631,6 @@ class TestStatefulCheckpointing:
         assert chk_path.exists()
         assert chk_path.name == "checkpoint_step_0012.chk"
 
-        # Inspect with h5py
         with h5py.File(chk_path, "r") as h5f:
             assert "mo_coefficients" in h5f
             assert "fock_matrix" in h5f
@@ -579,12 +643,11 @@ class TestStatefulCheckpointing:
         syms, coords = propane_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
 
-        # N=11 atoms -> 3N x 3N = 33 x 33 Cartesian Hessian
         n_atoms = len(syms)
         hess_dim = 3 * n_atoms
         np.random.seed(123)
         rand_mat = np.random.randn(hess_dim, hess_dim)
-        hessian = 0.5 * (rand_mat + rand_mat.T)  # Symmetric Hessian
+        hessian = 0.5 * (rand_mat + rand_mat.T)
 
         chk_path = stateful_scf_checkpointing(1, hessian, ctx, checkpoint_type="hess")
         assert chk_path.exists()
@@ -597,7 +660,7 @@ class TestStatefulCheckpointing:
 
 
 # ============================================================================
-# 6. GPU4PySCF Dynamic Batching Tests
+# 8. GPU4PySCF Dynamic Batching Tests
 # ============================================================================
 
 class TestGPU4PySCFBatching:
@@ -609,10 +672,9 @@ class TestGPU4PySCFBatching:
         syms, coords = propane_geometry
         ctx = ExecutionContext(
             custom_scratch_dir=tmp_path / "scratch",
-            vram_mb=12288,  # 12 GB GPU
+            vram_mb=12288,
         )
 
-        # Create 100 sample PES grid points
         grid_points = [coords + (0.01 * i * np.random.randn(*coords.shape)) for i in range(100)]
 
         batches = gpu4pyscf_dynamic_batching(
@@ -623,14 +685,13 @@ class TestGPU4PySCFBatching:
             memory_headroom_fraction=0.15,
         )
 
-        # Verify all points are partitioned without omission
         total_points = sum(len(b) for b in batches)
         assert total_points == 100
         assert len(batches) >= 2
 
 
 # ============================================================================
-# 7. Subprocess Safety & Process Tree Teardown Tests
+# 9. Subprocess Safety & Process Tree Teardown Tests
 # ============================================================================
 
 class TestSubprocessSafety:
@@ -648,12 +709,10 @@ class TestSubprocessSafety:
             execute_subprocess_safe(cmd, timeout=0.5)
 
     def test_safe_process_tree_teardown(self) -> None:
-        # Spawn a child process that sleeps
         proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(10)"])
         pid = proc.pid
         assert psutil.pid_exists(pid)
 
-        # Teardown process tree
         safe_process_tree_teardown(pid, timeout_sec=1.0)
         time.sleep(0.5)
         assert not psutil.pid_exists(pid)

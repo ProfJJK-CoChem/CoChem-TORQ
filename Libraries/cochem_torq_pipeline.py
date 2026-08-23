@@ -49,17 +49,25 @@ class TorqPipeline:
                 "[MISSING DATA] Pipeline requires pre-computed geometry payload and quantum engine execution."
             )
         
-        stages = [
-            "Topology",
-            "Machine Learning Fast Filtering",
-            "Quantum Engine Optimization",
-            "IRC / Grid Dynamics",
-            "SPCAT Spectral Synthesis"
-        ]
+        from Libraries.cochem_torq_engine import route_method_matrix, ExecutionContext, opi_persistent_threading
+        import numpy as np
+
+        self.state = "Quantum Engine Optimization"
+        logger.info(f"Executing pipeline stage: {self.state}")
         
-        for stage in stages:
-            self.state = stage
-            logger.info(f"Executing pipeline stage: {self.state}")
-            
+        context = ExecutionContext()
+        symbols = geometry_payload.get("symbols", ["H", "H"])
+        coordinates_raw = geometry_payload.get("coordinates", [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]])
+        coordinates = np.array(coordinates_raw, dtype=np.float64)
+        
+        payload = route_method_matrix(
+            symbols=symbols,
+            coordinates=coordinates,
+            target_tier=self.config.tier,
+            context=context
+        )
+        
+        engine_results = list(opi_persistent_threading(input_payload=payload, context=context, n_steps=1))
+        
         self.state = "S_COMPLETE"
-        return {"status": "success", "processed_payload": geometry_payload}
+        return {"status": "success", "processed_payload": geometry_payload, "engine_results": engine_results}
