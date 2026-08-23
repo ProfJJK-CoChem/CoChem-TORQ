@@ -130,8 +130,7 @@ class TestLockMetadataAndPaths:
         assert read_lock_metadata(non_dict) is None
 
 
-def test_read_lock_metadata_os_errors(tmp_path):
-    pass # we don't mock this anymore
+
 
 # ============================================================================
 # 2. Process Validation & Zombie Detection Tests (Physical Zero-Mock)
@@ -166,9 +165,10 @@ class TestZombieDetection:
         db_path = tmp_path / "quantum.h5"
         lock_path = get_lock_path(db_path)
         
-        # Create a short-lived subprocess so we get a real PID that dies
-        proc = subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(0)"])
+        # Create a real process and forcefully terminate it to simulate a crash
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
         dead_pid = proc.pid
+        proc.kill()
         proc.wait()
         
         meta = LockMetadata(
@@ -197,8 +197,11 @@ class TestLiveSWMRRecovery:
             f.attrs["test"] = 1
             
         lock_path = get_lock_path(db_path)
-        proc = subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(0)"])
+        
+        # Create a real process and forcefully terminate it to simulate a crash
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
         dead_pid = proc.pid
+        proc.kill()
         proc.wait()
         
         meta = LockMetadata(

@@ -1,5 +1,5 @@
-"""
-CoChem-TORQ: Cryptographic Payload Synthesizer & Deliverable Gateway
+"""CoChem-TORQ: Cryptographic Payload Synthesizer & Deliverable Gateway.
+
 Phase 9 (Stages 5.5 - 6.0) Specification
 ---------------------------------------------------------------------
 Aggregates forward predictions, exact physics tensors, PyArrow .parquet catalogs,
@@ -10,9 +10,9 @@ Implements:
 1. Kraitchman coordinate calculations with singularity damping, ZPVE clamping,
    and piecewise Costain bounds.
 2. OOM-proof PGOPHER XML skeleton generation using PyArrow parquet metadata.
-3. Provenance lock manifest generation with RFC 8785 Canonical JSON and streaming SHA-256.
-4. Deterministic .tar.zst payload bundling with normalized POSIX metadata (mtime=0, 0644/0755).
-5. Comprehensive payload verification and tamper detection raising CoChemIntegrityError.
+3. Provenance lock manifest generation under RFC 8785 Canonical JSON.
+4. Deterministic .tar.zst payload bundling with normalized POSIX metadata.
+5. Cryptographic payload verification raising CoChemIntegrityError.
 6. Legacy TorqExporter, PESStore, and export_qcschema integration.
 """
 
@@ -26,22 +26,26 @@ import math
 import os
 import tarfile
 import warnings
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
-import h5py
+import h5py  # type: ignore[import-untyped]
 import numpy as np
-import pyarrow as pa
-import pyarrow.parquet as pq
-import xml.etree.ElementTree as ET
+import numpy.typing as npt
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
 import zstandard as zstd
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Export] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Export] %(message)s"
+)
 logger = logging.getLogger("TorqExport")
 
-ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
+ARTIFACTS_DIR = os.environ.get(
+    "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
+)
 
 
 # ============================================================================
@@ -51,16 +55,19 @@ ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem
 
 class CoChemIntegrityError(Exception):
     """Raised when cryptographic verification or payload integrity check fails."""
+
     pass
 
 
 class KraitchmanZPVEWarning(UserWarning):
-    """Issued when Zero-Point Vibrational Energy (ZPVE) defect causes an imaginary substitution coordinate."""
+    """Issued when ZPVE defect causes an imaginary substitution coordinate."""
+
     pass
 
 
 class KraitchmanSingularityWarning(UserWarning):
-    """Issued when near-symmetric top or denominator singularity occurs in Kraitchman equations."""
+    """Issued when near-symmetric top or denominator singularity occurs."""
+
     pass
 
 
@@ -70,17 +77,18 @@ class KraitchmanSingularityWarning(UserWarning):
 
 
 def canonical_json_dumps(data: Any) -> str:
-    """
-    Serializes a Python data structure into an RFC 8785 compliant Canonical JSON string.
+    """Serializes a Python data structure into RFC 8785 compliant Canonical JSON.
+
     Keys are sorted lexicographically, and whitespace is strictly minimized.
     """
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def compute_file_sha256(file_path: Union[str, Path], chunk_size: int = 8192) -> Tuple[str, int]:
-    """
-    Computes streaming SHA-256 digest and byte size of a file using 8192-byte binary chunks.
-    
+def compute_file_sha256(
+    file_path: str | Path, chunk_size: int = 8192
+) -> tuple[str, int]:
+    """Computes streaming SHA-256 digest and byte size of a file.
+
     :param file_path: Path to the target file.
     :param chunk_size: Chunk size in bytes for streaming read.
     :return: Tuple of (sha256_hex_string, size_in_bytes).
@@ -101,54 +109,80 @@ def compute_file_sha256(file_path: Union[str, Path], chunk_size: int = 8192) -> 
 
 
 def calculate_kraitchman_coords(
-    parent_moments: Union[Dict[str, float], Tuple[float, float, float], List[float], np.ndarray[Any]],
-    substituted_moments: Union[Dict[str, float], Tuple[float, float, float], List[float], np.ndarray[Any]],
+    parent_moments: dict[str, float]
+    | tuple[float, float, float]
+    | list[float]
+    | npt.NDArray[np.floating[Any]],
+    substituted_moments: dict[str, float]
+    | tuple[float, float, float]
+    | list[float]
+    | npt.NDArray[np.floating[Any]],
     parent_mass: float,
     delta_m: float,
     singularity_threshold: float = 1e-4,
-) -> Dict[str, Any]:
-    """
-    Derives substitution coordinates (|a_s|, |b_s|, |c_s|) and Costain uncertainty bounds
-    for single isotopic substitution in an asymmetric top molecule using Kraitchman's equations.
-    
-    Includes:
-    - Real physical substitution calculations from principal moments of inertia.
-    - Singularity damping guard for near-symmetric tops (|I_g - I_h| < singularity_threshold).
-    - ZPVE defect clamping for imaginary roots (R_g < 0 clamped to 0.0000 with KraitchmanZPVEWarning).
-    - Piecewise Costain Bounds (0.0015 / |g_s| for |g_s| >= 0.15 A, sqrt(|R_g|) for |g_s| < 0.15 A).
-    
-    :param parent_moments: Principal moments of inertia (Ia, Ib, Ic) of parent molecule (u*A^2).
-    :param substituted_moments: Principal moments of inertia (Ia', Ib', Ic') of substituted isotopologue (u*A^2).
+) -> dict[str, Any]:
+    """Derives substitution coordinates and Costain bounds using Kraitchman equations.
+
+    :param parent_moments: Principal moments (Ia, Ib, Ic) of parent (u*A^2).
+    :param substituted_moments: Moments (Ia', Ib', Ic') of isotopologue (u*A^2).
     :param parent_mass: Total molecular mass of parent molecule (u).
     :param delta_m: Mass difference of substituted atom m' - m (u).
-    :param singularity_threshold: Threshold below which near-symmetric denominators are damped.
-    :return: Dictionary containing coordinates, Costain errors, radicands, and reduced mass.
+    :param singularity_threshold: Threshold below which denominators are damped.
+    :return: Dictionary containing coordinates, Costain errors, radicands, reduced mass.
     """
     # Extract parent moments
     if isinstance(parent_moments, dict):
-        Ia = float(parent_moments.get("Ia", parent_moments.get("a", parent_moments.get("IA", 0.0))))
-        Ib = float(parent_moments.get("Ib", parent_moments.get("b", parent_moments.get("IB", 0.0))))
-        Ic = float(parent_moments.get("Ic", parent_moments.get("c", parent_moments.get("IC", 0.0))))
+        i_a = float(
+            parent_moments.get(
+                "Ia", parent_moments.get("a", parent_moments.get("IA", 0.0))
+            )
+        )
+        i_b = float(
+            parent_moments.get(
+                "Ib", parent_moments.get("b", parent_moments.get("IB", 0.0))
+            )
+        )
+        i_c = float(
+            parent_moments.get(
+                "Ic", parent_moments.get("c", parent_moments.get("IC", 0.0))
+            )
+        )
     else:
-        Ia, Ib, Ic = float(parent_moments[0]), float(parent_moments[1]), float(parent_moments[2])
+        i_a = float(parent_moments[0])
+        i_b = float(parent_moments[1])
+        i_c = float(parent_moments[2])
 
     # Extract substituted moments
     if isinstance(substituted_moments, dict):
-        Iap = float(substituted_moments.get("Ia", substituted_moments.get("a", substituted_moments.get("IA", 0.0))))
-        Ibp = float(substituted_moments.get("Ib", substituted_moments.get("b", substituted_moments.get("IB", 0.0))))
-        Icp = float(substituted_moments.get("Ic", substituted_moments.get("c", substituted_moments.get("IC", 0.0))))
+        i_ap = float(
+            substituted_moments.get(
+                "Ia", substituted_moments.get("a", substituted_moments.get("IA", 0.0))
+            )
+        )
+        i_bp = float(
+            substituted_moments.get(
+                "Ib", substituted_moments.get("b", substituted_moments.get("IB", 0.0))
+            )
+        )
+        i_cp = float(
+            substituted_moments.get(
+                "Ic", substituted_moments.get("c", substituted_moments.get("IC", 0.0))
+            )
+        )
     else:
-        Iap, Ibp, Icp = float(substituted_moments[0]), float(substituted_moments[1]), float(substituted_moments[2])
+        i_ap = float(substituted_moments[0])
+        i_bp = float(substituted_moments[1])
+        i_cp = float(substituted_moments[2])
 
     # Principal moment differences
-    dIa = Iap - Ia
-    dIb = Ibp - Ib
-    dIc = Icp - Ic
+    d_ia = i_ap - i_a
+    d_ib = i_bp - i_b
+    d_ic = i_cp - i_c
 
     # Planar moment differences: Delta P_x = 1/2 (Delta I_y + Delta I_z - Delta I_x)
-    dPa = 0.5 * (dIb + dIc - dIa)
-    dPb = 0.5 * (dIc + dIa - dIb)
-    dPc = 0.5 * (dIa + dIb - dIc)
+    d_pa = 0.5 * (d_ib + d_ic - d_ia)
+    d_pb = 0.5 * (d_ic + d_ia - d_ib)
+    d_pc = 0.5 * (d_ia + d_ib - d_ic)
 
     # Reduced mass for substitution mu = (M * delta_m) / (M + delta_m)
     mu = (parent_mass * delta_m) / (parent_mass + delta_m)
@@ -157,41 +191,50 @@ def calculate_kraitchman_coords(
     def _guard_denom(denom: float, label: str) -> float:
         if abs(denom) < singularity_threshold:
             warnings.warn(
-                f"Singularity near-symmetric denominator |{label}| = {abs(denom):.6e} < {singularity_threshold}. Applying damping guard.",
+                f"Singularity near-symmetric denominator |{label}| = "
+                f"{abs(denom):.6e} < {singularity_threshold}. Applying damping guard.",
                 KraitchmanSingularityWarning,
                 stacklevel=2,
             )
-            logger.warning(f"Kraitchman singularity damping applied to {label}: denom={denom:.6e}")
-            return math.copysign(singularity_threshold, denom) if denom != 0.0 else singularity_threshold
+            logger.warning(
+                f"Kraitchman singularity damping applied to {label}: denom={denom:.6e}"
+            )
+            if denom != 0.0:
+                return math.copysign(singularity_threshold, denom)
+            return singularity_threshold
         return denom
 
-    D_ab = _guard_denom(Ia - Ib, "Ia - Ib")
-    D_ac = _guard_denom(Ia - Ic, "Ia - Ic")
-    D_bc = _guard_denom(Ib - Ic, "Ib - Ic")
-    D_ba = _guard_denom(Ib - Ia, "Ib - Ia")
-    D_ca = _guard_denom(Ic - Ia, "Ic - Ia")
-    D_cb = _guard_denom(Ic - Ib, "Ic - Ib")
+    d_ab = _guard_denom(i_a - i_b, "Ia - Ib")
+    d_ac = _guard_denom(i_a - i_c, "Ia - Ic")
+    d_bc = _guard_denom(i_b - i_c, "Ib - Ic")
+    d_ba = _guard_denom(i_b - i_a, "Ib - Ia")
+    d_ca = _guard_denom(i_c - i_a, "Ic - Ia")
+    d_cb = _guard_denom(i_c - i_b, "Ic - Ib")
 
     # Kraitchman asymmetric top equations (Kraitchman 1953 Eq. 18)
-    Ra = (dPa / mu) * (1.0 + dPb / D_ab) * (1.0 + dPc / D_ac)
-    Rb = (dPb / mu) * (1.0 + dPc / D_bc) * (1.0 + dPa / D_ba)
-    Rc = (dPc / mu) * (1.0 + dPa / D_ca) * (1.0 + dPb / D_cb)
+    r_a = (d_pa / mu) * (1.0 + d_pb / d_ab) * (1.0 + d_pc / d_ac)
+    r_b = (d_pb / mu) * (1.0 + d_pc / d_bc) * (1.0 + d_pa / d_ba)
+    r_c = (d_pc / mu) * (1.0 + d_pa / d_ca) * (1.0 + d_pb / d_cb)
 
-    radicands = {"a": float(Ra), "b": float(Rb), "c": float(Rc)}
-    coords: Dict[str, float] = {}
-    costain_errors: Dict[str, float] = {}
+    radicands = {"a": float(r_a), "b": float(r_b), "c": float(r_c)}
+    coords: dict[str, float] = {}
+    costain_errors: dict[str, float] = {}
 
-    for axis, R in radicands.items():
-        if math.isnan(R) or R < 0.0:
+    for axis, r_val in radicands.items():
+        if math.isnan(r_val) or r_val < 0.0:
             warnings.warn(
-                f"ZPVE defect produced imaginary substitution coordinate for axis {axis} (R_{axis} = {R:.6e} < 0). Clamping coordinate to 0.0000.",
+                f"ZPVE defect produced imaginary substitution coordinate "
+                f"for axis {axis} (R_{axis} = {r_val:.6e} < 0). Clamping to 0.0000.",
                 KraitchmanZPVEWarning,
                 stacklevel=2,
             )
-            logger.warning(f"ZPVE defect clamped coordinate for axis {axis}: R={R:.6e} -> 0.0000")
+            logger.warning(
+                f"ZPVE defect clamped coordinate for axis {axis}: "
+                f"R={r_val:.6e} -> 0.0000"
+            )
             coord_val = 0.0
         else:
-            coord_val = float(np.sqrt(R))
+            coord_val = float(np.sqrt(r_val))
 
         coords[axis] = coord_val
 
@@ -201,14 +244,14 @@ def calculate_kraitchman_coords(
         if coord_val >= 0.15:
             costain_errors[axis] = 0.0015 / coord_val
         else:
-            costain_errors[axis] = float(np.sqrt(abs(R)))
+            costain_errors[axis] = float(np.sqrt(abs(r_val)))
 
     return {
         "coords": coords,
         "costain_errors": costain_errors,
         "radicands": radicands,
-        "delta_moments": {"a": dIa, "b": dIb, "c": dIc},
-        "planar_delta_moments": {"a": dPa, "b": dPb, "c": dPc},
+        "delta_moments": {"a": d_ia, "b": d_ib, "c": d_ic},
+        "planar_delta_moments": {"a": d_pa, "b": d_pb, "c": d_pc},
         "reduced_mass": mu,
         "parent_mass": parent_mass,
         "delta_m": delta_m,
@@ -221,19 +264,19 @@ def calculate_kraitchman_coords(
 
 
 def generate_pgopher_skeleton(
-    parquet_path: Union[str, Path],
-    json_path: Optional[Union[str, Path]] = None,
-    output_path: Optional[Union[str, Path]] = None,
+    parquet_path: str | Path,
+    json_path: str | Path | None = None,
+    output_path: str | Path | None = None,
     molecule_name: str = "Molecule",
     temperature_k: float = 298.15,
-    rotational_constants: Optional[Union[Dict[str, float], Tuple[float, float, float], List[float]]] = None,
-    dipoles: Optional[Union[Dict[str, float], Tuple[float, float, float], List[float]]] = None,
+    rotational_constants: dict[str, float]
+    | tuple[float, float, float]
+    | list[float]
+    | None = None,
+    dipoles: dict[str, float] | tuple[float, float, float] | list[float] | None = None,
 ) -> str:
-    """
-    Inspects PyArrow Parquet metadata using pyarrow.parquet.read_metadata() without loading
-    the full table into RAM, extracts thermodynamic/molecular parameters, and generates
-    a standard PGOPHER .pgo XML skeleton file.
-    
+    """Inspects PyArrow metadata and generates PGOPHER .pgo XML skeleton.
+
     :param parquet_path: Path to the PyArrow Parquet catalog file.
     :param json_path: Optional path to internal JSON metadata/result file.
     :param output_path: Destination path for the .pgo file.
@@ -248,15 +291,15 @@ def generate_pgopher_skeleton(
         raise FileNotFoundError(f"Parquet catalog file not found: {parquet_path}")
 
     # OOM-Proof metadata inspection
-    pq_metadata = pq.read_metadata(str(parquet_file))  # type: ignore[no-untyped-call]
+    pq_metadata = pq.read_metadata(str(parquet_file))
     num_rows = pq_metadata.num_rows
     num_columns = pq_metadata.num_columns
     column_names = pq_metadata.schema.names
 
     # Defaults
-    A_val = 10000.0
-    B_val = 5000.0
-    C_val = 3000.0
+    a_val = 10000.0
+    b_val = 5000.0
+    c_val = 3000.0
     mu_a = 0.0
     mu_b = 0.0
     mu_c = 0.0
@@ -265,73 +308,100 @@ def generate_pgopher_skeleton(
     if json_path is not None:
         json_file = Path(json_path)
         if json_file.exists():
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 jdata = json.load(f)
 
-            # Check molecule name
             if "molecule_name" in jdata:
                 molecule_name = str(jdata["molecule_name"])
             elif "point_id" in jdata:
                 molecule_name = str(jdata["point_id"])
 
-            # Check temperature
             if "temperature_k" in jdata:
                 temperature_k = float(jdata["temperature_k"])
             elif "temperature" in jdata:
                 temperature_k = float(jdata["temperature"])
 
-            # Check rotational constants
-            rc = jdata.get("rotational_constants") or jdata.get("properties", {}).get("rotational_constants")
+            rc = jdata.get("rotational_constants") or jdata.get("properties", {}).get(
+                "rotational_constants"
+            )
             if rc:
                 if isinstance(rc, dict):
-                    A_val = float(rc.get("A") or rc.get("a") or A_val)
-                    B_val = float(rc.get("B") or rc.get("b") or B_val)
-                    C_val = float(rc.get("C") or rc.get("c") or C_val)
-                elif isinstance(rc, (list, tuple)) and len(rc) >= 3:
-                    A_val, B_val, C_val = float(rc[0]), float(rc[1]), float(rc[2])
+                    a_val = float(rc.get("A") or rc.get("a") or a_val)
+                    b_val = float(rc.get("B") or rc.get("b") or b_val)
+                    c_val = float(rc.get("C") or rc.get("c") or c_val)
+                elif isinstance(rc, list | tuple) and len(rc) >= 3:
+                    a_val, b_val, c_val = float(rc[0]), float(rc[1]), float(rc[2])
 
-            # Check dipoles
-            dp = jdata.get("dipoles") or jdata.get("dipole_moment") or jdata.get("properties", {}).get("dipole_moment")
+            dp = (
+                jdata.get("dipoles")
+                or jdata.get("dipole_moment")
+                or jdata.get("properties", {}).get("dipole_moment")
+            )
             if dp:
                 if isinstance(dp, dict):
                     mu_a = float(dp.get("mu_a") or dp.get("a") or dp.get("x") or mu_a)
                     mu_b = float(dp.get("mu_b") or dp.get("b") or dp.get("y") or mu_b)
                     mu_c = float(dp.get("mu_c") or dp.get("c") or dp.get("z") or mu_c)
-                elif isinstance(dp, (list, tuple)) and len(dp) >= 3:
+                elif isinstance(dp, list | tuple) and len(dp) >= 3:
                     mu_a, mu_b, mu_c = float(dp[0]), float(dp[1]), float(dp[2])
 
     # Direct keyword overrides
     if rotational_constants is not None:
         if isinstance(rotational_constants, dict):
-            A_val = float(rotational_constants.get("A") or rotational_constants.get("a") or A_val)
-            B_val = float(rotational_constants.get("B") or rotational_constants.get("b") or B_val)
-            C_val = float(rotational_constants.get("C") or rotational_constants.get("c") or C_val)
-        elif isinstance(rotational_constants, (list, tuple)) and len(rotational_constants) >= 3:
-            A_val, B_val, C_val = float(rotational_constants[0]), float(rotational_constants[1]), float(rotational_constants[2])
+            a_val = float(
+                rotational_constants.get("A") or rotational_constants.get("a") or a_val
+            )
+            b_val = float(
+                rotational_constants.get("B") or rotational_constants.get("b") or b_val
+            )
+            c_val = float(
+                rotational_constants.get("C") or rotational_constants.get("c") or c_val
+            )
+        elif (
+            isinstance(rotational_constants, list | tuple)
+            and len(rotational_constants) >= 3
+        ):
+            a_val, b_val, c_val = (
+                float(rotational_constants[0]),
+                float(rotational_constants[1]),
+                float(rotational_constants[2]),
+            )
 
     if dipoles is not None:
         if isinstance(dipoles, dict):
-            mu_a = float(dipoles.get("mu_a") or dipoles.get("a") or dipoles.get("x") or mu_a)
-            mu_b = float(dipoles.get("mu_b") or dipoles.get("b") or dipoles.get("y") or mu_b)
-            mu_c = float(dipoles.get("mu_c") or dipoles.get("c") or dipoles.get("z") or mu_c)
-        elif isinstance(dipoles, (list, tuple)) and len(dipoles) >= 3:
+            mu_a = float(
+                dipoles.get("mu_a") or dipoles.get("a") or dipoles.get("x") or mu_a
+            )
+            mu_b = float(
+                dipoles.get("mu_b") or dipoles.get("b") or dipoles.get("y") or mu_b
+            )
+            mu_c = float(
+                dipoles.get("mu_c") or dipoles.get("c") or dipoles.get("z") or mu_c
+            )
+        elif isinstance(dipoles, list | tuple) and len(dipoles) >= 3:
             mu_a, mu_b, mu_c = float(dipoles[0]), float(dipoles[1]), float(dipoles[2])
 
     # Build PGOPHER XML document
     root = ET.Element("Document", attrib={"Type": "PGopher", "Version": "10.1"})
     species = ET.SubElement(root, "Species", attrib={"Name": molecule_name})
     mol = ET.SubElement(species, "AsymmetricMolecule", attrib={"Name": molecule_name})
-    manifold = ET.SubElement(mol, "AsymmetricManifold", attrib={"Initial": "true", "Name": "Ground"})
+    manifold = ET.SubElement(
+        mol, "AsymmetricManifold", attrib={"Initial": "true", "Name": "Ground"}
+    )
     top = ET.SubElement(manifold, "AsymmetricTop", attrib={"Name": "v=0"})
 
-    ET.SubElement(top, "Parameter", attrib={"Name": "A", "Value": f"{A_val:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "B", "Value": f"{B_val:.6f}"})
-    ET.SubElement(top, "Parameter", attrib={"Name": "C", "Value": f"{C_val:.6f}"})
+    ET.SubElement(top, "Parameter", attrib={"Name": "A", "Value": f"{a_val:.6f}"})
+    ET.SubElement(top, "Parameter", attrib={"Name": "B", "Value": f"{b_val:.6f}"})
+    ET.SubElement(top, "Parameter", attrib={"Name": "C", "Value": f"{c_val:.6f}"})
     ET.SubElement(top, "Parameter", attrib={"Name": "mu_a", "Value": f"{mu_a:.6f}"})
     ET.SubElement(top, "Parameter", attrib={"Name": "mu_b", "Value": f"{mu_b:.6f}"})
     ET.SubElement(top, "Parameter", attrib={"Name": "mu_c", "Value": f"{mu_c:.6f}"})
 
-    form = ET.SubElement(root, "Form", attrib={"Name": "Form", "Temperature": f"{temperature_k:.2f}", "Units": "MHz"})
+    form = ET.SubElement(
+        root,
+        "Form",
+        attrib={"Name": "Form", "Temperature": f"{temperature_k:.2f}", "Units": "MHz"},
+    )
     ET.SubElement(
         form,
         "Metadata",
@@ -343,7 +413,6 @@ def generate_pgopher_skeleton(
         },
     )
 
-    # Determine destination path
     if output_path is None:
         target_out = parquet_file.parent / f"{molecule_name}.pgo"
     else:
@@ -351,10 +420,12 @@ def generate_pgopher_skeleton(
 
     target_out.parent.mkdir(parents=True, exist_ok=True)
 
-    # Write XML with declaration
     tree = ET.ElementTree(root)
     tree.write(str(target_out), encoding="utf-8", xml_declaration=True)
-    logger.info(f"Generated PGOPHER skeleton at {target_out} (Metadata: {num_rows} rows, {num_columns} cols)")
+    logger.info(
+        f"Generated PGOPHER skeleton at {target_out} "
+        f"(Metadata: {num_rows} rows, {num_columns} cols)"
+    )
     return str(target_out)
 
 
@@ -364,22 +435,28 @@ def generate_pgopher_skeleton(
 
 
 def lock_provenance_payload(
-    target_directory: Union[str, Path],
-    output_manifest_path: Optional[Union[str, Path]] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    target_directory: str | Path,
+    output_manifest_path: str | Path | None = None,
+    metadata: dict[str, Any] | None = None,
+    rotational_constants: dict[str, float]
+    | tuple[float, float, float]
+    | list[float]
+    | None = None,
+    dipoles: dict[str, float] | tuple[float, float, float] | list[float] | None = None,
+    kraitchman_coords: dict[str, Any] | None = None,
     chunk_size: int = 8192,
-) -> Dict[str, Any]:
-    """
-    Scans all files in the target directory, computes streaming SHA-256 checksums
-    using memory-safe 8192-byte chunks, and serializes `spycfit_manifest.json` under
-    RFC 8785 Canonical JSON specifications.
-    
-    Explicitly excludes `spycfit_manifest.json` and transient archives from the hash loop
-    to prevent circular hashing paradoxes.
-    
+) -> dict[str, Any]:
+    """Computes streaming SHA-256 checksums and serializes spycfit_manifest.json.
+
+    Bundles rotational constants, dipoles, Kraitchman substitution coordinates,
+    and metadata alongside the deliverable manifest.
+
     :param target_directory: Path to directory containing deliverables.
     :param output_manifest_path: Destination path for the manifest JSON file.
     :param metadata: Additional metadata dictionary to embed.
+    :param rotational_constants: Optional (A, B, C) rotational constants.
+    :param dipoles: Optional (mu_a, mu_b, mu_c) dipole moments.
+    :param kraitchman_coords: Optional Kraitchman coordinates dictionary.
     :param chunk_size: Binary chunk read size in bytes.
     :return: Canonical manifest dictionary.
     """
@@ -392,39 +469,53 @@ def lock_provenance_payload(
     else:
         manifest_path = Path(output_manifest_path)
 
-    file_entries: List[Dict[str, Any]] = []
+    file_entries: list[dict[str, Any]] = []
     total_bytes = 0
 
-    # Discover and sort files deterministically
     all_files = sorted(target_dir.rglob("*"))
     for p in all_files:
         if p.is_file():
-            # Exclude manifest itself and temporary / archive files
-            if p.resolve() == manifest_path.resolve() or p.name == "spycfit_manifest.json":
+            if (
+                p.resolve() == manifest_path.resolve()
+                or p.name == "spycfit_manifest.json"
+            ):
                 continue
-            if p.name.endswith(".tmp") or p.name.endswith(".tar.zst") or p.name.endswith(".zip"):
+            if (
+                p.name.endswith(".tmp")
+                or p.name.endswith(".tar.zst")
+                or p.name.endswith(".zip")
+            ):
                 continue
 
             rel_path = p.relative_to(target_dir).as_posix()
             sha256_hash, file_size = compute_file_sha256(p, chunk_size=chunk_size)
-            file_entries.append({
-                "relative_path": rel_path,
-                "sha256": sha256_hash,
-                "size_bytes": file_size,
-            })
+            file_entries.append(
+                {
+                    "relative_path": rel_path,
+                    "sha256": sha256_hash,
+                    "size_bytes": file_size,
+                }
+            )
             total_bytes += file_size
 
-    # Sort entries deterministically by relative_path
-    file_entries.sort(key=lambda x: x["relative_path"])
+    file_entries.sort(key=lambda x: str(x["relative_path"]))
 
-    manifest: Dict[str, Any] = {
+    meta_payload = dict(metadata or {})
+    if rotational_constants is not None:
+        meta_payload["rotational_constants"] = rotational_constants
+    if dipoles is not None:
+        meta_payload["dipoles"] = dipoles
+    if kraitchman_coords is not None:
+        meta_payload["kraitchman_coords"] = kraitchman_coords
+
+    manifest: dict[str, Any] = {
         "format": "CoChem-SpycFit-Manifest",
         "schema_version": "1.0.0",
         "generator": "CoChem-TORQ",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "file_count": len(file_entries),
         "total_bytes": total_bytes,
-        "metadata": metadata or {},
+        "metadata": meta_payload,
         "files": file_entries,
     }
 
@@ -433,7 +524,10 @@ def lock_provenance_payload(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(canonical_json_str, encoding="utf-8")
 
-    logger.info(f"Locked provenance payload: {len(file_entries)} files ({total_bytes} bytes) -> {manifest_path}")
+    logger.info(
+        f"Locked provenance payload: {len(file_entries)} files "
+        f"({total_bytes} bytes) -> {manifest_path}"
+    )
     return manifest
 
 
@@ -443,16 +537,14 @@ def lock_provenance_payload(
 
 
 def bundle_spycfit_payload(
-    manifest_path_or_target_dir: Union[str, Path],
-    output_dir: Optional[Union[str, Path]] = None,
+    manifest_path_or_target_dir: str | Path,
+    output_dir: str | Path | None = None,
     project_name: str = "Project",
     compression_level: int = 3,
 ) -> str:
-    """
-    Bundles all deliverable files into a deterministic .tar.zst archive with normalized
-    POSIX metadata (mtime=0, uid/gid=0, permissions 0644/0755) and Zstandard compression.
-    
-    :param manifest_path_or_target_dir: Path to spycfit_manifest.json or directory containing files.
+    """Bundles deliverables into a deterministic .tar.zst archive with POSIX metadata.
+
+    :param manifest_path_or_target_dir: Path to manifest or directory containing files.
     :param output_dir: Destination directory for the .tar.zst archive.
     :param project_name: Project name for archive filename.
     :param compression_level: Zstandard compression level (1-22).
@@ -467,7 +559,6 @@ def bundle_spycfit_payload(
     if not target_dir.exists():
         raise FileNotFoundError(f"Target directory not found: {target_dir}")
 
-    # Ensure spycfit_manifest.json is generated
     manifest_file = target_dir / "spycfit_manifest.json"
     if not manifest_file.exists():
         lock_provenance_payload(target_dir, manifest_file)
@@ -476,19 +567,17 @@ def bundle_spycfit_payload(
     dest_dir.mkdir(parents=True, exist_ok=True)
     archive_path = dest_dir / f"CoChem_{project_name}_SpycFit_Payload.tar.zst"
 
-    # Deterministic tar building
     tar_buffer = io.BytesIO()
     with tarfile.open(mode="w", fileobj=tar_buffer) as tar:
-        # Collect and sort items deterministically
         for item in sorted(target_dir.rglob("*")):
-            # Skip archive itself if inside target directory
-            if item.resolve() == archive_path.resolve() or item.name.endswith(".tar.zst"):
+            if item.resolve() == archive_path.resolve() or item.name.endswith(
+                ".tar.zst"
+            ):
                 continue
 
             arcname = item.relative_to(target_dir).as_posix()
             tarinfo = tar.gettarinfo(str(item), arcname=arcname)
 
-            # Normalize POSIX metadata for deterministic reproducibility
             tarinfo.mtime = 0
             tarinfo.uid = 0
             tarinfo.gid = 0
@@ -504,12 +593,14 @@ def bundle_spycfit_payload(
 
     tar_bytes = tar_buffer.getvalue()
 
-    # Zstandard compression
     compressor = zstd.ZstdCompressor(level=compression_level)
     compressed_bytes = compressor.compress(tar_bytes)
 
     archive_path.write_bytes(compressed_bytes)
-    logger.info(f"Bundled deterministic SpycFit payload: {archive_path} ({len(compressed_bytes)} bytes)")
+    logger.info(
+        f"Bundled deterministic SpycFit payload: {archive_path} "
+        f"({len(compressed_bytes)} bytes)"
+    )
     return str(archive_path)
 
 
@@ -519,40 +610,46 @@ def bundle_spycfit_payload(
 
 
 def verify_payload_integrity(
-    manifest_or_path: Union[str, Path, Dict[str, Any]],
-    base_dir: Optional[Union[str, Path]] = None,
+    manifest_or_path: str | Path | dict[str, Any],
+    base_dir: str | Path | None = None,
     chunk_size: int = 8192,
 ) -> bool:
-    """
-    Validates the cryptographic integrity of an export payload directory, manifest,
-    or compressed .tar.zst archive. Computes streaming SHA-256 hashes and raises
-    CoChemIntegrityError on any missing file, size mismatch, or corrupted/flipped byte.
-    
-    :param manifest_or_path: Path to .tar.zst file, spycfit_manifest.json, target directory, or manifest dict.
+    """Validates cryptographic integrity of a payload directory, manifest, or archive.
+
+    :param manifest_or_path: Path to archive/manifest/directory or manifest dict.
     :param base_dir: Optional base directory if verifying a manifest dictionary.
     :param chunk_size: Chunk size in bytes for streaming SHA-256.
     :return: True if all cryptographic checksums and sizes match perfectly.
     :raises CoChemIntegrityError: If any integrity mismatch is detected.
     """
-    # Case 1: Compressed .tar.zst archive
-    p = Path(manifest_or_path) if isinstance(manifest_or_path, (str, Path)) else None
-    if p is not None and p.is_file() and (p.name.endswith(".tar.zst") or p.name.endswith(".zst")):
+    p = Path(manifest_or_path) if isinstance(manifest_or_path, str | Path) else None
+    if (
+        p is not None
+        and p.is_file()
+        and (p.name.endswith(".tar.zst") or p.name.endswith(".zst"))
+    ):
         compressed_bytes = p.read_bytes()
         dctx = zstd.ZstdDecompressor()
         try:
             decompressed_bytes = dctx.decompress(compressed_bytes)
         except Exception as e:
-            raise CoChemIntegrityError(f"Failed to decompress Zstandard archive {p}: {e}") from e
+            raise CoChemIntegrityError(
+                f"Failed to decompress Zstandard archive {p}: {e}"
+            ) from e
 
         with tarfile.open(fileobj=io.BytesIO(decompressed_bytes), mode="r") as tar:
             try:
                 manifest_member = tar.getmember("spycfit_manifest.json")
-            except KeyError:
-                raise CoChemIntegrityError("Manifest 'spycfit_manifest.json' not found in archive.")
+            except KeyError as err:
+                raise CoChemIntegrityError(
+                    "Manifest 'spycfit_manifest.json' not found in archive."
+                ) from err
 
             manifest_f = tar.extractfile(manifest_member)
             if manifest_f is None:
-                raise CoChemIntegrityError("Failed to extract 'spycfit_manifest.json' from archive.")
+                raise CoChemIntegrityError(
+                    "Failed to extract 'spycfit_manifest.json' from archive."
+                )
 
             manifest_data = json.loads(manifest_f.read().decode("utf-8"))
             files = manifest_data.get("files", [])
@@ -561,12 +658,16 @@ def verify_payload_integrity(
                 rel_path = entry["relative_path"]
                 try:
                     member = tar.getmember(rel_path)
-                except KeyError:
-                    raise CoChemIntegrityError(f"Missing file in archive: {rel_path}")
+                except KeyError as err:
+                    raise CoChemIntegrityError(
+                        f"Missing file in archive: {rel_path}"
+                    ) from err
 
                 member_f = tar.extractfile(member)
                 if member_f is None:
-                    raise CoChemIntegrityError(f"Failed to read file in archive: {rel_path}")
+                    raise CoChemIntegrityError(
+                        f"Failed to read file in archive: {rel_path}"
+                    )
 
                 hasher = hashlib.sha256()
                 actual_size = 0
@@ -579,12 +680,14 @@ def verify_payload_integrity(
 
                 if actual_size != expected_size:
                     raise CoChemIntegrityError(
-                        f"File size mismatch for {rel_path}: expected {expected_size} bytes, got {actual_size} bytes."
+                        f"File size mismatch for {rel_path}: "
+                        f"expected {expected_size} bytes, got {actual_size} bytes."
                     )
                 computed_sha = hasher.hexdigest()
                 if computed_sha != expected_sha:
                     raise CoChemIntegrityError(
-                        f"SHA-256 hash mismatch for {rel_path}: expected {expected_sha}, got {computed_sha}."
+                        f"SHA-256 hash mismatch for {rel_path}: "
+                        f"expected {expected_sha}, got {computed_sha}."
                     )
 
         logger.info(f"Archive integrity verification passed: {p}")
@@ -615,7 +718,9 @@ def verify_payload_integrity(
         target_file = target_base / rel_path
 
         if not target_file.exists():
-            raise CoChemIntegrityError(f"Missing file in payload: {rel_path} (expected at {target_file})")
+            raise CoChemIntegrityError(
+                f"Missing file in payload: {rel_path} (expected at {target_file})"
+            )
 
         expected_size = entry.get("size_bytes")
         expected_sha = entry.get("sha256")
@@ -623,13 +728,15 @@ def verify_payload_integrity(
 
         if actual_size != expected_size:
             raise CoChemIntegrityError(
-                f"File size mismatch for {rel_path}: expected {expected_size} bytes, got {actual_size} bytes."
+                f"File size mismatch for {rel_path}: "
+                f"expected {expected_size} bytes, got {actual_size} bytes."
             )
 
         computed_sha, _ = compute_file_sha256(target_file, chunk_size=chunk_size)
         if computed_sha != expected_sha:
             raise CoChemIntegrityError(
-                f"SHA-256 hash mismatch for {rel_path}: expected {expected_sha}, got {computed_sha}."
+                f"SHA-256 hash mismatch for {rel_path}: "
+                f"expected {expected_sha}, got {computed_sha}."
             )
 
     logger.info(f"Payload integrity verification passed: {len(files)} files verified.")
@@ -642,12 +749,11 @@ def verify_payload_integrity(
 
 
 class TorqExporter:
-    def __init__(self, export_dir: str = "torq_exports", zstd_compression_level: int = 3) -> None:
-        """
-        Initializes the tensor exporter.
-        :param export_dir: Directory to store exported files
-        :param zstd_compression_level: Zstandard compression level (1-22)
-        """
+    """Manages Zstandard tensor exports and metadata tracking."""
+
+    def __init__(
+        self, export_dir: str = "torq_exports", zstd_compression_level: int = 3
+    ) -> None:
         self.export_dir = Path(export_dir)
         self.zstd_compression_level = zstd_compression_level
         self.export_dir.mkdir(parents=True, exist_ok=True)
@@ -655,31 +761,27 @@ class TorqExporter:
     def _generate_metadata(
         self,
         point_id: str,
-        tensor_data: Dict[str, Any],
+        tensor_data: dict[str, Any],
         lam_trigger_required: bool = False,
         symmetry_group: str = "C1",
-    ) -> Dict[str, Any]:
-        """
-        Generates metadata for the exported tensor including TORQ-17 flags.
-        """
-        metadata = {
+    ) -> dict[str, Any]:
+        return {
             "point_id": point_id,
-            "export_timestamp": datetime.now().isoformat(),
+            "export_timestamp": datetime.now(timezone.utc).isoformat(),
             "data_hash": hashlib.sha256(str(tensor_data).encode()).hexdigest(),
             "compression_method": "Zstandard",
             "compression_level": self.zstd_compression_level,
             "LAM_TRIGGER_REQUIRED": bool(lam_trigger_required),
             "symmetry_group": str(symmetry_group),
         }
-        return metadata
 
-    def export_tensor_to_zstd(self, h5_file_path: str, output_file: Optional[str] = None) -> str:
-        """
-        Exports an HDF5 tensor to a Zstandard-compressed file.
-        """
+    def export_tensor_to_zstd(
+        self, h5_file_path: str, output_file: str | None = None
+    ) -> str:
+        """Exports an HDF5 tensor to a Zstandard-compressed file."""
         try:
             with h5py.File(h5_file_path, "r") as f:
-                tensor_data: Dict[str, Any] = {}
+                tensor_data: dict[str, Any] = {}
 
                 def read_group(name: str, obj: Any) -> None:
                     if isinstance(obj, h5py.Group):
@@ -719,19 +821,21 @@ class TorqExporter:
                 compressed_data = compressor.compress(json_data.encode("utf-8"))
                 f.write(compressed_data)
 
-            logger.info(f"Exported tensor to Zstandard-compressed file: {compressed_file}")
+            logger.info(
+                f"Exported tensor to Zstandard-compressed file: {compressed_file}"
+            )
             return str(compressed_file)
         except Exception as e:
             logger.error(f"Error compressing data to Zstandard: {e}")
             raise
 
-    def export_tensor_to_zstd_with_sinc_dvr(self, h5_file_path: str, output_file: Optional[str] = None) -> str:
-        """
-        Exports an HDF5 tensor with Sinc-DVR data to a Zstandard-compressed file.
-        """
+    def export_tensor_to_zstd_with_sinc_dvr(
+        self, h5_file_path: str, output_file: str | None = None
+    ) -> str:
+        """Exports an HDF5 tensor with Sinc-DVR data to a Zstandard-compressed file."""
         try:
             with h5py.File(h5_file_path, "r") as f:
-                tensor_data: Dict[str, Any] = {}
+                tensor_data: dict[str, Any] = {}
 
                 def read_group(name: str, obj: Any) -> None:
                     if isinstance(obj, h5py.Group):
@@ -771,21 +875,24 @@ class TorqExporter:
                 compressed_data = compressor.compress(json_data.encode("utf-8"))
                 f.write(compressed_data)
 
-            logger.info(f"Exported Sinc-DVR tensor to Zstandard-compressed file: {compressed_file}")
+            logger.info(
+                f"Exported Sinc-DVR tensor to Zstandard-compressed file: "
+                f"{compressed_file}"
+            )
             return str(compressed_file)
         except Exception as e:
             logger.error(f"Error compressing data to Zstandard: {e}")
             raise
 
-    def batch_export_to_zstd(self, h5_files: List[str], output_dir: Optional[str] = None) -> List[str]:
-        """
-        Exports multiple HDF5 tensor files to Zstandard-compressed files.
-        """
+    def batch_export_to_zstd(
+        self, h5_files: list[str], output_dir: str | None = None
+    ) -> list[str]:
+        """Exports multiple HDF5 tensor files to Zstandard-compressed files."""
         if output_dir:
             self.export_dir = Path(output_dir)
             self.export_dir.mkdir(parents=True, exist_ok=True)
 
-        exported_files: List[str] = []
+        exported_files: list[str] = []
         for h5_file in h5_files:
             try:
                 exported_file = self.export_tensor_to_zstd(h5_file)
@@ -796,10 +903,10 @@ class TorqExporter:
 
         return exported_files
 
-    def verify_export(self, compressed_file_path: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
-        """
-        Verifies the integrity of a compressed export file.
-        """
+    def verify_export(
+        self, compressed_file_path: str
+    ) -> tuple[bool, dict[str, Any] | None]:
+        """Verifies the integrity of a compressed export file."""
         try:
             with open(compressed_file_path, "rb") as f:
                 decompressor = zstd.ZstdDecompressor()
@@ -819,10 +926,11 @@ class TorqExporter:
         port: int = 5555,
         timeout_ms: int = 2000,
     ) -> bool:
-        """
-        Exports the compressed tensor to the CoChem-SCRIBE daemon via ZeroMQ socket IPC transmission.
-        """
-        logger.info(f"Connecting to CoChem-SCRIBE daemon at {host}:{port} for {compressed_file_path}")
+        """Exports compressed tensor to CoChem-SCRIBE daemon via ZeroMQ IPC."""
+        logger.info(
+            f"Connecting to CoChem-SCRIBE daemon at {host}:{port} "
+            f"for {compressed_file_path}"
+        )
         file_path = Path(compressed_file_path)
         if not file_path.exists():
             logger.error(f"Compressed export file not found: {compressed_file_path}")
@@ -841,6 +949,7 @@ class TorqExporter:
 
             try:
                 import zmq
+
                 ctx: Any = zmq.Context.instance()
                 socket = ctx.socket(zmq.REQ)
                 socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
@@ -853,23 +962,22 @@ class TorqExporter:
                 logger.info(f"CoChem-SCRIBE daemon response: {reply}")
                 socket.close()
                 return True
-            except ImportError as e:
+            except ImportError as err:
                 logger.error("pyzmq module missing; cannot export.")
-                raise e
+                raise err
         except Exception as e:
             logger.error(f"Failed to export to CoChem-SCRIBE: {e}")
             raise e
 
 
 class PESStore:
+    """Appends coordinate geometry and energy to a chunked HDF5 database."""
+
     def __init__(self, h5_filepath: str) -> None:
         self.h5_filepath = h5_filepath
 
-    def append_data(self, step: int, coordinates: List[float], energy: float) -> None:
-        """
-        Appends coordinate geometry and energy to the chunked HDF5 database.
-        Explicitly prevents scaleoffset as per Section 6.4.3 rules.
-        """
+    def append_data(self, step: int, coordinates: list[float], energy: float) -> None:
+        """Appends coordinates and energy without scaleoffset per Section 6.4.3."""
         with h5py.File(self.h5_filepath, "a") as f:
             if "coordinates" not in f:
                 f.create_dataset(
@@ -883,7 +991,9 @@ class PESStore:
                     scaleoffset=None,
                 )
             else:
-                f["coordinates"].resize((f["coordinates"].shape[0] + 1, f["coordinates"].shape[1]))
+                f["coordinates"].resize(
+                    (f["coordinates"].shape[0] + 1, f["coordinates"].shape[1])
+                )
                 f["coordinates"][-1] = coordinates
 
             if "energies" not in f:
@@ -902,10 +1012,8 @@ class PESStore:
                 f["energies"][-1] = energy
 
 
-def export_qcschema(result_dict: Dict[str, Any], output_filename: str) -> str:
-    """
-    Accepts an OrcaResult (or dict) and writes a FAIR QCSchema output as per Section 6.4.4.
-    """
+def export_qcschema(result_dict: dict[str, Any], output_filename: str) -> str:
+    """Accepts an OrcaResult (or dict) and writes a FAIR QCSchema output JSON."""
     data_to_hash = json.dumps(result_dict, sort_keys=True).encode()
     hash_val = hashlib.sha256(data_to_hash).hexdigest()
 

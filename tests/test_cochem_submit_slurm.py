@@ -26,11 +26,11 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LAUNCHER_FILE = REPO_ROOT / "HPC_Launchers" / "cochem_submit.slurm"
 
-# Base64 encoded prohibited module names to avoid static scanner false positives
-_B64_PROHIBITED_TEST_MODULES: List[bytes] = [
-    b"dW5pdHRlc3QubW9jaw==",
-    b"bW9jaw==",
-    b"cHl0ZXN0X21vY2s=",
+# Prohibited module names to avoid static scanner false positives
+_PROHIBITED_TEST_MODULES: List[str] = [
+    "unittest.mock",
+    "mock",
+    "pytest_mock",
 ]
 
 
@@ -146,14 +146,14 @@ def test_slurm_airgap_compliance(launcher_text: str) -> None:
 def test_slurm_zero_banned_tokens(launcher_text: str) -> None:
     """# anti-spoof: zero-stub verification of prohibited terms."""
     banned_tokens = [
-        base64.b64decode(b"bW9jaw==").decode("utf-8"),
+        "mock",
         "example",
-        base64.b64decode(b"c3R1Yg==").decode("utf-8"),
+        "stub",
         "dummy",
-        base64.b64decode(b"cGxhY2Vob2xkZXI=").decode("utf-8"),
+        "placeholder",
         "fake",
         "sample",
-        base64.b64decode(b"IyBUT0RPOiBpbXBsZW1lbnQ=").decode("utf-8"),
+        "# TODO: implement",
     ]
     lower = launcher_text.lower()
     for token in banned_tokens:
@@ -169,9 +169,7 @@ def test_slurm_ast_clean_imports() -> None:
         test_file_path.read_text(encoding="utf-8"),
         filename=str(test_file_path),
     )
-    prohibited_names: Set[str] = {
-        base64.b64decode(item).decode("utf-8") for item in _B64_PROHIBITED_TEST_MODULES
-    }
+    prohibited_names: Set[str] = set(_PROHIBITED_TEST_MODULES)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:

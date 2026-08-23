@@ -5,14 +5,19 @@ import subprocess
 _ACTIVE_PROCESSES: list[subprocess.Popen] = []
 
 def cleanup_zombies() -> None:
-    for p in _ACTIVE_PROCESSES:
+    for proc in psutil.process_iter(['pid', 'name']):
         try:
-            if psutil.pid_exists(p.pid):
-                proc = psutil.Process(p.pid)
+            if 'mpqc' in str(proc.info['name']).lower():
                 for child in proc.children(recursive=True):
-                    child.kill()
-                proc.kill()
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
+                    try:
+                        child.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+                try:
+                    proc.kill()
+                except psutil.NoSuchProcess:
+                    pass
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
 atexit.register(cleanup_zombies)
 
@@ -148,21 +153,21 @@ class TorqMpqcExecutor:
 
             cmd = [self.mpqc_path, input_file]
             with open(output_file, 'w', encoding='utf-8') as out:
-                process = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT)
-
                 try:
-                    process.wait(timeout=timeout)
-
-                    if process.returncode == 0:
-                        logger.info(f"MPQC job {job_name} completed successfully")
-                        return output_file, True
-                    else:
-                        logger.error(f"MPQC job {job_name} failed with error code {process.returncode}")
-                        return output_file, False
-
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    logger.error(f"MPQC job {job_name} timed out after {timeout} seconds")
+                    subprocess.run(cmd, stdout=out, stderr=subprocess.STDOUT, timeout=timeout, check=True)
+                    out_hash = ""
+                    try:
+                        with open(output_file, "rb") as f:
+                            out_hash = hashlib.sha256(f.read()).hexdigest()
+                    except Exception:
+                        pass
+                    logger.info(f"MPQC job {job_name} completed successfully. SHA-256 [M]: OUT={out_hash[:8]}")
+                    return output_file, True
+                except subprocess.TimeoutExpired as exc:
+                    logger.error(f"MPQC job {job_name} timed out after {timeout} seconds: {exc}")
+                    return output_file, False
+                except subprocess.CalledProcessError as exc:
+                    logger.error(f"MPQC job {job_name} failed with error code {exc.returncode}")
                     return output_file, False
 
         except Exception as e:

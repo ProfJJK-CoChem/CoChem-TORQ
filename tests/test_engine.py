@@ -183,21 +183,21 @@ def propane_geometry() -> Tuple[List[str], np.ndarray]:
 class TestEnvironmentMatrix:
     """Tests 6-Tier Environment Matrix detection, dynamic path resolution, and air-gap integrity."""
 
-    def test_environment_tier_detection(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_environment_tier_detection(self) -> None:
         # Test GitHub Actions
-        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+        os.environ["GITHUB_ACTIONS"] = "true"
         assert ExecutionContext.detect_tier() == EnvironmentTier.GITHUB_ACTIONS
-        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        os.environ.pop("GITHUB_ACTIONS", None)
 
         # Test Codespaces
-        monkeypatch.setenv("CODESPACES", "true")
+        os.environ["CODESPACES"] = "true"
         assert ExecutionContext.detect_tier() == EnvironmentTier.CODESPACES
-        monkeypatch.delenv("CODESPACES", raising=False)
+        os.environ.pop("CODESPACES", None)
 
         # Test HPC SLURM
-        monkeypatch.setenv("SLURM_JOB_ID", "123456")
+        os.environ["SLURM_JOB_ID"] = "123456"
         assert ExecutionContext.detect_tier() == EnvironmentTier.HPC_NODES
-        monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+        os.environ.pop("SLURM_JOB_ID", None)
 
     @pytest.mark.parametrize(
         "tier",

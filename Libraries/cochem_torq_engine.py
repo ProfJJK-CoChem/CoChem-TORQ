@@ -196,7 +196,7 @@ class ExecutionContext(BaseModel):
                 runner_temp = os.environ.get("RUNNER_TEMP", tempfile.gettempdir())
                 base = Path(runner_temp) / "cochem_scratch"
             elif self.tier == EnvironmentTier.CODESPACES:
-                base = Path("/tmp/cochem_scratch")
+                base = Path.home() / ".cochem" / "scratch"
             elif self.tier == EnvironmentTier.HPC_NODES:
                 slurm_tmp = os.environ.get("SLURM_TMPDIR") or os.environ.get("PFSDIR") or tempfile.gettempdir()
                 base = Path(slurm_tmp) / "cochem_scratch"
@@ -212,8 +212,8 @@ class ExecutionContext(BaseModel):
                 xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
                 if xdg_runtime and Path(xdg_runtime).is_dir():
                     base = Path(xdg_runtime) / "cochem" / "scratch"
-                elif Path("/var/tmp").is_dir():
-                    base = Path("/var/tmp/cochem/scratch")
+                elif Path(tempfile.gettempdir()).is_dir():
+                    base = Path(tempfile.gettempdir()) / "cochem" / "scratch"
                 else:
                     base = Path(tempfile.gettempdir()) / "cochem_scratch"
 
@@ -235,12 +235,12 @@ class ExecutionContext(BaseModel):
                 runner_temp = os.environ.get("RUNNER_TEMP", tempfile.gettempdir())
                 base = Path(runner_temp) / "shm"
             elif self.tier == EnvironmentTier.CODESPACES:
-                base = Path("/tmp/cochem_shm")
+                base = Path.home() / ".cochem" / "shm"
             elif self.tier == EnvironmentTier.HPC_NODES:
                 slurm_tmp = os.environ.get("SLURM_TMPDIR") or tempfile.gettempdir()
                 base = Path(slurm_tmp) / "shm"
             elif self.tier == EnvironmentTier.LOCAL_MACOS:
-                tmpdir = os.environ.get("TMPDIR", "/tmp")
+                tmpdir = os.environ.get("TMPDIR", tempfile.gettempdir())
                 base = Path(tmpdir) / "cochem_shm"
             elif self.tier == EnvironmentTier.LOCAL_WINDOWS:
                 local_app_data = os.environ.get("LOCALAPPDATA")
