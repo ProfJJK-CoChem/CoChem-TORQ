@@ -105,7 +105,7 @@ def test_torq_spcat_bridge_init(tmp_path: Path) -> None:
 
 
 def test_torq_spcat_bridge_extract_orca(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path
 ) -> None:
     tensor_file = tmp_path / "tensor.json"
     tensor_file.write_text(
@@ -147,8 +147,17 @@ def test_torq_spcat_bridge_extract_orca(
     assert math.isclose(q_total, q_rot * q_vib, rel_tol=1e-9)
 
     spcat_dir = tmp_path / "scratch"
-    monkeypatch.setenv("COCHEM_ARTIFACT_DIR", str(spcat_dir))
-    bridge.export_spcat_catalog()
+    
+    import os
+    original_env = os.environ.get("COCHEM_ARTIFACT_DIR")
+    os.environ["COCHEM_ARTIFACT_DIR"] = str(spcat_dir)
+    try:
+        bridge.export_spcat_catalog()
+    finally:
+        if original_env is not None:
+            os.environ["COCHEM_ARTIFACT_DIR"] = original_env
+        else:
+            del os.environ["COCHEM_ARTIFACT_DIR"]
     assert (spcat_dir / "spcat" / "spcat_002.var").exists()
     assert (spcat_dir / "spcat" / "spcat_002.int").exists()
 

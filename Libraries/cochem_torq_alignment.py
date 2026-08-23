@@ -170,197 +170,11 @@ class CoChemPathManager:
 # Exact CIAAW Mono-Isotopic Masses (u / Da)
 # ============================================================================
 
-CIAAW_ISOTOPIC_MASSES: Final[dict[str, float]] = {
-    # Hydrogen & Isotopes
-    "H": 1.00782503223,
-    "1H": 1.00782503223,
-    "D": 2.01410177812,
-    "2H": 2.01410177812,
-    "T": 3.0160492779,
-    "3H": 3.0160492779,
-    # Helium
-    "He": 4.00260325413,
-    "3He": 3.0160293201,
-    "4He": 4.00260325413,
-    # Lithium to Neon
-    "Li": 7.0160034366,
-    "6Li": 6.0151228874,
-    "7Li": 7.0160034366,
-    "Be": 9.012183065,
-    "9Be": 9.012183065,
-    "B": 11.00930536,
-    "10B": 10.01293695,
-    "11B": 11.00930536,
-    "C": 12.00000000000,
-    "12C": 12.00000000000,
-    "13C": 13.00335483507,
-    "14C": 14.0032419884,
-    "N": 14.00307400443,
-    "14N": 14.00307400443,
-    "15N": 15.00010889888,
-    "O": 15.99491461957,
-    "16O": 15.99491461957,
-    "17O": 16.99913175650,
-    "18O": 17.99915961286,
-    "F": 18.99840316273,
-    "19F": 18.99840316273,
-    "Ne": 19.9924401762,
-    "20Ne": 19.9924401762,
-    "21Ne": 20.993846685,
-    "22Ne": 21.991385114,
-    # Sodium to Argon
-    "Na": 22.9897692820,
-    "23Na": 22.9897692820,
-    "Mg": 23.985041697,
-    "24Mg": 23.985041697,
-    "25Mg": 24.985836976,
-    "26Mg": 25.982592968,
-    "Al": 26.98153853,
-    "27Al": 26.98153853,
-    "Si": 27.97692653465,
-    "28Si": 27.97692653465,
-    "29Si": 28.9764946649,
-    "30Si": 29.973770137,
-    "P": 30.97376199842,
-    "31P": 30.97376199842,
-    "S": 31.97207073,
-    "32S": 31.97207073,
-    "33S": 32.9714589098,
-    "34S": 33.967867016,
-    "36S": 35.96708088,
-    "Cl": 34.96885271,
-    "35Cl": 34.96885271,
-    "37Cl": 36.96590262,
-    "Ar": 39.9623831237,
-    "36Ar": 35.967545105,
-    "38Ar": 37.96273211,
-    "40Ar": 39.9623831237,
-    # Potassium to Krypton
-    "K": 38.9637064864,
-    "39K": 38.9637064864,
-    "40K": 39.963998166,
-    "41K": 40.9618252579,
-    "Ca": 39.962590863,
-    "40Ca": 39.962590863,
-    "42Ca": 41.95861783,
-    "44Ca": 43.95548156,
-    "Sc": 44.95590828,
-    "Ti": 47.94794198,
-    "48Ti": 47.94794198,
-    "V": 50.9439570,
-    "51V": 50.9439570,
-    "Cr": 51.94050623,
-    "52Cr": 51.94050623,
-    "Mn": 54.93804391,
-    "55Mn": 54.93804391,
-    "Fe": 55.93493633,
-    "56Fe": 55.93493633,
-    "54Fe": 53.93960899,
-    "57Fe": 56.93539284,
-    "Co": 58.93319429,
-    "59Co": 58.93319429,
-    "Ni": 57.93534241,
-    "58Ni": 57.93534241,
-    "60Ni": 59.93078588,
-    "Cu": 62.92959772,
-    "63Cu": 62.92959772,
-    "65Cu": 64.92778970,
-    "Zn": 63.92914201,
-    "64Zn": 63.92914201,
-    "66Zn": 65.92603381,
-    "Ga": 68.9255735,
-    "69Ga": 68.9255735,
-    "71Ga": 70.92470258,
-    "Ge": 73.92117776,
-    "74Ge": 73.92117776,
-    "As": 74.92159457,
-    "75As": 74.92159457,
-    "Se": 79.91651990,
-    "80Se": 79.91651990,
-    "78Se": 77.9173095,
-    "Br": 78.9183376,
-    "79Br": 78.9183376,
-    "81Br": 80.9162897,
-    "Kr": 83.91149773,
-    "84Kr": 83.91149773,
-    # Rubidium to Xenon
-    "Rb": 84.911789737,
-    "85Rb": 84.911789737,
-    "Sr": 87.9056125,
-    "88Sr": 87.9056125,
-    "Y": 88.9058479,
-    "Zr": 89.9046977,
-    "90Zr": 89.9046977,
-    "Nb": 92.9063730,
-    "Mo": 97.90540482,
-    "98Mo": 97.90540482,
-    "Tc": 97.9072124,
-    "Ru": 101.9043441,
-    "102Ru": 101.9043441,
-    "Rh": 102.9054980,
-    "Pd": 105.903478,
-    "106Pd": 105.903478,
-    "Ag": 106.905093,
-    "107Ag": 106.905093,
-    "109Ag": 108.904756,
-    "Cd": 113.903361,
-    "114Cd": 113.903361,
-    "In": 114.903878,
-    "Sn": 119.9021991,
-    "120Sn": 119.9021991,
-    "Sb": 120.9038120,
-    "121Sb": 120.9038120,
-    "Te": 129.90622274,
-    "130Te": 129.90622274,
-    "I": 126.9044719,
-    "127I": 126.9044719,
-    "Xe": 131.904155085,
-    "132Xe": 131.904155085,
-    # Heavy & Lanthanides / Actinides
-    "Cs": 132.90545196,
-    "Ba": 137.9052470,
-    "138Ba": 137.9052470,
-    "La": 138.906355,
-    "Ce": 139.905442,
-    "Pr": 140.907657,
-    "Nd": 141.907729,
-    "Sm": 151.919736,
-    "Eu": 152.921235,
-    "Gd": 157.924109,
-    "Tb": 158.925350,
-    "Dy": 163.929177,
-    "Ho": 164.930328,
-    "Er": 165.930295,
-    "Tm": 168.934217,
-    "Yb": 173.938866,
-    "Lu": 174.940775,
-    "Hf": 179.946557,
-    "Ta": 180.947996,
-    "W": 183.9509326,
-    "184W": 183.9509326,
-    "Re": 186.9557501,
-    "Os": 189.9584450,
-    "192Os": 191.961479,
-    "Ir": 192.962924,
-    "Pt": 194.9647917,
-    "Au": 196.9665687,
-    "Hg": 201.9706434,
-    "202Hg": 201.9706434,
-    "Tl": 204.9744278,
-    "Pb": 207.9766525,
-    "208Pb": 207.9766525,
-    "Bi": 208.9803991,
-    "Th": 232.0380558,
-    "U": 238.0507884,
-}
-
-
 def enforce_ciaaw_masses(symbols: Sequence[str]) -> np.ndarray:
     """
     Maps atomic elemental or isotopic symbols to exact CIAAW mono-isotopic masses.
 
-    Prioritizes the internal high-speed CIAAW mono-isotopic table and falls back to
-    the mendeleev package for any unlisted heavy/rare isotope.
+    Uses the mendeleev package exclusively for all isotopic mass lookups.
 
     :param symbols: List or sequence of atomic symbols (e.g. ['C', 'H', 'H', 'H', 'F']).
     :return: 1D numpy array of dtype float64 containing exact masses in atomic mass units (Da / u).
@@ -370,24 +184,40 @@ def enforce_ciaaw_masses(symbols: Sequence[str]) -> np.ndarray:
         return np.empty(0, dtype=np.float64)
 
     masses: list[float] = []
+    import mendeleev
+    import re
+
     for raw_sym in symbols:
         clean = raw_sym.strip()
         if not clean:
             raise ValueError("Empty or blank atomic symbol provided.")
 
-        # Check standard capitalized lookup
-        canonical = clean[0].upper() + clean[1:].lower() if len(clean) > 1 else clean.upper()
+        # Handle D and T aliases
+        if clean.upper() == "D":
+            clean = "2H"
+        elif clean.upper() == "T":
+            clean = "3H"
 
-        if clean in CIAAW_ISOTOPIC_MASSES:
-            masses.append(CIAAW_ISOTOPIC_MASSES[clean])
-        elif canonical in CIAAW_ISOTOPIC_MASSES:
-            masses.append(CIAAW_ISOTOPIC_MASSES[canonical])
-        else:
-            # Fallback to mendeleev
-            try:
-                import mendeleev
+        match = re.match(r'^(\d+)?([A-Za-z]+)$', clean)
+        if not match:
+            raise ValueError(
+                f"Unrecognized or invalid atomic symbol '{raw_sym}' cannot be mapped to CIAAW mass."
+            )
+        
+        mass_num_str = match.group(1)
+        element_sym = match.group(2)
+        element_sym = element_sym[0].upper() + element_sym[1:].lower()
 
-                el = mendeleev.element(canonical)
+        try:
+            el = mendeleev.element(element_sym)
+            if mass_num_str:
+                mass_num = int(mass_num_str)
+                iso = next((i for i in el.isotopes if i.mass_number == mass_num), None)
+                if iso is not None and iso.mass is not None:
+                    masses.append(float(iso.mass))
+                else:
+                    raise ValueError(f"Isotope {raw_sym} not found.")
+            else:
                 most_abundant = max(
                     el.isotopes,
                     key=lambda iso: (iso.abundance if iso.abundance is not None else 0.0, iso.mass_number),
@@ -396,10 +226,10 @@ def enforce_ciaaw_masses(symbols: Sequence[str]) -> np.ndarray:
                     masses.append(float(most_abundant.mass))
                 else:
                     masses.append(float(el.atomic_weight))
-            except Exception as err:
-                raise ValueError(
-                    f"Unrecognized or invalid atomic symbol '{raw_sym}' cannot be mapped to CIAAW mass."
-                ) from err
+        except Exception as err:
+            raise ValueError(
+                f"Unrecognized or invalid atomic symbol '{raw_sym}' cannot be mapped to CIAAW mass."
+            ) from err
 
     return np.array(masses, dtype=np.float64)
 

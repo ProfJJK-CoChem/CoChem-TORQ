@@ -1,0 +1,195 @@
+--- mock ---
+.\audit_script.py:6:'mock': r'(?i)mock',
+.\find_banned.py:4:BANNED_WORDS = ["mock", "stub", "dummy", "placeholder", "fake", "sample", "# TODO"]
+.\rewrite_test.py:14:pass # we don't mock this anymore
+.\rewrite_test.py:17:# 2. Process Validation & Zombie Detection Tests (Physical Zero-Mock)
+.\rewrite_test.py:69:# 3. Live SWMR Recovery Validation (Physical Zero-Mock)
+.\scratch_search.py:10:"mock_words": re.compile(r"(?i)(mock|fake|dummy|stub|placeholder)"),
+.\update_state.py:16:"verdict": "PASSED. Audited Phase 6 Quantum Tensor Harvester. Updated CODATA 2022 atomic mass constant (1.66053906892e-27 kg). Zero mock/stub/placeholder violations found in the generated codebase. All paths use pathlib dynamic lookups to os.environ['COCHEM_ARTIFACTS_DIR'] or Path.home(). Rigorous Pydantic typing used. 18/18 pytests passing against real OS-level executions natively. Method Matrix compliant.",
+.\tests\test_cochem_torq_init.py:6:Zero-Mock test suite verifying physical air-gap mathematical boundary checks,
+.\tests\test_devcontainer.py:2:Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ Devcontainer.
+.\tests\test_dockerfile.py:11:- Zero-Mock and Anti-Spoofing compliance.
+.\tests\test_gitignore.py:1:"""Comprehensive Zero-Mock Test Suite for Scaffolding and .gitignore.
+.\tests\test_h5_healer.py:6:Zero-Mock test suite verifying physical SWMR lock management, multi-tier zombie
+.\tests\test_h5_healer.py:136:# 2. Process Validation & Zombie Detection Tests (Physical Zero-Mock)
+.\tests\test_h5_healer.py:189:# 3. Live SWMR Recovery Validation (Physical Zero-Mock)
+.\tests\test_pipeline.py:5:Strictly adheres to Anti-Spoofing Directives: zero mock patches of unimplemented physics steps.
+.\tests\test_readme.py:1:"""Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ README.md.
+.\tests\test_readme.py:30:- Zero banned / placeholder / mock tokens across README.md and test suite.
+.\tests\test_readme.py:52:"mock",
+.\tests\test_readme.py:474:# 10. Anti-Spoofing & Zero-Mock Verification
+.\tests\test_readme.py:479:"""Verify README contains zero banned placeholder or mock tokens."""
+.\tests\test_readme.py:494:"""Verify that test_readme.py contains zero dummy passes or mock imports."""
+.\tests\test_readme.py:499:# Disallow mock imports
+.\tests\test_readme.py:502:assert "mock" not in alias.name.lower(), (
+.\tests\test_readme.py:503:f"Mock import '{alias.name}' is strictly forbidden by mandate"
+.\tests\test_readme.py:507:assert "mock" not in node.module.lower(), (
+.\tests\test_readme.py:508:f"Mock import from '{node.module}' is strictly forbidden"
+.\tests\test_topology.py:91:def test_zero_mock_code_in_libraries() -> None:
+.\tests\test_topology.py:97:r"\bmock\b",
+.\tests\test_topology.py:101:r"return\s+['\"]mock['\"]"
+.\tests\test_topology.py:115:assert len(violations) == 0, f"Found mock code violations in Libraries: {violations}"
+Total: 30
+
+--- stub ---
+.\audit_script.py:7:'stub': r'(?i)stub',
+.\find_banned.py:4:BANNED_WORDS = ["mock", "stub", "dummy", "placeholder", "fake", "sample", "# TODO"]
+.\scratch_search.py:10:"mock_words": re.compile(r"(?i)(mock|fake|dummy|stub|placeholder)"),
+.\update_state.py:16:"verdict": "PASSED. Audited Phase 6 Quantum Tensor Harvester. Updated CODATA 2022 atomic mass constant (1.66053906892e-27 kg). Zero mock/stub/placeholder violations found in the generated codebase. All paths use pathlib dynamic lookups to os.environ['COCHEM_ARTIFACTS_DIR'] or Path.home(). Rigorous Pydantic typing used. 18/18 pytests passing against real OS-level executions natively. Method Matrix compliant.",
+.\Libraries\cochem_h5_healer.py:19:- Complete physical validation compliance (prohibits synthetic stubs).
+.\Libraries\cochem_torq_engine.py:726:# If no raw bytes, write non-empty binary stub for MOREAD compatibility
+.\tests\test_cochem_mps_worker.py:3:# anti-spoof: zero-stub verification suite
+.\tests\test_cochem_submit_slurm.py:3:# anti-spoof: zero-stub verification suite
+.\tests\test_dockerfile.py:151:"""Validate zero-stub anti-spoofing compliance and absence of banned directives."""
+.\tests\test_engine.py:548:# Anti-Spoof: No synthetic dummy tokens. Using actual ORCA V61 formatted checkpoint stub
+Total: 10
+
+--- dummy ---
+.\audit_script.py:8:'dummy': r'(?i)dummy',
+.\find_banned.py:4:BANNED_WORDS = ["mock", "stub", "dummy", "placeholder", "fake", "sample", "# TODO"]
+.\rewrite_test.py:75:# Write dummy h5 file for test
+.\scratch_search.py:10:"mock_words": re.compile(r"(?i)(mock|fake|dummy|stub|placeholder)"),
+.\tests\test_engine.py:548:# Anti-Spoof: No synthetic dummy tokens. Using actual ORCA V61 formatted checkpoint stub
+.\tests\test_h5_healer.py:195:# Write dummy h5 file for test
+.\tests\test_pyproject.py:434:"dummy",
+.\tests\test_readme.py:53:"dummy",
+.\tests\test_readme.py:494:"""Verify that test_readme.py contains zero dummy passes or mock imports."""
+.\tests\test_readme.py:516:f"Test function '{node.name}' has empty dummy body with 'pass'"
+.\tests\test_readme.py:525:f"Test function '{node.name}' has dummy docstring and 'pass'"
+.\tests\test_topology.py:99:r"\bdummy_data\b",
+Total: 12
+
+--- placeholder ---
+.\audit_script.py:9:'placeholder': r'(?i)placeholder',
+.\find_banned.py:4:BANNED_WORDS = ["mock", "stub", "dummy", "placeholder", "fake", "sample", "# TODO"]
+.\scratch_search.py:10:"mock_words": re.compile(r"(?i)(mock|fake|dummy|stub|placeholder)"),
+.\update_state.py:16:"verdict": "PASSED. Audited Phase 6 Quantum Tensor Harvester. Updated CODATA 2022 atomic mass constant (1.66053906892e-27 kg). Zero mock/stub/placeholder violations found in the generated codebase. All paths use pathlib dynamic lookups to os.environ['COCHEM_ARTIFACTS_DIR'] or Path.home(). Rigorous Pydantic typing used. 18/18 pytests passing against real OS-level executions natively. Method Matrix compliant.",
+.\tests\test_devcontainer.py:12:8. Strict absence of prohibited placeholder strings or unfinished markers
+.\tests\test_devcontainer.py:171:"""Verify devcontainer.json contains no placeholder or banned terms."""
+.\tests\test_gitignore.py:20:5. Anti-spoofing compliance (zero placeholder tokens).
+.\tests\test_gitignore.py:212:"""Verify that .gitignore contains no placeholder or spoof tokens."""
+.\tests\test_pyproject.py:18:- Authentic execution policy and absence of placeholder / banned tokens.
+.\tests\test_pyproject.py:428:def test_pyproject_authentic_and_no_placeholders(pyproject_content: str) -> None:
+.\tests\test_pyproject.py:429:"""Validate pyproject.toml contains no synthetic, placeholder, or banned tokens."""
+.\tests\test_pyproject.py:435:"placeholder",
+.\tests\test_pyproject.py:443:f"pyproject.toml contains forbidden placeholder token '{token}'"
+.\tests\test_readme.py:30:- Zero banned / placeholder / mock tokens across README.md and test suite.
+.\tests\test_readme.py:54:"placeholder",
+.\tests\test_readme.py:478:def test_readme_no_banned_placeholder_tokens(readme_lines: list[str]) -> None:
+.\tests\test_readme.py:479:"""Verify README contains zero banned placeholder or mock tokens."""
+.\tests\test_readme.py:489:f"Line {line_idx} contains banned placeholder token '{token}': {line}"
+.\tests\test_topology.py:98:r"\bplaceholder\b",
+Total: 19
+
+--- NotImplementedError ---
+.\audit_script.py:10:'NotImplementedError': r'NotImplementedError',
+Total: 1
+
+--- pass ---
+.\audit_script.py:11:'pass': r'\bpass\b',
+.\audit_script.py:35:pass
+.\find_banned.py:21:pass
+.\find_empty_funcs.py:14:# check if body is just pass or docstring + pass
+.\refactor_code.py:61:pass
+.\refactor_code.py:67:pass
+.\refactor_code.py:965:Verifies clean inputs pass through wavefunctions without empty array returns.
+.\rewrite_test.py:14:pass # we don't mock this anymore
+.\scratch_search.py:15:"pass_stmt": re.compile(r"^\s*pass\s*$"),
+.\Libraries\cochem_catalog_compiler.py:219:pass
+.\Libraries\cochem_catalog_compiler.py:419:pass
+.\Libraries\cochem_catalog_compiler.py:426:pass
+.\Libraries\cochem_catalog_compiler.py:435:pass
+.\Libraries\cochem_catalog_compiler.py:558:pass
+.\Libraries\cochem_catalog_compiler.py:696:pass
+.\Libraries\cochem_catalog_compiler.py:904:pass
+.\Libraries\cochem_catalog_compiler.py:911:pass
+.\Libraries\cochem_catalog_compiler.py:1106:pass
+.\Libraries\cochem_catalog_compiler.py:1120:pass
+.\Libraries\cochem_catalog_compiler.py:1176:pass
+.\Libraries\cochem_catalog_compiler.py:1338:BannedMethodsAuditResult with pass/fail status and flags.
+.\Libraries\cochem_catalog_compiler.py:1588:pass
+.\Libraries\cochem_catalog_compiler.py:1594:pass
+.\Libraries\cochem_h5_healer.py:199:pass
+.\Libraries\cochem_h5_healer.py:229:pass
+.\Libraries\cochem_h5_healer.py:508:pass
+.\Libraries\cochem_h5_healer.py:513:pass
+.\Libraries\cochem_h5_healer.py:714:pass
+.\Libraries\cochem_jax_builder.py:59:pass
+.\Libraries\cochem_jax_builder.py:65:pass
+.\Libraries\cochem_spcat_bridge.py:75:pass
+.\Libraries\cochem_spcat_bridge.py:78:pass
+.\Libraries\cochem_spcat_bridge.py:81:pass
+.\Libraries\cochem_spcat_bridge.py:1264:pass
+.\Libraries\cochem_spcat_bridge.py:1625:pass
+.\Libraries\cochem_torq_alignment.py:78:pass
+.\Libraries\cochem_torq_alignment.py:166:pass
+.\Libraries\cochem_torq_alignment.py:251:Applies a two-pass numerical refinement to eliminate floating point rounding
+.\Libraries\cochem_torq_alignment.py:699:pass
+.\Libraries\cochem_torq_engine.py:68:pass
+.\Libraries\cochem_torq_engine.py:152:pass
+.\Libraries\cochem_torq_engine.py:184:pass
+.\Libraries\cochem_torq_engine.py:974:pass
+.\Libraries\cochem_torq_engine.py:979:pass
+.\Libraries\cochem_torq_engine.py:989:pass
+.\Libraries\cochem_torq_engine.py:1058:pass
+.\Libraries\cochem_torq_export.py:59:pass
+.\Libraries\cochem_torq_export.py:65:pass
+.\Libraries\cochem_torq_export.py:71:pass
+.\Libraries\cochem_torq_init.py:286:pass
+.\Libraries\cochem_torq_init.py:302:pass
+.\Libraries\cochem_torq_init.py:570:pass
+.\Libraries\cochem_torq_init.py:579:pass
+.\Libraries\cochem_torq_init.py:822:pass
+.\Libraries\cochem_torq_init.py:914:pass
+.\Libraries\cochem_torq_init.py:932:pass
+.\Libraries\cochem_torq_init.py:948:pass
+.\Libraries\cochem_torq_init.py:969:pass
+.\Libraries\cochem_torq_mpqc.py:15:pass
+.\Libraries\cochem_torq_mpqc.py:19:pass
+.\Libraries\cochem_torq_mpqc.py:21:pass
+.\Libraries\cochem_torq_mpqc.py:163:pass
+.\Libraries\cochem_torq_orca.py:23:pass
+.\Libraries\cochem_torq_orca.py:27:pass
+.\Libraries\cochem_torq_orca.py:29:pass
+.\Libraries\cochem_torq_qcxms.py:29:pass
+.\Libraries\cochem_torq_telemetry.py:79:pass
+.\Libraries\cochem_torq_telemetry.py:84:pass
+.\Libraries\cochem_torq_telemetry.py:89:pass
+.\Libraries\cochem_torq_telemetry.py:94:pass
+.\Libraries\cochem_torq_telemetry.py:184:pass
+.\Libraries\cochem_torq_telemetry.py:489:pass
+.\tests\test_catalog_compiler.py:449:"""Verify that all Method Matrix v4 recommended functionals pass dispersion validation."""
+.\tests\test_catalog_compiler.py:654:# jun-cc-pVTZ must pass for non-covalent
+.\tests\test_cochem_torq_init.py:89:"""Disjoint working directory and artifact directory must pass."""
+.\tests\test_dockerfile.py:161:"pass",
+.\tests\test_jax_builder.py:311:Verifies clean inputs pass through wavefunctions without empty array returns.
+.\tests\test_pyproject.py:469:"""Verify test module contains no pass statements or empty function bodies."""
+.\tests\test_pyproject.py:474:"Forbidden 'pass' statement found in test module"
+.\tests\test_readme.py:511:# Disallow empty test functions with only `pass`
+.\tests\test_readme.py:516:f"Test function '{node.name}' has empty dummy body with 'pass'"
+.\tests\test_readme.py:525:f"Test function '{node.name}' has dummy docstring and 'pass'"
+.\tests\test_torq_telemetry.py:54:pass
+Total: 83
+
+--- monkeypatch ---
+.\audit_script.py:12:'monkeypatch': r'monkeypatch',
+Total: 1
+
+--- base64 ---
+.\audit_script.py:13:'base64': r'base64',
+Total: 1
+
+--- mendeleev ---
+.\audit_script.py:14:'mendeleev': r'mendeleev',
+.\Libraries\cochem_torq_alignment.py:177:Uses the mendeleev package exclusively for all isotopic mass lookups.
+.\Libraries\cochem_torq_alignment.py:187:import mendeleev
+.\Libraries\cochem_torq_alignment.py:212:el = mendeleev.element(element_sym)
+Total: 4
+
+--- atomic_mass ---
+.\tests\test_torq_export.py:156:parent_mass=45.0,
+.\tests\test_torq_export.py:180:parent_mass=60.0,
+.\tests\test_torq_export.py:196:parent_mass=50.0,
+.\tests\test_torq_export.py:539:parent_mass=78.0,
+Total: 4
+
