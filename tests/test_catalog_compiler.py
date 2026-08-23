@@ -14,9 +14,9 @@ from __future__ import annotations
 import gc
 import math
 import os
-import time
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, Iterator
+from typing import Any
 
 import psutil  # type: ignore[import-untyped]
 import pyarrow as pa  # type: ignore[import-untyped]
@@ -60,7 +60,7 @@ H2O_CAT_LINES = [
     "  556936.0020  0.0005 -0.8900 2    0.0000  3  18001 103 1 1 0       1 0 1      ",
 ]
 
-H2O_METADATA: Dict[str, Any] = {
+H2O_METADATA: dict[str, Any] = {
     "theory_level": "wB97X-D4",
     "basis_set": "def2-TZVP",
     "software_version": "ORCA 6.1.0 / Pickett SPCAT (v2023)",
@@ -97,7 +97,7 @@ def test_oom_proof_streaming_validation_flat_memory(tmp_path: Path) -> None:
     row_count = 120_000
     chunk_size = 15_000
 
-    def _generate_record_stream() -> Iterator[Dict[str, Any]]:
+    def _generate_record_stream() -> Iterator[dict[str, Any]]:
         for idx in range(row_count):
             yield {
                 "frequency_mhz": float(10000.0 + (idx * 0.1)),
@@ -211,8 +211,8 @@ def test_isolated_workspace_race_condition_concurrent_temperatures(tmp_path: Pat
         assert worker_ws.exists()
         assert worker_ws.is_dir()
         cat_file = worker_ws / f"water_T_{t_k:.3f}K.cat"
-        import sys
         import subprocess
+        import sys
         code = f"""
 from pathlib import Path
 Path({str(cat_file)!r}).write_text({repr(chr(10).join(H2O_CAT_LINES))}, encoding='utf-8')
@@ -515,7 +515,7 @@ def test_staging_cleanup_on_unhandled_stream_exception(tmp_path: Path) -> None:
     """Assert that an exception during stream iteration immediately unlinks the staging file."""
     output_parquet = tmp_path / "stream_failure.parquet"
 
-    def _faulty_stream() -> Iterator[Dict[str, Any]]:
+    def _faulty_stream() -> Iterator[dict[str, Any]]:
         yield {
             "frequency_mhz": 10000.0,
             "uncertainty_mhz": 0.005,

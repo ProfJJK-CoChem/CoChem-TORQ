@@ -31,23 +31,14 @@ import sys
 import tempfile
 import time
 import uuid
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
 )
 
-import pandas as pd  # type: ignore[import-untyped]
 import pyarrow as pa  # type: ignore[import-untyped]
 import pyarrow.parquet as pq  # type: ignore[import-untyped]
 
@@ -74,7 +65,7 @@ class ProvenanceErrorCode:
 class CoChemIntegrityError(Exception):
     """Raised when buffer lock, hash, or data integrity validation fails."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None, error_code: Optional[str] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -84,7 +75,7 @@ class CoChemIntegrityError(Exception):
 class SPCATBridgeError(Exception):
     """Raised when SPCAT format parsing or calculation execution encounters an error."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None, error_code: Optional[str] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -94,21 +85,21 @@ class SPCATBridgeError(Exception):
 class FortranOverflowError(SPCATBridgeError):
     """Raised when asterisks indicating Fortran format overflow/underflow are parsed."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None, error_code: Optional[str] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
         super().__init__(message, details=details, error_code=error_code or ProvenanceErrorCode.FORTRAN_OVERFLOW)
 
 
 class InactiveRotorError(SPCATBridgeError):
     """Raised when an inactive rotor or transitionless calculation produces a 0-byte catalog."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None, error_code: Optional[str] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
         super().__init__(message, details=details, error_code=error_code or ProvenanceErrorCode.SPCAT_BRIDGE_ERROR)
 
 
 class MethodMatrixViolationError(Exception):
     """Raised when a Method Matrix v4 compliance standard is violated."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None, error_code: Optional[str] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -118,7 +109,7 @@ class MethodMatrixViolationError(Exception):
 class DispersionMissingError(MethodMatrixViolationError):
     """Raised when a DFT method lacks necessary dispersion corrections."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None, error_code: Optional[str] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
         super().__init__(message, details=details, error_code=error_code or ProvenanceErrorCode.DISPERSION_MISSING)
 
 
@@ -160,9 +151,9 @@ class CoChemPathManager:
 
     def __init__(
         self,
-        base_dir: Optional[Union[str, Path]] = None,
-        scratch_dir: Optional[Union[str, Path]] = None,
-        deliverables_dir: Optional[Union[str, Path]] = None,
+        base_dir: str | Path | None = None,
+        scratch_dir: str | Path | None = None,
+        deliverables_dir: str | Path | None = None,
     ) -> None:
         self._base_dir = Path(base_dir).resolve() if base_dir is not None else Path.cwd().resolve()
         self._custom_scratch = Path(scratch_dir).resolve() if scratch_dir is not None else None
@@ -171,7 +162,7 @@ class CoChemPathManager:
     @classmethod
     def resolve_scratch_dir(
         cls,
-        custom_path: Optional[Union[str, Path]] = None,
+        custom_path: str | Path | None = None,
         create: bool = True,
     ) -> Path:
         """Resolve the active scratch directory using the 6-tier hierarchy."""
@@ -227,7 +218,7 @@ class CoChemPathManager:
     @classmethod
     def get_scratch_dir(
         cls,
-        custom_path: Optional[Union[str, Path]] = None,
+        custom_path: str | Path | None = None,
         create: bool = True,
     ) -> Path:
         """Alias for resolve_scratch_dir."""
@@ -236,7 +227,7 @@ class CoChemPathManager:
     @classmethod
     def resolve_deliverables_dir(
         cls,
-        custom_path: Optional[Union[str, Path]] = None,
+        custom_path: str | Path | None = None,
         create: bool = True,
     ) -> Path:
         """Resolve deliverables directory for permanent catalog and document outputs."""
@@ -262,7 +253,7 @@ class CoChemPathManager:
     @classmethod
     def get_deliverables_dir(
         cls,
-        custom_path: Optional[Union[str, Path]] = None,
+        custom_path: str | Path | None = None,
         create: bool = True,
     ) -> Path:
         """Alias for resolve_deliverables_dir."""
@@ -283,7 +274,7 @@ class CoChemPathManager:
 # 3. Cross-Platform Read-Only Permissions & Immutability Seals
 # =============================================================================
 
-def apply_readonly_chmod(path: Union[str, Path], recursive: bool = True) -> None:
+def apply_readonly_chmod(path: str | Path, recursive: bool = True) -> None:
     """Apply an immutable read-only permission seal across Windows NTFS and POSIX.
 
     On Windows: Uses ctypes.windll.kernel32.SetFileAttributesW(path, 1) and stat.S_IREAD.
@@ -297,7 +288,7 @@ def apply_readonly_chmod(path: Union[str, Path], recursive: bool = True) -> None
     if not target.exists():
         return
 
-    items: List[Path] = []
+    items: list[Path] = []
     if target.is_dir():
         if recursive:
             try:
@@ -335,7 +326,7 @@ def apply_readonly_chmod(path: Union[str, Path], recursive: bool = True) -> None
             logger.warning(f"Failed to apply readonly seal to {item}: {exc}")
 
 
-def remove_readonly_seal(path: Union[str, Path], recursive: bool = True) -> None:
+def remove_readonly_seal(path: str | Path, recursive: bool = True) -> None:
     """Remove read-only seal and restore write permissions across Windows and POSIX.
 
     Args:
@@ -346,7 +337,7 @@ def remove_readonly_seal(path: Union[str, Path], recursive: bool = True) -> None
     if not target.exists():
         return
 
-    items: List[Path] = []
+    items: list[Path] = []
     if target.is_dir():
         if recursive:
             try:
@@ -393,7 +384,7 @@ def remove_readonly_seal(path: Union[str, Path], recursive: bool = True) -> None
 # =============================================================================
 
 def buffer_lock_sync(
-    file_obj_or_path: Union[io.IOBase, int, str, Path],
+    file_obj_or_path: io.IOBase | int | str | Path,
     min_bytes: int = 1,
 ) -> int:
     """Perform a physical disk sync (os.fsync) and validate non-zero written size.
@@ -408,7 +399,7 @@ def buffer_lock_sync(
     Raises:
         CoChemIntegrityError: If file size on disk is less than min_bytes.
     """
-    path_to_check: Optional[Path] = None
+    path_to_check: Path | None = None
 
     if isinstance(file_obj_or_path, io.IOBase):
         file_obj_or_path.flush()
@@ -457,11 +448,11 @@ def buffer_lock_sync(
 # =============================================================================
 
 def purge_ghost_outputs(
-    target_path: Union[str, Path, Sequence[Union[str, Path]]],
-    patterns: Optional[Sequence[str]] = None,
+    target_path: str | Path | Sequence[str | Path],
+    patterns: Sequence[str] | None = None,
     remove_0byte_only: bool = False,
     remove_tmp_siblings: bool = True,
-) -> List[Path]:
+) -> list[Path]:
     """Purge orphaned, corrupt, or 0-byte ghost calculation artifacts and staging files."""
     default_patterns = (
         "*.tmp",
@@ -476,14 +467,14 @@ def purge_ghost_outputs(
     )
     search_patterns = list(patterns) if patterns is not None else list(default_patterns)
 
-    targets_list: List[Path] = []
+    targets_list: list[Path] = []
     if isinstance(target_path, (str, Path)):
         targets_list.append(Path(target_path).resolve())
     else:
         for item in target_path:
             targets_list.append(Path(item).resolve())
 
-    files_to_evaluate: Set[Path] = set()
+    files_to_evaluate: set[Path] = set()
 
     for p in targets_list:
         if p.is_dir():
@@ -514,7 +505,7 @@ def purge_ghost_outputs(
                     if sibling.is_file():
                         files_to_evaluate.add(sibling.resolve())
 
-    purged: List[Path] = []
+    purged: list[Path] = []
     for f in sorted(files_to_evaluate):
         if not f.exists():
             continue
@@ -538,10 +529,10 @@ def purge_ghost_outputs(
 
 @contextmanager
 def isolated_workspace_generator(
-    base_scratch: Optional[Union[str, Path]] = None,
+    base_scratch: str | Path | None = None,
     prefix: str = "spcat_workspace",
     cleanup_on_exit: bool = True,
-    job_id: Optional[str] = None,
+    job_id: str | None = None,
 ) -> Iterator[Path]:
     """Provide a thread-safe, process-safe isolated execution scratch directory."""
     scratch_root = CoChemPathManager.resolve_scratch_dir(base_scratch, create=True)
@@ -573,7 +564,7 @@ def isolated_workspace_generator(
 # =============================================================================
 
 def inactive_rotor_catcher(
-    cat_source: Union[str, Path, bytes, io.IOBase, Sequence[str]],
+    cat_source: str | Path | bytes | io.IOBase | Sequence[str],
     allow_empty: bool = False,
 ) -> bool:
     """Inspect SPCAT output for inactive rotors, 0-byte files, or absent transitions."""
@@ -586,7 +577,7 @@ def inactive_rotor_catcher(
             if size == 0:
                 is_empty = True
             else:
-                with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                with open(p, encoding="utf-8", errors="ignore") as f:
                     content = f.read().strip()
                     if not content:
                         is_empty = True
@@ -629,10 +620,10 @@ def inactive_rotor_catcher(
 
 def parse_spcat_cat_line(
     line: str,
-    line_number: Optional[int] = None,
+    line_number: int | None = None,
     temperature_k: float = 300.0,
     provenance_hash: str = "",
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Parse a single line of Pickett SPCAT .cat fixed-width output.
 
     Standard Pickett format: [F13.4, 2F8.4, I2, F10.4, I3, I7, I4, 12I2]
@@ -747,15 +738,15 @@ def parse_spcat_cat_line(
 
 
 def parse_spcat_cat_stream(
-    stream_or_path: Union[str, Path, io.TextIOBase, Iterator[str], Sequence[str]],
+    stream_or_path: str | Path | io.TextIOBase | Iterator[str] | Sequence[str],
     temperature_k: float = 300.0,
     provenance_hash: str = "",
-) -> Iterator[Dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     """Stream and yield parsed records from a Pickett SPCAT .cat source."""
     if isinstance(stream_or_path, (str, Path)):
         p = Path(stream_or_path)
         if p.is_file():
-            with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            with open(p, encoding="utf-8", errors="ignore") as f:
                 for line_idx, line in enumerate(f, start=1):
                     parsed = parse_spcat_cat_line(
                         line,
@@ -794,12 +785,12 @@ def parse_spcat_cat_stream(
 # =============================================================================
 
 def pyarrow_chunked_serializer(
-    records_stream: Iterator[Dict[str, Any]],
-    output_parquet_path: Union[str, Path],
+    records_stream: Iterator[dict[str, Any]],
+    output_parquet_path: str | Path,
     chunk_size: int = 100_000,
     compression: str = "zstd",
     compression_level: int = 7,
-    schema: Optional[pa.Schema] = None,
+    schema: pa.Schema | None = None,
     verify_sync: bool = True,
 ) -> Path:
     """Stream catalog records into an out-of-core PyArrow Parquet file with O(1) memory overhead.
@@ -830,11 +821,11 @@ def pyarrow_chunked_serializer(
     temp_staging_path = final_path.parent / temp_filename
 
     field_names = [f.name for f in target_schema]
-    buffer: Dict[str, List[Any]] = {name: [] for name in field_names}
+    buffer: dict[str, list[Any]] = {name: [] for name in field_names}
     rows_in_buffer = 0
     total_rows = 0
 
-    writer: Optional[pq.ParquetWriter] = None
+    writer: pq.ParquetWriter | None = None
 
     try:
         writer = pq.ParquetWriter(
@@ -849,7 +840,7 @@ def pyarrow_chunked_serializer(
             if rows_in_buffer == 0 or writer is None:
                 return
 
-            arrays: List[pa.Array] = []
+            arrays: list[pa.Array] = []
             for schema_field in target_schema:
                 col_data = buffer[schema_field.name]
                 arr = pa.array(col_data, type=schema_field.type)
@@ -919,14 +910,14 @@ def pyarrow_chunked_serializer(
 # =============================================================================
 
 def _compile_single_temperature_task(
-    runner_or_path: Union[Callable[[float, Path], Path], Path, str],
+    runner_or_path: Callable[[float, Path], Path] | Path | str,
     temp_k: float,
     output_dir: Path,
-    base_scratch: Optional[Path],
+    base_scratch: Path | None,
     chunk_size: int,
     provenance_hash: str,
     apply_immutable_seal: bool,
-) -> Tuple[float, Path]:
+) -> tuple[float, Path]:
     """Worker task executing an isolated single-temperature compilation."""
     with isolated_workspace_generator(
         base_scratch=base_scratch,
@@ -966,19 +957,15 @@ def _compile_single_temperature_task(
 
 
 def parallel_temperature_compiler(
-    spcat_runner_or_cat_paths: Union[
-        Callable[[float, Path], Path],
-        Dict[float, Union[str, Path]],
-        Sequence[Tuple[float, Union[str, Path]]],
-    ],
+    spcat_runner_or_cat_paths: Callable[[float, Path], Path] | dict[float, str | Path] | Sequence[tuple[float, str | Path]],
     temperatures: Sequence[float],
-    output_dir: Union[str, Path],
-    max_workers: Optional[int] = None,
-    base_scratch: Optional[Union[str, Path]] = None,
+    output_dir: str | Path,
+    max_workers: int | None = None,
+    base_scratch: str | Path | None = None,
     chunk_size: int = 100_000,
     provenance_hash: str = "",
     apply_immutable_seal: bool = False,
-) -> Dict[float, Path]:
+) -> dict[float, Path]:
     """Compile multiple temperature catalogs concurrently using hardware-saturated ThreadPoolExecutor."""
     target_out_dir = CoChemPathManager.resolve_deliverables_dir(output_dir, create=True)
     scratch_root = CoChemPathManager.resolve_scratch_dir(base_scratch, create=True)
@@ -986,13 +973,13 @@ def parallel_temperature_compiler(
     workers = max_workers if max_workers is not None else min(len(temperatures), os.cpu_count() or 4)
     workers = max(1, workers)
 
-    results: Dict[float, Path] = {}
-    futures: List[concurrent.futures.Future[Tuple[float, Path]]] = []
+    results: dict[float, Path] = {}
+    futures: list[concurrent.futures.Future[tuple[float, Path]]] = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         for temp in temperatures:
             temp_k = float(temp)
-            runner_task: Union[Callable[[float, Path], Path], Path, str]
+            runner_task: Callable[[float, Path], Path] | Path | str
             if callable(spcat_runner_or_cat_paths):
                 runner_task = spcat_runner_or_cat_paths
             elif isinstance(spcat_runner_or_cat_paths, dict):
@@ -1027,7 +1014,7 @@ def parallel_temperature_compiler(
 # =============================================================================
 
 def generate_methods_latex(
-    metadata: Dict[str, Any],
+    metadata: dict[str, Any],
     method_matrix_v4_check: bool = True,
 ) -> str:
     """Generate an AASTeX 6.3.1 and siunitx compliant LaTeX Computational Methods section.
@@ -1127,7 +1114,7 @@ def generate_methods_latex(
 
     temp_formatted = ", ".join(f"\\qty{{{t:.2f}}}{{\\kelvin}}" for t in temperatures)
 
-    latex_lines: List[str] = [
+    latex_lines: list[str] = [
         r"% -----------------------------------------------------------------------------",
         r"% CoChem Automated Computational Methods Section (AASTeX 6.3.1 / siunitx)",
         r"% -----------------------------------------------------------------------------",
@@ -1204,7 +1191,7 @@ def generate_methods_latex(
 # =============================================================================
 
 def deduplicate_bibtex(
-    bibtex_entries: Union[str, Sequence[str]],
+    bibtex_entries: str | Sequence[str],
     deduplicate_by: str = "both",
 ) -> str:
     """Deduplicate BibTeX bibliography entries by cite key, normalized DOI, or both.
@@ -1218,7 +1205,7 @@ def deduplicate_bibtex(
     else:
         raw_text = str(bibtex_entries)
 
-    entries: List[Tuple[str, str, str]] = []  # (entry_type, cite_key, body)
+    entries: list[tuple[str, str, str]] = []  # (entry_type, cite_key, body)
     pos = 0
     length = len(raw_text)
 
@@ -1259,14 +1246,14 @@ def deduplicate_bibtex(
         else:
             pos = match.end()
 
-    seen_keys: Set[str] = set()
-    seen_dois: Set[str] = set()
-    unique_entries: List[str] = []
+    seen_keys: set[str] = set()
+    seen_dois: set[str] = set()
+    unique_entries: list[str] = []
 
     for entry_type, cite_key, body in entries:
         norm_key = cite_key.lower().strip()
         doi_match = doi_pattern.search(body)
-        norm_doi: Optional[str] = None
+        norm_doi: str | None = None
         if doi_match:
             raw_doi = doi_match.group("doi").strip()
             cleaned_doi = re.sub(r"^https?://(dx\.)?doi\.org/", "", raw_doi, flags=re.IGNORECASE)
@@ -1300,21 +1287,21 @@ class BannedMethodsAuditResult:
     """Result container for Method Matrix v4 banned methods and non-covalent rules audit."""
 
     passed: bool
-    banned_flags: List[str]
+    banned_flags: list[str]
     allowed_diffuse_basis: bool
     is_frozen_monomer_verified: bool
     is_bsse_counterpoise_verified: bool
     is_valid_hessian_preconditioned: bool
-    conformer_union_params: Dict[str, Any]
-    details: Dict[str, Any] = field(default_factory=dict)
+    conformer_union_params: dict[str, Any]
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize audit result to dictionary."""
         return asdict(self)
 
 
 def audit_banned_methods(
-    metadata: Dict[str, Any],
+    metadata: dict[str, Any],
     raise_on_violation: bool = True,
 ) -> BannedMethodsAuditResult:
     """Actively audits computational parameters against Method Matrix v4 banned methods.
@@ -1340,7 +1327,7 @@ def audit_banned_methods(
     Raises:
         MethodMatrixViolationError: If a banned method is detected and raise_on_violation=True.
     """
-    banned_flags: List[str] = []
+    banned_flags: list[str] = []
     theory_level = str(metadata.get("theory_level", "")).strip()
     theory_upper = theory_level.upper()
     basis_set = str(metadata.get("basis_set", "")).strip().lower()
@@ -1470,7 +1457,7 @@ class TorqCatalogCompiler:
     and partition function calculations.
     """
 
-    def __init__(self, cat_filepath: Union[str, Path], point_id: str = "000", output_dir: Optional[Union[str, Path]] = None) -> None:
+    def __init__(self, cat_filepath: str | Path, point_id: str = "000", output_dir: str | Path | None = None) -> None:
         self.cat_filepath = Path(cat_filepath).resolve()
         self.point_id = point_id
         out_dir = CoChemPathManager.resolve_deliverables_dir(output_dir, create=True)
@@ -1481,8 +1468,8 @@ class TorqCatalogCompiler:
             "E_Lower_cm1", "G_Up", "Tag", "QNs_Up", "QNs_Low"
         ]
 
-    def _parse_chunk_arrays(self, raw_lines: List[str], schema: pa.Schema) -> Optional[pa.Table]:
-        parsed_data: Dict[str, List[Any]] = {col: [] for col in self.col_names}
+    def _parse_chunk_arrays(self, raw_lines: list[str], schema: pa.Schema) -> pa.Table | None:
+        parsed_data: dict[str, list[Any]] = {col: [] for col in self.col_names}
         for line in raw_lines:
             if not line.strip():
                 continue
@@ -1533,11 +1520,11 @@ class TorqCatalogCompiler:
 
         temp_staging_path = self.parquet_outpath.parent / f".{self.parquet_outpath.name}.tmp.{uuid.uuid4().hex[:8]}"
         total_rows = 0
-        writer: Optional[pq.ParquetWriter] = None
+        writer: pq.ParquetWriter | None = None
 
         try:
-            with open(self.cat_filepath, "r", encoding="utf-8", errors="ignore") as f:
-                chunk: List[str] = []
+            with open(self.cat_filepath, encoding="utf-8", errors="ignore") as f:
+                chunk: list[str] = []
                 for line in f:
                     chunk.append(line)
                     if len(chunk) >= chunk_size:
