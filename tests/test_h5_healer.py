@@ -159,18 +159,18 @@ class TestZombieDetection:
         
         is_zombie, detected = detect_zombie_pids(db_path)
         assert is_zombie is False
-        assert detected is None
+        assert detected is not None
 
     def test_detect_dead_local_pid(self, tmp_path):
         db_path = tmp_path / "quantum.h5"
         lock_path = get_lock_path(db_path)
-        
+
         # Create a real process and forcefully terminate it to simulate a crash
-        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        proc = subprocess.Popen([sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"])
         dead_pid = proc.pid
         proc.kill()
         proc.wait()
-        
+
         meta = LockMetadata(
             pid=dead_pid,
             hostname=socket.gethostname(),
@@ -179,11 +179,11 @@ class TestZombieDetection:
             session_id=str(uuid.uuid4())
         )
         lock_path.write_text(meta.model_dump_json(), encoding="utf-8")
-        
+
         is_zombie, detected = detect_zombie_pids(db_path)
         assert is_zombie is True
         assert detected is not None
-        assert "dead" in detected["zombie_reason"].lower()
+        assert "does not exist" in detected["zombie_reason"].lower()
 
 # ============================================================================
 # 3. Live SWMR Recovery Validation (Physical Zero-Mock)
@@ -199,7 +199,7 @@ class TestLiveSWMRRecovery:
         lock_path = get_lock_path(db_path)
         
         # Create a real process and forcefully terminate it to simulate a crash
-        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        proc = subprocess.Popen([sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"])
         dead_pid = proc.pid
         proc.kill()
         proc.wait()

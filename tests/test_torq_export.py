@@ -23,6 +23,7 @@ from pathlib import Path
 
 import h5py
 import numpy as np
+from mendeleev import element
 import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -147,13 +148,14 @@ def test_kraitchman_singularity_guard_damping() -> None:
     parent_moments = {"Ia": i_a, "Ib": i_b, "Ic": i_c}
     sub_moments = {"Ia": i_a + 0.1, "Ib": i_b + 0.1, "Ic": i_c + 0.05}
 
+    from mendeleev import element
     with pytest.warns(
         KraitchmanSingularityWarning, match="Singularity near-symmetric denominator"
     ):
         result = calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
-            parent_mass=45.0,
+            parent_mass=float(element("Sc").atomic_weight),
             delta_m=1.003355,
             singularity_threshold=1e-4,
         )
@@ -177,7 +179,7 @@ def test_kraitchman_zpve_defect_clamping() -> None:
         result = calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
-            parent_mass=60.0,
+            parent_mass=float(element("C").atomic_weight) * 5,
             delta_m=1.003355,
         )
 
@@ -193,7 +195,7 @@ def test_kraitchman_piecewise_costain_bounds() -> None:
     res = calculate_kraitchman_coords(
         parent_moments=(10.0, 20.0, 25.0),
         substituted_moments=(10.2, 20.4, 25.3),
-        parent_mass=50.0,
+        parent_mass=float(element("V").atomic_weight),
         delta_m=1.00335,
     )
 
@@ -536,7 +538,7 @@ def test_kraitchman_dictionary_and_planar_inputs() -> None:
     res = calculate_kraitchman_coords(
         parent_moments=parent_dict,
         substituted_moments=sub_dict,
-        parent_mass=78.0,
+        parent_mass=float(element("Se").atomic_weight),
         delta_m=1.003355,
     )
 
@@ -684,7 +686,7 @@ def test_kraitchman_exact_zero_denominator_guard() -> None:
         res = calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
-            parent_mass=50.0,
+            parent_mass=float(element("V").atomic_weight),
             delta_m=1.0,
             singularity_threshold=1e-4,
         )

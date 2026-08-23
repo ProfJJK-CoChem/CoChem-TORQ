@@ -372,7 +372,9 @@ def test_generate_plotly_3d_carousels_with_dvr_wavefunctions(tmp_path: Path) -> 
 def test_generate_plotly_3d_carousels_dict_missing_coords(tmp_path: Path) -> None:
     """Validates that passing a dict with only 'pes' key automatically generates default dihedral grids."""
     artifact_dir = tmp_path / "artifacts"
-    pes_grid = np.ones((30, 30)) * 250.0
+    phi = np.linspace(-180, 180, 30)
+    P1, P2 = np.meshgrid(phi, phi, indexing="ij")
+    pes_grid = 250.0 + 10.0 * (1.0 - np.cos(np.radians(P1))) + 10.0 * (1.0 - np.cos(np.radians(P2)))
 
     html_path = generate_plotly_3d_carousels(
         pes_tensor={"pes": pes_grid},
@@ -505,7 +507,7 @@ def test_airgap_compliance_no_repo_pollution(tmp_path: Path) -> None:
     payload = {"event_type": "progress", "job_id": "AIRGAP_01", "status": "RUNNING"}
     stream_webhook_events(payload, webhook_url=None, scratch_dir=scratch_dir)
 
-    coords = np.random.rand(3, 4, 3)
+    coords = np.array([ [[0.0,0.0,0.0], [0.74,0.0,0.0], [0.0,0.74,0.0], [0.0,0.0,0.74]] for _ in range(3) ])
     export_crash_animation(
         coords,
         error_node_id="airgap_node",
@@ -514,7 +516,9 @@ def test_airgap_compliance_no_repo_pollution(tmp_path: Path) -> None:
         scratch_dir=scratch_dir,
     )
 
-    pes = np.ones((20, 20))
+    phi = np.linspace(-180, 180, 20)
+    P1, P2 = np.meshgrid(phi, phi, indexing="ij")
+    pes = 100.0 * (1.0 - np.cos(np.radians(P1))) + 50.0 * (1.0 - np.cos(np.radians(P2)))
     generate_plotly_3d_carousels(
         pes_tensor=pes,
         artifact_dir=artifact_dir,

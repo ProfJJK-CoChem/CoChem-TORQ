@@ -353,7 +353,7 @@ def test_air_gap_violation_in_repo_root() -> None:
 def test_pyarrow_surface_export(tmp_path: Path) -> None:
     """Test PyArrow serialization of DeltaSplineSurface to Parquet."""
     dense_angles = np.linspace(0.0, 360.0, 13)
-    dense_low = np.zeros(13)
+    dense_low = 2.5 * (1.0 - np.cos(np.radians(dense_angles)))
     anchor_angles = [0.0, 180.0, 360.0]
     anchor_deltas = [0.0, 0.5, 0.0]
 

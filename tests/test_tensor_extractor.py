@@ -705,8 +705,10 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
 
     # 5. Export Sinc-DVR HDF5
     dvr_h5 = export_dir / "sinc_dvr.h5"
+    X, Y = np.meshgrid(np.linspace(-1, 1, 50), np.linspace(-1, 1, 50))
+    wf = np.exp(-(X**2 + Y**2)).tolist()
     dvr_payload = {
-        "wavefunction": np.ones((50, 50)).tolist(),
+        "wavefunction": wf,
         "energy_levels": [0.0, 125.4, 250.8, 375.2],
         "tunneling_splitting": 1.458e-4,
         "kraitchman_coords": [[0.0, 0.0, 0.5]],

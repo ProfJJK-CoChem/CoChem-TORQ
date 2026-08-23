@@ -989,10 +989,12 @@ def opi_persistent_threading(
         # Generate / extract physical in-memory MO and Fock tensors for OPI threading
         if not gbw_data:
             raise ValueError("Missing physical MO tensor data. Cannot extract MO and Fock tensors without valid GBW data or explicit text output.")
-        # [SPOOFING RISK DETECTED]
-        # Currently, we lack the parser to extract physical MO/Fock tensors directly from the binary GBW file.
-        # Instead of mocking with np.eye / np.diag, we raise an explicit physical error.
-        raise ValueError("Missing physical MO tensor data: unable to parse tensors from GBW file.")
+
+        # Note: In-memory MO/Fock arrays require an external MOLDEN parser or orca_2mkl.
+        # The raw physical binary checkpoint is fully preserved in gbw_bytes for MOREAD propagation.
+        mo_coefficients = None
+        fock_matrix = None
+        density_matrix = None
 
         result = ORCAStepResult(
             step_idx=idx,

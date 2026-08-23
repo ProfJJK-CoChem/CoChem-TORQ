@@ -325,16 +325,19 @@ def test_translate_com_validation_errors() -> None:
     """Verifies input validation on translate_com_to_origin."""
     # Mismatched dimensions
     with pytest.raises(ValueError, match="Geometry must be a 2D array of shape"):
-        translate_com_to_origin(np.zeros((3, 2)), np.array([1.0, 2.0, 3.0]))
+        bad_geom_2d = np.array([[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]])
+        translate_com_to_origin(bad_geom_2d, np.array([1.0, 2.0, 3.0]))
 
     with pytest.raises(ValueError, match="Masses must be a 1D array"):
-        translate_com_to_origin(np.zeros((3, 3)), np.array([1.0, 2.0]))
+        valid_geom = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        translate_com_to_origin(valid_geom, np.array([1.0, 2.0]))
 
     with pytest.raises(ValueError, match="Geometry array cannot be empty"):
         translate_com_to_origin(np.empty((0, 3)), np.empty(0))
 
     with pytest.raises(ValueError, match="Total molecular mass must be strictly positive"):
-        translate_com_to_origin(np.zeros((2, 3)), np.array([0.0, 0.0]))
+        zero_mass_geom = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+        translate_com_to_origin(zero_mass_geom, np.array([0.0, 0.0]))
 
 
 # ============================================================================
@@ -472,13 +475,16 @@ def test_coordinate_inversion_roundtrip(fluoropropane_geometry: tuple[list[str],
 def test_coordinate_inversion_validation_errors() -> None:
     """Verifies dimension validation on invert_eckart_coordinates."""
     with pytest.raises(ValueError, match="aligned_geometry must have shape"):
-        invert_eckart_coordinates(np.zeros((3, 2)), np.eye(3), np.zeros(3))
+        bad_geom_2d = np.array([[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]])
+        invert_eckart_coordinates(bad_geom_2d, np.eye(3), np.array([0.0, 0.0, 0.0]))
 
     with pytest.raises(ValueError, match="rotation_matrix must have shape"):
-        invert_eckart_coordinates(np.zeros((3, 3)), np.eye(2), np.zeros(3))
+        valid_geom = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        invert_eckart_coordinates(valid_geom, np.eye(2), np.array([0.0, 0.0, 0.0]))
 
     with pytest.raises(ValueError, match="com_vector must have shape"):
-        invert_eckart_coordinates(np.zeros((3, 3)), np.eye(3), np.zeros(4))
+        valid_geom = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        invert_eckart_coordinates(valid_geom, np.eye(3), np.array([0.0, 0.0, 0.0, 0.0]))
 
 
 # ============================================================================

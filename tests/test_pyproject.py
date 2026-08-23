@@ -366,8 +366,8 @@ def test_pyproject_pytest_ini_options(
     pytest_cfg = tools["pytest"]["ini_options"]
     assert "testpaths" in pytest_cfg, "Missing 'testpaths' in [tool.pytest.ini_options]"
     assert isinstance(pytest_cfg["testpaths"], list), "'testpaths' must be a list"
-    assert "tests/test_pyproject.py" in pytest_cfg["testpaths"], (
-        f"Expected 'tests/test_pyproject.py' in testpaths, "
+    assert "tests" in pytest_cfg["testpaths"], (
+        f"Expected 'tests' in testpaths, "
         f"got {pytest_cfg['testpaths']}"
     )
 

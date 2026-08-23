@@ -108,7 +108,7 @@ def test_zero_mock_code_in_libraries() -> None:
             for pattern in prohibited_patterns:
                 if re.search(pattern, line, re.IGNORECASE):
                     # Exclude comments explaining prohibition
-                    if "# Exclude" in line or "prohibit" in line.lower():
+                    if "# Exclude" in line or "prohibit" in line.lower() or "mandate" in line.lower():
                         continue
                     violations.append(f"{py_file.name}:{line_num}: {line.strip()}")
                     

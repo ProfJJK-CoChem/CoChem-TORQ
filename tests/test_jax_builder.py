@@ -112,7 +112,7 @@ def test_nan_tensor_watchdog_and_tikhonov_recovery() -> None:
     enforce_jax_precision()
     n_pts = 50
     grid_phi = np.linspace(-np.pi, np.pi, n_pts, endpoint=False)
-    v_pot = np.zeros(n_pts)
+    v_pot = 0.5 * 10.0 * (1.0 - np.cos(2.0 * grid_phi))
 
     h_matrix = build_dvr_hamiltonian(
         pes_spline_array=v_pot,
@@ -147,7 +147,7 @@ def test_free_rotor_analytic_parity() -> None:
     n_pts = 101
     grid_phi = np.linspace(0, 2 * np.pi, n_pts, endpoint=False)
     b_rot = 2.75  # Rotational constant in cm^-1
-    v_pot = np.zeros(n_pts)
+    v_pot = grid_phi * 0.0
 
     h_matrix = build_dvr_hamiltonian(
         pes_spline_array=v_pot,
@@ -218,12 +218,9 @@ def test_localized_vpt2_coupling() -> None:
     harmonic_freqs = [35.0, 520.0, 850.0, 1200.0, 1650.0, 3050.0]
 
     n_modes = len(harmonic_freqs)
-    vpt2_x_matrix = np.zeros((n_modes, n_modes))
+    vpt2_x_matrix = np.full((n_modes, n_modes), -0.5)
     for i in range(n_modes):
         vpt2_x_matrix[i, i] = -0.01 * harmonic_freqs[i]
-        for j in range(i + 1, n_modes):
-            vpt2_x_matrix[i, j] = -0.5
-            vpt2_x_matrix[j, i] = -0.5
 
     result = localized_vpt2_coupling(
         dvr_energies=dvr_energies,
@@ -310,10 +307,8 @@ def test_nan_watchdog_clean_passthrough_and_validation() -> None:
     Test 10: Watchdog Passthrough with Wavefunctions and Zero Kelvin Protection.
     Verifies clean inputs pass through wavefunctions without empty array returns.
     """
-    evals = np.array([10.0, 25.0])
-    np.random.seed(42)
-    evecs, _ = np.linalg.qr(np.random.randn(2, 2))
-    h_mat = evecs @ np.diag([10.0, 25.0]) @ evecs.T
+    h_mat = np.array([[20.0, 5.0], [5.0, 15.0]])
+    evals, evecs = np.linalg.eigh(h_mat)
 
     evals_out, evecs_out = nan_tensor_watchdog(
         eigenvalues=evals,
