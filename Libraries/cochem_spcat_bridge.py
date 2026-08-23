@@ -1709,6 +1709,11 @@ class TorqSpcatBridge:
 
 
 __all__ = [
+    "AirGapViolationError",
+    "FortranOverflowError",
+    "LAMTriggerError",
+    "ProvenanceErrorCode",
+    "SPCATBridgeError",
     "ThreeTierRoutingResult",
     "route_3tier_abinitio_payload",
     "TorqSpcatBridge",
