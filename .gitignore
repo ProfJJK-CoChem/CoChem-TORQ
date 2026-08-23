@@ -1,0 +1,46 @@
+# ==========================================
+# CoChem-TORQ Strict Air-Gap Enforcement
+# ==========================================
+
+# 1. Absolute Workspace Ban
+CoChem_Artifacts/
+*/CoChem_Artifacts/*
+~/CoChem_Artifacts/*
+
+# 2. Database & State Array Blockade
+*.h5
+*.hdf5
+*.parquet
+*.arrow
+*.feather
+*landscape*
+
+# 3. Registry & Provenance Quarantines
+cochem_system_config.json
+fit_provenance.json
+*_state.json
+
+# 4. Heavy Quantum / Scratch Exclusions
+*.gbw
+*.tmp
+*.scf
+*.densities
+*.chk
+*.xyz
+*.sdf
+*.mol
+*.out
+*.log
+
+# 5. IPC / Hardware Memory Dumps
+*.lock
+*.pid
+core.*
+
+# 6. Python standard ignores
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Exception: Allow strictly bounded synthetic .xyz files exclusively for unit tests
+!tests/**/*.xyz
