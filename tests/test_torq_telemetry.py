@@ -409,29 +409,47 @@ def test_export_crash_animation_steric_collision(tmp_path: Path) -> None:
         [2.04, -0.5, -0.86],  # H6
     ], dtype=np.float64)
 
-    # Trajectory where H3 and H5 rotate towards each other until collision at frame 11 (d < 0.4 A)
-    trajectory = np.zeros((num_frames, num_atoms, 3), dtype=np.float64)
+    # Generate physical trajectory where H3 (idx 2) and H5 (idx 4) collide along the C-C axis
+    frame_coords_list: List[np.ndarray] = []
     energies: List[float] = []
     gradients: List[np.ndarray] = []
 
+    sigma_lj = 1.1  # Angstrom
+    eps_lj = 0.1    # kcal/mol
+
     for f_idx in range(num_frames):
         coords = base_coords.copy()
-        # Move H3 and H5 toward each other along x and y
-        offset = float(f_idx) * 0.12
-        coords[2, 0] += offset  # H3 moves right
-        coords[4, 0] -= offset  # H5 moves left
-        coords[4, 1] -= offset * 0.3
-        trajectory[f_idx] = coords
+        # Physically compress H3 and H5 along interaction vector to simulate steric collision
+        compression = float(f_idx) * 0.20
+        coords[2, 0] += compression * 0.5   # H3 moves toward center
+        coords[4, 0] -= compression * 0.6   # H5 moves toward center
+        coords[4, 1] -= compression * 0.05  # slight y-deflection
 
-        # Exponential energy explosion
-        energy = -79.8 + (1.5 ** f_idx) * 0.01
-        energies.append(energy)
+        frame_coords_list.append(coords)
 
-        # Gradient explosion
-        grad = np.zeros((num_atoms, 3))
-        grad[2] = [offset * 5.0, -offset * 2.0, 0.0]
-        grad[4] = [-offset * 5.0, offset * 2.0, 0.0]
-        gradients.append(grad)
+        # Compute physical Lennard-Jones potential energy and analytical gradients
+        e_frame = -79.8  # baseline Hartree
+        grad_frame = np.empty((num_atoms, 3), dtype=np.float64)
+        grad_frame.fill(0.0)
+
+        for i in range(num_atoms):
+            for j in range(num_atoms):
+                if i == j:
+                    continue
+                r_vec = coords[i] - coords[j]
+                r_dist = float(np.linalg.norm(r_vec))
+                if r_dist > 1e-4:
+                    s_r = sigma_lj / r_dist
+                    # Analytical LJ gradient
+                    force_mag = 24.0 * eps_lj * (2.0 * (s_r ** 12) - (s_r ** 6)) / (r_dist ** 2)
+                    grad_frame[i] += force_mag * r_vec
+                    if i < j:
+                        e_frame += 4.0 * eps_lj * ((s_r ** 12) - (s_r ** 6))
+
+        energies.append(float(e_frame))
+        gradients.append(grad_frame)
+
+    trajectory = np.array(frame_coords_list, dtype=np.float64)
 
     result_paths = export_crash_animation(
         trajectory_array=trajectory,
@@ -487,7 +505,7 @@ def test_airgap_compliance_no_repo_pollution(tmp_path: Path) -> None:
     payload = {"event_type": "progress", "job_id": "AIRGAP_01", "status": "RUNNING"}
     stream_webhook_events(payload, webhook_url=None, scratch_dir=scratch_dir)
 
-    coords = np.zeros((3, 4, 3))
+    coords = np.random.rand(3, 4, 3)
     export_crash_animation(
         coords,
         error_node_id="airgap_node",

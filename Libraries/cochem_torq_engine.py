@@ -987,10 +987,12 @@ def opi_persistent_threading(
             last_gbw_path = gbw_path
 
         # Generate / extract physical in-memory MO and Fock tensors for OPI threading
-        n_basis = max(len(step_coords) * 4, 16)
-        mo_coefficients = np.eye(n_basis, dtype=np.float64)
-        fock_matrix = np.diag(np.linspace(-2.0, 1.0, n_basis))
-        density_matrix = mo_coefficients @ mo_coefficients.T
+        if not gbw_data:
+            raise ValueError("Missing physical MO tensor data. Cannot extract MO and Fock tensors without valid GBW data or explicit text output.")
+        # [SPOOFING RISK DETECTED]
+        # Currently, we lack the parser to extract physical MO/Fock tensors directly from the binary GBW file.
+        # Instead of mocking with np.eye / np.diag, we raise an explicit physical error.
+        raise ValueError("Missing physical MO tensor data: unable to parse tensors from GBW file.")
 
         result = ORCAStepResult(
             step_idx=idx,

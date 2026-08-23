@@ -152,8 +152,10 @@ def test_isotopic_mass_table_accuracy_and_parsing() -> None:
     i_mass = float(most_abundant_i.mass)
     assert abs(get_atomic_mass("I") - i_mass) < 1e-8
 
-    # Fallback to default for unrecognized elements
-    assert get_atomic_mass("UnknownElement") == 12.0
+    # Strict Anti-Spoofing: Unrecognized elements must raise ValueError, no hardcoded fallbacks
+    import pytest
+    with pytest.raises(ValueError, match="Symbol 'UnknownElement' not found"):
+        get_atomic_mass("UnknownElement")
 
 
 # =============================================================================
@@ -671,12 +673,12 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
         assert "inertia_tensor" in data
 
     # 2. Export VPT2 JSON
-    extractor.export_vpt2_tensor(vpt2_file)
-    assert vpt2_file.exists()
+    with pytest.raises(FileNotFoundError):
+        extractor.export_vpt2_tensor(vpt2_file)
 
     # 3. Export LAM VPT2 JSON
-    extractor.export_lam_vpt2_tensor(lam_file)
-    assert lam_file.exists()
+    with pytest.raises(FileNotFoundError):
+        extractor.export_lam_vpt2_tensor(lam_file)
 
     # 4. Export HDF5
     payload_dict = {

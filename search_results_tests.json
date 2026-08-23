@@ -1,0 +1,342 @@
+[
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_adaptive_error.py",
+    "LineNumber": 4,
+    "Line": "Strict Zero-Mock Mandate & Authentic Computational Science:"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_adaptive_error.py",
+    "LineNumber": 356,
+    "Line": "    dense_low = np.zeros(13)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 329,
+    "Line": "        translate_com_to_origin(np.zeros((3, 2)), np.array([1.0, 2.0, 3.0]))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 332,
+    "Line": "        translate_com_to_origin(np.zeros((3, 3)), np.array([1.0, 2.0]))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 338,
+    "Line": "        translate_com_to_origin(np.zeros((2, 3)), np.array([0.0, 0.0]))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 400,
+    "Line": "    assert np.allclose(rot_mat @ rot_mat.T, np.eye(3), atol=1e-12)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 401,
+    "Line": "    assert np.allclose(rot_mat.T @ rot_mat, np.eye(3), atol=1e-12)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 476,
+    "Line": "        invert_eckart_coordinates(np.zeros((3, 2)), np.eye(3), np.zeros(3))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 479,
+    "Line": "        invert_eckart_coordinates(np.zeros((3, 3)), np.eye(2), np.zeros(3))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 482,
+    "Line": "        invert_eckart_coordinates(np.zeros((3, 3)), np.eye(3), np.zeros(4))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 712,
+    "Line": "    identity_rot = np.eye(3)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_alignment.py",
+    "LineNumber": 713,
+    "Line": "    origin_com = np.zeros(3)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_mps_worker.py",
+    "LineNumber": 3,
+    "Line": "# anti-spoof: zero-stub verification suite"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_submit_slurm.py",
+    "LineNumber": 3,
+    "Line": "# anti-spoof: zero-stub verification suite"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_cochem_torq_init.py",
+    "LineNumber": 6,
+    "Line": "Zero-Mock test suite verifying physical air-gap mathematical boundary checks,"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_devcontainer.py",
+    "LineNumber": 2,
+    "Line": "Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ Devcontainer."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_devcontainer.py",
+    "LineNumber": 12,
+    "Line": "8. Strict absence of prohibited placeholder strings or unfinished markers"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_devcontainer.py",
+    "LineNumber": 171,
+    "Line": "    \"\"\"Verify devcontainer.json contains no placeholder or banned terms.\"\"\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_dockerfile.py",
+    "LineNumber": 11,
+    "Line": "- Zero-Mock and Anti-Spoofing compliance."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_dockerfile.py",
+    "LineNumber": 151,
+    "Line": "    \"\"\"Validate zero-stub anti-spoofing compliance and absence of banned directives.\"\"\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_engine.py",
+    "LineNumber": 539,
+    "Line": "        mo_mat = np.eye(n_basis)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_gitignore.py",
+    "LineNumber": 1,
+    "Line": "\"\"\"Comprehensive Zero-Mock Test Suite for Scaffolding and .gitignore."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_gitignore.py",
+    "LineNumber": 20,
+    "Line": "5. Anti-spoofing compliance (zero placeholder tokens)."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_gitignore.py",
+    "LineNumber": 212,
+    "Line": "    \"\"\"Verify that .gitignore contains no placeholder or spoof tokens.\"\"\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py",
+    "LineNumber": 6,
+    "Line": "Zero-Mock test suite verifying physical SWMR lock management, multi-tier zombie"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py",
+    "LineNumber": 136,
+    "Line": "# 2. Process Validation & Zombie Detection Tests (Physical Zero-Mock)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py",
+    "LineNumber": 189,
+    "Line": "# 3. Live SWMR Recovery Validation (Physical Zero-Mock)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_h5_healer.py",
+    "LineNumber": 195,
+    "Line": "        # Write dummy h5 file for test"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_jax_builder.py",
+    "LineNumber": 115,
+    "Line": "    v_pot = np.zeros(n_pts)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_jax_builder.py",
+    "LineNumber": 150,
+    "Line": "    v_pot = np.zeros(n_pts)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_jax_builder.py",
+    "LineNumber": 221,
+    "Line": "    vpt2_x_matrix = np.zeros((n_modes, n_modes))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_matrix_loader.py",
+    "LineNumber": 11,
+    "Line": "Zero-Tolerance Anti-Mocking:"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pipeline.py",
+    "LineNumber": 5,
+    "Line": "Strictly adheres to Anti-Spoofing Directives: zero mock patches of unimplemented physics steps."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 18,
+    "Line": "- Authentic execution policy and absence of placeholder / banned tokens."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 428,
+    "Line": "def test_pyproject_authentic_and_no_placeholders(pyproject_content: str) -> None:"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 429,
+    "Line": "    \"\"\"Validate pyproject.toml contains no synthetic, placeholder, or banned tokens.\"\"\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 434,
+    "Line": "        \"dummy\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 435,
+    "Line": "        \"placeholder\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 436,
+    "Line": "        \"fake\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_pyproject.py",
+    "LineNumber": 443,
+    "Line": "            f\"pyproject.toml contains forbidden placeholder token '{token}'\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 1,
+    "Line": "\"\"\"Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ README.md."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 30,
+    "Line": "- Zero banned / placeholder / mock tokens across README.md and test suite."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 52,
+    "Line": "    \"mock\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 53,
+    "Line": "    \"dummy\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 54,
+    "Line": "    \"placeholder\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 55,
+    "Line": "    \"fake\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 474,
+    "Line": "# 10. Anti-Spoofing & Zero-Mock Verification"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 478,
+    "Line": "def test_readme_no_banned_placeholder_tokens(readme_lines: list[str]) -> None:"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 479,
+    "Line": "    \"\"\"Verify README contains zero banned placeholder or mock tokens.\"\"\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 489,
+    "Line": "                f\"Line {line_idx} contains banned placeholder token '{token}': {line}\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 494,
+    "Line": "    \"\"\"Verify that test_readme.py contains zero dummy passes or mock imports.\"\"\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 499,
+    "Line": "        # Disallow mock imports"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 502,
+    "Line": "                assert \"mock\" not in alias.name.lower(), ("
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 503,
+    "Line": "                    f\"Mock import '{alias.name}' is strictly forbidden by mandate\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 507,
+    "Line": "                assert \"mock\" not in node.module.lower(), ("
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 508,
+    "Line": "                    f\"Mock import from '{node.module}' is strictly forbidden\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 516,
+    "Line": "                    f\"Test function '{node.name}' has empty dummy body with 'pass'\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_readme.py",
+    "LineNumber": 525,
+    "Line": "                    f\"Test function '{node.name}' has dummy docstring and 'pass'\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py",
+    "LineNumber": 91,
+    "Line": "def test_zero_mock_code_in_libraries() -> None:"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py",
+    "LineNumber": 97,
+    "Line": "        r\"\\bmock\\b\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py",
+    "LineNumber": 98,
+    "Line": "        r\"\\bplaceholder\\b\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py",
+    "LineNumber": 99,
+    "Line": "        r\"\\bdummy_data\\b\","
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py",
+    "LineNumber": 101,
+    "Line": "        r\"return\\s+['\\\"]mock['\\\"]\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_topology.py",
+    "LineNumber": 115,
+    "Line": "    assert len(violations) == 0, f\"Found mock code violations in Libraries: {violations}\""
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py",
+    "LineNumber": 54,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py",
+    "LineNumber": 413,
+    "Line": "    trajectory = np.zeros((num_frames, num_atoms, 3), dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py",
+    "LineNumber": 431,
+    "Line": "        grad = np.zeros((num_atoms, 3))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\tests\\test_torq_telemetry.py",
+    "LineNumber": 490,
+    "Line": "    coords = np.zeros((3, 4, 3))"
+  }
+]

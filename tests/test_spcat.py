@@ -283,7 +283,11 @@ def test_3tier_routing_protocol() -> None:
     orca_data = {
         "electronic_energy": -76.4300,
         "harmonic_frequencies": [1590.0, 3650.0, 3750.0],
-        "anharmonic_x_matrix": np.zeros((3, 3)),
+        "anharmonic_x_matrix": np.array([
+            [-42.6, -15.9, -165.8],
+            [-15.9, -42.9, -166.1],
+            [-165.8, -166.1, -47.8]
+        ]),
         "dipole_moments": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.84},
     }
     cfour_data = {

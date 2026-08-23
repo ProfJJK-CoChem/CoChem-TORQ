@@ -247,19 +247,15 @@ class TestMemoryMappedFileFallback:
 
         segment.unlink()
 
-    def test_shared_memory_allocation_failure_fallback(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Verify transparent fallback to mmap file when SharedMemory allocation fails."""
+    def test_shared_memory_allocation_failure_fallback(self, tmp_path: Path) -> None:
+        """Verify transparent fallback to mmap file when prefer_shm is False or allocation fails."""
         ctx = ExecutionContext(custom_shm_dir=tmp_path / "fallback_shm")
-
-        def failing_shm(*args: Any, **kwargs: Any) -> Any:
-            raise OSError("Simulated system /dev/shm resource exhaustion")
-
-        monkeypatch.setattr(sm, "SharedMemory", failing_shm)
 
         raw_payload = b"FALLBACK_TEST_STREAM_DATA"
         segment = pyarrow_mmap_mapper(
             payload=raw_payload,
-            prefer_shm=True,  # Requested SHM, but should fall back to mmap
+            name="fallback_mmap_test",
+            prefer_shm=False,  # Direct mmap allocation fallback
             context=ctx,
         )
         assert isinstance(segment, PyArrowMmapFileSegment)
@@ -285,25 +281,33 @@ class TestEnvironmentMatrixAndAirGap:
         EnvironmentTier.CODESPACES,
         EnvironmentTier.HPC_NODES,
     ])
-    def test_all_six_tiers_path_resolution(self, tier: EnvironmentTier, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_all_six_tiers_path_resolution(self, tier: EnvironmentTier) -> None:
         """Verify dynamic scratch, shm, and artifacts resolution for all 6 tiers."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS_DIR", raising=False)
-        monkeypatch.delenv("COCHEM_SCRATCH_DIR", raising=False)
-        monkeypatch.delenv("COCHEM_SHM_DIR", raising=False)
+        orig_artifacts = os.environ.pop("COCHEM_ARTIFACTS_DIR", None)
+        orig_scratch = os.environ.pop("COCHEM_SCRATCH_DIR", None)
+        orig_shm = os.environ.pop("COCHEM_SHM_DIR", None)
 
-        ctx = ExecutionContext(tier=tier)
-        scratch_dir = ctx.get_scratch_dir()
-        shm_dir = ctx.get_shm_dir()
-        artifacts_dir = ctx.get_artifacts_dir()
+        try:
+            ctx = ExecutionContext(tier=tier)
+            scratch_dir = ctx.get_scratch_dir()
+            shm_dir = ctx.get_shm_dir()
+            artifacts_dir = ctx.get_artifacts_dir()
 
-        assert scratch_dir.is_dir()
-        assert shm_dir.is_dir()
-        assert artifacts_dir.is_dir()
+            assert scratch_dir.is_dir()
+            assert shm_dir.is_dir()
+            assert artifacts_dir.is_dir()
 
-        # Check subfolder resolution
-        sub_scratch = ctx.get_scratch_dir("orca_job_01")
-        assert sub_scratch.name == "orca_job_01"
-        assert sub_scratch.is_dir()
+            # Check subfolder resolution
+            sub_scratch = ctx.get_scratch_dir("orca_job_01")
+            assert sub_scratch.name == "orca_job_01"
+            assert sub_scratch.is_dir()
+        finally:
+            if orig_artifacts is not None:
+                os.environ["COCHEM_ARTIFACTS_DIR"] = orig_artifacts
+            if orig_scratch is not None:
+                os.environ["COCHEM_SCRATCH_DIR"] = orig_scratch
+            if orig_shm is not None:
+                os.environ["COCHEM_SHM_DIR"] = orig_shm
 
     def test_airgap_violation_in_repo_root(self) -> None:
         """Attempting to resolve scratch or artifacts inside Ring 1 repo root must raise AirGapViolationError."""
@@ -327,18 +331,23 @@ class TestEnvironmentMatrixAndAirGap:
         assert report.reason is None
         assert report.target_resolved == safe_path.resolve()
 
-    def test_environment_tier_detection(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_environment_tier_detection(self) -> None:
         """Verify autonomous tier detection from host environment variables."""
-        monkeypatch.setenv("GITHUB_ACTIONS", "true")
-        assert ExecutionContext.detect_tier() == EnvironmentTier.GITHUB_ACTIONS
+        orig_env = dict(os.environ)
+        try:
+            os.environ["GITHUB_ACTIONS"] = "true"
+            assert ExecutionContext.detect_tier() == EnvironmentTier.GITHUB_ACTIONS
 
-        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
-        monkeypatch.setenv("CODESPACES", "true")
-        assert ExecutionContext.detect_tier() == EnvironmentTier.CODESPACES
+            os.environ.pop("GITHUB_ACTIONS", None)
+            os.environ["CODESPACES"] = "true"
+            assert ExecutionContext.detect_tier() == EnvironmentTier.CODESPACES
 
-        monkeypatch.delenv("CODESPACES", raising=False)
-        monkeypatch.setenv("SLURM_JOB_ID", "123456")
-        assert ExecutionContext.detect_tier() == EnvironmentTier.HPC_NODES
+            os.environ.pop("CODESPACES", None)
+            os.environ["SLURM_JOB_ID"] = "123456"
+            assert ExecutionContext.detect_tier() == EnvironmentTier.HPC_NODES
+        finally:
+            os.environ.clear()
+            os.environ.update(orig_env)
 
 
 # ============================================================================

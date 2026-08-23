@@ -1337,17 +1337,10 @@ class TorqTensorExtractor:
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         target_file = orca_file or self.orca_file
-        if target_file and Path(target_file).exists():
-            vpt2_data = self.extract_vpt2_data(target_file)
-        else:
-            vpt2_data = {
-                "darling_dennison": [],
-                "coriolis_couplings": {},
-                "centrifugal_distortion": {},
-                "raman_polarizability": [],
-                "is_divergent": False,
-                "divergence_details": [],
-            }
+        if not target_file or not Path(target_file).exists():
+            raise FileNotFoundError(f"Target ORCA file not found: {target_file}")
+            
+        vpt2_data = self.extract_vpt2_data(target_file)
 
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(vpt2_data, f, indent=2)
@@ -1364,25 +1357,10 @@ class TorqTensorExtractor:
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         target_file = orca_file or self.orca_file
-        if target_file and Path(target_file).exists():
-            vpt2_data = self.extract_vpt2_data(target_file, is_lam_complex=True)
-        else:
-            n_atoms = len(self.symbols)
-            vpt2_data = {
-                "darling_dennison_resonances": [],
-                "coriolis_coupling_matrices": {
-                    "x": np.zeros((n_atoms, n_atoms)).tolist(),
-                    "y": np.zeros((n_atoms, n_atoms)).tolist(),
-                    "z": np.zeros((n_atoms, n_atoms)).tolist(),
-                },
-                "centrifugal_distortion_constants": {
-                    "D_J": [0.0],
-                    "D_JK": [0.0],
-                    "D_K": [0.0],
-                    "d_1": [0.0],
-                    "d_2": [0.0],
-                },
-            }
+        if not target_file or not Path(target_file).exists():
+            raise FileNotFoundError(f"Target ORCA file not found: {target_file}")
+            
+        vpt2_data = self.extract_vpt2_data(target_file, is_lam_complex=True)
 
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(vpt2_data, f, indent=2)

@@ -32,7 +32,6 @@ import scipy.constants as const
 from scipy.spatial.transform import Rotation
 
 from Libraries.cochem_torq_alignment import (
-    CIAAW_ISOTOPIC_MASSES,
     AirGapViolationError,
     CoChemAirGapRing,
     CoChemPathManager,

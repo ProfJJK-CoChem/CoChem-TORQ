@@ -1,0 +1,657 @@
+[
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 210,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 410,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 417,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 426,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 549,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 687,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 895,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 902,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 1093,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 1107,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 1163,
+    "Line": "                            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 1575,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_catalog_compiler.py",
+    "LineNumber": 1581,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py",
+    "LineNumber": 19,
+    "Line": "- Complete physical validation compliance (prohibits synthetic stubs)."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py",
+    "LineNumber": 199,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py",
+    "LineNumber": 229,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py",
+    "LineNumber": 508,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py",
+    "LineNumber": 513,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_h5_healer.py",
+    "LineNumber": 714,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 59,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 65,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 86,
+    "Line": "    test_tensor = jnp.zeros((2,), dtype=jnp.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 122,
+    "Line": "    t_matrix = np.zeros((n_pts, n_pts), dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 278,
+    "Line": "        ix = np.eye(nx, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 279,
+    "Line": "        iy = np.eye(ny, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 400,
+    "Line": "    h_reg = h_cleaned + alpha_regularization * np.eye(n, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_jax_builder.py",
+    "LineNumber": 520,
+    "Line": "        else np.zeros((len(stiff_frequencies), len(stiff_frequencies)))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py",
+    "LineNumber": 75,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py",
+    "LineNumber": 78,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py",
+    "LineNumber": 81,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py",
+    "LineNumber": 1264,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_spcat_bridge.py",
+    "LineNumber": 1625,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_adaptive_error.py",
+    "LineNumber": 13,
+    "Line": "Strict Zero-Mock Mandate & Authentic Physics:"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_adaptive_error.py",
+    "LineNumber": 66,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_adaptive_error.py",
+    "LineNumber": 121,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py",
+    "LineNumber": 78,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py",
+    "LineNumber": 166,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_alignment.py",
+    "LineNumber": 699,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 151,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 231,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 260,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 861,
+    "Line": "    gradient = np.zeros((n_atoms, 3), dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 901,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 994,
+    "Line": "        # Instead of mocking with np.eye / np.diag, we raise an explicit physical error."
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 1130,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 1135,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 1144,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 1234,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_engine.py",
+    "LineNumber": 1236,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_grid.py",
+    "LineNumber": 84,
+    "Line": "        t_matrix = np.zeros((n_pts, n_pts), dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 286,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 302,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 570,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 579,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 822,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 914,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 932,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 948,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_init.py",
+    "LineNumber": 969,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 78,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 83,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 88,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 93,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 98,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 103,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 229,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 715,
+    "Line": "                            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 719,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 736,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 870,
+    "Line": "        raise NotImplementedError"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 874,
+    "Line": "        raise NotImplementedError"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 878,
+    "Line": "        raise NotImplementedError"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 1064,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 1110,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 1125,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 1130,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_ipc.py",
+    "LineNumber": 1224,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mace.py",
+    "LineNumber": 81,
+    "Line": "        return 0.0, np.zeros((0, 3), dtype=np.float64), True"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mace.py",
+    "LineNumber": 105,
+    "Line": "    forces = np.zeros_like(coords_arr, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mace.py",
+    "LineNumber": 205,
+    "Line": "        return np.zeros(1, dtype=np.float64), np.zeros(1, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mace.py",
+    "LineNumber": 211,
+    "Line": "            np.zeros(2, dtype=np.float64),"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mace.py",
+    "LineNumber": 214,
+    "Line": "    gradients = np.zeros(n, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mace.py",
+    "LineNumber": 215,
+    "Line": "    curvatures = np.zeros(n, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 14,
+    "Line": "- Zero-Tolerance Anti-Mocking & Anti-Laziness Mandate"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 68,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 73,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 78,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 83,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 88,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_matrix_loader.py",
+    "LineNumber": 145,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mpqc.py",
+    "LineNumber": 15,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mpqc.py",
+    "LineNumber": 19,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mpqc.py",
+    "LineNumber": 21,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mpqc.py",
+    "LineNumber": 163,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_mpqc.py",
+    "LineNumber": 246,
+    "Line": "        d_mat = np.eye(3)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py",
+    "LineNumber": 23,
+    "Line": "                        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py",
+    "LineNumber": 27,
+    "Line": "                    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py",
+    "LineNumber": 29,
+    "Line": "            pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_orca.py",
+    "LineNumber": 283,
+    "Line": "        d_mat = np.eye(3)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_qcxms.py",
+    "LineNumber": 29,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+    "LineNumber": 79,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+    "LineNumber": 84,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+    "LineNumber": 89,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+    "LineNumber": 94,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+    "LineNumber": 184,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\Libraries\\cochem_torq_telemetry.py",
+    "LineNumber": 489,
+    "Line": "        pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 6,
+    "Line": "    'mock': r'(?i)mock',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 7,
+    "Line": "    'stub': r'(?i)stub',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 8,
+    "Line": "    'dummy': r'(?i)dummy',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 9,
+    "Line": "    'placeholder': r'(?i)placeholder',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 10,
+    "Line": "    'NotImplementedError': r'NotImplementedError',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 12,
+    "Line": "    'monkeypatch': r'monkeypatch',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 13,
+    "Line": "    'base64': r'base64',"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\audit_script.py",
+    "LineNumber": 35,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\find_banned.py",
+    "LineNumber": 4,
+    "Line": "BANNED_WORDS = [\"mock\", \"stub\", \"dummy\", \"placeholder\", \"fake\", \"sample\", \"# TODO\"]"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\find_banned.py",
+    "LineNumber": 21,
+    "Line": "                pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 61,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 67,
+    "Line": "    pass"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 88,
+    "Line": "    test_tensor = jnp.zeros((2,), dtype=jnp.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 124,
+    "Line": "    t_matrix = np.zeros((n_pts, n_pts), dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 282,
+    "Line": "        ix = np.eye(nx, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 283,
+    "Line": "        iy = np.eye(ny, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 404,
+    "Line": "    h_reg = h_cleaned + alpha_regularization * np.eye(n, dtype=np.float64)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 524,
+    "Line": "        else np.zeros((len(stiff_frequencies), len(stiff_frequencies)))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 769,
+    "Line": "    v_pot = np.zeros(n_pts)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 804,
+    "Line": "    v_pot = np.zeros(n_pts)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 875,
+    "Line": "    vpt2_x_matrix = np.zeros((n_modes, n_modes))"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 968,
+    "Line": "    evecs = np.eye(2)"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\refactor_code.py",
+    "LineNumber": 982,
+    "Line": "        vpt2_matrix=np.zeros((1, 1)),"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\scratch_search.py",
+    "LineNumber": 10,
+    "Line": "    \"mock_words\": re.compile(r\"(?i)(mock|fake|dummy|stub|placeholder)\"),"
+  },
+  {
+    "Path": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\update_state.py",
+    "LineNumber": 16,
+    "Line": "    \"verdict\": \"PASSED. Audited Phase 6 Quantum Tensor Harvester. Updated CODATA 2022 atomic mass constant (1.66053906892e-27 kg). Zero mock/stub/placeholder violations found in the generated codebase. All paths use pathlib dynamic lookups to os.environ['COCHEM_ARTIFACTS_DIR'] or Path.home(). Rigorous Pydantic typing used. 18/18 pytests passing against real OS-level executions natively. Method Matrix compliant.\","
+  }
+]
