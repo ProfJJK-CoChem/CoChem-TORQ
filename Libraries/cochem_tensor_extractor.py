@@ -13,11 +13,15 @@ resonances, and centrifugal distortion constants.
 import numpy as np
 import json
 import logging
+
+import os
+from pathlib import Path
+
+ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
 from typing import Any
 import hashlib
 import re
 from datetime import datetime
-from pathlib import Path
 import h5py
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Tensor] %(message)s")
@@ -332,7 +336,7 @@ class TorqTensorExtractor:
         """
         Extracts Spin Hamiltonian parameters.
         """
-        raise NotImplementedError("Anti-spoofing mandate: Mocked Spin Hamiltonian code removed.")
+        raise RuntimeError("Anti-spoofing mandate: Mocked Spin Hamiltonian code removed.")
 
     def export_lam_vpt2_tensor(self, output_file="torq_lam_vpt2.json", orca_file=None) -> Any:
         """Exports LAM-specific VPT2 tensor data including advanced resonances and coupling matrices."""

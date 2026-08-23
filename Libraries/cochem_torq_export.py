@@ -11,9 +11,12 @@ provenance and metadata for quantum mechanical calculations.
 import os
 import json
 import logging
+
+from pathlib import Path
+
+ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
 import h5py
 import zstandard as zstd
-from pathlib import Path
 import hashlib
 from datetime import datetime
 
@@ -78,7 +81,10 @@ class TorqExporter:
                             else:
                                 tensor_data[name][key] = str(value.attrs)
                     elif isinstance(obj, h5py.Dataset):
-                        tensor_data[name] = obj[()]
+                        val = obj[()]
+                        if hasattr(val, "tolist"):
+                            val = val.tolist()
+                        tensor_data[name] = val
                         
                 f.visititems(read_group)
                 
@@ -141,7 +147,10 @@ class TorqExporter:
                             else:
                                 tensor_data[name][key] = str(value.attrs)
                     elif isinstance(obj, h5py.Dataset):
-                        tensor_data[name] = obj[()]
+                        val = obj[()]
+                        if hasattr(val, "tolist"):
+                            val = val.tolist()
+                        tensor_data[name] = val
                         
                 f.visititems(read_group)
                 
@@ -343,18 +352,26 @@ if __name__ == "__main__":
     # Self-test for Zstandard compression export
     exporter = TorqExporter()
     
-    # Sample data for testing
-    mock_h5_file = "mock_tensor.h5"
+    test_h5_file = "test_tensor.h5"
     
     try:
-        # Test export (this will fail without a real HDF5 file)
-        compressed_file = exporter.export_tensor_to_zstd(mock_h5_file)
+        # Generate a real test_tensor.h5
+        with h5py.File(test_h5_file, "w") as f:
+            f.create_dataset("tensor_data", data=[[1.0, 2.0], [3.0, 4.0]])
+            f.create_dataset("energy", data=-100.0)
+            
+        # Test export
+        compressed_file = exporter.export_tensor_to_zstd(test_h5_file)
         logger.info(f"Exported to: {compressed_file}")
         
         # Test verification
         success, metadata = exporter.verify_export(compressed_file)
-        if success:
-            logger.info(f"Verification successful: {metadata}")
-            
-    except Exception as e:
-        logger.info("Test completed (expected without real HDF5 file): " + str(e))
+        assert success is True, "Verification failed"
+        logger.info(f"Verification successful: {metadata}")
+        
+    finally:
+        import os
+        if os.path.exists(test_h5_file):
+            os.remove(test_h5_file)
+        if 'compressed_file' in locals() and os.path.exists(compressed_file):
+            os.remove(compressed_file)

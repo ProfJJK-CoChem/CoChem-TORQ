@@ -12,7 +12,7 @@ def cleanup_zombies() -> None:
                 for child in proc.children(recursive=True):
                     child.kill()
                 proc.kill()
-        except Exception:
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
             pass
 atexit.register(cleanup_zombies)
 
@@ -34,10 +34,13 @@ import asyncio
 import subprocess
 import numpy as np
 import logging
+
+from pathlib import Path
 import json
 import h5py
-from pathlib import Path
 from typing import Optional
+
+ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
 
 
 # Configure logging
@@ -125,12 +128,15 @@ class TorqMpqcExecutor:
         charge: int = 0,
         multiplicity: int = 1,
         extra_options: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600
     ) -> tuple[str, bool]:
-        os.makedirs(output_dir, exist_ok=True)
-        input_file = os.path.join(output_dir, f"{job_name}.inp")
-        output_file = os.path.join(output_dir, f"{job_name}.out")
+        if not output_dir or output_dir == ".":
+            output_dir = ARTIFACTS_DIR
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        input_file = str(out_path / f"{job_name}.inp")
+        output_file = str(out_path / f"{job_name}.out")
         try:
             input_content = self._generate_mpqc_input(
                 method, basis_set, aux_basis, scf_type,
@@ -181,7 +187,7 @@ class TorqMpqcExecutor:
         multiplicity: int = 1,
         method: str = "R2SCAN-3c",
         basis_set: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600,
     ) -> tuple[str, bool, dict[str, float | list | dict]]:
         """
@@ -249,7 +255,7 @@ class TorqMpqcExecutor:
         multiplicity: int = 1,
         method: str = "R2SCAN-3c",
         basis_set: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600,
     ) -> tuple[bool, float, float]:
         """
@@ -303,7 +309,7 @@ class TorqMpqcExecutor:
         multiplicity: int = 1,
         method: str = "r2SCAN-3c",
         basis_set: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600,
         frozen_bonds: list[tuple[int, int]] | None = None,
     ) -> tuple[list[list[float]], bool]:
@@ -357,7 +363,7 @@ class TorqMpqcExecutor:
         atom_coords: list[list[str | float]],
         charge: int = 0,
         multiplicity: int = 1,
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600
     ) -> tuple[str, bool]:
         """
@@ -545,10 +551,10 @@ class TorqMpqcExecutor:
 
 if __name__ == "__main__":
     executor = TorqMpqcExecutor()
-    mock_coords = [
+    water_coords = [
         ["O", 0.0, 0.0, 0.0],
         ["H", 0.757, 0.586, 0.0],
         ["H", -0.757, 0.586, 0.0]
     ]
-    output_file, success = executor.execute_vpt2_protocol("test_001", "mock_data.h5", mock_coords)
+    output_file, success = executor.execute_vpt2_protocol("test_001", "test_data.h5", water_coords)
     logger.info(f"VPT2 execution result: {output_file}, Success: {success}")

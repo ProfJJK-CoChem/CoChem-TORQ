@@ -1,35 +1,3 @@
-import hashlib  # SHA-256 artifact provenance tracking
-import atexit, psutil
-import subprocess
-
-_ACTIVE_PROCESSES = []
-
-def cleanup_zombies() -> None:
-    for p in _ACTIVE_PROCESSES:
-        try:
-            if psutil.pid_exists(p.pid):
-                proc = psutil.Process(p.pid)
-                for child in proc.children(recursive=True):
-                    child.kill()
-                proc.kill()
-        except Exception as e:
-            logger.error(f"Failed to kill process {p.pid}: {e}")
-            raise
-atexit.register(cleanup_zombies)
-
-# D3/D4 dispersion correction enabled
-"""
-CoChem-TORQ 0.0.11
-Stage 4.1: ORCA Execution Engine
---------------------------------
-Manages the execution of quantum mechanical calculations using ORCA,
-integrating classical VPT2 and quantum LAM protocols based on HDF5 flags.
-Implements TS optimization with single imaginary frequency verification,
-%geom InHess XTB2 preconditioning, 5-threshold %geom convergence criteria,
-IRC path verification with Kabsch RMSD, regex output parsing for dipole/polarizability/frequencies,
-and parameterized charge/multiplicity.
-"""
-
 import os
 import re
 import asyncio
@@ -37,15 +5,36 @@ import subprocess
 import numpy as np
 import logging
 import h5py
-from typing import Optional, Dict, List, Tuple, Union
+import hashlib
+import atexit
+import psutil
+from pathlib import Path
+from typing import Optional, Dict, List, Tuple, Union, Any
+from pydantic import BaseModel, Field
 
+def cleanup_zombies() -> None:
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            if 'orca' in str(proc.info['name']).lower():
+                for child in proc.children(recursive=True):
+                    try:
+                        child.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+                try:
+                    proc.kill()
+                except psutil.NoSuchProcess:
+                    pass
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+atexit.register(cleanup_zombies)
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-ORCA] %(message)s")
 logger = logging.getLogger("TorqOrca")
 
-# Constants
-ORCA_PATH = "orca"  # Default to system PATH
+ORCA_PATH = os.environ.get("ORCA_PATH", "orca")
+ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
+
 ORCA_TEMPLATE = """! {method_line}
 %maxcore 2000
 
@@ -63,43 +52,63 @@ ORCA_TEMPLATE = """! {method_line}
 {atom_block}*
 """
 
+class DipoleMoment(BaseModel):
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    total: float = 0.0
 
-class DotDict(dict):
-    """Dict subclass allowing dot notation attribute access."""
-    def __getattr__(self, key: str) -> object:
-        try:
-            val = self[key]
-            if isinstance(val, dict) and not isinstance(val, DotDict):
-                val = DotDict(val)
-                self[key] = val
-            return val
-        except KeyError:
-            raise AttributeError(f"'DotDict' object has no attribute '{key}'")
+class ZFS(BaseModel):
+    D_cm1: float = 0.0
+    E_cm1: float = 0.0
+    E_over_D: float = 0.0
+    D_tensor: List[List[float]] = Field(default_factory=lambda: [[0.0]*3]*3)
 
-    def __setattr__(self, key: str, value: object) -> None:
-        self[key] = value
+class GTensor(BaseModel):
+    g_x: float = 2.0023
+    g_y: float = 2.0023
+    g_z: float = 2.0023
+    g_iso: float = 2.0023
+    delta_g: float = 0.0
+    matrix: List[List[float]] = Field(default_factory=lambda: [[2.0023, 0.0, 0.0], [0.0, 2.0023, 0.0], [0.0, 0.0, 2.0023]])
 
-    def __delattr__(self, key: str) -> None:
-        try:
-            del self[key]
-        except KeyError:
-            raise AttributeError(f"'DotDict' object has no attribute '{key}'")
+class HyperfineA(BaseModel):
+    nucleus_idx: int
+    element: str
+    A_iso_MHz: float
+
+class SpinHamiltonian(BaseModel):
+    zfs: ZFS = Field(default_factory=ZFS)
+    g_tensor: GTensor = Field(default_factory=GTensor)
+    hyperfine_A: List[HyperfineA] = Field(default_factory=list)
+    soc_matrix_cm1: List[List[float]] = Field(default_factory=list)
+
+class ParsedOrcaOutput(BaseModel):
+    energy: float = 0.0
+    vibrational_frequencies: List[float] = Field(default_factory=list)
+    dipole_moment: DipoleMoment = Field(default_factory=DipoleMoment)
+    polarizability: List[List[float]] = Field(default_factory=list)
+    spin_hamiltonian: SpinHamiltonian = Field(default_factory=SpinHamiltonian)
+    s_squared: Optional[float] = None
+    s_squared_ideal: Optional[float] = None
 
 
 class TorqOrcaExecutor:
     def __init__(self, orca_path: str | None = None) -> None:
-        """
-        Initializes the ORCA executor.
-        :param orca_path: Path to ORCA executable (if not in PATH).
-        """
-        if orca_path:
-            self.orca_path = orca_path
-        else:
-            self.orca_path = ORCA_PATH
+        self.orca_path = orca_path if orca_path else ORCA_PATH
 
-    def _generate_orca_input(self, method: str, basis_set: str, aux_basis: str, scf_type: str, coords: list | None = None, charge: int = 0, multiplicity: int = 1, extra_options: str = "", atom_coords: list | None = None) -> str:
+    def _generate_orca_input(self, method: str, basis_set: str, aux_basis: str, scf_type: str, coords: list | None = None, charge: int = 0, multiplicity: int = 1, extra_options: str = "", atom_coords: list | None = None, is_complex: bool = False) -> str:
+        if is_complex:
+            m_upper = method.upper() if method else ""
+            e_upper = extra_options.upper() if extra_options else ""
+            is_dft = "DFT" in m_upper or any(func in m_upper for func in ["B3LYP", "PBE", "SCAN", "M06", "W06", "OLYP", "OPBE"])
+            has_dispersion = any(d in m_upper or d in e_upper for d in ["D3", "D4", "-V", "VV10", "3C"])
+            if is_dft and not has_dispersion:
+                raise ValueError("[ERR_METHOD_MATRIX] Dispersion correction (D3/D4) is strictly required for DFT optimization of weak complexes.")
+
         if coords is None and atom_coords is not None:
             coords = atom_coords
+        
         atom_block = ""
         for coord in (coords or []):
             sym, x, y, z = coord[0], float(coord[1]), float(coord[2]), float(coord[3])
@@ -113,6 +122,15 @@ class TorqOrcaExecutor:
                 solvent_name = solvent_spec.replace('CPCM', '').strip('()') or 'Water'
                 final_extra += f"\n%cpcm\n    solvent \"{solvent_name}\"\nend\n"
 
+        
+        # Enforce Method Matrix: dynamic grid tightening
+        if "opt" in (method or "").lower() or "opt" in final_extra.lower():
+            if "defgrid1" in (method or "").lower() or "defgrid1" in final_extra.lower():
+                if "defgrid3" not in (method or "").lower() and "defgrid3" not in final_extra.lower():
+                    final_extra += "\n! defgrid3\n%geom AutoGrid true end\n"
+        
+        
+        
         method_parts = []
         if method:
             method_parts.append(method)
@@ -132,6 +150,16 @@ class TorqOrcaExecutor:
 
         return input_content
 
+    def _hash_artifact(self, filepath: str) -> str:
+        sha256 = hashlib.sha256()
+        try:
+            with open(filepath, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    sha256.update(chunk)
+            return sha256.hexdigest()
+        except FileNotFoundError:
+            return ""
+
     def run_orca_job(
         self,
         job_name: str,
@@ -143,17 +171,23 @@ class TorqOrcaExecutor:
         charge: int = 0,
         multiplicity: int = 1,
         extra_options: str = "",
-        output_dir: str = ".",
-        timeout: int = 3600
+        output_dir: str | None = None,
+        timeout: int = 3600,
+        is_complex: bool = False
     ) -> tuple[str, bool]:
-        os.makedirs(output_dir, exist_ok=True)
-        input_file = os.path.join(output_dir, f"{job_name}.inp")
-        output_file = os.path.join(output_dir, f"{job_name}.out")
+        if not output_dir or output_dir == ".":
+            output_dir = ARTIFACTS_DIR
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        input_file = str(out_path / f"{job_name}.inp")
+        output_file = str(out_path / f"{job_name}.out")
+        gbw_file = str(out_path / f"{job_name}.gbw")
+        
         try:
             input_content = self._generate_orca_input(
                 method, basis_set, aux_basis, scf_type,
                 coords=coords, charge=charge, multiplicity=multiplicity,
-                extra_options=extra_options
+                extra_options=extra_options, is_complex=is_complex
             )
             with open(input_file, 'w', encoding='utf-8') as f:
                 f.write(input_content)
@@ -168,7 +202,11 @@ class TorqOrcaExecutor:
                         check=True,
                         timeout=timeout
                     )
-                    logger.info(f"ORCA job {job_name} completed successfully")
+
+                    out_hash = self._hash_artifact(output_file)
+                    gbw_hash = self._hash_artifact(gbw_file)
+                    logger.info(f"ORCA job {job_name} completed successfully. SHA-256 [M]: OUT={out_hash[:8]}, GBW={gbw_hash[:8]}")
+
                     return output_file, True
                 except subprocess.TimeoutExpired as exc:
                     logger.error(f"ORCA job {job_name} timed out after {timeout} seconds: {exc}")
@@ -182,7 +220,6 @@ class TorqOrcaExecutor:
             raise
 
     def validate_imaginary_frequencies(self, freqs: list) -> bool:
-        """Validates that vibrational frequencies list contains exactly one imaginary (negative) frequency."""
         imaginary_freqs = [f for f in freqs if f < 0.0]
         valid = (len(imaginary_freqs) == 1)
         if valid:
@@ -199,14 +236,9 @@ class TorqOrcaExecutor:
         multiplicity: int = 1,
         method: str = "R2SCAN-3c",
         basis_set: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600,
-    ) -> tuple[str, bool, dict]:
-        """
-        Non-blocking execution of ORCA transition state optimization with %geom InHess XTB2
-        and tight 5-threshold convergence criteria, and automatic verification of
-        exactly one imaginary (negative) frequency mode. Prohibits legacy InHess XTB2.
-        """
+    ) -> tuple[str, bool, ParsedOrcaOutput]:
         extra_opts = (
             f"! {method} OPTTS NUMFREQ\n"
             "%geom\n"
@@ -229,17 +261,15 @@ class TorqOrcaExecutor:
         )
 
         parsed = self.parse_orca_output(output_file)
-        freqs = parsed.get("vibrational_frequencies", [])
+        freqs = parsed.vibrational_frequencies
         valid_ts = success and self.validate_imaginary_frequencies(freqs)
         return output_file, valid_ts, parsed
 
-    async def optimize_transition_state(self, *args: object, **kwargs: object) -> tuple[str, bool, dict]:
-        """Wrapper method delegating to run_ts_optimization."""
+    async def optimize_transition_state(self, *args: object, **kwargs: object) -> tuple[str, bool, ParsedOrcaOutput]:
         return await self.run_ts_optimization(*args, **kwargs)
 
     @staticmethod
     def compute_kabsch_rmsd(p: np.ndarray, q: np.ndarray) -> float:
-        """Compute Kabsch RMSD alignment between coordinate matrices p and q."""
         p_arr = np.asarray(p, dtype=float)
         q_arr = np.asarray(q, dtype=float)
         if p_arr.shape != q_arr.shape or len(p_arr) == 0:
@@ -267,13 +297,9 @@ class TorqOrcaExecutor:
         multiplicity: int = 1,
         method: str = "R2SCAN-3c",
         basis_set: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600,
     ) -> tuple[bool, float, float]:
-        """
-        Executes ORCA ! R2SCAN-3c IRC calculation and performs Kabsch RMSD alignment between
-        IRC path endpoints and reactant/product target structures (< 0.5 A).
-        """
         extra_opts = "! R2SCAN-3c IRC\n%irc\n  maxpoints 20\n  direction both\nend"
         loop = asyncio.get_running_loop()
         output_file, success = await loop.run_in_executor(
@@ -297,7 +323,6 @@ class TorqOrcaExecutor:
         return path_valid, rmsd_r, rmsd_p
 
     async def verify_irc_path(self, *args: object, **kwargs: object) -> tuple[bool, float, float]:
-        """Wrapper method delegating to _run_irc_validation."""
         return await self._run_irc_validation(*args, **kwargs)
 
     def _check_lam_trigger(self, h5_file_path: str, point_id: str | int) -> bool:
@@ -322,15 +347,10 @@ class TorqOrcaExecutor:
         multiplicity: int = 1,
         method: str = "r2SCAN-3c",
         basis_set: str = "",
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600,
         frozen_bonds: list | None = None,
     ) -> tuple[list, bool]:
-        """
-        Executes ORCA constrained monomer optimization while freezing intermolecular bond coordinates.
-        Generates tight 5-threshold %geom block with InHess XTB2 preconditioning and Constraints block
-        freezing specified bond distance constraints { B i j C }.
-        """
         job_name = f"lam_opt_point_{point_id}"
         extra_opts = (
             f"! {method} TightOPT TightSCF\n"
@@ -386,12 +406,9 @@ class TorqOrcaExecutor:
         atom_coords: list,
         charge: int = 0,
         multiplicity: int = 1,
-        output_dir: str = ".",
+        output_dir: str | None = None,
         timeout: int = 3600
     ) -> tuple[str, bool]:
-        """
-        Executes ORCA VPT2 anharmonic vibrational frequency calculation protocol.
-        """
         job_name = f"vpt2_point_{point_id}"
         extra_opts = "! FREQ Anfreq\n"
         return self.run_orca_job(
@@ -407,22 +424,10 @@ class TorqOrcaExecutor:
         else:
             return self.execute_vpt2_protocol(point_id, h5_file_path, atom_coords, charge=charge, multiplicity=multiplicity)
 
-    def parse_orca_output(self, output_file: str) -> dict:
-        """
-        Parses ORCA output text log using regex to extract:
-        - Total Dipole Moment (Debye) & components
-        - Polarizability Tensor
-        - Vibrational Frequencies list
-        - Final Single Point Energy
-        """
+    def parse_orca_output(self, output_file: str) -> ParsedOrcaOutput:
         logger.info(f"Parsing ORCA output from {output_file}")
 
-        parsed_data = {
-            "energy": 0.0,
-            "vibrational_frequencies": [],
-            "dipole_moment": {"x": 0.0, "y": 0.0, "z": 0.0, "total": 0.0},
-            "polarizability": []
-        }
+        parsed_data = ParsedOrcaOutput()
 
         if not os.path.exists(output_file):
             return parsed_data
@@ -431,20 +436,17 @@ class TorqOrcaExecutor:
             with open(output_file, 'r', errors='ignore') as f:
                 content = f.read()
 
-            # 1. Parse Energy
             energy_match = re.search(r"(?:FINAL SINGLE POINT ENERGY|TOTAL ENERGY)\s+(-?\d+\.\d+)", content)
             if energy_match:
-                parsed_data["energy"] = float(energy_match.group(1))
+                parsed_data.energy = float(energy_match.group(1))
 
-            # 2. Parse Dipole Moment
             dipole_match = re.search(r"Total Dipole Moment\s+:\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)", content)
             if dipole_match:
                 dx, dy, dz = map(float, dipole_match.groups())
                 tot_match = re.search(r"Magnitude \(Debye\)\s+:\s+(-?\d+\.\d+)", content)
                 tot = float(tot_match.group(1)) if tot_match else float(np.sqrt(dx**2 + dy**2 + dz**2))
-                parsed_data["dipole_moment"] = {"x": dx, "y": dy, "z": dz, "total": tot}
+                parsed_data.dipole_moment = DipoleMoment(x=dx, y=dy, z=dz, total=tot)
 
-            # 3. Parse Vibrational Frequencies
             freq_section = re.search(r"VIBRATIONAL FREQUENCIES\s+[-=]+\s*(.*?)(?=\n\n|\n[A-Z]|\Z)", content, re.DOTALL)
             if freq_section:
                 freq_lines = freq_section.group(1).strip().splitlines()
@@ -453,9 +455,8 @@ class TorqOrcaExecutor:
                     m = re.search(r"^\s*\d+:\s+(-?\d+\.\d+)\s+cm\*\*-1", line)
                     if m:
                         freqs.append(float(m.group(1)))
-                parsed_data["vibrational_frequencies"] = freqs
+                parsed_data.vibrational_frequencies = freqs
 
-            # 4. Parse Polarizability Tensor
             pol_section = re.search(r"THE POLARIZABILITY TENSOR\s+[-=]+\s*(.*?)(?=\n\n|\n[A-Z]|\Z)", content, re.DOTALL)
             if pol_section:
                 tensor = []
@@ -464,10 +465,22 @@ class TorqOrcaExecutor:
                     if len(row) >= 3:
                         tensor.append(row[:3])
                 if len(tensor) == 3:
-                    parsed_data["polarizability"] = tensor
+                    parsed_data.polarizability = tensor
 
-            # 5. Parse Spin Hamiltonian Parameters
-            parsed_data["spin_hamiltonian"] = self.extract_spin_hamiltonian(output_file)
+            parsed_data.spin_hamiltonian = self.extract_spin_hamiltonian(output_file)
+
+            s2_match = re.search(r"Expectation value of <S\*\*2>\s+:\s+([\d\.]+)", content)
+            s2_ideal_match = re.search(r"Ideal value s\*\(s\+1\)\s+for\s+S=\S+\s+:\s+([\d\.]+)", content)
+            if s2_match and s2_ideal_match:
+                s2_val = float(s2_match.group(1))
+                s2_ideal = float(s2_ideal_match.group(1))
+                parsed_data.s_squared = s2_val
+                parsed_data.s_squared_ideal = s2_ideal
+                
+                if s2_ideal > 0:
+                    deviation = abs(s2_val - s2_ideal) / s2_ideal
+                    if deviation > 0.10:
+                        raise ValueError(f"[ERR_SPIN_CONTAMINATION] S**2 deviation exceeds 10% (Expected: {s2_ideal}, Found: {s2_val}). Halting calculation.")
 
             logger.info("Parsed ORCA output successfully.")
 
@@ -475,22 +488,10 @@ class TorqOrcaExecutor:
             logger.error(f"Error parsing ORCA output: {e}")
             raise
 
-        return DotDict(parsed_data)
+        return parsed_data
 
-    def extract_spin_hamiltonian(self, output_file: str) -> dict:
-        """
-        Extracts Spin Hamiltonian parameters from ORCA output log:
-        - Zero-field splitting (ZFS: D, E, E/D ratio, D-tensor)
-        - g-tensor anisotropy (g_x, g_y, g_z, g_iso, delta_g, g-matrix)
-        - Hyperfine coupling A-tensors (A_iso, dipolar components)
-        - Spin-orbit coupling (SOC) matrix elements (cm^-1)
-        """
-        spin_data = {
-            "zfs": {"D_cm1": 0.0, "E_cm1": 0.0, "E_over_D": 0.0, "D_tensor": [[0.0]*3]*3},
-            "g_tensor": {"g_x": 2.0023, "g_y": 2.0023, "g_z": 2.0023, "g_iso": 2.0023, "delta_g": 0.0, "matrix": [[2.0023, 0.0, 0.0], [0.0, 2.0023, 0.0], [0.0, 0.0, 2.0023]]},
-            "hyperfine_A": [],
-            "soc_matrix_cm1": []
-        }
+    def extract_spin_hamiltonian(self, output_file: str) -> SpinHamiltonian:
+        spin_data = SpinHamiltonian()
         if not os.path.exists(output_file):
             return spin_data
 
@@ -498,21 +499,20 @@ class TorqOrcaExecutor:
             with open(output_file, 'r', errors='ignore') as f:
                 content = f.read()
 
-            # 1. Parse ZFS
+            zfs = ZFS()
             zfs_d_match = re.search(r"D\s*=\s*([-\d\.]+)\s*cm\*\*-1", content)
             zfs_e_match = re.search(r"E/D\s*=\s*([-\d\.]+)", content)
             if zfs_d_match:
                 d_val = float(zfs_d_match.group(1))
                 e_over_d = float(zfs_e_match.group(1)) if zfs_e_match else 0.0
                 e_val = d_val * e_over_d
-                spin_data["zfs"] = {
-                    "D_cm1": d_val,
-                    "E_cm1": e_val,
-                    "E_over_D": e_over_d,
-                    "D_tensor": [[-1/3*d_val+e_val, 0.0, 0.0], [0.0, -1/3*d_val-e_val, 0.0], [0.0, 0.0, 2/3*d_val]]
-                }
+                zfs.D_cm1 = d_val
+                zfs.E_cm1 = e_val
+                zfs.E_over_D = e_over_d
+                zfs.D_tensor = [[-1/3*d_val+e_val, 0.0, 0.0], [0.0, -1/3*d_val-e_val, 0.0], [0.0, 0.0, 2/3*d_val]]
+            spin_data.zfs = zfs
 
-            # 2. Parse g-tensor
+            g_tensor = GTensor()
             g_mat_match = re.search(r"The g-matrix:\s*([-\d\.\s]+)", content)
             if g_mat_match:
                 try:
@@ -523,24 +523,25 @@ class TorqOrcaExecutor:
                         gx, gy, gz = evals[0], evals[1], evals[2]
                         g_iso = (gx + gy + gz) / 3.0
                         delta_g = gz - 0.5 * (gx + gy)
-                        spin_data["g_tensor"] = {
-                            "g_x": float(gx), "g_y": float(gy), "g_z": float(gz),
-                            "g_iso": float(g_iso), "delta_g": float(delta_g),
-                            "matrix": g_mat.tolist()
-                        }
+                        g_tensor.g_x = float(gx)
+                        g_tensor.g_y = float(gy)
+                        g_tensor.g_z = float(gz)
+                        g_tensor.g_iso = float(g_iso)
+                        g_tensor.delta_g = float(delta_g)
+                        g_tensor.matrix = g_mat.tolist()
                 except Exception as e:
                     logger.error(f"Error parsing g-matrix: {e}")
                     raise
-            # 3. Parse Hyperfine coupling
+            spin_data.g_tensor = g_tensor
+
             a_matches = re.finditer(r"Nucleus\s+(\d+)\s+([A-Za-z]+).*?A_iso\s*=\s*([-\d\.]+)", content, re.DOTALL)
             for m in a_matches:
-                spin_data["hyperfine_A"].append({
-                    "nucleus_idx": int(m.group(1)),
-                    "element": m.group(2),
-                    "A_iso_MHz": float(m.group(3))
-                })
+                spin_data.hyperfine_A.append(HyperfineA(
+                    nucleus_idx=int(m.group(1)),
+                    element=m.group(2),
+                    A_iso_MHz=float(m.group(3))
+                ))
 
-            # 4. Parse SOC matrix
             soc_block = re.search(r"SPIN-ORBIT COUPLING MATRIX ELEMENTS\s+[-=]+\s*(.*?)(?=\n\n|\n[A-Z]|\Z)", content, re.DOTALL)
             if soc_block:
                 soc_matrix = []
@@ -549,7 +550,7 @@ class TorqOrcaExecutor:
                     if row:
                         soc_matrix.append(row)
                 if soc_matrix:
-                    spin_data["soc_matrix_cm1"] = soc_matrix
+                    spin_data.soc_matrix_cm1 = soc_matrix
 
         except Exception as e:
             logger.error(f"Error parsing Spin Hamiltonian: {e}")
@@ -579,14 +580,3 @@ class TorqOrcaExecutor:
         except Exception as e:
             logger.error(f"Failed to export results to HDF5: {e}")
             raise
-
-
-if __name__ == "__main__":
-    executor = TorqOrcaExecutor()
-    mock_coords = [
-        ["O", 0.0, 0.0, 0.0],
-        ["H", 0.757, 0.586, 0.0],
-        ["H", -0.757, 0.586, 0.0]
-    ]
-    out_file, status = executor.execute_vpt2_protocol("test_001", "mock_data.h5", mock_coords)
-    logger.info(f"VPT2 execution result: {out_file}, Success: {status}")

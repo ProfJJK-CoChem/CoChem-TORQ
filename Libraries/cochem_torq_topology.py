@@ -14,6 +14,10 @@ from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation as R
 import json
 import logging
+import os
+from pathlib import Path
+
+ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
 from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ] %(message)s")

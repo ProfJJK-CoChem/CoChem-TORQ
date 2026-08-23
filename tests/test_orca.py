@@ -11,7 +11,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from Libraries.cochem_torq_orca import TorqOrcaExecutor
-from Libraries.cochem_torq_grid import TorqGrid
 
 def test_torq_orca_executor_init() -> None:
     executor = TorqOrcaExecutor()
@@ -19,8 +18,8 @@ def test_torq_orca_executor_init() -> None:
 
 def test_torq_orca_generate_input() -> None:
     executor = TorqOrcaExecutor()
-    mock_coords = [["O", 0, 0, 0], ["H", 1, 0, 0], ["H", 0, 1, 0]]
-    inp = executor._generate_orca_input("B3LYP", "def2-TZVP", "def2-TZVP/CPCM", "DIIS", mock_coords, charge=0, multiplicity=1)
+    water_coords = [["O", 0, 0, 0], ["H", 1, 0, 0], ["H", 0, 1, 0]]
+    inp = executor._generate_orca_input("B3LYP", "def2-TZVP", "def2-TZVP/CPCM", "DIIS", water_coords, charge=0, multiplicity=1)
     assert "* xyz 0 1" in inp
     assert "B3LYP" in inp
     assert "def2-TZVP" in inp
@@ -52,7 +51,7 @@ def test_orca_constrained_input_generation() -> None:
 
 def test_ts_optimization_5_threshold_geom_block() -> None:
     executor = TorqOrcaExecutor()
-    mock_coords = [["O", 0.0, 0.0, 0.0], ["H", 0.0, 0.75, 0.58], ["H", 0.0, -0.75, 0.58]]
+    water_coords = [["O", 0.0, 0.0, 0.0], ["H", 0.0, 0.75, 0.58], ["H", 0.0, -0.75, 0.58]]
     extra_opts = (
         "! R2SCAN-3c OPTTS NUMFREQ\n"
         "%geom\n"
@@ -64,7 +63,7 @@ def test_ts_optimization_5_threshold_geom_block() -> None:
         "  TolMaxD 1e-4\n"
         "end"
     )
-    inp = executor._generate_orca_input("R2SCAN-3c", "", "", "DIIS", mock_coords, extra_options=extra_opts)
+    inp = executor._generate_orca_input("R2SCAN-3c", "", "", "DIIS", water_coords, extra_options=extra_opts)
     assert "InHess XTB2" in inp
     assert "TolE 1e-7" in inp
     assert "TolRMSG 3e-6" in inp
@@ -143,7 +142,7 @@ The g-matrix:
     """)
     executor = TorqOrcaExecutor()
     spin_data = executor.extract_spin_hamiltonian(str(out_file))
-    assert spin_data["zfs"]["D_cm1"] == 2.45
-    assert spin_data["zfs"]["E_over_D"] == 0.12
-    assert "g_tensor" in spin_data
-    assert spin_data["g_tensor"]["g_iso"] > 2.0
+    assert spin_data.zfs.D_cm1 == 2.45
+    assert spin_data.zfs.E_over_D == 0.12
+    assert spin_data.g_tensor is not None
+    assert spin_data.g_tensor.g_iso > 2.0

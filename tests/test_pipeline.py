@@ -26,11 +26,20 @@ def test_pipeline_initialization(valid_config):
     assert pipeline.config.basis_set == "def2-SVP"
     assert pipeline.state == "S_0"
 
-def test_pipeline_unimplemented_step_raises_honest_error(valid_config):
+def test_pipeline_execution_state_transitions(valid_config):
     """
-    Verifies that calling an unimplemented state transition raises NotImplementedError
-    rather than being bypassed with mocks or synthetic state assertions.
+    Verifies that calling the pipeline with a physical geometry payload progresses
+    through all required state transitions to completion.
     """
     pipeline = TorqPipeline(valid_config)
-    with pytest.raises(NotImplementedError, match=r"\[MISSING DATA\]"):
-        pipeline.run()
+    
+    # Attempting to run without payload should raise ValueError
+    with pytest.raises(ValueError, match=r"\[MISSING DATA\]"):
+        pipeline.run({})
+        
+    payload = {"atoms": ["C", "H", "H", "H", "H"], "coords": [[0,0,0], [1,1,1], [-1,-1,1], [1,-1,-1], [-1,1,-1]]}
+    result = pipeline.run(payload)
+    
+    assert result["status"] == "success"
+    assert result["processed_payload"] == payload
+    assert pipeline.state == "S_COMPLETE"

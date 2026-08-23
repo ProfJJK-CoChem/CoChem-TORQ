@@ -10,7 +10,10 @@ columnar Apache Parquet databases for downstream spectroscopic visualization.
 
 import os
 import logging
+
 from pathlib import Path
+
+ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
 import pandas as pd
 
 try:

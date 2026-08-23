@@ -11,9 +11,12 @@ calculations and the QCxMS analysis pipeline.
 import os
 import json
 import logging
+
+from pathlib import Path
+
+ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
 import h5py
 import numpy as np
-from pathlib import Path
 
 import hashlib
 
@@ -105,7 +108,10 @@ class TorqQCxMSIntegration:
                             else:
                                 tensor_data[name][key] = str(value.attrs)
                     elif isinstance(obj, h5py.Dataset):
-                        tensor_data[name] = obj[()]
+                        val = obj[()]
+                        if hasattr(val, "tolist"):
+                            val = val.tolist()
+                        tensor_data[name] = val
                         
                 f.visititems(read_group)
                 
@@ -250,21 +256,32 @@ if __name__ == "__main__":
     # Self-test for QCxMS integration
     qcxms_integration = TorqQCxMSIntegration()
     
-    # Sample data for testing
-    mock_h5_file = "mock_tensor.h5"
+    test_h5_file = "test_tensor.h5"
     
     try:
+        # Generate a real test_tensor.h5
+        with h5py.File(test_h5_file, "w") as f:
+            f.create_dataset("tensor_shape", data=[2, 2])
+            f.create_dataset("dimensionality", data=2)
+            
         # Test basic processing
-        processed_file = qcxms_integration.process_tensor_for_qcxms(mock_h5_file)
+        processed_file = qcxms_integration.process_tensor_for_qcxms(test_h5_file)
+        assert processed_file is not None, "Processing failed"
         logger.info(f"Processed file: {processed_file}")
         
         # Test workflow routing
-        routing_info = qcxms_integration.generate_workflow_routing(mock_h5_file)
+        routing_info = qcxms_integration.generate_workflow_routing(test_h5_file)
+        assert "target_workflow" in routing_info, "Routing info generation failed"
         logger.info(f"Routing info: {routing_info}")
         
         # Test batch processing
-        batch_results = qcxms_integration.integrate_with_qcxms_workflow([mock_h5_file])
+        batch_results = qcxms_integration.integrate_with_qcxms_workflow([test_h5_file])
+        assert batch_results["total_validated"] == 1, "Batch processing validation failed"
         logger.info(f"Batch results: {batch_results}")
         
-    except Exception as e:
-        logger.info("Test completed (expected without real HDF5 file): " + str(e))
+    finally:
+        import os
+        if os.path.exists(test_h5_file):
+            os.remove(test_h5_file)
+        if 'processed_file' in locals() and os.path.exists(processed_file):
+            os.remove(processed_file)

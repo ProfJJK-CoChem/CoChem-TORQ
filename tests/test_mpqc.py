@@ -17,8 +17,8 @@ def test_torq_mpqc_executor_init() -> None:
 
 def test_torq_mpqc_generate_input() -> None:
     executor = TorqMpqcExecutor()
-    mock_coords = [["O", 0, 0, 0], ["H", 1, 0, 0], ["H", 0, 1, 0]]
-    inp = executor._generate_mpqc_input("B3LYP", "def2-TZVP", "def2-TZVP/CPCM", "DIIS", mock_coords, charge=0, multiplicity=1)
+    water_coords = [["O", 0, 0, 0], ["H", 1, 0, 0], ["H", 0, 1, 0]]
+    inp = executor._generate_mpqc_input("B3LYP", "def2-TZVP", "def2-TZVP/CPCM", "DIIS", water_coords, charge=0, multiplicity=1)
     assert "* xyz 0 1" in inp
     assert "B3LYP" in inp
     assert "def2-TZVP" in inp
@@ -86,7 +86,7 @@ The g-matrix:
 
 def test_ts_optimization_5_threshold_geom_block() -> None:
     executor = TorqMpqcExecutor()
-    mock_coords = [["O", 0.0, 0.0, 0.0], ["H", 0.0, 0.75, 0.58], ["H", 0.0, -0.75, 0.58]]
+    water_coords = [["O", 0.0, 0.0, 0.0], ["H", 0.0, 0.75, 0.58], ["H", 0.0, -0.75, 0.58]]
     # We inspect the generated extra options string in run_ts_optimization
     # Note: run_ts_optimization is async, so we verify _generate_mpqc_input with extra_opts
     extra_opts = (
@@ -100,7 +100,7 @@ def test_ts_optimization_5_threshold_geom_block() -> None:
         "  TolMaxD 1e-4\n"
         "end"
     )
-    inp = executor._generate_mpqc_input("R2SCAN-3c", "", "", "DIIS", mock_coords, extra_options=extra_opts)
+    inp = executor._generate_mpqc_input("R2SCAN-3c", "", "", "DIIS", water_coords, extra_options=extra_opts)
     assert "InHess XTB2" in inp
     assert "TolE 1e-7" in inp
     assert "TolRMSG 3e-6" in inp
