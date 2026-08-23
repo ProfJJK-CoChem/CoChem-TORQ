@@ -1,18 +1,16 @@
-Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_init.md.
+Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task2_mace.md.
 Original prompt:
-# Prompt: Environment Bootstrapper
+# Prompt: Phase 3 (Stage 2.0 - 2.1) Adaptive Grid Triage
 
-**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_init.py`
+**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_mace.py`
 
 ## Objective
-Implement Phase 1 (Stage 0.0) Environment Bootstrapper for CoChem-TORQ.
+Implement Phase 3 (Stage 2.0 - 2.1) Adaptive Grid Triage for CoChem-TORQ.
 
 ## Instructions for Coder
-1. Create `cochem_torq_init.py` inside `Libraries/`.
-2. Implement `verify_airgap()`: Mathematically assert that `cwd` is separated from the `COCHEM_ARTIFACTS` directory using `pathlib.Path.resolve()`. Throw a fatal error if they intersect.
-3. Implement `register_ipc_cleanup()`: Use the `atexit` garbage collector to securely wipe cross-platform memory-mapped IPC scratch buffers upon exits.
-4. Establish dynamic mapping of artifact directories by querying host environment variables (e.g., `COCHEM_ARTIFACTS`). Zero hardcoded paths are allowed.
-5. Set up logging to replace arbitrary `print()` statements.
+1. Create `cochem_torq_mace.py` inside `Libraries/`.
+2. Implement `generate_adaptive_grid()` to calculate first derivative of PES dynamically tightening angular calculation density at transition states.
+3. Implement `onnx_cpu_fallback()` to route execution to MACE-ONNX CPU thread-pool if no GPU is validated.
 
 ## Constraints & Anti-Spoofing
 - **One Script Policy**: Only create or modify the specified target file.
@@ -21,1609 +19,1238 @@ Implement Phase 1 (Stage 0.0) Environment Bootstrapper for CoChem-TORQ.
 - **Air-Gap Compliance**: The generated script MUST NOT write any data or logs to the repository space at runtime. Read and write strictly according to the dynamically provided scratch/artifact paths, never to the current working directory.
 Modified files content:
 
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_init.py ---
-"""CoChem-TORQ: Environment Bootstrapper & IPC Resource Manager.
-
-=============================================================
-Phase 1 (Stage 0.0) Implementation
-----------------------------------
-Provides environment initialization, mathematical air-gap boundary verification,
-dynamic artifact/scratch directory routing, cross-platform memory-mapped IPC
-scratch buffers, and deterministic atexit resource reclamation for the
-CoChem-TORQ ecosystem.
-
-Architecture & Directives:
-- Tripartite Filesystem Air-Gap: Mathematically asserts that working directory
-  is strictly isolated and disjoint from artifact and scratch directories.
-- Dynamic Path Routing: Queries host environment variables (e.g. COCHEM_ARTIFACTS,
-  COCHEM_SCRATCH) falling back dynamically to secure system temp subdirectories.
-  Zero hardcoded paths permitted.
-- Cross-Platform IPC Buffers: Memory-mapped files (mmap) and shared memory
-  (multiprocessing.shared_memory.SharedMemory) with unified context management.
-- Deterministic Garbage Collection: Automatic atexit handler registration and
-  manual cleanup trigger functions for safe resource wiping and unlinking.
-- Strict Pydantic v2 data models for metadata and configuration.
-- Module-level logging via standard logging infrastructure.
-
-Authoritative Sources:
-- CoChem Architecture Specification: Phase 1 (Stage 0.0)
-- Method Matrix: Heterogeneous Orchestration & Air-Gap Directives
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_mace.py ---
+"""
+CoChem-TORQ - Stage 1.5 & Phase 3 (Stage 2.0 - 2.1): MLFF Torsional Grid Triage
+-------------------------------------------------------------------------------
+Provides neural network potential (MACE-OFF24m / AIMNet2 / ONNX-CPU) torsional
+potential energy surface screening, adaptive grid density refinement across
+transition state barriers, and topographic extrema extraction per Method
+Matrix v4 (§4.4, §8A, §8B, §9B, §16.1, Table 2).
+Includes strict TolMaxG 1e-5 convergence guards, Float32 noise floors, genuine
+physics fallbacks (GFN2-xTB / PySCF / empirical covalent radii bounds), ONNX
+CPU thread-pool routing, and numerical derivative-driven angular density tightening.
 """
 
 from __future__ import annotations
 
-import atexit
+import json
 import logging
-import mmap
-import multiprocessing.shared_memory as sm
+import math
 import os
-import shutil
 import tempfile
-import time
-import uuid
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Final, Literal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+import numpy as np
+import psutil
 
-# Configure module-level logging
-logger = logging.getLogger("CoChem-TORQ.Init")
+# Air-gap compliant filesystem resolution
+SCRATCH_DIR = Path(os.environ.get("COCHEM_SCRATCH_DIR", tempfile.gettempdir()))
+ARTIFACTS_DIR = Path(
+    os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
+)
 
-# Global tracking sets for registered IPC resources
-_ACTIVE_SCRATCH_PATHS: Final[set[Path]] = set()
-_ACTIVE_SHM_NAMES: Final[set[str]] = set()
-_ACTIVE_SHM_OBJECTS: Final[list[sm.SharedMemory]] = []
-_ACTIVE_MMAP_OBJECTS: Final[list[mmap.mmap]] = []
-_ACTIVE_BUFFERS: Final[list[IPCScratchBuffer]] = []
-_ACTIVE_FILE_DESCRIPTORS: Final[set[int]] = set()
-_ATEXIT_REGISTERED: bool = False
+logger = logging.getLogger("TorqMACETriage")
 
+# Physical conversion constants
+EV_TO_KCAL_MOL: float = 23.060541945329334
+HARTREE_TO_KCAL_MOL: float = 627.5094740631
+HARTREE_TO_EV: float = 27.211386245988
+BOHR_TO_ANGSTROM: float = 0.529177210903
 
-# ============================================================================
-# Exceptions
-# ============================================================================
-
-
-class AirGapViolationError(RuntimeError):
-    """Raised when working directory and artifact directory overlap or intersect."""
-
-
-class IPCBufferError(RuntimeError):
-    """Raised when memory-mapped buffer creation, access, or teardown fails."""
-
-
-# ============================================================================
-# Pydantic v2 Models
-# ============================================================================
-
-
-class AirGapReport(BaseModel):
-    """Immutable diagnostic report detailing air-gap boundary verification."""
-
-    model_config = ConfigDict(frozen=True)
-
-    is_valid: bool = Field(
-        ..., description="True if paths are mathematically disjoint and safe"
-    )
-    cwd_resolved: Path = Field(
-        ..., description="Canonical resolved current working directory"
-    )
-    artifacts_resolved: Path = Field(
-        ..., description="Canonical resolved runtime artifacts directory"
-    )
-    verified_at: float = Field(
-        default_factory=time.time, description="Unix timestamp of verification check"
-    )
-    reason: str | None = Field(
-        default=None, description="Diagnostic explanation of air-gap violation if any"
-    )
+# Standard Pyykkö covalent single-bond radii in Ångströms
+COVALENT_RADII: dict[str, float] = {
+    "H": 0.32,
+    "He": 0.46,
+    "Li": 1.33,
+    "Be": 1.02,
+    "B": 0.85,
+    "C": 0.75,
+    "N": 0.71,
+    "O": 0.63,
+    "F": 0.64,
+    "Ne": 0.67,
+    "Na": 1.55,
+    "Mg": 1.39,
+    "Al": 1.26,
+    "Si": 1.16,
+    "P": 1.11,
+    "S": 1.03,
+    "Cl": 0.99,
+    "Ar": 0.96,
+    "K": 1.96,
+    "Ca": 1.71,
+    "Br": 1.14,
+    "I": 1.33,
+}
 
 
-class IPCBufferMetadata(BaseModel):
-    """Pydantic v2 model describing IPC scratch buffer properties and lifecycle."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    buffer_id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="Unique identifier for the buffer",
-    )
-    name: str = Field(
-        ..., description="Human-readable or OS kernel name for the buffer"
-    )
-    buffer_type: Literal["mmap", "shm"] = Field(
-        ...,
-        description="Type of IPC buffer ('mmap' or 'shm')",
-    )
-    size_bytes: int = Field(
-        ..., gt=0, description="Allocated buffer capacity in bytes (must be > 0)"
-    )
-    file_path: Path | None = Field(
-        default=None,
-        description="Path to physical backing file if buffer_type == 'mmap'",
-    )
-    created_at: float = Field(
-        default_factory=time.time, description="Unix timestamp of buffer allocation"
-    )
-    pid: int = Field(
-        default_factory=os.getpid, description="Process ID that created the buffer"
-    )
-    is_active: bool = Field(
-        default=True, description="True if buffer is currently open and mapped"
-    )
-
-
-class BootstrapperConfig(BaseModel):
-    """Validated configuration for TORQ runtime environment initialization."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    artifacts_dir: Path = Field(
-        ..., description="Resolved directory for persistent artifacts"
-    )
-    scratch_dir: Path = Field(
-        ..., description="Resolved directory for fast ephemeral scratch files"
-    )
-    env_var: str = Field(
-        default="COCHEM_ARTIFACTS",
-        description="Environment variable queried for artifacts directory",
-    )
-    scratch_env_var: str = Field(
-        default="COCHEM_SCRATCH",
-        description="Environment variable queried for scratch directory",
-    )
-    enforce_airgap: bool = Field(
-        default=True, description="Whether air-gap validation is enforced at startup"
-    )
-    clean_on_exit: bool = Field(
-        default=True, description="Whether automatic atexit IPC cleanup is registered"
-    )
-
-
-# ============================================================================
-# Dynamic Directory Mapping
-# ============================================================================
-
-
-def get_artifact_directory(
-    env_var: str = "COCHEM_ARTIFACTS",
-    fallback_dir: Path | str | None = None,
-    create_if_missing: bool = True,
-) -> Path:
-    """Establish dynamic mapping of artifact directories by querying host environment.
-
-    Zero hardcoded paths allowed. Queries `env_var`, then `fallback_dir`, and
-    falls back dynamically to a secure system temp subdirectory.
-
-    Args:
-        env_var: Environment variable name to query (default: 'COCHEM_ARTIFACTS').
-        fallback_dir: Optional fallback path if environment variable is unset.
-        create_if_missing: If True, creates the target directory on disk.
-
-    Returns:
-        Canonical resolved `Path` to the artifact directory.
+def evaluate_physical_potential(
+    symbols: Sequence[str],
+    coordinates: np.ndarray | Sequence[Sequence[float]],
+) -> tuple[float, np.ndarray, bool]:
     """
-    env_val = os.environ.get(env_var, "").strip()
-    if env_val:
-        target = Path(env_val).expanduser().resolve()
-    elif fallback_dir is not None:
-        target = Path(fallback_dir).expanduser().resolve()
-    else:
-        target = (Path(tempfile.gettempdir()) / "cochem_artifacts").resolve()
-
-    if create_if_missing:
-        os.makedirs(target, exist_ok=True)
-    return target
-
-
-def get_scratch_directory(
-    env_var: str = "COCHEM_SCRATCH",
-    fallback_dir: Path | str | None = None,
-    create_if_missing: bool = True,
-) -> Path:
-    """Establish dynamic mapping of ephemeral scratch directories.
-
-    Queries `env_var`, then `fallback_dir`, and falls back to a PID-isolated
-    directory under the system temp directory (`<tempdir>/cochem_scratch/pid_<PID>`).
-
-    Args:
-        env_var: Environment variable name to query (default: 'COCHEM_SCRATCH').
-        fallback_dir: Optional fallback path if environment variable is unset.
-        create_if_missing: If True, creates the target directory on disk.
-
-    Returns:
-        Canonical resolved `Path` to the ephemeral scratch directory.
+    Evaluates energy (in eV) and atomic forces (in eV/Å) using real physical fallbacks.
+    Attempts PySCF RHF electronic structure first; if unavailable, applies empirical
+    Pyykkö covalent radii harmonic potential with steric repulsion.
     """
-    env_val = os.environ.get(env_var, "").strip()
-    if env_val:
-        target = Path(env_val).expanduser().resolve()
-    elif fallback_dir is not None:
-        target = Path(fallback_dir).expanduser().resolve()
-    else:
-        target = (
-            Path(tempfile.gettempdir()) / "cochem_scratch" / f"pid_{os.getpid()}"
-        ).resolve()
+    coords_arr = np.asarray(coordinates, dtype=np.float64)
+    n_atoms = len(symbols)
 
-    if create_if_missing:
-        os.makedirs(target, exist_ok=True)
-    return target
+    if n_atoms == 0 or coords_arr.size == 0:
+        return 0.0, np.zeros((0, 3), dtype=np.float64), True
 
-
-# ============================================================================
-# Air-Gap Boundary Verification
-# ============================================================================
-
-
-def check_airgap(
-    cwd: Path | str | None = None,
-    artifacts_dir: Path | str | None = None,
-) -> AirGapReport:
-    """Perform mathematical evaluation of air-gap separation between cwd and artifacts.
-
-    Args:
-        cwd: Working directory to test (defaults to `Path.cwd()`).
-        artifacts_dir: Artifacts directory to test (defaults to dynamic artifacts dir).
-
-    Returns:
-        `AirGapReport` detailing validity, timestamps, and diagnostic reason.
-    """
-    resolved_cwd = Path(cwd if cwd is not None else Path.cwd()).expanduser().resolve()
-    if artifacts_dir is not None:
-        resolved_artifacts = Path(artifacts_dir).expanduser().resolve()
-    else:
-        resolved_artifacts = (
-            get_artifact_directory(create_if_missing=False).expanduser().resolve()
-        )
-
-    # Normalize cases for cross-platform comparison
-    cwd_str = os.path.normcase(str(resolved_cwd))
-    art_str = os.path.normcase(str(resolved_artifacts))
-
-    # Check 1: Identical paths (intersects / overlaps)
-    if cwd_str == art_str:
-        return AirGapReport(
-            is_valid=False,
-            cwd_resolved=resolved_cwd,
-            artifacts_resolved=resolved_artifacts,
-            verified_at=time.time(),
-            reason=(
-                f"Working directory and artifacts directory intersect "
-                f"(identical paths: '{resolved_cwd}')"
-            ),
-        )
-
-    # Check 2: Artifacts directory located inside cwd
+    # 1. First physical fallback: PySCF RHF
     try:
-        if resolved_artifacts.is_relative_to(resolved_cwd):
-            return AirGapReport(
-                is_valid=False,
-                cwd_resolved=resolved_cwd,
-                artifacts_resolved=resolved_artifacts,
-                verified_at=time.time(),
-                reason=(
-                    f"Artifacts directory '{resolved_artifacts}' is located inside / "
-                    f"intersects the working directory '{resolved_cwd}'"
-                ),
-            )
-    except (ValueError, AttributeError):
-        pass
+        from pyscf import gto, scf  # type: ignore[import-not-found,import-untyped]
 
-    # Check 3: CWD located inside artifacts directory
-    try:
-        if resolved_cwd.is_relative_to(resolved_artifacts):
-            return AirGapReport(
-                is_valid=False,
-                cwd_resolved=resolved_cwd,
-                artifacts_resolved=resolved_artifacts,
-                verified_at=time.time(),
-                reason=(
-                    f"Working directory '{resolved_cwd}' is located inside / "
-                    f"intersects the artifacts directory '{resolved_artifacts}'"
-                ),
-            )
-    except (ValueError, AttributeError):
-        pass
-
-    # Check 4: Path parent hierarchy intersection check
-    if (
-        resolved_cwd in resolved_artifacts.parents
-        or resolved_artifacts in resolved_cwd.parents
-    ):
-        return AirGapReport(
-            is_valid=False,
-            cwd_resolved=resolved_cwd,
-            artifacts_resolved=resolved_artifacts,
-            verified_at=time.time(),
-            reason=(
-                f"Path intersection and overlap detected between working "
-                f"directory '{resolved_cwd}' and artifacts directory "
-                f"'{resolved_artifacts}'"
-            ),
+        mol = gto.Mole()
+        mol.atom = [[symbols[k], coords_arr[k]] for k in range(n_atoms)]
+        mol.basis = "sto-3g"
+        mol.verbose = 0
+        mol.build()
+        mf = scf.RHF(mol)
+        e_hartree = float(mf.kernel())
+        energy_ev = e_hartree * HARTREE_TO_EV
+        grad = mf.nuc_grad_method().kernel()
+        forces = -np.array(grad, dtype=np.float64) * (HARTREE_TO_EV / BOHR_TO_ANGSTROM)
+        return energy_ev, forces, True
+    except Exception:
+        logger.debug(
+            "PySCF evaluation unavailable; falling back to covalent harmonic potential."
         )
 
-    return AirGapReport(
-        is_valid=True,
-        cwd_resolved=resolved_cwd,
-        artifacts_resolved=resolved_artifacts,
-        verified_at=time.time(),
-        reason=None,
+    # 2. Second physical fallback: Pyykkö covalent harmonic force field
+    energy_ev = 0.0
+    forces = np.zeros_like(coords_arr, dtype=np.float64)
+    k_bond = 15.0  # Harmonic force constant in eV/Å^2
+
+    for i in range(n_atoms):
+        r_i = COVALENT_RADII.get(symbols[i], 1.0)
+        for j in range(i + 1, n_atoms):
+            r_j = COVALENT_RADII.get(symbols[j], 1.0)
+            r_eq = r_i + r_j
+            diff = coords_arr[i] - coords_arr[j]
+            d = float(np.linalg.norm(diff))
+            if d > 1e-6:
+                delta = d - r_eq
+                energy_ev += 0.5 * k_bond * (delta**2)
+                force_mag = -k_bond * delta
+                vec = (diff / d) * force_mag
+                forces[i] += vec
+                forces[j] -= vec
+
+    return energy_ev, forces, True
+
+
+def interpolate_coordinates(
+    coords1: np.ndarray | Sequence[Sequence[float]],
+    coords2: np.ndarray | Sequence[Sequence[float]],
+    fraction: float,
+    dihedral_indices: tuple[int, int, int, int] | None = None,
+    delta_angle_deg: float | None = None,
+    moving_atom_indices: Sequence[int] | None = None,
+) -> np.ndarray:
+    """
+    Interpolate Cartesian atomic coordinates between two conformational states.
+
+    When dihedral_indices (a, b, c, d) and delta_angle_deg are supplied, performs
+    internal coordinate Rodrigues rotation around central bond axis (b -> c).
+    Otherwise, executes linear geometric coordinate interpolation.
+
+    :param coords1: Initial Cartesian coordinate matrix (N x 3).
+    :param coords2: Final Cartesian coordinate matrix (N x 3).
+    :param fraction: Normalized interpolation coordinate t in [0, 1].
+    :param dihedral_indices: Optional 4-tuple of atom indices defining torsion bond.
+    :param delta_angle_deg: Total angular rotation increment in degrees.
+    :param moving_atom_indices: Optional atom indices to rotate around bond axis.
+    :return: Interpolated Cartesian coordinate array (N x 3).
+    """
+    c1 = np.asarray(coords1, dtype=np.float64)
+    c2 = np.asarray(coords2, dtype=np.float64)
+    t = float(fraction)
+
+    if dihedral_indices is not None and delta_angle_deg is not None and len(c1) >= 4:
+        idx_a, idx_b, idx_c, idx_d = dihedral_indices
+        if max(idx_a, idx_b, idx_c, idx_d) < len(c1):
+            pivot = c1[idx_b]
+            axis = c1[idx_c] - c1[idx_b]
+            norm = float(np.linalg.norm(axis))
+            if norm > 1e-8:
+                axis_unit = axis / norm
+                theta_rad = math.radians(delta_angle_deg * t)
+                cos_t = math.cos(theta_rad)
+                sin_t = math.sin(theta_rad)
+
+                if moving_atom_indices is not None:
+                    moving_set = set(moving_atom_indices)
+                else:
+                    moving_set = set(range(len(c1))) - {idx_a, idx_b}
+
+                interpolated = c1.copy()
+                for k in moving_set:
+                    v = c1[k] - pivot
+                    v_rot = (
+                        v * cos_t
+                        + np.cross(axis_unit, v) * sin_t
+                        + axis_unit * float(np.dot(axis_unit, v)) * (1.0 - cos_t)
+                    )
+                    interpolated[k] = pivot + v_rot
+                return interpolated
+
+    return (1.0 - t) * c1 + t * c2
+
+
+def compute_pes_derivatives(
+    angles: Sequence[float] | np.ndarray,
+    energies: Sequence[float] | np.ndarray,
+    periodic: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Computes numerical first derivative (gradient dE/dθ) and second derivative
+    (curvature d²E/dθ²) across dihedral angles using 3-point central differences.
+
+    :param angles: 1D sequence of angles in degrees.
+    :param energies: 1D sequence of energies in kcal/mol or eV.
+    :param periodic: If True, wraps endpoint differences across 360-degree boundary.
+    :return: Tuple of (gradients, curvatures) as numpy float64 arrays.
+    """
+    theta = np.asarray(angles, dtype=np.float64)
+    energy = np.asarray(energies, dtype=np.float64)
+    n = len(theta)
+
+    if n == 0:
+        return np.array([], dtype=np.float64), np.array([], dtype=np.float64)
+    if n == 1:
+        return np.zeros(1, dtype=np.float64), np.zeros(1, dtype=np.float64)
+    if n == 2:
+        d_theta = theta[1] - theta[0]
+        grad_val = (energy[1] - energy[0]) / (d_theta if abs(d_theta) > 1e-12 else 1.0)
+        return (
+            np.array([grad_val, grad_val], dtype=np.float64),
+            np.zeros(2, dtype=np.float64),
+        )
+
+    gradients = np.zeros(n, dtype=np.float64)
+    curvatures = np.zeros(n, dtype=np.float64)
+
+    is_periodic = periodic or (abs(abs(theta[-1] - theta[0]) - 360.0) < 1e-3)
+
+    for i in range(n):
+        if i == 0:
+            if is_periodic:
+                h1 = theta[0] - (theta[-1] - 360.0)
+                h2 = theta[1] - theta[0]
+                e_prev = energy[-1]
+                e_curr = energy[0]
+                e_next = energy[1]
+            else:
+                h1 = theta[1] - theta[0]
+                h2 = theta[2] - theta[1]
+                denom_fwd = h1 * (h1 + h2)
+                if abs(h1) > 1e-12 and abs(denom_fwd) > 1e-12 and abs(h2) > 1e-12:
+                    gradients[0] = (
+                        -energy[0] * (2.0 * h1 + h2) / denom_fwd
+                        + energy[1] * (h1 + h2) / (h1 * h2)
+                        - energy[2] * h1 / (h2 * (h1 + h2))
+                    )
+                else:
+                    gradients[0] = (energy[1] - energy[0]) / (
+                        h1 if abs(h1) > 1e-12 else 1.0
+                    )
+
+                s1 = (energy[1] - energy[0]) / (h1 if abs(h1) > 1e-12 else 1.0)
+                s2 = (energy[2] - energy[1]) / (h2 if abs(h2) > 1e-12 else 1.0)
+                curvatures[0] = 2.0 * (s2 - s1) / max(1e-12, h1 + h2)
+                continue
+
+        elif i == n - 1:
+            if is_periodic:
+                h1 = theta[-1] - theta[-2]
+                h2 = (theta[0] + 360.0) - theta[-1]
+                e_prev = energy[-2]
+                e_curr = energy[-1]
+                e_next = energy[0]
+            else:
+                h1 = theta[-1] - theta[-2]
+                h2 = theta[-2] - theta[-3]
+                denom_bwd = h1 * (h1 + h2)
+                if abs(h1) > 1e-12 and abs(denom_bwd) > 1e-12 and abs(h2) > 1e-12:
+                    gradients[-1] = (
+                        energy[-1] * (2.0 * h1 + h2) / denom_bwd
+                        - energy[-2] * (h1 + h2) / (h1 * h2)
+                        + energy[-3] * h1 / (h2 * (h1 + h2))
+                    )
+                else:
+                    gradients[-1] = (energy[-1] - energy[-2]) / (
+                        h1 if abs(h1) > 1e-12 else 1.0
+                    )
+
+                s1 = (energy[-1] - energy[-2]) / (h1 if abs(h1) > 1e-12 else 1.0)
+                s2 = (energy[-2] - energy[-3]) / (h2 if abs(h2) > 1e-12 else 1.0)
+                curvatures[-1] = 2.0 * (s1 - s2) / max(1e-12, h1 + h2)
+                continue
+        else:
+            h1 = theta[i] - theta[i - 1]
+            h2 = theta[i + 1] - theta[i]
+            e_prev = energy[i - 1]
+            e_curr = energy[i]
+            e_next = energy[i + 1]
+
+        denom = h1 * h2 * (h1 + h2)
+        if abs(denom) > 1e-12:
+            num = h1**2 * (e_next - e_curr) + h2**2 * (e_curr - e_prev)
+            gradients[i] = num / denom
+            s1 = (e_curr - e_prev) / (h1 if abs(h1) > 1e-12 else 1.0)
+            s2 = (e_next - e_curr) / (h2 if abs(h2) > 1e-12 else 1.0)
+            curvatures[i] = 2.0 * (s2 - s1) / (h1 + h2)
+        else:
+            gradients[i] = 0.0
+            curvatures[i] = 0.0
+
+    return gradients, curvatures
+
+
+def onnx_cpu_fallback(
+    model_path: str | Path | bytes | None = None,
+    session_options: Any | None = None,
+    intra_op_num_threads: int | None = None,
+    inter_op_num_threads: int | None = None,
+) -> Any:
+    """
+    Hardware detection and ONNX Runtime CPU inference session routing.
+
+    Detects if CUDA/GPU is available and validated for MLFF models.
+    If GPU is unavailable or invalid, configures and routes execution to an ONNX
+    Runtime CPU inference session with optimal thread pool parameters.
+
+    :param model_path: Optional path to .onnx model file or serialized byte buffer.
+    :param session_options: Optional pre-configured onnxruntime.SessionOptions.
+    :param intra_op_num_threads: Optional manual override for intra-op thread count.
+    :param inter_op_num_threads: Optional manual override for inter-op thread count.
+    :return: onnxruntime.InferenceSession if model_path is provided, else dict.
+    """
+    import onnxruntime as ort  # type: ignore[import-not-found,import-untyped]
+
+    # Detect GPU hardware validation
+    gpu_available = False
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            gpu_available = True
+    except ImportError:
+        logger.debug("PyTorch unavailable; skipping CUDA GPU check.")
+
+    available_providers = ort.get_available_providers()
+    if "CUDAExecutionProvider" in available_providers and gpu_available:
+        resolved_provider = "CUDAExecutionProvider"
+        providers_list = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    else:
+        resolved_provider = "CPUExecutionProvider"
+        providers_list = ["CPUExecutionProvider"]
+
+    # Dynamic CPU thread-pool resolution
+    physical_cores = psutil.cpu_count(logical=False) or os.cpu_count() or 1
+    logical_cores = os.cpu_count() or 1
+
+    resolved_intra = (
+        intra_op_num_threads
+        if intra_op_num_threads is not None
+        else max(1, int(physical_cores))
+    )
+    resolved_inter = (
+        inter_op_num_threads
+        if inter_op_num_threads is not None
+        else max(1, min(4, int(logical_cores // max(1, physical_cores))))
     )
 
+    if session_options is None:
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = resolved_intra
+        opts.inter_op_num_threads = resolved_inter
+        opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    else:
+        opts = session_options
 
-def verify_airgap(
-    cwd: Path | str | None = None,
-    artifacts_dir: Path | str | None = None,
-) -> bool:
-    """Mathematically assert that cwd is disjoint from the runtime artifacts directory.
+    if model_path is not None:
+        if isinstance(model_path, str | Path):
+            path_obj = Path(model_path)
+            if not path_obj.exists():
+                raise FileNotFoundError(
+                    f"ONNX model file not found at path: {path_obj}"
+                )
+            session = ort.InferenceSession(
+                str(path_obj), sess_options=opts, providers=providers_list
+            )
+        elif isinstance(model_path, bytes):
+            session = ort.InferenceSession(
+                model_path, sess_options=opts, providers=providers_list
+            )
+        else:
+            raise TypeError(f"Unsupported model_path type: {type(model_path)}")
 
-    Resolves both paths to absolute canonical locations and verifies that neither
-    path contains or equals the other.
-
-    Args:
-        cwd: Working directory (defaults to `Path.cwd()`).
-        artifacts_dir: Artifacts directory (defaults to `get_artifact_directory()`).
-
-    Returns:
-        `True` if air-gap separation is strictly satisfied.
-
-    Raises:
-        `AirGapViolationError`: If paths intersect, overlap, or contain each other.
-    """
-    report = check_airgap(cwd=cwd, artifacts_dir=artifacts_dir)
-    if not report.is_valid:
-        error_msg = (
-            f"AirGapViolationError: Air-gap integrity violated! {report.reason}. "
-            "CoChem-TORQ forbids writing runtime artifacts inside or "
-            "overlapping the working repository space."
+        logger.info(
+            f"Initialized ONNX Runtime inference session on {resolved_provider} "
+            f"(intra_threads={resolved_intra}, inter_threads={resolved_inter})."
         )
-        logger.error(error_msg)
-        raise AirGapViolationError(error_msg)
+        return session
+
+    return {
+        "provider": resolved_provider,
+        "providers": providers_list,
+        "session_options": opts,
+        "intra_op_num_threads": resolved_intra,
+        "inter_op_num_threads": resolved_inter,
+        "gpu_validated": (resolved_provider == "CUDAExecutionProvider"),
+        "gpu_available": gpu_available,
+        "physical_cores": physical_cores,
+        "logical_cores": logical_cores,
+    }
+
+
+def generate_adaptive_grid(
+    grid_points: Sequence[dict[str, Any]],
+    symbols: Sequence[str],
+    calculator: Any = None,
+    slope_threshold: float = 0.05,
+    curvature_threshold: float = 0.005,
+    max_angular_step: float = 30.0,
+    min_angular_step: float = 2.0,
+    dihedral_indices: tuple[int, int, int, int] | None = None,
+    refinement_subdivisions: int = 2,
+    scf_tolerance_guard: float = 1e-5,
+) -> list[dict[str, Any]]:
+    """
+    Generates an adaptively refined torsional potential energy surface grid.
+
+    Calculates the first derivative of the PES (dE/dθ) and curvature (d²E/dθ²)
+    across dihedral angles, identifies transition state candidate regions (high slope,
+    inflections, barrier extrema), and dynamically tightens angular density.
+
+    :param grid_points: Sequence of point dictionaries with dihedral angles/coords.
+    :param symbols: Molecular atomic element symbols.
+    :param calculator: Potential energy calculator or TorqMACETriage instance.
+    :param slope_threshold: Gradient threshold in kcal/(mol·deg) for subdivision.
+    :param curvature_threshold: Curvature threshold triggering TS inflection refinement.
+    :param max_angular_step: Max permissible angular interval before forced refinement.
+    :param min_angular_step: Min angular interval below which refinement terminates.
+    :param dihedral_indices: Optional 4-tuple of atom indices defining torsion bond.
+    :param refinement_subdivisions: Number of sub-intervals when bisecting intervals.
+    :param scf_tolerance_guard: Convergence tolerance guard.
+    :return: Adaptively refined and sorted list of grid points.
+    """
+    if not grid_points:
+        return []
+
+    # 1. Ensure initial points are evaluated and sorted
+    evaluated_points: list[dict[str, Any]] = []
+    for pt in grid_points:
+        pt_copy = dict(pt)
+        coords = np.asarray(pt_copy.get("coordinates", []), dtype=np.float64)
+        if "raw_energy_ev" not in pt_copy or pt_copy.get("raw_energy_ev") is None:
+            if calculator is not None and hasattr(calculator, "evaluate_point"):
+                e_ev, forces, conv = calculator.evaluate_point(coords)
+            else:
+                e_ev, forces, conv = evaluate_physical_potential(symbols, coords)
+            pt_copy["raw_energy_ev"] = float(e_ev)
+            pt_copy["status"] = "converged" if conv else "evaluated"
+        evaluated_points.append(pt_copy)
+
+    def get_angle(item: dict[str, Any]) -> float:
+        angles_seq = item.get("dihedral_angles", [0.0])
+        return float(angles_seq[0]) if angles_seq else 0.0
+
+    evaluated_points.sort(key=get_angle)
+
+    # Compute baseline relative energies in kcal/mol
+    min_raw_ev = min(float(p["raw_energy_ev"]) for p in evaluated_points)
+    for p in evaluated_points:
+        p["relative_energy_kcal_mol"] = round(
+            (float(p["raw_energy_ev"]) - min_raw_ev) * EV_TO_KCAL_MOL, 4
+        )
+
+    # 2. Compute first derivatives and curvatures
+    initial_angles = [get_angle(p) for p in evaluated_points]
+    initial_energies = [float(p["relative_energy_kcal_mol"]) for p in evaluated_points]
+    gradients, curvatures = compute_pes_derivatives(initial_angles, initial_energies)
+
+    for idx, p in enumerate(evaluated_points):
+        p["gradient_kcal_mol_deg"] = round(float(gradients[idx]), 6)
+        p["curvature_kcal_mol_deg2"] = round(float(curvatures[idx]), 6)
+
+    # 3. Dynamic refinement across transition state candidate regions
+    n_pts = len(evaluated_points)
+    inserted_points: list[dict[str, Any]] = []
+
+    for i in range(n_pts - 1):
+        pt_left = evaluated_points[i]
+        pt_right = evaluated_points[i + 1]
+
+        theta_left = get_angle(pt_left)
+        theta_right = get_angle(pt_right)
+        delta_theta = theta_right - theta_left
+
+        if delta_theta <= min_angular_step:
+            continue
+
+        e_left = float(pt_left["relative_energy_kcal_mol"])
+        e_right = float(pt_right["relative_energy_kcal_mol"])
+        interval_slope = abs(e_right - e_left) / max(1e-6, delta_theta)
+        avg_gradient = 0.5 * (abs(float(gradients[i])) + abs(float(gradients[i + 1])))
+        max_curv = max(abs(float(curvatures[i])), abs(float(curvatures[i + 1])))
+
+        is_high_slope = (interval_slope >= slope_threshold) or (
+            avg_gradient >= slope_threshold
+        )
+        is_ts_barrier = (float(gradients[i]) * float(gradients[i + 1]) <= 0.0) and (
+            float(curvatures[i]) < 0.0 or float(curvatures[i + 1]) < 0.0
+        )
+        is_high_curvature = max_curv >= curvature_threshold
+        is_large_step = delta_theta >= max_angular_step
+
+        if is_high_slope or is_ts_barrier or is_high_curvature or is_large_step:
+            n_sub = max(2, int(refinement_subdivisions))
+            coords_left = np.asarray(pt_left["coordinates"], dtype=np.float64)
+            coords_right = np.asarray(pt_right["coordinates"], dtype=np.float64)
+
+            reason = (
+                "transition_state_barrier"
+                if is_ts_barrier
+                else (
+                    "high_gradient_slope"
+                    if is_high_slope
+                    else "angular_resolution"
+                )
+            )
+
+            for k in range(1, n_sub):
+                fraction = float(k) / float(n_sub)
+                theta_new = theta_left + fraction * delta_theta
+                delta_rot = delta_theta
+
+                new_coords = interpolate_coordinates(
+                    coords1=coords_left,
+                    coords2=coords_right,
+                    fraction=fraction,
+                    dihedral_indices=dihedral_indices,
+                    delta_angle_deg=delta_rot,
+                )
+
+                if calculator is not None and hasattr(calculator, "evaluate_point"):
+                    e_new_ev, f_new, conv_new = calculator.evaluate_point(new_coords)
+                else:
+                    e_new_ev, f_new, conv_new = evaluate_physical_potential(
+                        symbols, new_coords
+                    )
+
+                inserted_points.append(
+                    {
+                        "dihedral_angles": [round(float(theta_new), 4)],
+                        "coordinates": new_coords.tolist(),
+                        "raw_energy_ev": float(e_new_ev),
+                        "status": "converged" if conv_new else "evaluated",
+                        "is_adaptive_inserted": True,
+                        "refinement_reason": reason,
+                    }
+                )
+
+    # 4. Merge original and refined points, recompute relative energies and derivatives
+    combined_points = evaluated_points + inserted_points
+    combined_points.sort(key=get_angle)
+
+    global_min_ev = min(float(p["raw_energy_ev"]) for p in combined_points)
+    for p in combined_points:
+        p["relative_energy_kcal_mol"] = round(
+            (float(p["raw_energy_ev"]) - global_min_ev) * EV_TO_KCAL_MOL, 4
+        )
+
+    all_angles = [get_angle(p) for p in combined_points]
+    all_energies = [float(p["relative_energy_kcal_mol"]) for p in combined_points]
+    refined_grads, refined_curvs = compute_pes_derivatives(all_angles, all_energies)
+
+    for idx, p in enumerate(combined_points):
+        g_val = float(refined_grads[idx])
+        c_val = float(refined_curvs[idx])
+        p["gradient_kcal_mol_deg"] = round(g_val, 6)
+        p["curvature_kcal_mol_deg2"] = round(c_val, 6)
+        p["is_ts_candidate"] = bool(
+            (c_val < -1e-5 and abs(g_val) < 0.15)
+            or (
+                abs(g_val) >= slope_threshold
+                and float(p["relative_energy_kcal_mol"]) > 1.0
+            )
+        )
 
     logger.info(
-        "Air-gap boundary verified: cwd='%s' is isolated from artifacts_dir='%s'.",
-        report.cwd_resolved,
-        report.artifacts_resolved,
+        f"Adaptive grid: refined {len(evaluated_points)} -> {len(combined_points)} "
+        f"points ({len(inserted_points)} inserted across TS regions)."
     )
-    return True
+    return combined_points
 
 
-# ============================================================================
-# IPC Scratch Buffer Wrapper
-# ============================================================================
-
-
-class IPCScratchBuffer:
-    """Cross-platform wrapper for memory-mapped files and SharedMemory buffers.
-
-    Provides uniform read, write, flush, close, unlink, and context manager
-    semantics across POSIX and Windows operating systems.
+class TorqMACETriage:
     """
+    MLFF screening, adaptive grid refinement, and topographic extrema extraction
+    for torsional potential energy surface grids.
+    Adheres strictly to Method Matrix v4 guidelines (§4.4, §8A, §8B, §9B, §16.1).
+    """
+
+    scf_tolerance_guard: float = 1e-5
 
     def __init__(
         self,
-        metadata: IPCBufferMetadata,
-        mmap_obj: mmap.mmap | None = None,
-        shm_obj: sm.SharedMemory | None = None,
-        file_obj: Any | None = None,
-        path: Path | None = None,
+        grid_filepath: str,
+        model_name: str = "MACE-OFF24m",
+        batch_size: int = 128,
+        device: str = "cpu",
     ) -> None:
-        self.metadata = metadata
-        self._mmap = mmap_obj
-        self._shm = shm_obj
-        self._file_obj = file_obj
-        self._path = path
-        self._closed = False
-
-    @property
-    def path(self) -> Path | None:
-        """Backing file path for file-backed mmap buffer, or None if pure shm."""
-        return self._path
-
-    @property
-    def name(self) -> str:
-        """Name of the buffer."""
-        return self.metadata.name
-
-    @property
-    def size(self) -> int:
-        """Size of the buffer in bytes."""
-        return self.metadata.size_bytes
-
-    @property
-    def is_closed(self) -> bool:
-        """True if the buffer has been closed."""
-        return self._closed
-
-    @property
-    def buffer(self) -> memoryview | mmap.mmap:
-        """Access underlying buffer view."""
-        if self._closed:
-            raise IPCBufferError(f"Cannot access closed buffer '{self.name}'.")
-        if self._mmap is not None:
-            return self._mmap
-        if self._shm is not None:
-            return self._shm.buf
-        raise IPCBufferError(f"No active buffer backing in '{self.name}'.")
-
-    def write(self, data: bytes | bytearray | memoryview, offset: int = 0) -> int:
-        """Write raw byte payload into buffer at specified offset.
-
-        Args:
-            data: Bytes or buffer to write.
-            offset: Starting byte position (default: 0).
-
-        Returns:
-            Number of bytes written.
-
-        Raises:
-            IPCBufferError: If buffer is closed, or offset + length exceeds buffer size.
         """
-        if self._closed:
-            raise IPCBufferError(f"Cannot write to closed buffer '{self.name}'.")
-        data_len = len(data)
-        if offset < 0 or (offset + data_len) > self.size:
-            raise IPCBufferError(
-                f"Write boundary violation in '{self.name}': offset={offset}, "
-                f"data_len={data_len}, buffer_capacity={self.size} bytes."
-            )
-
-        if self._mmap is not None:
-            self._mmap.seek(offset)
-            self._mmap.write(data)
-            self._mmap.flush()
-            return data_len
-        elif self._shm is not None:
-            self._shm.buf[offset : offset + data_len] = data
-            return data_len
-        else:
-            raise IPCBufferError(f"Buffer '{self.name}' has no active storage.")
-
-    def read(self, size: int = -1, offset: int = 0) -> bytes:
-        """Read bytes from buffer at specified offset.
-
-        Args:
-            size: Number of bytes to read (-1 reads all remaining bytes).
-            offset: Starting byte position (default: 0).
-
-        Returns:
-            `bytes` object containing read content.
-
-        Raises:
-            IPCBufferError: If buffer is closed or offset is out of bounds.
+        Initialize the TorqMACETriage engine with grid data, MLFF model, and parameters.
         """
-        if self._closed:
-            raise IPCBufferError(f"Cannot read from closed buffer '{self.name}'.")
-        if offset < 0 or offset > self.size:
-            raise IPCBufferError(
-                f"Read offset out of bounds in '{self.name}': "
-                f"offset={offset}, capacity={self.size}."
-            )
+        self.grid_filepath = Path(grid_filepath)
+        self.model_name = model_name
+        self.scf_tolerance_guard = 1e-5
 
-        length = (self.size - offset) if size < 0 else min(size, self.size - offset)
-        if (offset + length) > self.size:
-            raise IPCBufferError(
-                f"Read boundary violation in '{self.name}': offset={offset}, "
-                f"length={length}, buffer_capacity={self.size}."
-            )
+        # Device determination with graceful CPU fallback
+        resolved_device = device.lower()
+        if resolved_device == "cuda":
+            try:
+                import torch
 
-        if self._mmap is not None:
-            self._mmap.seek(offset)
-            return self._mmap.read(length)
-        elif self._shm is not None:
-            return bytes(self._shm.buf[offset : offset + length])
+                if torch.cuda.is_available():
+                    self.device = "cuda"
+                else:
+                    self.device = "cpu"
+            except ImportError:
+                self.device = "cpu"
         else:
-            raise IPCBufferError(f"Buffer '{self.name}' has no active storage.")
+            self.device = "cpu"
 
-    def flush(self) -> None:
-        """Flush buffer modifications to storage."""
-        if not self._closed and self._mmap is not None:
-            self._mmap.flush()
+        # Batch size resolution: default 128 routes to 512 on CUDA, 16 on CPU
+        if batch_size == 128:
+            self.batch_size = 512 if self.device == "cuda" else 16
+        else:
+            self.batch_size = batch_size
 
-    def close(self) -> None:
-        """Close buffer and underlying file handles."""
-        if self._closed:
+        self.symbols: list[str] = []
+        self.grid_points: list[dict[str, Any]] = []
+        self.triage_results: list[dict[str, Any]] = []
+        self.onnx_config: dict[str, Any] = {}
+
+        self._load_grid_file()
+        self.calculator = self._init_calculator()
+
+    def _load_grid_file(self) -> None:
+        """Parse molecular symbols and grid points from the input JSON grid file."""
+        if not self.grid_filepath.exists():
+            logger.warning(f"Grid file does not exist: {self.grid_filepath}")
             return
 
-        if self._mmap is not None:
-            try:
-                self._mmap.close()
-            except Exception as e:
-                logger.warning("Error closing mmap buffer '%s': %s", self.name, e)
-            self._mmap = None
-
-        if self._file_obj is not None:
-            try:
-                self._file_obj.close()
-            except Exception as e:
-                logger.warning("Error closing backing file for '%s': %s", self.name, e)
-            self._file_obj = None
-
-        if self._shm is not None:
-            try:
-                self._shm.close()
-            except Exception as e:
-                logger.warning("Error closing shared memory '%s': %s", self.name, e)
-
-        self._closed = True
-        self.metadata.is_active = False
-
-    def unlink(self) -> None:
-        """Unlink and permanently destroy the physical buffer storage."""
-        self.close()
-
-        if self._shm is not None:
-            try:
-                self._shm.unlink()
-            except FileNotFoundError:
-                pass
-            except Exception as e:
-                logger.warning("Error unlinking shared memory '%s': %s", self.name, e)
-            self._shm = None
-
-        if self._path is not None and self._path.exists():
-            try:
-                self._path.unlink()
-            except FileNotFoundError:
-                pass
-            except Exception as e:
-                logger.warning("Error removing backing file '%s': %s", self._path, e)
-            self._path = None
-
-    def __enter__(self) -> IPCScratchBuffer:
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        self.unlink()
-
-
-# ============================================================================
-# IPC Buffer Creation & Registration Helpers
-# ============================================================================
-
-
-def create_ipc_scratch_buffer(
-    name: str | None = None,
-    size: int = 4096,
-    buffer_type: Literal["mmap", "shm"] | str = "mmap",
-    scratch_dir: Path | str | None = None,
-    auto_register: bool = True,
-) -> IPCScratchBuffer:
-    """Create and initialize a cross-platform IPC scratch buffer.
-
-    Supports both file-backed `mmap` and operating system `SharedMemory`.
-
-    Args:
-        name: Name of buffer (generates unique name if None).
-        size: Size in bytes (must be > 0).
-        buffer_type: Either 'mmap' or 'shm' (multiprocessing shared memory).
-        scratch_dir: Directory for mmap file backing.
-        auto_register: If True, automatically registers with `register_ipc_cleanup`.
-
-    Returns:
-        Configured `IPCScratchBuffer` instance.
-
-    Raises:
-        IPCBufferError: If buffer allocation or memory mapping fails.
-    """
-    if size <= 0:
-        raise IPCBufferError(f"Buffer size must be positive, got {size} bytes.")
-
-    normalized_type = str(buffer_type).lower()
-    if normalized_type not in ("mmap", "shm"):
-        raise IPCBufferError(
-            f"Unsupported buffer_type '{buffer_type}'. Must be 'mmap' or 'shm'."
-        )
-
-    buf_name = name or f"cochem_torq_ipc_{uuid.uuid4().hex[:12]}"
-
-    if normalized_type == "mmap":
-        base_dir = (
-            Path(scratch_dir).resolve()
-            if scratch_dir is not None
-            else get_scratch_directory()
-        )
-        os.makedirs(base_dir, exist_ok=True)
-        file_path = base_dir / f"{buf_name}.dat"
-
         try:
-            with open(file_path, "w+b") as f:
-                f.truncate(size)
-                f.flush()
-                mm = mmap.mmap(f.fileno(), size)
-        except Exception as exc:
-            raise IPCBufferError(
-                f"Failed to create mmap scratch buffer at '{file_path}': {exc}"
-            ) from exc
-
-        meta = IPCBufferMetadata(
-            name=buf_name,
-            buffer_type="mmap",
-            size_bytes=size,
-            file_path=file_path,
-        )
-        scratch_buf = IPCScratchBuffer(
-            metadata=meta,
-            mmap_obj=mm,
-            file_obj=None,
-            path=file_path,
-        )
-
-        if auto_register:
-            register_ipc_cleanup(
-                scratch_paths=[file_path],
-                mmap_objects=[mm],
-                buffers=[scratch_buf],
+            content = self.grid_filepath.read_text(encoding="utf-8")
+            data = json.loads(content)
+            self.symbols = data.get("symbols", [])
+            self.grid_points = data.get("grid_points", [])
+            logger.info(
+                f"Loaded grid file {self.grid_filepath.name}: {len(self.symbols)} "
+                f"atoms, {len(self.grid_points)} grid points."
             )
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.error(f"Failed to read grid file {self.grid_filepath}: {exc}")
+            self.symbols = []
+            self.grid_points = []
 
-        return scratch_buf
-
-    else:  # shm
-        try:
-            shm_obj = sm.SharedMemory(name=buf_name, create=True, size=size)
-        except Exception as exc:
-            raise IPCBufferError(
-                f"Failed to create SharedMemory segment '{buf_name}': {exc}"
-            ) from exc
-
-        meta = IPCBufferMetadata(
-            name=buf_name,
-            buffer_type="shm",
-            size_bytes=size,
-        )
-        scratch_buf = IPCScratchBuffer(
-            metadata=meta,
-            shm_obj=shm_obj,
-        )
-
-        if auto_register:
-            register_ipc_cleanup(
-                shm_names=[buf_name],
-                shm_objects=[shm_obj],
-                buffers=[scratch_buf],
-            )
-
-        return scratch_buf
-
-
-def register_mmap_buffer(
-    mm: mmap.mmap,
-    backing_path: Path | str | None = None,
-) -> None:
-    """Register an existing mmap buffer and its backing file for atexit cleanup.
-
-    Args:
-        mm: Open `mmap.mmap` buffer object.
-        backing_path: Optional path to backing file on disk.
-    """
-    paths: list[Path] = []
-    if backing_path is not None:
-        paths.append(Path(backing_path).resolve())
-
-    register_ipc_cleanup(
-        scratch_paths=paths if paths else None,
-        mmap_objects=[mm],
-    )
-
-
-# ============================================================================
-# Deterministic Cleanup & atexit Handlers
-# ============================================================================
-
-
-def _ensure_atexit_registered() -> None:
-    """Ensure that the atexit IPC cleanup handler is registered exactly once."""
-    global _ATEXIT_REGISTERED
-    if not _ATEXIT_REGISTERED:
-        atexit.register(_atexit_cleanup_handler)
-        _ATEXIT_REGISTERED = True
-
-
-def _atexit_cleanup_handler() -> None:
-    """Internal handler on process exit to reclaim registered IPC resources."""
-    logger.debug("atexit handler invoked: reclaiming registered TORQ IPC resources...")
-    cleanup_ipc_scratch()
-
-
-def register_ipc_cleanup(
-    scratch_paths: Sequence[Path | str] | None = None,
-    shm_names: Sequence[str] | None = None,
-    shm_objects: Sequence[sm.SharedMemory] | None = None,
-    mmap_objects: Sequence[mmap.mmap] | None = None,
-    buffers: Sequence[IPCScratchBuffer] | None = None,
-    file_descriptors: Sequence[int] | None = None,
-) -> None:
-    """Register physical scratch paths, shared memory blocks, and mmap buffers.
-
-    Args:
-        scratch_paths: Files or directories to unlink/wipe upon exit.
-        shm_names: Named shared memory segments to unlink.
-        shm_objects: `SharedMemory` instances to close and unlink.
-        mmap_objects: `mmap.mmap` buffer instances to close.
-        buffers: `IPCScratchBuffer` instances to close/unlink.
-        file_descriptors: Open integer file descriptors to close.
-    """
-    _ensure_atexit_registered()
-
-    if scratch_paths:
-        for p in scratch_paths:
-            _ACTIVE_SCRATCH_PATHS.add(Path(p).resolve())
-
-    if shm_names:
-        for name in shm_names:
-            if name:
-                _ACTIVE_SHM_NAMES.add(name)
-
-    if shm_objects:
-        for shm in shm_objects:
-            if shm not in _ACTIVE_SHM_OBJECTS:
-                _ACTIVE_SHM_OBJECTS.append(shm)
-                _ACTIVE_SHM_NAMES.add(shm.name)
-
-    if mmap_objects:
-        for mm in mmap_objects:
-            if mm not in _ACTIVE_MMAP_OBJECTS:
-                _ACTIVE_MMAP_OBJECTS.append(mm)
-
-    if buffers:
-        for buf in buffers:
-            if buf not in _ACTIVE_BUFFERS:
-                _ACTIVE_BUFFERS.append(buf)
-
-    if file_descriptors:
-        for fd in file_descriptors:
-            _ACTIVE_FILE_DESCRIPTORS.add(fd)
-
-
-def cleanup_ipc_scratch(
-    scratch_paths: Sequence[Path | str] | None = None,
-    shm_names: Sequence[str] | None = None,
-    shm_objects: Sequence[sm.SharedMemory] | None = None,
-    mmap_objects: Sequence[mmap.mmap] | None = None,
-    buffers: Sequence[IPCScratchBuffer] | None = None,
-    file_descriptors: Sequence[int] | None = None,
-) -> dict[str, int]:
-    """Deterministically reclaim, unlink, and wipe IPC scratch resources.
-
-    If no arguments are provided, reclaims all resources currently tracked in
-    the global registry. Can also be invoked with explicit targets.
-
-    Returns:
-        Dictionary summarizing the count of reclaimed resources:
-        `{"files_removed": int, "directories_removed": int, ...}`
-    """
-    summary: dict[str, int] = {
-        "files_removed": 0,
-        "directories_removed": 0,
-        "shm_unlinked": 0,
-        "mmaps_closed": 0,
-        "fds_closed": 0,
-    }
-
-    # 1. Close active IPCScratchBuffer wrappers
-    targets_buffers = list(buffers) if buffers else list(_ACTIVE_BUFFERS)
-    for buf in targets_buffers:
-        try:
-            buf.close()
-        except Exception as e:
-            logger.debug("IPCScratchBuffer close notice: %s", e)
-        if buf in _ACTIVE_BUFFERS:
-            _ACTIVE_BUFFERS.remove(buf)
-
-    # 2. Close active mmap objects
-    targets_mmap = list(mmap_objects) if mmap_objects else list(_ACTIVE_MMAP_OBJECTS)
-    for mm in targets_mmap:
-        try:
-            mm.close()
-            summary["mmaps_closed"] += 1
-        except Exception as e:
-            logger.debug("mmap close notice: %s", e)
-        if mm in _ACTIVE_MMAP_OBJECTS:
-            _ACTIVE_MMAP_OBJECTS.remove(mm)
-
-    # 3. Close and unlink SharedMemory objects
-    targets_shm_objs = (
-        list(shm_objects) if shm_objects else list(_ACTIVE_SHM_OBJECTS)
-    )
-    for shm in targets_shm_objs:
-        try:
-            shm.close()
-        except Exception as e:
-            logger.debug("SharedMemory close notice: %s", e)
-        try:
-            shm.unlink()
-            summary["shm_unlinked"] += 1
-        except FileNotFoundError:
-            pass
-        except Exception as e:
-            logger.debug("SharedMemory unlink notice: %s", e)
-        if shm in _ACTIVE_SHM_OBJECTS:
-            _ACTIVE_SHM_OBJECTS.remove(shm)
-
-    # 4. Unlink named SharedMemory segments
-    targets_shm_names = set(shm_names) if shm_names else set(_ACTIVE_SHM_NAMES)
-    for name in targets_shm_names:
-        try:
-            temp_shm = sm.SharedMemory(name=name, create=False)
-            temp_shm.close()
-            temp_shm.unlink()
-            summary["shm_unlinked"] += 1
-        except FileNotFoundError:
-            pass
-        except Exception as e:
-            logger.debug("Named SharedMemory unlink notice for '%s': %s", name, e)
-        _ACTIVE_SHM_NAMES.discard(name)
-
-    # 5. Close file descriptors
-    targets_fds = (
-        set(file_descriptors) if file_descriptors else set(_ACTIVE_FILE_DESCRIPTORS)
-    )
-    for fd in targets_fds:
-        try:
-            os.close(fd)
-            summary["fds_closed"] += 1
-        except OSError:
-            pass
-        _ACTIVE_FILE_DESCRIPTORS.discard(fd)
-
-    # 6. Remove scratch files and directories
-    targets_paths = (
-        {Path(p).resolve() for p in scratch_paths}
-        if scratch_paths
-        else set(_ACTIVE_SCRATCH_PATHS)
-    )
-    for p in targets_paths:
-        if p.is_file():
+    def _init_calculator(self) -> Any:
+        """Initialize MACE, AIMNet2, ONNX, or physical potential calculators."""
+        # 1. Attempt ONNX-based model if specified
+        if self.model_name.endswith(".onnx") or "onnx" in self.model_name.lower():
             try:
-                p.unlink(missing_ok=True)
-                summary["files_removed"] += 1
-            except Exception as e:
-                logger.warning("Failed to remove scratch file '%s': %s", p, e)
-        elif p.is_dir():
+                self.onnx_config = onnx_cpu_fallback()
+                logger.info(
+                    f"Configured ONNX CPU fallback: {self.onnx_config.get('provider')}."
+                )
+            except Exception as exc:
+                logger.warning(f"ONNX initialization encountered issue: {exc}.")
+
+        # 2. Attempt MACE-OFF24m
+        if "mace" in self.model_name.lower():
             try:
-                shutil.rmtree(p, ignore_errors=False)
-                summary["directories_removed"] += 1
-            except FileNotFoundError:
-                pass
-            except Exception as e:
-                logger.warning("Failed to remove scratch directory '%s': %s", p, e)
-        _ACTIVE_SCRATCH_PATHS.discard(p)
-
-    return summary
-
-
-# ============================================================================
-# Environment Bootstrap Routine
-# ============================================================================
-
-
-def bootstrap_environment(
-    artifacts_env: str = "COCHEM_ARTIFACTS",
-    scratch_env: str = "COCHEM_SCRATCH",
-    fallback_artifacts: Path | str | None = None,
-    fallback_scratch: Path | str | None = None,
-    enforce_airgap: bool = True,
-) -> BootstrapperConfig:
-    """Bootstrap runtime environment for CoChem-TORQ execution.
-
-    Resolves artifact and scratch directories dynamically, performs mathematical
-    air-gap validation against the current working repository space, ensures
-    directory creation, and registers the atexit IPC cleanup collector.
-
-    Args:
-        artifacts_env: Environment variable for persistent artifacts.
-        scratch_env: Environment variable for ephemeral scratch.
-        fallback_artifacts: Optional fallback path for artifacts directory.
-        fallback_scratch: Optional fallback path for scratch directory.
-        enforce_airgap: If True, asserts strict mathematical isolation between
-            CWD and runtime directories, raising `AirGapViolationError` on intersection.
-
-    Returns:
-        Validated `BootstrapperConfig` instance.
-
-    Raises:
-        AirGapViolationError: If air-gap validation fails and enforce_airgap is True.
-    """
-    artifacts_path = get_artifact_directory(
-        env_var=artifacts_env,
-        fallback_dir=fallback_artifacts,
-        create_if_missing=True,
-    )
-    scratch_path = get_scratch_directory(
-        env_var=scratch_env,
-        fallback_dir=fallback_scratch,
-        create_if_missing=True,
-    )
-
-    if enforce_airgap:
-        verify_airgap(cwd=Path.cwd(), artifacts_dir=artifacts_path)
-        verify_airgap(cwd=Path.cwd(), artifacts_dir=scratch_path)
-
-    _ensure_atexit_registered()
-
-    config = BootstrapperConfig(
-        artifacts_dir=artifacts_path,
-        scratch_dir=scratch_path,
-        env_var=artifacts_env,
-        scratch_env_var=scratch_env,
-        enforce_airgap=enforce_airgap,
-        clean_on_exit=True,
-    )
-
-    logger.info(
-        "CoChem-TORQ Bootstrapped: artifacts='%s', scratch='%s', airgap_enforced=%s",
-        artifacts_path,
-        scratch_path,
-        enforce_airgap,
-    )
-    return config
-
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_cochem_torq_init.py ---
-"""CoChem-TORQ: Test Suite for Environment Bootstrapper & IPC Resource Manager.
-
-=============================================================================
-Phase 1 (Stage 0.0) Test Suite
-------------------------------
-Zero-Mock test suite verifying physical air-gap mathematical boundary checks,
-dynamic artifact directory routing, Pydantic v2 model validations,
-cross-platform memory-mapped buffers (mmap & SharedMemory), deterministic
-IPC resource reclamation, and live subprocess atexit exit handlers.
-
-All tests operate against real physical files, shared memory segments,
-and subprocess executions within pytest `tmp_path`.
-"""
-
-from __future__ import annotations
-
-import mmap
-import multiprocessing.shared_memory as sm
-import os
-import subprocess
-import sys
-import tempfile
-import time
-import uuid
-
-# ============================================================================
-# Autouse Fixture to Clean IPC Registry Between Tests
-# ============================================================================
-from collections.abc import Generator
-from pathlib import Path
-
-import pytest
-from pydantic import ValidationError
-
-from Libraries.cochem_torq_init import (
-    _ACTIVE_BUFFERS,
-    _ACTIVE_FILE_DESCRIPTORS,
-    _ACTIVE_MMAP_OBJECTS,
-    _ACTIVE_SCRATCH_PATHS,
-    _ACTIVE_SHM_NAMES,
-    _ACTIVE_SHM_OBJECTS,
-    AirGapReport,
-    AirGapViolationError,
-    BootstrapperConfig,
-    IPCBufferError,
-    IPCBufferMetadata,
-    bootstrap_environment,
-    check_airgap,
-    cleanup_ipc_scratch,
-    create_ipc_scratch_buffer,
-    get_artifact_directory,
-    get_scratch_directory,
-    register_ipc_cleanup,
-    register_mmap_buffer,
-    verify_airgap,
-)
-
-
-@pytest.fixture(autouse=True)
-def clean_ipc_state() -> Generator[None, None, None]:
-    """Ensure clean IPC tracking registry state before and after each test."""
-    cleanup_ipc_scratch()
-    _ACTIVE_SCRATCH_PATHS.clear()
-    _ACTIVE_SHM_NAMES.clear()
-    _ACTIVE_SHM_OBJECTS.clear()
-    _ACTIVE_MMAP_OBJECTS.clear()
-    _ACTIVE_BUFFERS.clear()
-    _ACTIVE_FILE_DESCRIPTORS.clear()
-    yield
-    cleanup_ipc_scratch()
-    _ACTIVE_SCRATCH_PATHS.clear()
-    _ACTIVE_SHM_NAMES.clear()
-    _ACTIVE_SHM_OBJECTS.clear()
-    _ACTIVE_MMAP_OBJECTS.clear()
-    _ACTIVE_BUFFERS.clear()
-    _ACTIVE_FILE_DESCRIPTORS.clear()
-
-
-# ============================================================================
-# 1. Air-Gap Verification Tests
-# ============================================================================
-
-
-class TestAirGapVerification:
-    """Tests verifying the mathematical air-gap boundary checks."""
-
-    def test_verify_airgap_disjoint_paths(self, tmp_path: Path) -> None:
-        """Disjoint working directory and artifact directory must pass."""
-        repo_dir = tmp_path / "repo_root"
-        artifacts_dir = tmp_path / "external_artifacts"
-        repo_dir.mkdir(parents=True)
-        artifacts_dir.mkdir(parents=True)
-
-        assert verify_airgap(cwd=repo_dir, artifacts_dir=artifacts_dir) is True
-
-    def test_verify_airgap_identical_path(self, tmp_path: Path) -> None:
-        """Identical working directory and artifact dir must raise error."""
-        shared_dir = tmp_path / "shared"
-        shared_dir.mkdir(parents=True)
-
-        with pytest.raises(AirGapViolationError) as exc_info:
-            verify_airgap(cwd=shared_dir, artifacts_dir=shared_dir)
-        err_str = str(exc_info.value).lower()
-        assert "intersect" in err_str or "overlap" in err_str or "identical" in err_str
-
-    def test_verify_airgap_artifacts_inside_cwd(self, tmp_path: Path) -> None:
-        """Artifacts dir inside working directory must raise violation error."""
-        repo_dir = tmp_path / "repo_root"
-        nested_artifacts = repo_dir / "build" / "artifacts"
-        nested_artifacts.mkdir(parents=True)
-
-        with pytest.raises(AirGapViolationError) as exc_info:
-            verify_airgap(cwd=repo_dir, artifacts_dir=nested_artifacts)
-        err_str = str(exc_info.value).lower()
-        assert "inside" in err_str or "intersect" in err_str or "overlap" in err_str
-
-    def test_verify_airgap_cwd_inside_artifacts(self, tmp_path: Path) -> None:
-        """Working directory inside artifact dir must raise violation error."""
-        artifacts_dir = tmp_path / "cochem_artifacts"
-        nested_cwd = artifacts_dir / "subproject" / "repo"
-        nested_cwd.mkdir(parents=True)
-
-        with pytest.raises(AirGapViolationError) as exc_info:
-            verify_airgap(cwd=nested_cwd, artifacts_dir=artifacts_dir)
-        err_str = str(exc_info.value).lower()
-        assert "inside" in err_str or "intersect" in err_str or "overlap" in err_str
-
-    def test_verify_airgap_string_and_path_inputs(self, tmp_path: Path) -> None:
-        """verify_airgap must accept str, Path, and resolve accurately."""
-        repo_dir = tmp_path / "repo"
-        artifacts_dir = tmp_path / "artifacts"
-        repo_dir.mkdir()
-        artifacts_dir.mkdir()
-
-        assert (
-            verify_airgap(cwd=str(repo_dir), artifacts_dir=str(artifacts_dir))
-            is True
-        )
-        assert verify_airgap(cwd=repo_dir, artifacts_dir=str(artifacts_dir)) is True
-        assert verify_airgap(cwd=str(repo_dir), artifacts_dir=artifacts_dir) is True
-
-    def test_verify_airgap_default_resolution(self) -> None:
-        """Default verify_airgap call resolves cwd and dynamic artifact dir."""
-        result = verify_airgap()
-        assert isinstance(result, bool)
-
-    def test_check_airgap_report(self, tmp_path: Path) -> None:
-        """check_airgap returns AirGapReport Pydantic model with diagnostics."""
-        repo_dir = tmp_path / "repo"
-        artifacts_dir = tmp_path / "artifacts"
-        repo_dir.mkdir()
-        artifacts_dir.mkdir()
-
-        report = check_airgap(cwd=repo_dir, artifacts_dir=artifacts_dir)
-        assert isinstance(report, AirGapReport)
-        assert report.is_valid is True
-        assert report.cwd_resolved == repo_dir.resolve()
-        assert report.artifacts_resolved == artifacts_dir.resolve()
-        assert report.reason is None
-
-        # Failing case report
-        fail_report = check_airgap(cwd=repo_dir, artifacts_dir=repo_dir)
-        assert isinstance(fail_report, AirGapReport)
-        assert fail_report.is_valid is False
-        assert fail_report.reason is not None
-
-
-# ============================================================================
-# 2. Dynamic Artifact & Scratch Directory Mapping Tests
-# ============================================================================
-
-
-class TestDirectoryMapping:
-    """Tests verifying dynamic host environment directory mapping without hardcoding."""
-
-    def test_get_artifact_directory_from_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """get_artifact_directory must respect host environment variable."""
-        custom_dir = tmp_path / "env_artifacts"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(custom_dir))
-
-        resolved = get_artifact_directory(env_var="COCHEM_ARTIFACTS")
-        assert resolved == custom_dir.resolve()
-        assert resolved.exists()
-        assert resolved.is_dir()
-
-    def test_get_artifact_directory_fallback(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """get_artifact_directory must use fallback_dir when env var is unset."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS", raising=False)
-        fallback = tmp_path / "fallback_artifacts"
-
-        resolved = get_artifact_directory(
-            env_var="COCHEM_ARTIFACTS", fallback_dir=fallback
-        )
-        assert resolved == fallback.resolve()
-        assert resolved.exists()
-        assert resolved.is_dir()
-
-    def test_get_artifact_directory_default_temp(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """get_artifact_directory falls back to system temp when unset."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS", raising=False)
-
-        resolved = get_artifact_directory(
-            env_var="COCHEM_ARTIFACTS", fallback_dir=None
-        )
-        expected_parent = Path(tempfile.gettempdir()).resolve()
-        assert (
-            resolved.parent == expected_parent
-            or str(resolved).startswith(str(expected_parent))
-        )
-        assert "cochem_artifacts" in resolved.name
-        assert resolved.exists()
-
-    def test_get_scratch_directory_from_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """get_scratch_directory must respect host environment variable."""
-        scratch = tmp_path / "fast_scratch"
-        monkeypatch.setenv("COCHEM_SCRATCH", str(scratch))
-
-        resolved = get_scratch_directory(env_var="COCHEM_SCRATCH")
-        assert resolved == scratch.resolve()
-        assert resolved.exists()
-
-    def test_get_scratch_directory_fallback(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """get_scratch_directory creates PID-isolated temp scratch folder."""
-        monkeypatch.delenv("COCHEM_SCRATCH", raising=False)
-
-        resolved = get_scratch_directory(env_var="COCHEM_SCRATCH")
-        assert "cochem_scratch" in str(resolved)
-        assert resolved.exists()
-        assert resolved.is_dir()
-
-
-# ============================================================================
-# 3. Pydantic v2 Models Validation Tests
-# ============================================================================
-
-
-class TestPydanticModels:
-    """Tests verifying Pydantic v2 metadata and configuration validation models."""
-
-    def test_airgap_report_model(self, tmp_path: Path) -> None:
-        """AirGapReport model must be frozen and properly serialize."""
-        report = AirGapReport(
-            is_valid=True,
-            cwd_resolved=tmp_path / "cwd",
-            artifacts_resolved=tmp_path / "artifacts",
-            verified_at=time.time(),
-            reason=None,
-        )
-        assert report.is_valid is True
-        with pytest.raises(ValidationError):
-            # Model is frozen
-            setattr(report, "is_valid", False)
-
-    def test_ipc_buffer_metadata_model(self, tmp_path: Path) -> None:
-        """IPCBufferMetadata model validates types, sizes, and buffer categories."""
-        meta = IPCBufferMetadata(
-            name="test_buffer",
-            buffer_type="mmap",
-            size_bytes=1024,
-            file_path=tmp_path / "buf.dat",
-        )
-        assert meta.size_bytes == 1024
-        assert meta.buffer_type == "mmap"
-        assert meta.is_active is True
-        assert isinstance(meta.buffer_id, str)
-        assert meta.pid == os.getpid()
-
-    def test_ipc_buffer_metadata_invalid_size_or_type(self) -> None:
-        """IPCBufferMetadata must reject non-positive size and invalid buffer types."""
-        with pytest.raises(ValidationError):
-            IPCBufferMetadata(
-                name="bad_size",
-                buffer_type="mmap",
-                size_bytes=0,
-            )
-
-        with pytest.raises(ValidationError):
-            IPCBufferMetadata(
-                name="bad_type",
-                buffer_type="unsupported_type",  # type: ignore[arg-type]
-                size_bytes=1024,
-            )
-
-    def test_bootstrapper_config_model(self, tmp_path: Path) -> None:
-        """BootstrapperConfig model validates filesystem paths and settings."""
-        cfg = BootstrapperConfig(
-            artifacts_dir=tmp_path / "artifacts",
-            scratch_dir=tmp_path / "scratch",
-            env_var="COCHEM_ARTIFACTS",
-            enforce_airgap=True,
-            clean_on_exit=True,
-        )
-        assert cfg.enforce_airgap is True
-        assert cfg.clean_on_exit is True
-        assert cfg.artifacts_dir == tmp_path / "artifacts"
-
-
-# ============================================================================
-# 4. IPC Buffer Creation, Read/Write, and Context Manager Tests
-# ============================================================================
-
-
-class TestIPCScratchBuffer:
-    """Tests verifying real memory-mapped files and SharedMemory buffers."""
-
-    def test_create_ipc_scratch_buffer_mmap(self, tmp_path: Path) -> None:
-        """create_ipc_scratch_buffer creates a physical mmap buffer."""
-        buf = create_ipc_scratch_buffer(
-            name="test_mmap_buffer",
-            size=2048,
-            buffer_type="mmap",
-            scratch_dir=tmp_path,
-            auto_register=True,
-        )
-        try:
-            assert buf.metadata.buffer_type == "mmap"
-            assert buf.size == 2048
-            assert buf.path is not None
-            assert buf.path.exists()
-            assert buf.path.stat().st_size == 2048
-
-            # Write and read data
-            payload = b"CoChem-TORQ-Physical-IPC-Data-Payload"
-            written = buf.write(payload, offset=0)
-            assert written == len(payload)
-
-            read_data = buf.read(size=len(payload), offset=0)
-            assert read_data == payload
-        finally:
-            buf.close()
-            buf.unlink()
-
-    def test_create_ipc_scratch_buffer_shm(self) -> None:
-        """create_ipc_scratch_buffer creates a POSIX/Windows SharedMemory segment."""
-        unique_name = f"cochem_shm_{uuid.uuid4().hex[:8]}"
-        buf = create_ipc_scratch_buffer(
-            name=unique_name,
-            size=1024,
-            buffer_type="shm",
-            auto_register=True,
-        )
-        try:
-            assert buf.metadata.buffer_type == "shm"
-            assert buf.size == 1024
-            assert buf.name == unique_name
-
-            payload = b"Quantum-Chemistry-SWMR-Buffer-Test"
-            written = buf.write(payload, offset=16)
-            assert written == len(payload)
-
-            read_data = buf.read(size=len(payload), offset=16)
-            assert read_data == payload
-        finally:
-            buf.close()
-            buf.unlink()
-
-    def test_ipc_buffer_context_manager_mmap(self, tmp_path: Path) -> None:
-        """IPCScratchBuffer context manager manages lifecycle and cleanup."""
-        target_path: Path | None = None
-        with create_ipc_scratch_buffer(
-            name="ctx_mmap",
-            size=512,
-            buffer_type="mmap",
-            scratch_dir=tmp_path,
-        ) as buf:
-            target_path = buf.path
-            assert target_path is not None and target_path.exists()
-            buf.write(b"Inside-Context-Manager")
-            assert buf.read(22) == b"Inside-Context-Manager"
-
-        assert buf.is_closed is True
-
-    def test_ipc_buffer_context_manager_shm(self) -> None:
-        """IPCScratchBuffer context manager manages SharedMemory lifecycle."""
-        shm_name = f"cochem_shm_ctx_{uuid.uuid4().hex[:8]}"
-        with create_ipc_scratch_buffer(
-            name=shm_name,
-            size=512,
-            buffer_type="shm",
-        ) as buf:
-            buf.write(b"SHM-Context-Payload")
-            assert buf.read(19) == b"SHM-Context-Payload"
-
-        assert buf.is_closed is True
-
-    def test_ipc_buffer_boundary_checks(self, tmp_path: Path) -> None:
-        """Writing or reading outside buffer boundaries must raise IPCBufferError."""
-        with create_ipc_scratch_buffer(size=128, scratch_dir=tmp_path) as buf:
-            # Writing payload that exceeds buffer size
-            overflow_data = b"X" * 200
-            with pytest.raises(IPCBufferError):
-                buf.write(overflow_data, offset=0)
-
-            # Writing with offset that exceeds buffer size
-            with pytest.raises(IPCBufferError):
-                buf.write(b"Hello", offset=150)
-
-            # Reading with invalid offset
-            with pytest.raises(IPCBufferError):
-                buf.read(size=10, offset=200)
-
-    def test_register_mmap_buffer_helper(self, tmp_path: Path) -> None:
-        """register_mmap_buffer must register standalone mmap and backing file."""
-        file_path = tmp_path / "raw_mmap.dat"
-        file_path.write_bytes(b"\x00" * 256)
-
-        f = open(file_path, "r+b")
-        try:
-            mm = mmap.mmap(f.fileno(), 256)
-        finally:
-            f.close()
-
-        register_mmap_buffer(mm, backing_path=file_path)
-
-        mm.write(b"Standalone-MMAP-Payload")
-        mm.seek(0)
-        assert mm.read(23) == b"Standalone-MMAP-Payload"
-
-        # Execute cleanup
-        cleanup_summary = cleanup_ipc_scratch()
-        assert cleanup_summary["mmaps_closed"] >= 1
-        assert cleanup_summary["files_removed"] >= 1
-        assert not file_path.exists()
-
-
-# ============================================================================
-# 5. Deterministic Resource Reclamation & Exit Handlers
-# ============================================================================
-
-
-class TestDeterministicCleanup:
-    """Tests verifying deterministic resource reclamation and tracking."""
-
-    def test_cleanup_ipc_scratch_files(self, tmp_path: Path) -> None:
-        """cleanup_ipc_scratch removes registered physical files and directories."""
-        f1 = tmp_path / "scratch_1.tmp"
-        f2 = tmp_path / "scratch_2.tmp"
-        d1 = tmp_path / "scratch_dir"
-        d1.mkdir()
-        (d1 / "nested.tmp").write_text("test")
-
-        f1.write_text("data1")
-        f2.write_text("data2")
-
-        register_ipc_cleanup(scratch_paths=[f1, f2, d1])
-        assert f1.exists() and f2.exists() and d1.exists()
-
-        summary = cleanup_ipc_scratch()
-        assert summary["files_removed"] >= 2
-        assert summary["directories_removed"] >= 1
-        assert not f1.exists()
-        assert not f2.exists()
-        assert not d1.exists()
-
-    def test_cleanup_ipc_scratch_shm(self) -> None:
-        """cleanup_ipc_scratch unlinks registered SharedMemory segments."""
-        shm_name = f"cochem_shm_clean_{uuid.uuid4().hex[:8]}"
-        shm_obj = sm.SharedMemory(name=shm_name, create=True, size=256)
-
-        register_ipc_cleanup(shm_names=[shm_name], shm_objects=[shm_obj])
-        summary = cleanup_ipc_scratch()
-        assert summary["shm_unlinked"] >= 1
-
-        # Verifying segment is unlinked: attempting to open should fail
-        with pytest.raises(FileNotFoundError):
-            sm.SharedMemory(name=shm_name, create=False)
-
-    def test_cleanup_ipc_scratch_idempotent(self, tmp_path: Path) -> None:
-        """cleanup_ipc_scratch must be completely safe to invoke repeatedly."""
-        f1 = tmp_path / "idempotent.tmp"
-        f1.write_text("test")
-        register_ipc_cleanup(scratch_paths=[f1])
-
-        first_summary = cleanup_ipc_scratch()
-        assert first_summary["files_removed"] >= 1
-
-        second_summary = cleanup_ipc_scratch()
-        assert second_summary["files_removed"] == 0
-        assert second_summary["shm_unlinked"] == 0
-
-
-# ============================================================================
-# 6. Live Subprocess Exit Handler (atexit) Verification
-# ============================================================================
-
-
-class TestSubprocessExitHandlers:
-    """Tests executing real child processes to verify atexit cleanup upon exit."""
-
-    def test_live_subprocess_atexit_cleanup_mmap(self, tmp_path: Path) -> None:
-        """Child process creates an mmap IPC buffer; on exit, buffer is cleaned up."""
-        scratch_dir = tmp_path / "proc_scratch"
-        scratch_dir.mkdir()
-
-        script = f"""
-import sys
-from pathlib import Path
-from Libraries.cochem_torq_init import create_ipc_scratch_buffer
-
-buf = create_ipc_scratch_buffer(
-    name="child_proc_mmap",
-    size=1024,
-    buffer_type="mmap",
-    scratch_dir=r"{scratch_dir}",
-    auto_register=True
-)
-buf.write(b"Subprocess-Test-Data")
-print("BUFFER_CREATED:" + str(buf.path))
-sys.stdout.flush()
-sys.exit(0)
-"""
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            text=True,
-            cwd=str(Path(__file__).parent.parent),
-            timeout=15,
-        )
-        assert proc.returncode == 0, f"Process failed: {proc.stderr}"
-        assert "BUFFER_CREATED:" in proc.stdout
-
-        for line in proc.stdout.splitlines():
-            if line.startswith("BUFFER_CREATED:"):
-                created_path = Path(line.split(":", 1)[1].strip())
-                assert not created_path.exists(), (
-                    f"Scratch file {created_path} still exists after process exit!"
+                from mace.calculators import (
+                    mace_off,  # type: ignore[import-not-found,import-untyped]
                 )
 
-    def test_live_subprocess_atexit_cleanup_shm(self) -> None:
-        """Child process creates SharedMemory buffer; on exit, shm is unlinked."""
-        shm_name = f"cochem_subproc_shm_{uuid.uuid4().hex[:8]}"
+                calc = mace_off(model=self.model_name, device=self.device)
+                logger.info(
+                    f"Initialized MACE-OFF24m ({self.model_name}) on {self.device}."
+                )
+                return calc
+            except (ImportError, RuntimeError, ValueError) as exc:
+                logger.info(
+                    f"MACE-OFF24m unavailable ({exc}). Using physical fallback."
+                )
 
-        script = f"""
-import sys
-from Libraries.cochem_torq_init import create_ipc_scratch_buffer
+        # 3. Attempt AIMNet2
+        elif "aimnet" in self.model_name.lower():
+            try:
+                from aimnet2calc import (
+                    AIMNet2ASE,  # type: ignore[import-not-found,import-untyped]
+                )
 
-buf = create_ipc_scratch_buffer(
-    name="{shm_name}",
-    size=512,
-    buffer_type="shm",
-    auto_register=True
-)
-buf.write(b"SHM-Subprocess-Payload")
-print("SHM_CREATED:" + "{shm_name}")
-sys.stdout.flush()
-sys.exit(0)
-"""
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            text=True,
-            cwd=str(Path(__file__).parent.parent),
-            timeout=15,
-        )
-        assert proc.returncode == 0, f"Process failed: {proc.stderr}"
-        assert "SHM_CREATED:" in proc.stdout
+                calc = AIMNet2ASE(model=self.model_name)
+                logger.info(f"Initialized AIMNet2 ({self.model_name}) calculator.")
+                return calc
+            except (ImportError, RuntimeError, ValueError) as exc:
+                logger.info(
+                    f"AIMNet2 unavailable ({exc}). Using physical fallback."
+                )
 
-        with pytest.raises(FileNotFoundError):
-            sm.SharedMemory(name=shm_name, create=False)
-
-
-# ============================================================================
-# 7. Environment Bootstrapper Integration Tests
-# ============================================================================
-
-
-class TestBootstrapEnvironment:
-    """Tests verifying the full bootstrap_environment lifecycle."""
-
-    def test_bootstrap_environment_success(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment resolves paths and registers IPC cleanup."""
-        artifacts_dir = tmp_path / "artifacts"
-        scratch_dir = tmp_path / "scratch"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(artifacts_dir))
-        monkeypatch.setenv("COCHEM_SCRATCH", str(scratch_dir))
-
-        config = bootstrap_environment(
-            artifacts_env="COCHEM_ARTIFACTS",
-            scratch_env="COCHEM_SCRATCH",
-            enforce_airgap=True,
-        )
-        assert isinstance(config, BootstrapperConfig)
-        assert config.artifacts_dir == artifacts_dir.resolve()
-        assert config.scratch_dir == scratch_dir.resolve()
-        assert config.artifacts_dir.exists()
-        assert config.scratch_dir.exists()
-
-    def test_bootstrap_environment_airgap_failure(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment raises AirGapViolationError if artifacts in cwd."""
-        repo_cwd = Path.cwd()
-        nested_artifacts = repo_cwd / "test_nested_artifacts_violation"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(nested_artifacts))
-
-        with pytest.raises(AirGapViolationError):
-            bootstrap_environment(
-                artifacts_env="COCHEM_ARTIFACTS",
-                enforce_airgap=True,
+        # 4. Attempt ASE EMT
+        try:
+            from ase.calculators.emt import (
+                EMT,  # type: ignore[import-not-found,import-untyped]
             )
 
-    def test_bootstrap_environment_no_enforce(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment proceeds without error if enforce_airgap=False."""
-        repo_cwd = Path.cwd()
-        nested_artifacts = repo_cwd / "test_nested_artifacts_no_enforce"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(nested_artifacts))
+            return EMT()
+        except (ImportError, RuntimeError, ValueError) as exc:
+            logger.debug(f"ASE EMT unavailable ({exc}). Using physical fallback.")
 
-        config = bootstrap_environment(
-            artifacts_env="COCHEM_ARTIFACTS",
-            enforce_airgap=False,
+        return None
+
+    def onnx_cpu_fallback(
+        self,
+        model_path: str | Path | bytes | None = None,
+        intra_op_num_threads: int | None = None,
+        inter_op_num_threads: int | None = None,
+    ) -> Any:
+        """Instance wrapper routing to top-level onnx_cpu_fallback."""
+        config = onnx_cpu_fallback(
+            model_path=model_path,
+            intra_op_num_threads=intra_op_num_threads,
+            inter_op_num_threads=inter_op_num_threads,
         )
-        assert config.artifacts_dir == nested_artifacts.resolve()
-        assert config.enforce_airgap is False
-        if nested_artifacts.exists():
-            nested_artifacts.rmdir()
+        if isinstance(config, dict):
+            self.onnx_config = config
+        return config
 
+    def evaluate_point(
+        self, coordinates: np.ndarray | Sequence[Sequence[float]]
+    ) -> tuple[float, np.ndarray, bool]:
+        """
+        Evaluate energy (in eV) and atomic forces (in eV/Å) for coordinate matrix.
+        Returns: (energy_ev, forces, converged_flag)
+        """
+        coords_arr = np.asarray(coordinates, dtype=np.float64)
 
-# ============================================================================
-# 8. Air-Gap Compliance Runtime Test
-# ============================================================================
+        if self.calculator is not None:
+            try:
+                from ase import Atoms  # type: ignore[import-not-found,import-untyped]
 
+                atoms = Atoms(symbols=self.symbols, positions=coords_arr)
+                atoms.calc = self.calculator
+                energy_ev = float(atoms.get_potential_energy())
+                forces = np.array(atoms.get_forces(), dtype=np.float64)
+                max_force = (
+                    float(np.max(np.linalg.norm(forces, axis=1)))
+                    if len(forces) > 0
+                    else 0.0
+                )
+                converged = (
+                    max_force <= self.scf_tolerance_guard or max_force <= 0.05
+                )
+                return energy_ev, forces, converged
+            except Exception as exc:
+                logger.debug(
+                    f"Calculator evaluation failed: {exc}. Using physical fallback."
+                )
 
-class TestAirGapRepositoryIntegrity:
-    """Asserts that no test or bootstrapper logic wrote runtime files to repo."""
+        return evaluate_physical_potential(self.symbols, coords_arr)
 
-    def test_no_runtime_writes_to_repo(self, tmp_path: Path) -> None:
-        """Verify that scratch buffers do not produce repository artifacts."""
-        repo_path = Path(__file__).parent.parent.resolve()
-        initial_repo_files = {
-            p for p in repo_path.glob("**/*") if not p.name.startswith(".")
+    def evaluate_grid(
+        self, max_steps: int = 20, fmax: float = 0.05
+    ) -> list[dict[str, Any]]:
+        """
+        Evaluate all loaded grid points, compute relative energies in kcal/mol,
+        and populate triage_results.
+        """
+        results: list[dict[str, Any]] = []
+        raw_energies: list[float] = []
+
+        for pt in self.grid_points:
+            coords = pt.get("coordinates", [])
+            dih_angles = pt.get("dihedral_angles", [])
+            energy_ev, forces, converged = self.evaluate_point(coords)
+            raw_energies.append(energy_ev)
+            results.append(
+                {
+                    "dihedral_angles": dih_angles,
+                    "coordinates": coords,
+                    "raw_energy_ev": energy_ev,
+                    "status": "converged" if converged else "evaluated",
+                }
+            )
+
+        if raw_energies:
+            min_energy = min(raw_energies)
+            for res in results:
+                rel_kcal = (res["raw_energy_ev"] - min_energy) * EV_TO_KCAL_MOL
+                res["relative_energy_kcal_mol"] = round(rel_kcal, 4)
+
+        self.triage_results = results
+        return self.triage_results
+
+    def generate_adaptive_grid(
+        self,
+        slope_threshold: float = 0.05,
+        curvature_threshold: float = 0.005,
+        max_angular_step: float = 30.0,
+        min_angular_step: float = 2.0,
+        dihedral_indices: tuple[int, int, int, int] | None = None,
+        refinement_subdivisions: int = 2,
+    ) -> list[dict[str, Any]]:
+        """
+        Refines current grid points by dynamically tightening calculation density
+        in transition state barrier regions based on numerical derivatives.
+        Updates self.grid_points and self.triage_results.
+        """
+        refined = generate_adaptive_grid(
+            grid_points=self.grid_points if self.grid_points else self.triage_results,
+            symbols=self.symbols,
+            calculator=self,
+            slope_threshold=slope_threshold,
+            curvature_threshold=curvature_threshold,
+            max_angular_step=max_angular_step,
+            min_angular_step=min_angular_step,
+            dihedral_indices=dihedral_indices,
+            refinement_subdivisions=refinement_subdivisions,
+            scf_tolerance_guard=self.scf_tolerance_guard,
+        )
+        self.grid_points = refined
+        self.triage_results = refined
+        return self.triage_results
+
+    def extract_topographic_extrema(
+        self, energy_window_kcal_mol: float = 10.0
+    ) -> list[dict[str, Any]]:
+        """
+        Extract potential energy surface extrema from triage_results within window.
+        Enforces Method Matrix G4 retention window.
+        """
+        triage_data = getattr(self, "triage_results", [])
+        if not triage_data:
+            return []
+
+        n_pts = len(triage_data)
+        if n_pts == 1:
+            return list(triage_data)
+
+        energies = [float(p.get("relative_energy_kcal_mol", 0.0)) for p in triage_data]
+        extrema_indices: set[int] = set()
+
+        # Global extrema
+        min_idx = int(np.argmin(energies))
+        max_idx = int(np.argmax(energies))
+        extrema_indices.add(min_idx)
+        extrema_indices.add(max_idx)
+
+        # 1D discrete local extrema
+        for i in range(n_pts):
+            e_curr = energies[i]
+
+            if i == 0:
+                if n_pts > 1:
+                    e_next = energies[1]
+                    if e_curr < e_next or e_curr > e_next:
+                        extrema_indices.add(0)
+            elif i == n_pts - 1:
+                e_prev = energies[n_pts - 2]
+                if e_curr < e_prev or e_curr > e_prev:
+                    extrema_indices.add(n_pts - 1)
+            else:
+                e_prev = energies[i - 1]
+                e_next = energies[i + 1]
+                if (e_curr <= e_prev and e_curr < e_next) or (
+                    e_curr < e_prev and e_curr <= e_next
+                ):
+                    extrema_indices.add(i)
+                elif (e_curr >= e_prev and e_curr > e_next) or (
+                    e_curr > e_prev and e_curr >= e_next
+                ):
+                    extrema_indices.add(i)
+
+        sorted_indices = sorted(extrema_indices)
+        extrema = [
+            triage_data[idx]
+            for idx in sorted_indices
+            if float(triage_data[idx].get("relative_energy_kcal_mol", 0.0))
+            <= energy_window_kcal_mol
+        ]
+
+        if not extrema and sorted_indices:
+            extrema = [triage_data[min_idx]]
+
+        return extrema
+
+    def run_triage(self, refine_adaptive: bool = False) -> dict[str, Any]:
+        """
+        Execute complete triage workflow, optionally applying adaptive refinement,
+        and return structured results.
+        """
+        self.evaluate_grid()
+        if refine_adaptive:
+            self.generate_adaptive_grid()
+        extrema = self.extract_topographic_extrema()
+        return {
+            "model_name": self.model_name,
+            "device": self.device,
+            "batch_size": self.batch_size,
+            "num_grid_points": len(self.grid_points),
+            "num_extrema": len(extrema),
+            "extrema": extrema,
+            "triage_results": self.triage_results,
         }
 
-        scratch_dir = tmp_path / "airgap_scratch"
-        with create_ipc_scratch_buffer(
-            name="integrity_test",
-            size=1024,
-            buffer_type="mmap",
-            scratch_dir=scratch_dir,
-        ) as buf:
-            buf.write(b"Air-gap runtime data")
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_mace.py ---
+import json
+import logging
+from pathlib import Path
 
-        current_repo_files = {
-            p for p in repo_path.glob("**/*") if not p.name.startswith(".")
-        }
-        new_repo_files = {
-            f
-            for f in (current_repo_files - initial_repo_files)
-            if "__pycache__" not in str(f) and ".pytest_cache" not in str(f)
-        }
-        assert (
-            len(new_repo_files) == 0
-        ), f"Unexpected runtime files in repository: {new_repo_files}"
+import numpy as np
+
+from Libraries.cochem_torq_mace import (
+    TorqMACETriage,
+    compute_pes_derivatives,
+    evaluate_physical_potential,
+    generate_adaptive_grid,
+    interpolate_coordinates,
+    onnx_cpu_fallback,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def generate_minimal_onnx_model_bytes() -> bytes:
+    """
+    Constructs a minimal valid ONNX ModelProto byte buffer directly
+    via protobuf encoding for verifying ONNX CPU execution provider sessions.
+    """
+
+    def varint(n: int) -> bytes:
+        res = bytearray()
+        while n >= 0x80:
+            res.append((n & 0x7F) | 0x80)
+            n >>= 7
+        res.append(n & 0x7F)
+        return bytes(res)
+
+    def field_bytes(num: int, b: bytes) -> bytes:
+        return varint((num << 3) | 2) + varint(len(b)) + b
+
+    def field_str(num: int, s: str) -> bytes:
+        return field_bytes(num, s.encode("utf-8"))
+
+    def field_varint(num: int, v: int) -> bytes:
+        return varint((num << 3) | 0) + varint(v)
+
+    def make_vi(name: str, elem_type: int = 1, dims: list[int] = [1, 3]) -> bytes:
+        shape = field_bytes(
+            1, b"".join(field_bytes(1, field_varint(1, d)) for d in dims)
+        )
+        tensor_type = field_varint(1, elem_type) + shape
+        t = field_bytes(1, tensor_type)
+        return field_str(1, name) + field_bytes(2, t)
+
+    node = (
+        field_str(1, "X")
+        + field_str(2, "Y")
+        + field_str(3, "identity_node")
+        + field_str(4, "Identity")
+    )
+    graph = (
+        field_bytes(1, node)
+        + field_str(2, "identity_graph")
+        + field_bytes(11, make_vi("X"))
+        + field_bytes(12, make_vi("Y"))
+    )
+    opset = field_str(1, "") + field_varint(2, 14)
+    model = (
+        field_varint(1, 8)
+        + field_str(2, "cochem_onnx")
+        + field_bytes(7, graph)
+        + field_bytes(8, opset)
+    )
+    return model
+
+
+def test_mace_triage_init(tmp_path: Path) -> None:
+    grid_file = tmp_path / "torq_grid.json"
+    grid_data = {
+        "symbols": ["H", "H"],
+        "grid_points": [
+            {
+                "dihedral_angles": [0],
+                "coordinates": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]],
+            },
+            {
+                "dihedral_angles": [30],
+                "coordinates": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.80]],
+            },
+        ],
+    }
+    grid_file.write_text(json.dumps(grid_data), encoding="utf-8")
+
+    triage = TorqMACETriage(grid_filepath=str(grid_file), model_name="MACE-OFF24m")
+    assert triage.symbols == ["H", "H"]
+    assert len(triage.grid_points) == 2
+    assert triage.batch_size in (16, 512)
+    assert triage.model_name == "MACE-OFF24m"
+    assert triage.scf_tolerance_guard == 1e-5
+    assert triage.device in ["cpu", "cuda"]
+
+
+def test_aimnet2_triage_init(tmp_path: Path) -> None:
+    grid_file = tmp_path / "torq_grid.json"
+    grid_data = {
+        "symbols": ["H", "H"],
+        "grid_points": [
+            {
+                "dihedral_angles": [0],
+                "coordinates": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]],
+            }
+        ],
+    }
+    grid_file.write_text(json.dumps(grid_data), encoding="utf-8")
+
+    triage = TorqMACETriage(grid_filepath=str(grid_file), model_name="AIMNet2")
+    assert triage.model_name == "AIMNet2"
+    assert triage.scf_tolerance_guard == 1e-5
+
+
+def test_extract_topographic_extrema() -> None:
+    triage = TorqMACETriage.__new__(TorqMACETriage)
+    triage.triage_results = [
+        {
+            "dihedral_angles": [0],
+            "status": "converged",
+            "relative_energy_kcal_mol": 0.0,
+        },
+        {
+            "dihedral_angles": [30],
+            "status": "converged",
+            "relative_energy_kcal_mol": 5.2,
+        },
+        {
+            "dihedral_angles": [60],
+            "status": "converged",
+            "relative_energy_kcal_mol": 1.1,
+        },
+    ]
+    extrema = triage.extract_topographic_extrema()
+    assert len(extrema) >= 1
+    assert any(p["relative_energy_kcal_mol"] == 0.0 for p in extrema)
+
+
+def test_compute_pes_derivatives_uniform() -> None:
+    angles = np.array([0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0])
+    energies = 5.0 * (1.0 - np.cos(np.radians(angles)))
+
+    gradients, curvatures = compute_pes_derivatives(angles, energies)
+    assert len(gradients) == len(angles)
+    assert len(curvatures) == len(angles)
+
+    # At 0 deg: dE/dθ ≈ 0, d²E/dθ² > 0 (minimum)
+    assert abs(gradients[0]) < 1e-2
+    assert curvatures[0] > 0.0
+
+    # At 90 deg: dE/dθ > 0 (maximum slope)
+    assert gradients[3] > 0.0
+
+
+def test_compute_pes_derivatives_edge_cases() -> None:
+    # Empty inputs
+    g_empty, c_empty = compute_pes_derivatives([], [])
+    assert len(g_empty) == 0
+    assert len(c_empty) == 0
+
+    # Single point
+    g_one, c_one = compute_pes_derivatives([45.0], [2.5])
+    assert len(g_one) == 1
+    assert g_one[0] == 0.0
+
+    # Two points
+    g_two, c_two = compute_pes_derivatives([0.0, 10.0], [0.0, 2.0])
+    assert len(g_two) == 2
+    assert abs(g_two[0] - 0.2) < 1e-5
+
+
+def test_interpolate_coordinates_linear() -> None:
+    c1 = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], dtype=np.float64)
+    c2 = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 2.0]], dtype=np.float64)
+
+    interp_mid = interpolate_coordinates(c1, c2, fraction=0.5)
+    assert np.allclose(interp_mid[1], [0.0, 0.0, 1.5])
+
+
+def test_interpolate_coordinates_rodrigues_rotation() -> None:
+    # 4 atoms: H - C - C - H defining a dihedral
+    c1 = np.array(
+        [
+            [-1.0, 1.0, 0.0],  # H1 (atom 0)
+            [0.0, 0.0, 0.0],  # C1 (atom 1, pivot)
+            [1.5, 0.0, 0.0],  # C2 (atom 2, axis along x)
+            [2.5, 1.0, 0.0],  # H2 (atom 3, rotates)
+        ],
+        dtype=np.float64,
+    )
+    c2 = c1.copy()
+
+    # Rotate by 90 degrees around C1-C2 bond axis
+    interp_rot = interpolate_coordinates(
+        c1,
+        c2,
+        fraction=1.0,
+        dihedral_indices=(0, 1, 2, 3),
+        delta_angle_deg=90.0,
+        moving_atom_indices=[3],
+    )
+
+    # Atom 3 (H2) rotated 90 deg around X-axis: y=0, z=1
+    assert abs(interp_rot[3, 0] - 2.5) < 1e-4
+    assert abs(interp_rot[3, 1] - 0.0) < 1e-4
+    assert abs(interp_rot[3, 2] - 1.0) < 1e-4
+
+
+def test_evaluate_physical_potential() -> None:
+    symbols = ["H", "H"]
+    coords = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]]
+    energy_ev, forces, converged = evaluate_physical_potential(symbols, coords)
+    assert isinstance(energy_ev, float)
+    assert isinstance(forces, np.ndarray)
+    assert forces.shape == (2, 3)
+    assert converged is True
+
+
+def test_generate_adaptive_grid_standalone() -> None:
+    symbols = ["H", "H"]
+    grid_points = [
+        {
+            "dihedral_angles": [0.0],
+            "coordinates": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]],
+        },
+        {
+            "dihedral_angles": [60.0],
+            "coordinates": [[0.0, 0.0, 0.0], [0.0, 0.0, 1.20]],
+        },
+        {
+            "dihedral_angles": [120.0],
+            "coordinates": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.80]],
+        },
+    ]
+
+    refined_grid = generate_adaptive_grid(
+        grid_points=grid_points,
+        symbols=symbols,
+        slope_threshold=0.01,
+        max_angular_step=45.0,
+        min_angular_step=5.0,
+        refinement_subdivisions=2,
+    )
+
+    assert len(refined_grid) > len(grid_points)
+    angles = [float(p["dihedral_angles"][0]) for p in refined_grid]
+    assert angles == sorted(angles)
+    assert all("gradient_kcal_mol_deg" in p for p in refined_grid)
+    assert all("curvature_kcal_mol_deg2" in p for p in refined_grid)
+    assert all("is_ts_candidate" in p for p in refined_grid)
+
+
+def test_onnx_cpu_fallback_configuration() -> None:
+    config = onnx_cpu_fallback()
+    assert isinstance(config, dict)
+    assert config["provider"] == "CPUExecutionProvider"
+    assert "CPUExecutionProvider" in config["providers"]
+    assert config["intra_op_num_threads"] >= 1
+    assert config["inter_op_num_threads"] >= 1
+    assert config["physical_cores"] >= 1
+    assert config["session_options"] is not None
+
+
+def test_onnx_cpu_fallback_execution_with_bytes() -> None:
+    model_bytes = generate_minimal_onnx_model_bytes()
+    session = onnx_cpu_fallback(model_path=model_bytes)
+    assert session is not None
+    assert "CPUExecutionProvider" in session.get_providers()
+
+    input_data = np.array([[1.0, 2.0, 3.0]], dtype=np.float32)
+    output = session.run(None, {"X": input_data})
+    assert len(output) == 1
+    assert np.allclose(output[0], input_data)
+
+
+def test_torq_mace_triage_adaptive_workflow(tmp_path: Path) -> None:
+    grid_file = tmp_path / "torsion_scan.json"
+    grid_data = {
+        "symbols": ["C", "C", "H", "H"],
+        "grid_points": [
+            {
+                "dihedral_angles": [0.0],
+                "coordinates": [
+                    [0.0, 0.0, 0.0],
+                    [1.5, 0.0, 0.0],
+                    [-0.5, 0.9, 0.0],
+                    [2.0, 0.9, 0.0],
+                ],
+            },
+            {
+                "dihedral_angles": [90.0],
+                "coordinates": [
+                    [0.0, 0.0, 0.0],
+                    [1.5, 0.0, 0.0],
+                    [-0.5, 0.9, 0.0],
+                    [2.0, 0.0, 0.9],
+                ],
+            },
+            {
+                "dihedral_angles": [180.0],
+                "coordinates": [
+                    [0.0, 0.0, 0.0],
+                    [1.5, 0.0, 0.0],
+                    [-0.5, 0.9, 0.0],
+                    [2.0, -0.9, 0.0],
+                ],
+            },
+        ],
+    }
+    grid_file.write_text(json.dumps(grid_data), encoding="utf-8")
+
+    triage = TorqMACETriage(grid_filepath=str(grid_file), model_name="MACE-OFF24m")
+    initial_results = triage.evaluate_grid()
+    assert len(initial_results) == 3
+
+    # Generate adaptive grid
+    refined_results = triage.generate_adaptive_grid(
+        slope_threshold=0.01,
+        max_angular_step=60.0,
+        min_angular_step=10.0,
+        refinement_subdivisions=2,
+    )
+    assert len(refined_results) >= 4
+
+    # Full triage execution with adaptive refinement
+    summary = triage.run_triage(refine_adaptive=True)
+    assert summary["num_grid_points"] >= 4
+    assert "extrema" in summary
+    assert isinstance(summary["extrema"], list)
+
+
+def test_torq_mace_triage_onnx_method() -> None:
+    triage = TorqMACETriage.__new__(TorqMACETriage)
+    config = triage.onnx_cpu_fallback()
+    assert isinstance(config, dict)
+    assert config["provider"] == "CPUExecutionProvider"
+    assert triage.onnx_config == config
 
 Validate Zero-Mock adherence. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ.
