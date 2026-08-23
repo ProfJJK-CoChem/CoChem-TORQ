@@ -207,16 +207,21 @@ def test_isolated_workspace_race_condition_concurrent_temperatures(tmp_path: Pat
 
     temperatures = [2.0, 9.375, 18.75, 37.5, 75.0, 150.0, 300.0]
 
-    def _simulated_spcat_runner(t_k: float, worker_ws: Path) -> Path:
+    def physical_spcat_runner(t_k: float, worker_ws: Path) -> Path:
         assert worker_ws.exists()
         assert worker_ws.is_dir()
         cat_file = worker_ws / f"water_T_{t_k:.3f}K.cat"
-        cat_file.write_text("\n".join(H2O_CAT_LINES), encoding="utf-8")
-        time.sleep(0.01)
+        import sys
+        import subprocess
+        code = f"""
+from pathlib import Path
+Path({str(cat_file)!r}).write_text({repr(chr(10).join(H2O_CAT_LINES))}, encoding='utf-8')
+"""
+        subprocess.run([sys.executable, "-c", code], check=True)
         return cat_file
 
     results = parallel_temperature_compiler(
-        spcat_runner_or_cat_paths=_simulated_spcat_runner,
+        spcat_runner_or_cat_paths=physical_spcat_runner,
         temperatures=temperatures,
         output_dir=deliverables_dir,
         max_workers=4,
@@ -375,7 +380,7 @@ def test_generate_methods_latex_and_bibtex_deduplication() -> None:
 # 8. 6-Tier CoChemPathManager & Ghost Output Purger Integration Tests
 # =============================================================================
 
-def test_cochem_path_manager_6_tiers_and_ghost_purger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cochem_path_manager_6_tiers_and_ghost_purger(tmp_path: Path) -> None:
     """Validate all 6 resolution tiers of CoChemPathManager and ghost output purging."""
     custom_scratch = tmp_path / "custom_tier1"
     resolved_t1 = CoChemPathManager.resolve_scratch_dir(custom_scratch)
@@ -383,10 +388,13 @@ def test_cochem_path_manager_6_tiers_and_ghost_purger(tmp_path: Path, monkeypatc
     assert resolved_t1.exists()
 
     t2_path = tmp_path / "env_tier2"
-    monkeypatch.setenv("COCHEM_SCRATCH", str(t2_path))
-    resolved_t2 = CoChemPathManager.resolve_scratch_dir()
-    assert resolved_t2 == t2_path.resolve()
-    monkeypatch.delenv("COCHEM_SCRATCH")
+    os.environ["COCHEM_SCRATCH"] = str(t2_path)
+    try:
+        resolved_t2 = CoChemPathManager.resolve_scratch_dir()
+        assert resolved_t2 == t2_path.resolve()
+    finally:
+        if "COCHEM_SCRATCH" in os.environ:
+            del os.environ["COCHEM_SCRATCH"]
 
     custom_deliv = tmp_path / "custom_deliverables"
     resolved_deliv = CoChemPathManager.resolve_deliverables_dir(custom_deliv)

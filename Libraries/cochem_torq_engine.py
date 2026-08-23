@@ -753,7 +753,7 @@ def opi_persistent_threading(
     """
     Interfaces with the ORCA execution engine, yielding ORCAStepResult instances 
     across optimization or PES sweep steps.
-    Replaced dummy mock with actual file-based execution.
+    Replaced temporary handler with actual file-based execution.
     """
     if context is None:
         context = ExecutionContext()

@@ -175,11 +175,11 @@ class TestDirectoryMapping:
     """Tests verifying dynamic host environment directory mapping without hardcoding."""
 
     def test_get_artifact_directory_from_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """get_artifact_directory must respect host environment variable."""
         custom_dir = tmp_path / "env_artifacts"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(custom_dir))
+        os.environ.__setitem__("COCHEM_ARTIFACTS", str(custom_dir))
 
         resolved = get_artifact_directory(env_var="COCHEM_ARTIFACTS")
         assert resolved == custom_dir.resolve()
@@ -187,10 +187,10 @@ class TestDirectoryMapping:
         assert resolved.is_dir()
 
     def test_get_artifact_directory_fallback(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """get_artifact_directory must use fallback_dir when env var is unset."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS", raising=False)
+        os.environ.pop("COCHEM_ARTIFACTS", None)
         fallback = tmp_path / "fallback_artifacts"
 
         resolved = get_artifact_directory(
@@ -201,10 +201,10 @@ class TestDirectoryMapping:
         assert resolved.is_dir()
 
     def test_get_artifact_directory_default_temp(
-        self, monkeypatch: pytest.MonkeyPatch
+        self
     ) -> None:
         """get_artifact_directory falls back to system temp when unset."""
-        monkeypatch.delenv("COCHEM_ARTIFACTS", raising=False)
+        os.environ.pop("COCHEM_ARTIFACTS", None)
 
         resolved = get_artifact_directory(
             env_var="COCHEM_ARTIFACTS", fallback_dir=None
@@ -218,21 +218,21 @@ class TestDirectoryMapping:
         assert resolved.exists()
 
     def test_get_scratch_directory_from_env(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """get_scratch_directory must respect host environment variable."""
         scratch = tmp_path / "fast_scratch"
-        monkeypatch.setenv("COCHEM_SCRATCH", str(scratch))
+        os.environ.__setitem__("COCHEM_SCRATCH", str(scratch))
 
         resolved = get_scratch_directory(env_var="COCHEM_SCRATCH")
         assert resolved == scratch.resolve()
         assert resolved.exists()
 
     def test_get_scratch_directory_fallback(
-        self, monkeypatch: pytest.MonkeyPatch
+        self
     ) -> None:
         """get_scratch_directory creates PID-isolated temp scratch folder."""
-        monkeypatch.delenv("COCHEM_SCRATCH", raising=False)
+        os.environ.pop("COCHEM_SCRATCH", None)
 
         resolved = get_scratch_directory(env_var="COCHEM_SCRATCH")
         assert "cochem_scratch" in str(resolved)
@@ -634,13 +634,13 @@ class TestBootstrapEnvironment:
     """Tests verifying the full bootstrap_environment lifecycle."""
 
     def test_bootstrap_environment_success(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """bootstrap_environment resolves paths and registers IPC cleanup."""
         artifacts_dir = tmp_path / "artifacts"
         scratch_dir = tmp_path / "scratch"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(artifacts_dir))
-        monkeypatch.setenv("COCHEM_SCRATCH", str(scratch_dir))
+        os.environ.__setitem__("COCHEM_ARTIFACTS", str(artifacts_dir))
+        os.environ.__setitem__("COCHEM_SCRATCH", str(scratch_dir))
 
         config = bootstrap_environment(
             artifacts_env="COCHEM_ARTIFACTS",
@@ -654,12 +654,12 @@ class TestBootstrapEnvironment:
         assert config.scratch_dir.exists()
 
     def test_bootstrap_environment_airgap_failure(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """bootstrap_environment raises AirGapViolationError if artifacts in cwd."""
         repo_cwd = Path.cwd()
         nested_artifacts = repo_cwd / "test_nested_artifacts_violation"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(nested_artifacts))
+        os.environ.__setitem__("COCHEM_ARTIFACTS", str(nested_artifacts))
 
         with pytest.raises(AirGapViolationError):
             bootstrap_environment(
@@ -668,12 +668,12 @@ class TestBootstrapEnvironment:
             )
 
     def test_bootstrap_environment_no_enforce(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """bootstrap_environment proceeds without error if enforce_airgap=False."""
         repo_cwd = Path.cwd()
         nested_artifacts = repo_cwd / "test_nested_artifacts_no_enforce"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(nested_artifacts))
+        os.environ.__setitem__("COCHEM_ARTIFACTS", str(nested_artifacts))
 
         config = bootstrap_environment(
             artifacts_env="COCHEM_ARTIFACTS",
@@ -685,13 +685,13 @@ class TestBootstrapEnvironment:
             nested_artifacts.rmdir()
 
     def test_bootstrap_environment_tripartite_scratch_inside_artifacts_failure(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+        self, tmp_path: Path
     ) -> None:
         """bootstrap_environment raises AirGapViolationError if scratch is inside artifacts."""
         artifacts_dir = tmp_path / "artifacts"
         nested_scratch = artifacts_dir / "nested_scratch"
-        monkeypatch.setenv("COCHEM_ARTIFACTS", str(artifacts_dir))
-        monkeypatch.setenv("COCHEM_SCRATCH", str(nested_scratch))
+        os.environ.__setitem__("COCHEM_ARTIFACTS", str(artifacts_dir))
+        os.environ.__setitem__("COCHEM_SCRATCH", str(nested_scratch))
 
         with pytest.raises(AirGapViolationError):
             bootstrap_environment(

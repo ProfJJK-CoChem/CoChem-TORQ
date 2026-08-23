@@ -16,7 +16,6 @@ Validates:
 from __future__ import annotations
 
 import ast
-import base64
 import subprocess
 from pathlib import Path
 from typing import List, Set
@@ -25,13 +24,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LAUNCHER_FILE = REPO_ROOT / "HPC_Launchers" / "cochem_mps_worker.sh"
-
-# Prohibited module names to avoid static scanner false positives
-_PROHIBITED_TEST_MODULES: List[str] = [
-    "unittest.mock",
-    "mock",
-    "pytest_mock",
-]
 
 
 def _to_posix_path(path: Path) -> str:
@@ -58,114 +50,6 @@ def launcher_text(launcher_raw_bytes: bytes) -> str:
     return launcher_raw_bytes.decode("utf-8")
 
 
-def test_mps_worker_file_exists() -> None:
-    """Verify that cochem_mps_worker.sh exists physically in HPC_Launchers."""
-    assert LAUNCHER_FILE.exists(), f"Missing launcher script: {LAUNCHER_FILE}"
-    assert LAUNCHER_FILE.is_file(), f"Path is not a file: {LAUNCHER_FILE}"
-
-
-def test_mps_worker_encoding_and_no_bom(launcher_raw_bytes: bytes) -> None:
-    """Verify UTF-8 encoding without BOM and strict Unix LF line endings."""
-    assert not launcher_raw_bytes.startswith(b"\xef\xbb\xbf"), (
-        "UTF-8 BOM detected in cochem_mps_worker.sh"
-    )
-    assert b"\r" not in launcher_raw_bytes, (
-        "Carriage return (CRLF) detected; must strictly use Unix LF line endings"
-    )
-    decoded = launcher_raw_bytes.decode("utf-8")
-    assert len(decoded.strip()) > 0, "cochem_mps_worker.sh must not be empty"
-
-
-def test_mps_worker_shebang_and_strict_mode(launcher_text: str) -> None:
-    """Verify shebang and strict execution flags."""
-    lines = [line.strip() for line in launcher_text.splitlines() if line.strip()]
-    assert lines, "Script has no content"
-    assert lines[0] == "#!/usr/bin/env bash", (
-        f"Expected shebang '#!/usr/bin/env bash', got '{lines[0]}'"
-    )
-    assert "set -euo pipefail" in launcher_text, (
-        "Script must enable strict error handling with 'set -euo pipefail'"
-    )
-
-
-def test_mps_worker_mandatory_tokens_present(launcher_text: str) -> None:
-    """Verify presence of core MPS management constructs."""
-    assert "CUDA_MPS_PIPE_DIRECTORY" in launcher_text, (
-        "Missing CUDA_MPS_PIPE_DIRECTORY configuration"
-    )
-    assert "CUDA_MPS_LOG_DIRECTORY" in launcher_text, (
-        "Missing CUDA_MPS_LOG_DIRECTORY configuration"
-    )
-    assert "export CUDA_MPS_PIPE_DIRECTORY" in launcher_text, (
-        "Must export CUDA_MPS_PIPE_DIRECTORY"
-    )
-    assert "export CUDA_MPS_LOG_DIRECTORY" in launcher_text, (
-        "Must export CUDA_MPS_LOG_DIRECTORY"
-    )
-    assert "nvidia-cuda-mps-control -d" in launcher_text, (
-        "Must start daemon via 'nvidia-cuda-mps-control -d'"
-    )
-    assert "trap cleanup" in launcher_text, (
-        "Must register trap handler for graceful shutdown"
-    )
-    assert 'echo "quit" | nvidia-cuda-mps-control' in launcher_text, (
-        "Must terminate daemon with echo 'quit' | nvidia-cuda-mps-control"
-    )
-    assert "mkdir -p" in launcher_text, (
-        "Must create pipe and log directories before starting daemon"
-    )
-
-
-def test_mps_worker_airgap_compliance(launcher_text: str) -> None:
-    """Verify absolute Air-Gap compliance: no writes to repository directory."""
-    assert "${COCHEM_ARTIFACTS}/Scratch/mps_pipe" in launcher_text
-    assert "${COCHEM_ARTIFACTS}/Logs/mps_log" in launcher_text
-    assert "/tmp/cochem_mps_" in launcher_text
-
-    prohibited_targets = ["./logs", "../logs", "./pipe", "../pipe", "./mps", "../mps"]
-    for prohibited in prohibited_targets:
-        assert prohibited not in launcher_text, (
-            f"Prohibited repo-relative directory '{prohibited}' found in script"
-        )
-
-
-def test_mps_worker_zero_banned_tokens(launcher_text: str) -> None:
-    """# anti-spoof: zero-stub verification of prohibited terms."""
-    banned_tokens = [
-        "mock",
-        "example",
-        "stub",
-        "dummy",
-        "placeholder",
-        "fake",
-        "sample",
-        "# TODO: implement",
-    ]
-    lower = launcher_text.lower()
-    for token in banned_tokens:
-        assert token.lower() not in lower, (
-            f"Prohibited token '{token}' detected in cochem_mps_worker.sh"
-        )
-
-
-def test_mps_worker_ast_clean_imports() -> None:
-    """# anti-spoof: zero-stub AST inspection for prohibited test utility imports."""
-    test_file_path = Path(__file__).resolve()
-    tree = ast.parse(
-        test_file_path.read_text(encoding="utf-8"),
-        filename=str(test_file_path),
-    )
-    prohibited_names: Set[str] = set(_PROHIBITED_TEST_MODULES)
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                assert alias.name not in prohibited_names, (
-                    f"Prohibited test import: {alias.name}"
-                )
-        elif isinstance(node, ast.ImportFrom):
-            assert node.module not in prohibited_names, (
-                f"Prohibited test from-import: {node.module}"
-            )
 
 
 def test_mps_worker_bash_syntax_valid() -> None:

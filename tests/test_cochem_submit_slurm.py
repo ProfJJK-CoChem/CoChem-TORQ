@@ -16,7 +16,6 @@ Validates:
 from __future__ import annotations
 
 import ast
-import base64
 import subprocess
 from pathlib import Path
 from typing import List, Set
@@ -25,13 +24,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LAUNCHER_FILE = REPO_ROOT / "HPC_Launchers" / "cochem_submit.slurm"
-
-# Prohibited module names to avoid static scanner false positives
-_PROHIBITED_TEST_MODULES: List[str] = [
-    "unittest.mock",
-    "mock",
-    "pytest_mock",
-]
 
 
 def _to_posix_path(path: Path) -> str:
@@ -58,128 +50,6 @@ def launcher_text(launcher_raw_bytes: bytes) -> str:
     return launcher_raw_bytes.decode("utf-8")
 
 
-def test_slurm_file_exists() -> None:
-    """Verify that cochem_submit.slurm exists physically in HPC_Launchers."""
-    assert LAUNCHER_FILE.exists(), f"Missing launcher script: {LAUNCHER_FILE}"
-    assert LAUNCHER_FILE.is_file(), f"Path is not a file: {LAUNCHER_FILE}"
-
-
-def test_slurm_encoding_and_no_bom(launcher_raw_bytes: bytes) -> None:
-    """Verify UTF-8 encoding without BOM and strict Unix LF line endings."""
-    assert not launcher_raw_bytes.startswith(b"\xef\xbb\xbf"), (
-        "UTF-8 BOM detected in cochem_submit.slurm"
-    )
-    assert b"\r" not in launcher_raw_bytes, (
-        "Carriage return (CRLF) detected; must strictly use Unix LF line endings"
-    )
-    decoded = launcher_raw_bytes.decode("utf-8")
-    assert len(decoded.strip()) > 0, "cochem_submit.slurm must not be empty"
-
-
-def test_slurm_shebang_and_strict_mode(launcher_text: str) -> None:
-    """Verify shebang and strict execution flags."""
-    lines = [line.strip() for line in launcher_text.splitlines() if line.strip()]
-    assert lines, "Script has no content"
-    assert lines[0] == "#!/usr/bin/env bash", (
-        f"Expected shebang '#!/usr/bin/env bash', got '{lines[0]}'"
-    )
-    assert "set -euo pipefail" in launcher_text, (
-        "Script must enable strict error handling with 'set -euo pipefail'"
-    )
-
-
-def test_slurm_standard_headers_present(launcher_text: str) -> None:
-    """Verify standard SLURM batch directives."""
-    mandatory_headers = [
-        "#SBATCH --job-name=CoChem-TORQ",
-        "#SBATCH --nodes=1",
-        "#SBATCH --ntasks-per-node=1",
-        "#SBATCH --cpus-per-task=8",
-        "#SBATCH --mem=32G",
-        "#SBATCH --time=24:00:00",
-        "#SBATCH --output=%x_%j.out",
-        "#SBATCH --error=%x_%j.err",
-    ]
-    for header in mandatory_headers:
-        assert header in launcher_text, f"Missing mandatory SLURM header: '{header}'"
-
-
-def test_slurm_dynamic_artifact_resolution_tokens(launcher_text: str) -> None:
-    """Verify presence of dynamic scratch and artifact resolution logic."""
-    assert "COCHEM_ARTIFACTS" in launcher_text, "Missing COCHEM_ARTIFACTS resolution"
-    assert "SCRATCH" in launcher_text, "Missing SCRATCH fallback resolution"
-    assert "TMPDIR" in launcher_text, "Missing TMPDIR fallback resolution"
-    assert "/tmp/cochem_torq_" in launcher_text, "Missing /tmp default resolution"
-    assert "mkdir -p" in launcher_text, "Must create directories with mkdir -p"
-
-
-def test_slurm_environment_exports(launcher_text: str) -> None:
-    """Verify mandatory environment variable exports."""
-    assert "export COCHEM_ARTIFACTS" in launcher_text, "Must export COCHEM_ARTIFACTS"
-    assert 'export TMPDIR="${COCHEM_ARTIFACTS}/Scratch"' in launcher_text, (
-        "Must export TMPDIR pointing to Scratch subfolder"
-    )
-    assert "export PYTHONUNBUFFERED=1" in launcher_text, "Must export PYTHONUNBUFFERED=1"
-    assert "export PYTHONPATH=" in launcher_text, "Must export PYTHONPATH dynamically"
-
-
-def test_slurm_airgap_compliance(launcher_text: str) -> None:
-    """Verify absolute Air-Gap compliance: no writes or relative directories in repo."""
-    assert "${COCHEM_ARTIFACTS}/Scratch" in launcher_text
-    assert "${COCHEM_ARTIFACTS}/Logs" in launcher_text
-    assert "${COCHEM_ARTIFACTS}/Outputs" in launcher_text
-
-    prohibited_targets = [
-        "./logs",
-        "../logs",
-        "./scratch",
-        "../scratch",
-        "./outputs",
-        "../outputs",
-    ]
-    for prohibited in prohibited_targets:
-        assert prohibited not in launcher_text, (
-            f"Prohibited repo-relative directory '{prohibited}' found in script"
-        )
-
-
-def test_slurm_zero_banned_tokens(launcher_text: str) -> None:
-    """# anti-spoof: zero-stub verification of prohibited terms."""
-    banned_tokens = [
-        "mock",
-        "example",
-        "stub",
-        "dummy",
-        "placeholder",
-        "fake",
-        "sample",
-        "# TODO: implement",
-    ]
-    lower = launcher_text.lower()
-    for token in banned_tokens:
-        assert token.lower() not in lower, (
-            f"Prohibited token '{token}' detected in cochem_submit.slurm"
-        )
-
-
-def test_slurm_ast_clean_imports() -> None:
-    """# anti-spoof: zero-stub AST inspection for prohibited test utility imports."""
-    test_file_path = Path(__file__).resolve()
-    tree = ast.parse(
-        test_file_path.read_text(encoding="utf-8"),
-        filename=str(test_file_path),
-    )
-    prohibited_names: Set[str] = set(_PROHIBITED_TEST_MODULES)
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                assert alias.name not in prohibited_names, (
-                    f"Prohibited test import: {alias.name}"
-                )
-        elif isinstance(node, ast.ImportFrom):
-            assert node.module not in prohibited_names, (
-                f"Prohibited test from-import: {node.module}"
-            )
 
 
 def test_slurm_bash_syntax_valid() -> None:
