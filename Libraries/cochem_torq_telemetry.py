@@ -14,7 +14,8 @@ Implements:
    for multi-state Discrete Variable Representation (DVR) probability wavefunctions.
 3. Multi-frame XYZ Crash Animation and JSON Diagnostic Exporter for Steric Shatter
    Soft-Quench aborts and gradient explosion analysis.
-4. Strict Filesystem Air-Gap compliance writing exclusively to dynamic scratch/artifact tiers.
+4. Strict Filesystem Air-Gap compliance writing exclusively to dynamic
+   scratch and artifact directory tiers.
 """
 
 from __future__ import annotations
@@ -26,26 +27,28 @@ import json
 import logging
 import math
 import os
-import sys
 import tempfile
 import time
 from datetime import timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import httpx
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
-import plotly.io as pio  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Telemetry] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Telemetry] %(message)s"
+)
 logger = logging.getLogger("TorqTelemetry")
 
 # Environment resolution for Filesystem Air-Gap
-ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
+ARTIFACTS_DIR = os.environ.get(
+    "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
+)
 SCRATCH_DIR = os.environ.get("COCHEM_SCRATCH_DIR", str(Path.home() / "cochem_scratch"))
 
 
@@ -56,11 +59,11 @@ SCRATCH_DIR = os.environ.get("COCHEM_SCRATCH_DIR", str(Path.home() / "cochem_scr
 
 def _json_serial_default(obj: Any) -> Any:
     """Serializes NumPy scalars, NumPy arrays, Path, Enum, and datetime objects."""
-    if isinstance(obj, (np.integer, np.floating)):
+    if isinstance(obj, np.generic):
         return obj.item()
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    if isinstance(obj, (datetime.datetime, datetime.date)):
+    if isinstance(obj, datetime.datetime | datetime.date):
         return obj.isoformat()
     if isinstance(obj, Path):
         return str(obj)
@@ -75,22 +78,26 @@ def _json_serial_default(obj: Any) -> Any:
 
 
 class TelemetryDeliveryError(Exception):
-    """Raised when critical webhook telemetry delivery encounters an unrecoverable error."""
+    """Raised when webhook delivery encounters an unrecoverable error."""
+
     pass
 
 
 class CircuitBreakerOpenError(Exception):
-    """Raised when the telemetry circuit breaker is OPEN due to repeated network failures."""
+    """Raised when the telemetry circuit breaker is OPEN from network failures."""
+
     pass
 
 
 class SoftQuenchAbortError(Exception):
     """Raised when Steric Shatter Soft-Quench detects unresolvable atomic overlap."""
+
     pass
 
 
 class TelemetryWarning(UserWarning):
-    """Issued for non-fatal telemetry notices such as offline spooling or backoff retries."""
+    """Issued for non-fatal notices like offline spooling or retries."""
+
     pass
 
 
@@ -107,33 +114,54 @@ class CircuitState(str, Enum):
 
 class WebhookPayload(BaseModel):
     """Schema-enforced model for outgoing out-of-band telemetry events."""
+
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    event_type: str = Field(description="Type of event: job_start, job_completed, node_failure, soft_quench_collision, oom_backoff, progress, heartbeat")
+    event_type: str = Field(
+        description=(
+            "Type of event: job_start, job_completed, node_failure, "
+            "soft_quench_collision, oom_backoff, progress, heartbeat"
+        )
+    )
     job_id: str = Field(description="Unique TORQ job identifier")
-    node_id: Optional[str] = Field(default=None, description="HPC / GPU compute node identifier")
-    status: str = Field(default="RUNNING", description="Job or execution status: RUNNING, COMPLETED, FAILED, ALERT, ABORTED")
-    timestamp: str = Field(default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat())
-    data: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary payload metrics and state variables")
-    error_trace: Optional[str] = Field(default=None, description="Traceback snippet or error description if applicable")
+    node_id: str | None = Field(
+        default=None, description="HPC / GPU compute node identifier"
+    )
+    status: str = Field(
+        default="RUNNING",
+        description="Job status: RUNNING, COMPLETED, FAILED, ALERT, ABORTED",
+    )
+    timestamp: str = Field(
+        default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat()
+    )
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arbitrary payload metrics and state variables",
+    )
+    error_trace: str | None = Field(
+        default=None, description="Traceback snippet or error description if applicable"
+    )
 
 
 class CrashDiagnostic(BaseModel):
     """Diagnostic schema for Steric Shatter Soft-Quench crash captures."""
+
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     error_node_id: str
-    timestamp: str = Field(default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat())
+    timestamp: str = Field(
+        default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat()
+    )
     num_frames: int
     num_atoms: int
-    symbols: List[str]
+    symbols: list[str]
     min_interatomic_distance: float
-    colliding_pair: Optional[Tuple[int, int]] = None
-    max_gradient_norm: Optional[float] = None
+    colliding_pair: tuple[int, int] | None = None
+    max_gradient_norm: float | None = None
     abort_reason: str
     crash_frame_index: int
-    initial_energy_hartree: Optional[float] = None
-    final_energy_hartree: Optional[float] = None
+    initial_energy_hartree: float | None = None
+    final_energy_hartree: float | None = None
 
 
 # ============================================================================
@@ -141,8 +169,8 @@ class CrashDiagnostic(BaseModel):
 # ============================================================================
 
 
-def _resolve_scratch_dir(scratch_dir: Optional[Union[str, Path]] = None) -> Path:
-    """Resolves and creates the dynamic scratch directory adhering to Filesystem Air-Gap.
+def _resolve_scratch_dir(scratch_dir: str | Path | None = None) -> Path:
+    """Resolves and creates dynamic scratch dir adhering to Filesystem Air-Gap.
 
     Tier 1: Explicit custom scratch argument.
     Tier 2: COCHEM_SCRATCH or COCHEM_SCRATCH_DIR env vars.
@@ -188,8 +216,8 @@ def _resolve_scratch_dir(scratch_dir: Optional[Union[str, Path]] = None) -> Path
     return p
 
 
-def _resolve_artifact_dir(artifact_dir: Optional[Union[str, Path]] = None) -> Path:
-    """Resolves and creates the dynamic artifact directory adhering to Filesystem Air-Gap.
+def _resolve_artifact_dir(artifact_dir: str | Path | None = None) -> Path:
+    """Resolves and creates dynamic artifact dir adhering to Filesystem Air-Gap.
 
     Tier 1: Explicit custom artifact argument.
     Tier 2: COCHEM_ARTIFACTS_DIR, COCHEM_DELIVERABLES, COCHEM_DELIVERABLES_DIR env vars.
@@ -200,7 +228,11 @@ def _resolve_artifact_dir(artifact_dir: Optional[Union[str, Path]] = None) -> Pa
         p.mkdir(parents=True, exist_ok=True)
         return p
 
-    for env_key in ("COCHEM_ARTIFACTS_DIR", "COCHEM_DELIVERABLES", "COCHEM_DELIVERABLES_DIR"):
+    for env_key in (
+        "COCHEM_ARTIFACTS_DIR",
+        "COCHEM_DELIVERABLES",
+        "COCHEM_DELIVERABLES_DIR",
+    ):
         env_val = os.environ.get(env_key)
         if env_val and env_val.strip():
             p = Path(env_val.strip()).resolve()
@@ -213,7 +245,7 @@ def _resolve_artifact_dir(artifact_dir: Optional[Union[str, Path]] = None) -> Pa
 
 
 def _spool_event_to_disk(
-    event_dict: Dict[str, Any],
+    event_dict: dict[str, Any],
     scratch_dir: Path,
     spool_filename: str = "telemetry_spool.jsonl",
     reason: str = "Network offline",
@@ -228,7 +260,10 @@ def _spool_event_to_disk(
     }
     try:
         with open(spool_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(envelope, default=_json_serial_default, ensure_ascii=False) + "\n")
+            f.write(
+                json.dumps(envelope, default=_json_serial_default, ensure_ascii=False)
+                + "\n"
+            )
     except OSError as exc:
         logger.error(f"Failed to write to telemetry spool file {spool_path}: {exc}")
     return spool_path
@@ -263,7 +298,9 @@ class TelemetryCircuitBreaker:
         self.state: CircuitState = CircuitState.CLOSED
         self.consecutive_failures: int = 0
         self.last_failure_time: float = 0.0
-        self.in_memory_deque: collections.deque[Dict[str, Any]] = collections.deque(maxlen=2000)
+        self.in_memory_deque: collections.deque[dict[str, Any]] = collections.deque(
+            maxlen=2000
+        )
 
     def record_success(self) -> None:
         self.consecutive_failures = 0
@@ -272,10 +309,14 @@ class TelemetryCircuitBreaker:
     def record_failure(self) -> None:
         self.consecutive_failures += 1
         self.last_failure_time = time.monotonic()
-        if self.consecutive_failures >= self.failure_threshold or self.state == CircuitState.HALF_OPEN:
+        if (
+            self.consecutive_failures >= self.failure_threshold
+            or self.state == CircuitState.HALF_OPEN
+        ):
             self.state = CircuitState.OPEN
             logger.warning(
-                f"Telemetry Circuit Breaker tripped to OPEN after {self.consecutive_failures} consecutive network failures."
+                f"Telemetry Circuit Breaker tripped to OPEN after "
+                f"{self.consecutive_failures} consecutive network failures."
             )
 
     def can_attempt_request(self) -> bool:
@@ -297,18 +338,19 @@ _GLOBAL_CIRCUIT_BREAKER = TelemetryCircuitBreaker()
 
 
 async def stream_webhook_events_async(
-    status_payload: Union[Dict[str, Any], WebhookPayload],
-    webhook_url: Optional[str] = None,
-    scratch_dir: Optional[Union[str, Path]] = None,
+    status_payload: dict[str, Any] | WebhookPayload,
+    webhook_url: str | None = None,
+    scratch_dir: str | Path | None = None,
     max_retries: int = 3,
     timeout: float = 3.0,
     spool_filename: str = "telemetry_spool.jsonl",
-    circuit_breaker: Optional[TelemetryCircuitBreaker] = None,
-) -> Dict[str, Any]:
+    circuit_breaker: TelemetryCircuitBreaker | None = None,
+) -> dict[str, Any]:
     """
-    Asynchronously streams out-of-band webhook telemetry with Exponential Backoff Circuit Breaker.
-    If the network connection drops or times out, it silently caches the event to `telemetry_spool.jsonl`
-    without raising an unhandled exception or interrupting active computations.
+    Asynchronously streams out-of-band webhook telemetry with Exponential Backoff
+    Circuit Breaker. If network drops or times out, silently caches event to
+    `telemetry_spool.jsonl` without raising unhandled exceptions or interrupting
+    computations.
 
     :param status_payload: Dictionary or WebhookPayload model.
     :param webhook_url: Discord/Slack/HTTP webhook URL (optional).
@@ -331,16 +373,24 @@ async def stream_webhook_events_async(
             payload_dict = validated.model_dump()
         except Exception:
             payload_dict = dict(status_payload)
-            payload_dict.setdefault("timestamp", datetime.datetime.now(timezone.utc).isoformat())
+            payload_dict.setdefault(
+                "timestamp", datetime.datetime.now(timezone.utc).isoformat()
+            )
     else:
-        payload_dict = {"data": str(status_payload), "timestamp": datetime.datetime.now(timezone.utc).isoformat()}
+        payload_dict = {
+            "data": str(status_payload),
+            "timestamp": datetime.datetime.now(timezone.utc).isoformat(),
+        }
 
     cb.in_memory_deque.append(payload_dict)
 
     # If no webhook URL configured, spool directly
     if not webhook_url or not str(webhook_url).strip():
         spool_path = _spool_event_to_disk(
-            payload_dict, target_scratch, spool_filename=spool_filename, reason="No webhook URL provided"
+            payload_dict,
+            target_scratch,
+            spool_filename=spool_filename,
+            reason="No webhook URL provided",
         )
         return {
             "status": "SPOOLED",
@@ -352,7 +402,10 @@ async def stream_webhook_events_async(
     # Check Circuit Breaker gate
     if not cb.can_attempt_request():
         spool_path = _spool_event_to_disk(
-            payload_dict, target_scratch, spool_filename=spool_filename, reason="Circuit Breaker OPEN"
+            payload_dict,
+            target_scratch,
+            spool_filename=spool_filename,
+            reason="Circuit Breaker OPEN",
         )
         return {
             "status": "SPOOLED",
@@ -364,7 +417,9 @@ async def stream_webhook_events_async(
     # Attempt asynchronous HTTP POST with exponential backoff
     last_exception_msg = ""
     # Safe JSON string serialization supporting NumPy types
-    payload_json_str = json.dumps(payload_dict, default=_json_serial_default, ensure_ascii=False)
+    payload_json_str = json.dumps(
+        payload_dict, default=_json_serial_default, ensure_ascii=False
+    )
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -372,7 +427,10 @@ async def stream_webhook_events_async(
                 response = await client.post(
                     webhook_url,
                     content=payload_json_str,
-                    headers={"Content-Type": "application/json", "User-Agent": "CoChem-TORQ-Telemetry/0.0.12"},
+                    headers={
+                        "Content-Type": "application/json",
+                        "User-Agent": "CoChem-TORQ-Telemetry/0.0.12",
+                    },
                 )
                 if response.is_success:
                     cb.record_success()
@@ -383,8 +441,16 @@ async def stream_webhook_events_async(
                         "spooled": False,
                     }
                 else:
-                    last_exception_msg = f"HTTP {response.status_code}: {response.text[:120]}"
-        except (httpx.TimeoutException, httpx.RequestError, httpx.HTTPError, asyncio.TimeoutError, Exception) as exc:
+                    last_exception_msg = (
+                        f"HTTP {response.status_code}: {response.text[:120]}"
+                    )
+        except (
+            httpx.TimeoutException,
+            httpx.RequestError,
+            httpx.HTTPError,
+            asyncio.TimeoutError,
+            Exception,
+        ) as exc:
             last_exception_msg = f"{type(exc).__name__}: {str(exc)}"
 
         # Exponential backoff pause if attempts remain
@@ -395,10 +461,14 @@ async def stream_webhook_events_async(
     # All retries exhausted: Trip breaker and spool to scratch directory
     cb.record_failure()
     spool_path = _spool_event_to_disk(
-        payload_dict, target_scratch, spool_filename=spool_filename, reason=last_exception_msg
+        payload_dict,
+        target_scratch,
+        spool_filename=spool_filename,
+        reason=last_exception_msg,
     )
     logger.warning(
-        f"Webhook delivery failed after {max_retries} attempts ({last_exception_msg}). Spooled to {spool_path}."
+        f"Webhook delivery failed after {max_retries} attempts "
+        f"({last_exception_msg}). Spooled to {spool_path}."
     )
     return {
         "status": "SPOOLED",
@@ -409,16 +479,17 @@ async def stream_webhook_events_async(
 
 
 def stream_webhook_events(
-    status_payload: Union[Dict[str, Any], WebhookPayload],
-    webhook_url: Optional[str] = None,
-    scratch_dir: Optional[Union[str, Path]] = None,
+    status_payload: dict[str, Any] | WebhookPayload,
+    webhook_url: str | None = None,
+    scratch_dir: str | Path | None = None,
     max_retries: int = 3,
     timeout: float = 3.0,
     spool_filename: str = "telemetry_spool.jsonl",
-    circuit_breaker: Optional[TelemetryCircuitBreaker] = None,
-) -> Dict[str, Any]:
+    circuit_breaker: TelemetryCircuitBreaker | None = None,
+) -> dict[str, Any]:
     """
-    Synchronous entrypoint for streaming webhook events. Safely bridges into asyncio loop.
+    Synchronous entrypoint for streaming webhook events.
+    Safely bridges into asyncio loop.
     """
     coro = stream_webhook_events_async(
         status_payload=status_payload,
@@ -437,6 +508,7 @@ def stream_webhook_events(
     if loop and loop.is_running():
         # In an active event loop (e.g. Jupyter or async test runner)
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(asyncio.run, coro)
             return future.result()
@@ -455,10 +527,10 @@ def find_stationary_points_2d(
     pes_grid: np.ndarray,
     neighborhood_size: int = 3,
     max_points: int = 20,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
-    Locates 2D stationary points (local minima and maxima) on a discrete Potential Energy Surface.
-    
+    Locates 2D stationary points (local minima and maxima) on a discrete PES.
+
     :param phi1: 1D array of dihedral coordinate 1.
     :param phi2: 1D array of dihedral coordinate 2.
     :param pes_grid: 2D potential energy array of shape (len(phi1), len(phi2)).
@@ -467,7 +539,7 @@ def find_stationary_points_2d(
     :return: List of stationary point dictionaries.
     """
     n1, n2 = pes_grid.shape
-    stationary_points: List[Dict[str, Any]] = []
+    stationary_points: list[dict[str, Any]] = []
 
     # Find global minimum with NaN-resilience
     if np.isnan(pes_grid).all():
@@ -476,15 +548,21 @@ def find_stationary_points_2d(
     try:
         glob_min_idx = np.unravel_index(np.nanargmin(pes_grid), pes_grid.shape)
         glob_min_val = float(pes_grid[glob_min_idx])
-        stationary_points.append({
-            "type": "minimum",
-            "subtype": "global_minimum",
-            "idx": (int(glob_min_idx[0]), int(glob_min_idx[1])),
-            "phi1": float(phi1[glob_min_idx[0]]),
-            "phi2": float(phi2[glob_min_idx[1]]),
-            "energy": glob_min_val,
-            "label": f"Global Min ({phi1[glob_min_idx[0]]:.1f}°, {phi2[glob_min_idx[1]]:.1f}°): {glob_min_val:.2f}",
-        })
+        p1_val = float(phi1[glob_min_idx[0]])
+        p2_val = float(phi2[glob_min_idx[1]])
+        stationary_points.append(
+            {
+                "type": "minimum",
+                "subtype": "global_minimum",
+                "idx": (int(glob_min_idx[0]), int(glob_min_idx[1])),
+                "phi1": p1_val,
+                "phi2": p2_val,
+                "energy": glob_min_val,
+                "label": (
+                    f"Global Min ({p1_val:.1f}°, {p2_val:.1f}°): {glob_min_val:.2f}"
+                ),
+            }
+        )
     except ValueError:
         pass
 
@@ -503,28 +581,38 @@ def find_stationary_points_2d(
             # Local minimum check
             win_min = np.nanmin(window)
             win_max = np.nanmax(window)
+            p1_deg = float(phi1[i])
+            p2_deg = float(phi2[j])
             if val == win_min:
                 if not stationary_points or (i, j) != stationary_points[0]["idx"]:
-                    stationary_points.append({
-                        "type": "minimum",
-                        "subtype": "local_minimum",
-                        "idx": (i, j),
-                        "phi1": float(phi1[i]),
-                        "phi2": float(phi2[j]),
-                        "energy": float(val),
-                        "label": f"Local Min ({phi1[i]:.1f}°, {phi2[j]:.1f}°): {val:.2f}",
-                    })
+                    stationary_points.append(
+                        {
+                            "type": "minimum",
+                            "subtype": "local_minimum",
+                            "idx": (i, j),
+                            "phi1": p1_deg,
+                            "phi2": p2_deg,
+                            "energy": float(val),
+                            "label": (
+                                f"Local Min ({p1_deg:.1f}°, {p2_deg:.1f}°): {val:.2f}"
+                            ),
+                        }
+                    )
             # Local maximum check
             elif val == win_max:
-                stationary_points.append({
-                    "type": "maximum",
-                    "subtype": "local_maximum",
-                    "idx": (i, j),
-                    "phi1": float(phi1[i]),
-                    "phi2": float(phi2[j]),
-                    "energy": float(val),
-                    "label": f"Local Max ({phi1[i]:.1f}°, {phi2[j]:.1f}°): {val:.2f}",
-                })
+                stationary_points.append(
+                    {
+                        "type": "maximum",
+                        "subtype": "local_maximum",
+                        "idx": (i, j),
+                        "phi1": p1_deg,
+                        "phi2": p2_deg,
+                        "energy": float(val),
+                        "label": (
+                            f"Local Max ({p1_deg:.1f}°, {p2_deg:.1f}°): {val:.2f}"
+                        ),
+                    }
+                )
 
             if len(stationary_points) >= max_points:
                 break
@@ -539,10 +627,10 @@ def decimate_2d_grid_with_extrema(
     phi2: np.ndarray,
     pes_grid: np.ndarray,
     max_nodes: int = 5000,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, Any]]]:
     """
-    Performs 2D Strided Regular Grid Decimation while preserving stationary points (minima/maxima).
-    Guarantees that the resulting mesh contains <= max_nodes to prevent WebGL browser crashes.
+    Performs 2D Strided Regular Grid Decimation preserving stationary points.
+    Guarantees that resulting mesh contains <= max_nodes to prevent WebGL crashes.
 
     :param phi1: 1D array of phi1 coordinates (len N1).
     :param phi2: 1D array of phi2 coordinates (len N2).
@@ -582,23 +670,24 @@ def decimate_2d_grid_with_extrema(
 
 
 def generate_plotly_3d_carousels(
-    pes_tensor: Union[np.ndarray, Dict[str, Any]],
-    dvr_wavefunctions: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-    phi1_grid: Optional[np.ndarray] = None,
-    phi2_grid: Optional[np.ndarray] = None,
-    artifact_dir: Optional[Union[str, Path]] = None,
+    pes_tensor: np.ndarray | dict[str, Any],
+    dvr_wavefunctions: np.ndarray | list[np.ndarray] | None = None,
+    phi1_grid: np.ndarray | None = None,
+    phi2_grid: np.ndarray | None = None,
+    artifact_dir: str | Path | None = None,
     filename: str = "torq_pes_3d_carousel.html",
     max_nodes: int = 5000,
     colorscale: str = "Viridis",
     title: str = "CoChem-TORQ 2D Torsional Potential Energy Surface",
 ) -> Path:
     """
-    Downsamples multi-dimensional PES grids and DVR probability wavefunctions using
-    2D Strided Regular Grid Decimation while preserving stationary points.
-    Generates lightweight, interactive, color-blind accessible HTML-embedded Plotly 3D visualizers.
+    Downsamples multi-dimensional PES grids and DVR probability wavefunctions
+    using 2D Strided Regular Grid Decimation while preserving stationary points.
+    Generates interactive, color-blind accessible HTML Plotly 3D visualizers.
 
-    :param pes_tensor: 2D array of potential energies, or dict with 'pes', 'phi1', 'phi2'.
-    :param dvr_wavefunctions: Optional list or 3D array of DVR wavefunction probability densities.
+    :param pes_tensor: 2D array of potential energies, or dict with
+        'pes', 'phi1', 'phi2'.
+    :param dvr_wavefunctions: Optional list or array of DVR probability densities.
     :param phi1_grid: Optional 1D array of phi1 dihedral coordinates.
     :param phi2_grid: Optional 1D array of phi2 dihedral coordinates.
     :param artifact_dir: Target deliverable directory (Filesystem Air-Gap).
@@ -616,14 +705,30 @@ def generate_plotly_3d_carousels(
         pes = np.asarray(pes_tensor["pes"], dtype=np.float64)
         n1, n2 = pes.shape
         raw_phi1 = pes_tensor.get("phi1", phi1_grid)
-        phi1 = np.linspace(-180.0, 180.0, n1) if raw_phi1 is None else np.asarray(raw_phi1, dtype=np.float64)
+        phi1 = (
+            np.linspace(-180.0, 180.0, n1)
+            if raw_phi1 is None
+            else np.asarray(raw_phi1, dtype=np.float64)
+        )
         raw_phi2 = pes_tensor.get("phi2", phi2_grid)
-        phi2 = np.linspace(-180.0, 180.0, n2) if raw_phi2 is None else np.asarray(raw_phi2, dtype=np.float64)
+        phi2 = (
+            np.linspace(-180.0, 180.0, n2)
+            if raw_phi2 is None
+            else np.asarray(raw_phi2, dtype=np.float64)
+        )
     else:
         pes = np.asarray(pes_tensor, dtype=np.float64)
         n1, n2 = pes.shape
-        phi1 = np.linspace(-180.0, 180.0, n1) if phi1_grid is None else np.asarray(phi1_grid, dtype=np.float64)
-        phi2 = np.linspace(-180.0, 180.0, n2) if phi2_grid is None else np.asarray(phi2_grid, dtype=np.float64)
+        phi1 = (
+            np.linspace(-180.0, 180.0, n1)
+            if phi1_grid is None
+            else np.asarray(phi1_grid, dtype=np.float64)
+        )
+        phi2 = (
+            np.linspace(-180.0, 180.0, n2)
+            if phi2_grid is None
+            else np.asarray(phi2_grid, dtype=np.float64)
+        )
 
     # Decimate 2D grid while preserving stationary points
     phi1_sub, phi2_sub, pes_sub, stationary_pts = decimate_2d_grid_with_extrema(
@@ -634,7 +739,6 @@ def generate_plotly_3d_carousels(
     fig = go.Figure()
 
     # 1. Base 3D Potential Energy Surface Trace
-    # Note: In plotly Surface, x corresponds to columns (phi2) and y corresponds to rows (phi1)
     fig.add_trace(
         go.Surface(
             x=phi2_sub,
@@ -649,10 +753,18 @@ def generate_plotly_3d_carousels(
                 thickness=18,
             ),
             contours=dict(
-                z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project_z=True)
+                z=dict(
+                    show=True,
+                    usecolormap=True,
+                    highlightcolor="limegreen",
+                    project_z=True,
+                )
             ),
             hoverinfo="x+y+z",
-            hovertemplate="ϕ₁: %{y:.1f}°<br>ϕ₂: %{x:.1f}°<br>V(ϕ₁, ϕ₂): %{z:.2f} cm⁻¹<extra></extra>",
+            hovertemplate=(
+                "ϕ₁: %{y:.1f}°<br>ϕ₂: %{x:.1f}°<br>"
+                "V(ϕ₁, ϕ₂): %{z:.2f} cm⁻¹<extra></extra>"
+            ),
         )
     )
 
@@ -662,8 +774,13 @@ def generate_plotly_3d_carousels(
         stat_y = [p["phi1"] for p in stationary_pts]
         stat_z = [p["energy"] for p in stationary_pts]
         stat_labels = [p["label"] for p in stationary_pts]
-        symbols = ["diamond" if p["type"] == "minimum" else "cross" for p in stationary_pts]
-        colors = ["gold" if p.get("subtype") == "global_minimum" else "crimson" for p in stationary_pts]
+        symbols = [
+            "diamond" if p["type"] == "minimum" else "cross" for p in stationary_pts
+        ]
+        colors = [
+            "gold" if p.get("subtype") == "global_minimum" else "crimson"
+            for p in stationary_pts
+        ]
 
         fig.add_trace(
             go.Scatter3d(
@@ -689,15 +806,17 @@ def generate_plotly_3d_carousels(
     # 3. Multi-State DVR Wavefunction Probability Distributions (Carousel Traces)
     updatemenus = []
     if dvr_wavefunctions is not None and len(dvr_wavefunctions) > 0:
-        wf_list = list(dvr_wavefunctions) if not isinstance(dvr_wavefunctions, list) else dvr_wavefunctions
+        wf_list = (
+            list(dvr_wavefunctions)
+            if not isinstance(dvr_wavefunctions, list)
+            else dvr_wavefunctions
+        )
         num_states = len(wf_list)
 
         # Baseline offset for wavefunction overlay
         pes_min = float(np.nanmin(pes_sub))
         pes_max = float(np.nanmax(pes_sub))
         v_span = max(1.0, pes_max - pes_min)
-
-        wf_traces_start_idx = len(fig.data)
 
         # Add a trace for each DVR state
         for state_idx, wf in enumerate(wf_list):
@@ -728,9 +847,13 @@ def generate_plotly_3d_carousels(
                     opacity=0.65,
                     showscale=False,
                     name=f"DVR State v={state_idx}",
-                    visible=(state_idx == 0),  # Show only ground state v=0 initially
+                    visible=(state_idx == 0),
                     hoverinfo="x+y+z",
-                    hovertemplate=f"DVR v={state_idx}<br>ϕ₁: %{{y:.1f}}°<br>ϕ₂: %{{x:.1f}}°<br>|ψ|² Offset: %{{z:.2f}} cm⁻¹<extra></extra>",
+                    hovertemplate=(
+                        f"DVR v={state_idx}<br>ϕ₁: %{{y:.1f}}°<br>"
+                        f"ϕ₂: %{{x:.1f}}°<br>"
+                        f"|ψ|² Offset: %{{z:.2f}} cm⁻¹<extra></extra>"
+                    ),
                 )
             )
 
@@ -738,20 +861,34 @@ def generate_plotly_3d_carousels(
         buttons = []
         # Option to show only PES
         vis_pes_only = [True, True if stationary_pts else False] + [False] * num_states
-        buttons.append(dict(
-            label="PES Base Only",
-            method="update",
-            args=[{"visible": vis_pes_only}, {"title": f"{title} (Base Surface)"}],
-        ))
+        buttons.append(
+            dict(
+                label="PES Base Only",
+                method="update",
+                args=[{"visible": vis_pes_only}, {"title": f"{title} (Base Surface)"}],
+            )
+        )
 
         # Option for each DVR state
         for s_idx in range(num_states):
-            vis = [True, True if stationary_pts else False] + [(i == s_idx) for i in range(num_states)]
-            buttons.append(dict(
-                label=f"DVR State v={s_idx}",
-                method="update",
-                args=[{"visible": vis}, {"title": f"{title} (DVR State v={s_idx} Probability Distribution)"}],
-            ))
+            vis = [True, True if stationary_pts else False] + [
+                (i == s_idx) for i in range(num_states)
+            ]
+            buttons.append(
+                dict(
+                    label=f"DVR State v={s_idx}",
+                    method="update",
+                    args=[
+                        {"visible": vis},
+                        {
+                            "title": (
+                                f"{title} (DVR State v={s_idx} "
+                                f"Probability Distribution)"
+                            )
+                        },
+                    ],
+                )
+            )
 
         updatemenus = [
             dict(
@@ -826,9 +963,10 @@ def generate_plotly_3d_carousels(
 # ============================================================================
 
 
-def _compute_pairwise_distances(coords: np.ndarray) -> Tuple[float, Tuple[int, int]]:
+def _compute_pairwise_distances(coords: np.ndarray) -> tuple[float, tuple[int, int]]:
     """
-    Computes minimum interatomic distance and colliding pair indices for a 3D coordinate array.
+    Computes minimum interatomic distance and colliding pair indices.
+
     :param coords: (N, 3) Cartesian coordinates in Angstroms.
     :return: (min_distance, (atom_i, atom_j))
     """
@@ -855,21 +993,21 @@ def _compute_pairwise_distances(coords: np.ndarray) -> Tuple[float, Tuple[int, i
 
 
 def export_crash_animation(
-    trajectory_array: Union[np.ndarray, List[np.ndarray], Dict[str, Any]],
+    trajectory_array: np.ndarray | list[np.ndarray] | dict[str, Any],
     error_node_id: str = "node_000",
-    symbols: Optional[List[str]] = None,
-    energies: Optional[List[float]] = None,
-    gradients: Optional[List[np.ndarray]] = None,
-    artifact_dir: Optional[Union[str, Path]] = None,
-    scratch_dir: Optional[Union[str, Path]] = None,
+    symbols: list[str] | None = None,
+    energies: list[float] | None = None,
+    gradients: list[np.ndarray] | None = None,
+    artifact_dir: str | Path | None = None,
+    scratch_dir: str | Path | None = None,
     abort_reason: str = "Steric Shatter Soft-Quench Abort: Unresolvable atomic overlap",
-) -> Dict[str, Path]:
+) -> dict[str, Path]:
     """
     Captures optimization trajectories during Steric Shatter Soft-Quench aborts into
     `crash_animation.xyz` and `crash_diagnostic.json`.
-    Written strictly to dynamically provided scratch/artifact directories (Filesystem Air-Gap).
+    Written strictly to dynamically provided scratch/artifact directories.
 
-    :param trajectory_array: Array of shape (num_frames, num_atoms, 3) or list of coordinates.
+    :param trajectory_array: (num_frames, num_atoms, 3) array or coordinate list.
     :param error_node_id: Topographic or cluster rotor node identifier.
     :param symbols: List of atomic symbols (e.g. ['C', 'C', 'H', 'H', 'H', 'H']).
     :param energies: Optional list of frame potential energies.
@@ -877,7 +1015,7 @@ def export_crash_animation(
     :param artifact_dir: Deliverables directory for crash diagnostics.
     :param scratch_dir: Scratch directory for crash trajectory files.
     :param abort_reason: Text description of the physics abort condition.
-    :return: Dictionary containing 'xyz_path', 'node_xyz_path', 'scratch_xyz_path', and 'diagnostic_path'.
+    :return: Dictionary containing 'xyz_path', 'node_xyz_path', etc.
     """
     target_artifacts = _resolve_artifact_dir(artifact_dir)
     target_scratch = _resolve_scratch_dir(scratch_dir)
@@ -909,21 +1047,21 @@ def export_crash_animation(
 
     # Track minimum distance and exploding gradients across trajectory
     min_overall_dist = float("inf")
-    colliding_pair: Tuple[int, int] = (0, 0)
+    colliding_pair: tuple[int, int] = (0, 0)
     crash_frame_idx = num_frames - 1
-    max_grad_norm: Optional[float] = None
+    max_grad_norm: float | None = None
 
     if gradients is not None and len(gradients) > 0:
         grad_norms = [float(np.linalg.norm(g)) for g in gradients]
         try:
-            max_grad_norm = float(np.nanmax(grad_norms))
+            max_grad_norm = float(np.nanmax(np.asarray(grad_norms)))
         except ValueError:
             max_grad_norm = None
 
     # Format multi-frame XYZ string
-    xyz_lines: List[str] = []
+    xyz_lines: list[str] = []
     for f_idx in range(num_frames):
-        frame_coords = traj_arr[f_idx]
+        frame_coords: np.ndarray = np.asarray(traj_arr[f_idx], dtype=np.float64)
         frame_min_d, frame_pair = _compute_pairwise_distances(frame_coords)
 
         if frame_min_d < min_overall_dist:
@@ -931,7 +1069,11 @@ def export_crash_animation(
             colliding_pair = frame_pair
             crash_frame_idx = f_idx
 
-        e_str = f" Energy: {energies[f_idx]:.6f} Eh |" if (energies and f_idx < len(energies)) else ""
+        e_str = (
+            f" Energy: {energies[f_idx]:.6f} Eh |"
+            if (energies and f_idx < len(energies))
+            else ""
+        )
         comment = (
             f"Frame {f_idx}/{num_frames - 1} | Node: {error_node_id} |{e_str} "
             f"MinDist: {frame_min_d:.4f} A (Atoms {frame_pair[0]}-{frame_pair[1]})"
@@ -976,10 +1118,17 @@ def export_crash_animation(
     )
 
     with open(diag_path, "w", encoding="utf-8") as f:
-        json.dump(diagnostic.model_dump(), f, indent=2, default=_json_serial_default, ensure_ascii=False)
+        json.dump(
+            diagnostic.model_dump(),
+            f,
+            indent=2,
+            default=_json_serial_default,
+            ensure_ascii=False,
+        )
 
     logger.info(
-        f"Exported crash trajectory ({num_frames} frames) to {canonical_xyz_path} and diagnostic to {diag_path}."
+        f"Exported crash trajectory ({num_frames} frames) to "
+        f"{canonical_xyz_path} and diagnostic to {diag_path}."
     )
 
     return {

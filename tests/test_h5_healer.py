@@ -192,9 +192,12 @@ class TestZombieDetection:
 class TestLiveSWMRRecovery:
     def test_heal_swmr_database_dead_process(self, tmp_path):
         db_path = tmp_path / "corrupted.h5"
-        # Write dummy h5 file for test
-        with h5py.File(db_path, "w") as f:
-            f.attrs["test"] = 1
+        # Write physically authentic HDF5 file using SWMR
+        with h5py.File(db_path, "w", libver="latest") as f:
+            f.swmr_mode = True
+            grp = f.create_group("quantum_states")
+            dset = grp.create_dataset("wavefunction", data=np.random.rand(10, 10))
+            f.attrs["physical_meaning"] = "quantum_wavefunction"
             
         lock_path = get_lock_path(db_path)
         

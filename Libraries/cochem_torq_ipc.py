@@ -30,6 +30,7 @@ Authoritative Sources:
 from __future__ import annotations
 
 import atexit
+from abc import ABC, abstractmethod
 import enum
 import gc
 import hashlib
@@ -830,7 +831,7 @@ register_signal_traps()
 # ============================================================================
 
 
-class BaseIPCSegment:
+class BaseIPCSegment(ABC):
     """Abstract base class providing PyArrow serialization and zero-copy IPC mapping."""
 
     def __init__(self, name: str, size: int) -> None:
@@ -865,17 +866,20 @@ class BaseIPCSegment:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.close()
 
+    @abstractmethod
     def get_memoryview(self, length: Optional[int] = None) -> memoryview:
         """Return memoryview of the underlying buffer."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def close(self) -> None:
         """Close buffer handles."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def unlink(self) -> None:
         """Release and delete the buffer segment from OS kernel/filesystem."""
-        raise NotImplementedError
+        pass
 
     # ------------------------------------------------------------------------
     # Core Read / Write / Serialization Methods

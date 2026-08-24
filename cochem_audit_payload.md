@@ -1,803 +1,1886 @@
-Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task12_export.md.
+Perform adversarial static analysis and logical review on implemented code for D:\__CoChem\__agentic\.prompts\.SRS\CoChem-TORQ\.in-progress\prompt_task12_telemetry.md.
 Original prompt:
-# Prompt: Cryptographic Payload Synthesizer
+# Prompt: Visual & Event Telemetry Streamer
 
-**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_export.py`
+**Target File:** `D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_telemetry.py`
 
 ## Objective
-Implement Cryptographic Payload Synthesizer for CoChem-TORQ based on Task 12 (Stage 5.5 - 6.0) specifications.
+Implement Visual & Event Telemetry Streamer for CoChem-TORQ based on Task 12 (Stage 5.5 - 6.0) specifications.
 
 ## Instructions for Coder
-1. Create or update `cochem_torq_export.py` inside `Libraries/`.
-2. Implement `calculate_kraitchman_coords()` evaluating substitution coordinates (r_s). Trap imaginary roots and implement Piecewise Costain Bounds.
-3. Implement `generate_pgopher_skeleton()` inspecting Parquet metadata (`pyarrow.parquet.read_metadata()`) and emitting a standardized `.pgo` XML skeleton. Write this file strictly to the dynamically provided artifact/output directory, NOT the repository root.
-4. Implement `lock_provenance_payload()` computing streaming SHA-256 checksums and serializing `spycfit_manifest.json` under RFC 8785 Canonical JSON. Write to the artifact directory.
-5. Implement `bundle_spycfit_payload()` archiving deliverables into deterministic `.tar.zst` with normalized POSIX mtime and file permissions. Write to the artifact directory.
-6. Implement `verify_payload_integrity()` executing an autonomous self-audit validating SHA-256 checksums prior to handoff.
+1. Create or update `cochem_torq_telemetry.py` inside `Libraries/`.
+2. Implement `stream_webhook_events()` using asynchronous HTTP POST with Exponential Backoff Circuit Breaker. Implement zero-interruption buffering to `telemetry_spool.jsonl`, writing strictly to the dynamically provided scratch directory.
+3. Implement `generate_plotly_3d_carousels()` using 2D Strided Regular Grid Decimation while preserving stationary points, emitting standalone HTML visualizers to the dynamically provided artifact directory.
+4. Implement `export_crash_animation()` capturing trajectories during Steric Shatter Soft-Quench aborts into `crash_animation.xyz` and `crash_diagnostic.json`. Write these strictly to the dynamically provided scratch/artifact directory.
 
 ## Constraints & Anti-Spoofing
-- **One Script Policy**: Only create or modify `cochem_torq_export.py`.
-- **Zero Mocking**: Do NOT mock any logic. Implement physical `pyarrow` metadata reads, SHA-256 hashing, and `.tar.zst` bundling.
+- **One Script Policy**: Only create or modify `cochem_torq_telemetry.py`.
+- **Zero Mocking**: Do NOT mock any logic. Implement physical webhook requests, exception catching, and Plotly 3D HTML generation.
 - **Context-Safety**: Do not hallucinate imports. Limit dependencies to the `requirements.txt` environment for CoChem-TORQ.
 - **Air-Gap Compliance**: The generated Python script MUST NOT write any data or logs to the repository space at runtime. Read and write strictly according to the paths defined dynamically. All files (like `.tar.zst`, `.jsonl`, etc.) MUST be written to the scratch or artifact paths provided dynamically by the environment or arguments, NOT the current working directory.
 
 Modified files content:
 
---- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_torq_export.py ---
-"""Comprehensive Test Suite for Cryptographic Payload Synthesizer.
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\Libraries\cochem_torq_telemetry.py ---
+"""
+CoChem-TORQ: Visual & Event Telemetry Streamer
+Phase 9 (Stages 5.5 - 6.0) Specification
+---------------------------------------------------------------------------------
+Manages real-time, out-of-band communication with users and HPC environments,
+safely bypassing frozen Jupyter DOMs, and preparing interactive visual reports for
+headless cluster executions.
 
-Phase 9 (Stages 5.5 - 6.0) Validation Suite
------------------------------------------------------------------------------------
-Validates:
-1. Kraitchman coordinates with real physical moments of inertia,
-   singularity damping, ZPVE defect clamping, and piecewise Costain bounds.
-2. OOM-proof PGOPHER XML skeleton generation inspecting Parquet metadata.
-3. Provenance lock manifest generation under RFC 8785 Canonical JSON.
-4. Deterministic .tar.zst payload bundling with normalized POSIX metadata.
-5. Comprehensive payload integrity verification and tamper detection.
-6. TorqExporter, PESStore, and export_qcschema integration.
+Implements:
+1. Asynchronous Webhook Event Streaming with Exponential Backoff Circuit Breaker
+   and zero-interruption spooling to `telemetry_spool.jsonl`.
+2. 2D Strided Regular Grid Decimation for Potential Energy Surfaces (PES) with
+   stationary point preservation and color-blind accessible Plotly 3D HTML carousels
+   for multi-state Discrete Variable Representation (DVR) probability wavefunctions.
+3. Multi-frame XYZ Crash Animation and JSON Diagnostic Exporter for Steric Shatter
+   Soft-Quench aborts and gradient explosion analysis.
+4. Strict Filesystem Air-Gap compliance writing exclusively to dynamic
+   scratch and artifact directory tiers.
 """
 
 from __future__ import annotations
 
-import io
+import asyncio
+import collections
+import datetime
 import json
+import logging
 import math
-import tarfile
-import xml.etree.ElementTree as ET
+import os
+import tempfile
+import time
+from datetime import timezone
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
-import h5py
+import httpx
 import numpy as np
-from mendeleev import element
-import numpy.typing as npt
-import pyarrow as pa
-import pyarrow.parquet as pq
-import pytest
-import scipy.linalg as sla
-import zstandard as zstd
+import plotly.graph_objects as go  # type: ignore[import-untyped]
+from pydantic import BaseModel, ConfigDict, Field
 
-from Libraries.cochem_torq_alignment import enforce_ciaaw_masses
-from Libraries.cochem_torq_export import (
-    CoChemIntegrityError,
-    KraitchmanSingularityWarning,
-    KraitchmanZPVEWarning,
-    PESStore,
-    TorqExporter,
-    bundle_spycfit_payload,
-    calculate_kraitchman_coords,
-    canonical_json_dumps,
-    compute_file_sha256,
-    export_qcschema,
-    generate_pgopher_skeleton,
-    lock_provenance_payload,
-    verify_payload_integrity,
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Telemetry] %(message)s"
+)
+logger = logging.getLogger("TorqTelemetry")
+
+# Environment resolution for Filesystem Air-Gap
+ARTIFACTS_DIR = os.environ.get(
+    "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
+)
+SCRATCH_DIR = os.environ.get("COCHEM_SCRATCH_DIR", str(Path.home() / "cochem_scratch"))
+
+
+# ============================================================================
+# Custom JSON Serialization Helper
+# ============================================================================
+
+
+def _json_serial_default(obj: Any) -> Any:
+    """Serializes NumPy scalars, NumPy arrays, Path, Enum, and datetime objects."""
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, datetime.datetime | datetime.date):
+        return obj.isoformat()
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, Enum):
+        return obj.value
+    return str(obj)
+
+
+# ============================================================================
+# Custom Warning & Exception Classes
+# ============================================================================
+
+
+class TelemetryDeliveryError(Exception):
+    """Raised when webhook delivery encounters an unrecoverable error."""
+
+    pass
+
+
+class CircuitBreakerOpenError(Exception):
+    """Raised when the telemetry circuit breaker is OPEN from network failures."""
+
+    pass
+
+
+class SoftQuenchAbortError(Exception):
+    """Raised when Steric Shatter Soft-Quench detects unresolvable atomic overlap."""
+
+    pass
+
+
+class TelemetryWarning(UserWarning):
+    """Issued for non-fatal notices like offline spooling or retries."""
+
+    pass
+
+
+# ============================================================================
+# Data Models (Pydantic V2)
+# ============================================================================
+
+
+class CircuitState(str, Enum):
+    CLOSED = "CLOSED"
+    OPEN = "OPEN"
+    HALF_OPEN = "HALF_OPEN"
+
+
+class WebhookPayload(BaseModel):
+    """Schema-enforced model for outgoing out-of-band telemetry events."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    event_type: str = Field(
+        description=(
+            "Type of event: job_start, job_completed, node_failure, "
+            "soft_quench_collision, oom_backoff, progress, heartbeat"
+        )
+    )
+    job_id: str = Field(description="Unique TORQ job identifier")
+    node_id: str | None = Field(
+        default=None, description="HPC / GPU compute node identifier"
+    )
+    status: str = Field(
+        default="RUNNING",
+        description="Job status: RUNNING, COMPLETED, FAILED, ALERT, ABORTED",
+    )
+    timestamp: str = Field(
+        default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat()
+    )
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arbitrary payload metrics and state variables",
+    )
+    error_trace: str | None = Field(
+        default=None, description="Traceback snippet or error description if applicable"
+    )
+
+
+class CrashDiagnostic(BaseModel):
+    """Diagnostic schema for Steric Shatter Soft-Quench crash captures."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    error_node_id: str
+    timestamp: str = Field(
+        default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat()
+    )
+    num_frames: int
+    num_atoms: int
+    symbols: list[str]
+    min_interatomic_distance: float
+    colliding_pair: tuple[int, int] | None = None
+    max_gradient_norm: float | None = None
+    abort_reason: str
+    crash_frame_index: int
+    initial_energy_hartree: float | None = None
+    final_energy_hartree: float | None = None
+
+
+# ============================================================================
+# Dynamic Path Resolution (6-Tier Air-Gap Hierarchy)
+# ============================================================================
+
+
+def _resolve_scratch_dir(scratch_dir: str | Path | None = None) -> Path:
+    """Resolves and creates dynamic scratch dir adhering to Filesystem Air-Gap.
+
+    Tier 1: Explicit custom scratch argument.
+    Tier 2: COCHEM_SCRATCH or COCHEM_SCRATCH_DIR env vars.
+    Tier 3: COCHEM_TMP, TMPDIR, TEMP, TMP env vars.
+    Tier 4: XDG_CACHE_HOME / cochem / scratch.
+    Tier 5: tempfile.gettempdir() / cochem_scratch.
+    Tier 6: Path.home() / .cochem / scratch fallback.
+    """
+    if scratch_dir is not None:
+        p = Path(scratch_dir).resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    for env_key in ("COCHEM_SCRATCH", "COCHEM_SCRATCH_DIR"):
+        env_val = os.environ.get(env_key)
+        if env_val and env_val.strip():
+            p = Path(env_val.strip()).resolve()
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+
+    for env_key in ("COCHEM_TMP", "TMPDIR", "TEMP", "TMP"):
+        env_val = os.environ.get(env_key)
+        if env_val and env_val.strip():
+            p = (Path(env_val.strip()).resolve() / "cochem_scratch").resolve()
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+
+    xdg_cache = os.environ.get("XDG_CACHE_HOME")
+    if xdg_cache and xdg_cache.strip():
+        p = (Path(xdg_cache.strip()).resolve() / "cochem" / "scratch").resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    try:
+        p = (Path(tempfile.gettempdir()).resolve() / "cochem_scratch").resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+    except Exception:
+        pass
+
+    p = (Path.home() / ".cochem" / "scratch").resolve()
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _resolve_artifact_dir(artifact_dir: str | Path | None = None) -> Path:
+    """Resolves and creates dynamic artifact dir adhering to Filesystem Air-Gap.
+
+    Tier 1: Explicit custom artifact argument.
+    Tier 2: COCHEM_ARTIFACTS_DIR, COCHEM_DELIVERABLES, COCHEM_DELIVERABLES_DIR env vars.
+    Tier 3: Path.home() / .cochem / deliverables fallback.
+    """
+    if artifact_dir is not None:
+        p = Path(artifact_dir).resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    for env_key in (
+        "COCHEM_ARTIFACTS_DIR",
+        "COCHEM_DELIVERABLES",
+        "COCHEM_DELIVERABLES_DIR",
+    ):
+        env_val = os.environ.get(env_key)
+        if env_val and env_val.strip():
+            p = Path(env_val.strip()).resolve()
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+
+    p = (Path.home() / ".cochem" / "deliverables").resolve()
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _spool_event_to_disk(
+    event_dict: dict[str, Any],
+    scratch_dir: Path,
+    spool_filename: str = "telemetry_spool.jsonl",
+    reason: str = "Network offline",
+) -> Path:
+    """Appends an un-delivered telemetry event to the zero-interruption spool file."""
+    spool_path = scratch_dir / spool_filename
+    envelope = {
+        "timestamp": datetime.datetime.now(timezone.utc).isoformat(),
+        "delivery_status": "SPOOLED",
+        "spool_reason": reason,
+        "payload": event_dict,
+    }
+    try:
+        with open(spool_path, "a", encoding="utf-8") as f:
+            f.write(
+                json.dumps(envelope, default=_json_serial_default, ensure_ascii=False)
+                + "\n"
+            )
+    except OSError as exc:
+        logger.error(f"Failed to write to telemetry spool file {spool_path}: {exc}")
+    return spool_path
+
+
+# ============================================================================
+# Circuit Breaker & Asynchronous Webhook Streamer
+# ============================================================================
+
+
+class TelemetryCircuitBreaker:
+    """
+    Exponential Backoff Circuit Breaker for robust out-of-band telemetry.
+    Silently intercepts cluster network drops and caches events in memory / spool files
+    to prevent halting active JAX physics computations.
+    """
+
+    def __init__(
+        self,
+        failure_threshold: int = 4,
+        recovery_timeout: float = 20.0,
+        backoff_factor: float = 0.25,
+        max_retries: int = 3,
+        request_timeout: float = 3.0,
+    ) -> None:
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.backoff_factor = backoff_factor
+        self.max_retries = max_retries
+        self.request_timeout = request_timeout
+
+        self.state: CircuitState = CircuitState.CLOSED
+        self.consecutive_failures: int = 0
+        self.last_failure_time: float = 0.0
+        self.in_memory_deque: collections.deque[dict[str, Any]] = collections.deque(
+            maxlen=2000
+        )
+
+    def record_success(self) -> None:
+        self.consecutive_failures = 0
+        self.state = CircuitState.CLOSED
+
+    def record_failure(self) -> None:
+        self.consecutive_failures += 1
+        self.last_failure_time = time.monotonic()
+        if (
+            self.consecutive_failures >= self.failure_threshold
+            or self.state == CircuitState.HALF_OPEN
+        ):
+            self.state = CircuitState.OPEN
+            logger.warning(
+                f"Telemetry Circuit Breaker tripped to OPEN after "
+                f"{self.consecutive_failures} consecutive network failures."
+            )
+
+    def can_attempt_request(self) -> bool:
+        if self.state == CircuitState.CLOSED:
+            return True
+        if self.state == CircuitState.OPEN:
+            elapsed = time.monotonic() - self.last_failure_time
+            if elapsed > self.recovery_timeout:
+                self.state = CircuitState.HALF_OPEN
+                logger.info("Telemetry Circuit Breaker entering HALF_OPEN probe state.")
+                return True
+            return False
+        # HALF_OPEN allows single probe
+        return True
+
+
+# Global circuit breaker singleton
+_GLOBAL_CIRCUIT_BREAKER = TelemetryCircuitBreaker()
+
+
+async def stream_webhook_events_async(
+    status_payload: dict[str, Any] | WebhookPayload,
+    webhook_url: str | None = None,
+    scratch_dir: str | Path | None = None,
+    max_retries: int = 3,
+    timeout: float = 3.0,
+    spool_filename: str = "telemetry_spool.jsonl",
+    circuit_breaker: TelemetryCircuitBreaker | None = None,
+) -> dict[str, Any]:
+    """
+    Asynchronously streams out-of-band webhook telemetry with Exponential Backoff
+    Circuit Breaker. If network drops or times out, silently caches event to
+    `telemetry_spool.jsonl` without raising unhandled exceptions or interrupting
+    computations.
+
+    :param status_payload: Dictionary or WebhookPayload model.
+    :param webhook_url: Discord/Slack/HTTP webhook URL (optional).
+    :param scratch_dir: Target scratch directory for spooling.
+    :param max_retries: Maximum exponential backoff retries.
+    :param timeout: Per-request HTTP timeout in seconds.
+    :param spool_filename: Spool log filename.
+    :param circuit_breaker: Optional circuit breaker instance.
+    :return: Delivery status summary dictionary.
+    """
+    cb = circuit_breaker or _GLOBAL_CIRCUIT_BREAKER
+    target_scratch = _resolve_scratch_dir(scratch_dir)
+
+    # Validate and normalize payload
+    if isinstance(status_payload, WebhookPayload):
+        payload_dict = status_payload.model_dump()
+    elif isinstance(status_payload, dict):
+        try:
+            validated = WebhookPayload(**status_payload)
+            payload_dict = validated.model_dump()
+        except Exception:
+            payload_dict = dict(status_payload)
+            payload_dict.setdefault(
+                "timestamp", datetime.datetime.now(timezone.utc).isoformat()
+            )
+    else:
+        payload_dict = {
+            "data": str(status_payload),
+            "timestamp": datetime.datetime.now(timezone.utc).isoformat(),
+        }
+
+    cb.in_memory_deque.append(payload_dict)
+
+    # If no webhook URL configured, spool directly
+    if not webhook_url or not str(webhook_url).strip():
+        spool_path = _spool_event_to_disk(
+            payload_dict,
+            target_scratch,
+            spool_filename=spool_filename,
+            reason="No webhook URL provided",
+        )
+        return {
+            "status": "SPOOLED",
+            "spooled": True,
+            "spool_path": str(spool_path),
+            "reason": "No webhook URL configured",
+        }
+
+    # Check Circuit Breaker gate
+    if not cb.can_attempt_request():
+        spool_path = _spool_event_to_disk(
+            payload_dict,
+            target_scratch,
+            spool_filename=spool_filename,
+            reason="Circuit Breaker OPEN",
+        )
+        return {
+            "status": "SPOOLED",
+            "spooled": True,
+            "spool_path": str(spool_path),
+            "reason": "Circuit Breaker OPEN",
+        }
+
+    # Attempt asynchronous HTTP POST with exponential backoff
+    last_exception_msg = ""
+    # Safe JSON string serialization supporting NumPy types
+    payload_json_str = json.dumps(
+        payload_dict, default=_json_serial_default, ensure_ascii=False
+    )
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    webhook_url,
+                    content=payload_json_str,
+                    headers={
+                        "Content-Type": "application/json",
+                        "User-Agent": "CoChem-TORQ-Telemetry/0.0.12",
+                    },
+                )
+                if response.is_success:
+                    cb.record_success()
+                    return {
+                        "status": "DELIVERED",
+                        "status_code": response.status_code,
+                        "attempt": attempt,
+                        "spooled": False,
+                    }
+                else:
+                    last_exception_msg = (
+                        f"HTTP {response.status_code}: {response.text[:120]}"
+                    )
+        except (
+            httpx.TimeoutException,
+            httpx.RequestError,
+            httpx.HTTPError,
+            asyncio.TimeoutError,
+            Exception,
+        ) as exc:
+            last_exception_msg = f"{type(exc).__name__}: {str(exc)}"
+
+        # Exponential backoff pause if attempts remain
+        if attempt < max_retries:
+            backoff_sec = min((2 ** (attempt - 1)) * cb.backoff_factor, 2.0)
+            await asyncio.sleep(backoff_sec)
+
+    # All retries exhausted: Trip breaker and spool to scratch directory
+    cb.record_failure()
+    spool_path = _spool_event_to_disk(
+        payload_dict,
+        target_scratch,
+        spool_filename=spool_filename,
+        reason=last_exception_msg,
+    )
+    logger.warning(
+        f"Webhook delivery failed after {max_retries} attempts "
+        f"({last_exception_msg}). Spooled to {spool_path}."
+    )
+    return {
+        "status": "SPOOLED",
+        "spooled": True,
+        "spool_path": str(spool_path),
+        "reason": last_exception_msg,
+    }
+
+
+def stream_webhook_events(
+    status_payload: dict[str, Any] | WebhookPayload,
+    webhook_url: str | None = None,
+    scratch_dir: str | Path | None = None,
+    max_retries: int = 3,
+    timeout: float = 3.0,
+    spool_filename: str = "telemetry_spool.jsonl",
+    circuit_breaker: TelemetryCircuitBreaker | None = None,
+) -> dict[str, Any]:
+    """
+    Synchronous entrypoint for streaming webhook events.
+    Safely bridges into asyncio loop.
+    """
+    coro = stream_webhook_events_async(
+        status_payload=status_payload,
+        webhook_url=webhook_url,
+        scratch_dir=scratch_dir,
+        max_retries=max_retries,
+        timeout=timeout,
+        spool_filename=spool_filename,
+        circuit_breaker=circuit_breaker,
+    )
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # In an active event loop (e.g. Jupyter or async test runner)
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
+    else:
+        return asyncio.run(coro)
+
+
+# ============================================================================
+# 2D Grid Decimation & Stationary Point Preservation
+# ============================================================================
+
+
+def find_stationary_points_2d(
+    phi1: np.ndarray,
+    phi2: np.ndarray,
+    pes_grid: np.ndarray,
+    neighborhood_size: int = 3,
+    max_points: int = 20,
+) -> list[dict[str, Any]]:
+    """
+    Locates 2D stationary points (local minima and maxima) on a discrete PES.
+
+    :param phi1: 1D array of dihedral coordinate 1.
+    :param phi2: 1D array of dihedral coordinate 2.
+    :param pes_grid: 2D potential energy array of shape (len(phi1), len(phi2)).
+    :param neighborhood_size: Kernel window for local extrema checking.
+    :param max_points: Maximum number of stationary points to collect.
+    :return: List of stationary point dictionaries.
+    """
+    n1, n2 = pes_grid.shape
+    stationary_points: list[dict[str, Any]] = []
+
+    # Find global minimum with NaN-resilience
+    if np.isnan(pes_grid).all():
+        return stationary_points
+
+    try:
+        glob_min_idx = np.unravel_index(np.nanargmin(pes_grid), pes_grid.shape)
+        glob_min_val = float(pes_grid[glob_min_idx])
+        p1_val = float(phi1[glob_min_idx[0]])
+        p2_val = float(phi2[glob_min_idx[1]])
+        stationary_points.append(
+            {
+                "type": "minimum",
+                "subtype": "global_minimum",
+                "idx": (int(glob_min_idx[0]), int(glob_min_idx[1])),
+                "phi1": p1_val,
+                "phi2": p2_val,
+                "energy": glob_min_val,
+                "label": (
+                    f"Global Min ({p1_val:.1f}°, {p2_val:.1f}°): {glob_min_val:.2f}"
+                ),
+            }
+        )
+    except ValueError:
+        pass
+
+    # Local extrema scan across interior grid
+    r = neighborhood_size // 2
+    if r < 1:
+        r = 1
+
+    for i in range(r, n1 - r, max(1, n1 // 50)):
+        for j in range(r, n2 - r, max(1, n2 // 50)):
+            window = pes_grid[i - r : i + r + 1, j - r : j + r + 1]
+            val = pes_grid[i, j]
+            if np.isnan(val):
+                continue
+
+            # Local minimum check
+            win_min = np.nanmin(window)
+            win_max = np.nanmax(window)
+            p1_deg = float(phi1[i])
+            p2_deg = float(phi2[j])
+            if val == win_min:
+                if not stationary_points or (i, j) != stationary_points[0]["idx"]:
+                    stationary_points.append(
+                        {
+                            "type": "minimum",
+                            "subtype": "local_minimum",
+                            "idx": (i, j),
+                            "phi1": p1_deg,
+                            "phi2": p2_deg,
+                            "energy": float(val),
+                            "label": (
+                                f"Local Min ({p1_deg:.1f}°, {p2_deg:.1f}°): {val:.2f}"
+                            ),
+                        }
+                    )
+            # Local maximum check
+            elif val == win_max:
+                stationary_points.append(
+                    {
+                        "type": "maximum",
+                        "subtype": "local_maximum",
+                        "idx": (i, j),
+                        "phi1": p1_deg,
+                        "phi2": p2_deg,
+                        "energy": float(val),
+                        "label": (
+                            f"Local Max ({p1_deg:.1f}°, {p2_deg:.1f}°): {val:.2f}"
+                        ),
+                    }
+                )
+
+            if len(stationary_points) >= max_points:
+                break
+        if len(stationary_points) >= max_points:
+            break
+
+    return stationary_points
+
+
+def decimate_2d_grid_with_extrema(
+    phi1: np.ndarray,
+    phi2: np.ndarray,
+    pes_grid: np.ndarray,
+    max_nodes: int = 5000,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, Any]]]:
+    """
+    Performs 2D Strided Regular Grid Decimation preserving stationary points.
+    Guarantees that resulting mesh contains <= max_nodes to prevent WebGL crashes.
+
+    :param phi1: 1D array of phi1 coordinates (len N1).
+    :param phi2: 1D array of phi2 coordinates (len N2).
+    :param pes_grid: 2D potential energy surface array of shape (N1, N2).
+    :param max_nodes: Maximum allowable node count in decimated mesh (default 5000).
+    :return: Tuple of (phi1_dec, phi2_dec, pes_dec, stationary_points).
+    """
+    n1, n2 = pes_grid.shape
+    total_nodes = n1 * n2
+
+    # Step 1: Detect stationary points on the pristine high-resolution surface
+    stationary_points = find_stationary_points_2d(phi1, phi2, pes_grid)
+
+    if total_nodes <= max_nodes:
+        return phi1, phi2, pes_grid, stationary_points
+
+    # Step 2: Compute striding ratio
+    # target: (n1 // stride1) * (n2 // stride2) <= max_nodes
+    stride = int(math.ceil(math.sqrt(total_nodes / max_nodes)))
+    stride1 = max(1, stride)
+    stride2 = max(1, stride)
+
+    while (len(phi1[::stride1]) * len(phi2[::stride2])) > max_nodes:
+        stride1 += 1
+        stride2 += 1
+
+    phi1_dec = phi1[::stride1]
+    phi2_dec = phi2[::stride2]
+    pes_dec = pes_grid[::stride1, ::stride2]
+
+    return phi1_dec, phi2_dec, pes_dec, stationary_points
+
+
+# ============================================================================
+# Plotly 3D Carousel Visualizer
+# ============================================================================
+
+
+def generate_plotly_3d_carousels(
+    pes_tensor: np.ndarray | dict[str, Any],
+    dvr_wavefunctions: np.ndarray | list[np.ndarray] | None = None,
+    phi1_grid: np.ndarray | None = None,
+    phi2_grid: np.ndarray | None = None,
+    artifact_dir: str | Path | None = None,
+    filename: str = "torq_pes_3d_carousel.html",
+    max_nodes: int = 5000,
+    colorscale: str = "Viridis",
+    title: str = "CoChem-TORQ 2D Torsional Potential Energy Surface",
+) -> Path:
+    """
+    Downsamples multi-dimensional PES grids and DVR probability wavefunctions
+    using 2D Strided Regular Grid Decimation while preserving stationary points.
+    Generates interactive, color-blind accessible HTML Plotly 3D visualizers.
+
+    :param pes_tensor: 2D array of potential energies, or dict with
+        'pes', 'phi1', 'phi2'.
+    :param dvr_wavefunctions: Optional list or array of DVR probability densities.
+    :param phi1_grid: Optional 1D array of phi1 dihedral coordinates.
+    :param phi2_grid: Optional 1D array of phi2 dihedral coordinates.
+    :param artifact_dir: Target deliverable directory (Filesystem Air-Gap).
+    :param filename: Output HTML filename.
+    :param max_nodes: Maximum allowable node threshold (default: 5000).
+    :param colorscale: Color-blind accessible colorscale (Viridis, Cividis, Plasma).
+    :param title: Figure title string.
+    :return: Absolute Path to the generated standalone HTML file.
+    """
+    target_artifacts = _resolve_artifact_dir(artifact_dir)
+    html_outpath = target_artifacts / filename
+
+    # Unpack PES tensor and coordinate grids
+    if isinstance(pes_tensor, dict):
+        pes = np.asarray(pes_tensor["pes"], dtype=np.float64)
+        n1, n2 = pes.shape
+        raw_phi1 = pes_tensor.get("phi1", phi1_grid)
+        phi1 = (
+            np.linspace(-180.0, 180.0, n1)
+            if raw_phi1 is None
+            else np.asarray(raw_phi1, dtype=np.float64)
+        )
+        raw_phi2 = pes_tensor.get("phi2", phi2_grid)
+        phi2 = (
+            np.linspace(-180.0, 180.0, n2)
+            if raw_phi2 is None
+            else np.asarray(raw_phi2, dtype=np.float64)
+        )
+    else:
+        pes = np.asarray(pes_tensor, dtype=np.float64)
+        n1, n2 = pes.shape
+        phi1 = (
+            np.linspace(-180.0, 180.0, n1)
+            if phi1_grid is None
+            else np.asarray(phi1_grid, dtype=np.float64)
+        )
+        phi2 = (
+            np.linspace(-180.0, 180.0, n2)
+            if phi2_grid is None
+            else np.asarray(phi2_grid, dtype=np.float64)
+        )
+
+    # Decimate 2D grid while preserving stationary points
+    phi1_sub, phi2_sub, pes_sub, stationary_pts = decimate_2d_grid_with_extrema(
+        phi1, phi2, pes, max_nodes=max_nodes
+    )
+
+    # Construct Plotly 3D Figure
+    fig = go.Figure()
+
+    # 1. Base 3D Potential Energy Surface Trace
+    fig.add_trace(
+        go.Surface(
+            x=phi2_sub,
+            y=phi1_sub,
+            z=pes_sub,
+            colorscale=colorscale,
+            opacity=0.92,
+            name="PES Base Surface",
+            colorbar=dict(
+                title=dict(text="Energy (cm⁻¹)", side="right"),
+                len=0.75,
+                thickness=18,
+            ),
+            contours=dict(
+                z=dict(
+                    show=True,
+                    usecolormap=True,
+                    highlightcolor="limegreen",
+                    project_z=True,
+                )
+            ),
+            hoverinfo="x+y+z",
+            hovertemplate=(
+                "ϕ₁: %{y:.1f}°<br>ϕ₂: %{x:.1f}°<br>"
+                "V(ϕ₁, ϕ₂): %{z:.2f} cm⁻¹<extra></extra>"
+            ),
+        )
+    )
+
+    # 2. Stationary Points Overlay (Minima / Maxima / Saddles)
+    if stationary_pts:
+        stat_x = [p["phi2"] for p in stationary_pts]
+        stat_y = [p["phi1"] for p in stationary_pts]
+        stat_z = [p["energy"] for p in stationary_pts]
+        stat_labels = [p["label"] for p in stationary_pts]
+        symbols = [
+            "diamond" if p["type"] == "minimum" else "cross" for p in stationary_pts
+        ]
+        colors = [
+            "gold" if p.get("subtype") == "global_minimum" else "crimson"
+            for p in stationary_pts
+        ]
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=stat_x,
+                y=stat_y,
+                z=stat_z,
+                mode="markers+text",
+                name="Stationary Points",
+                text=[p["subtype"].replace("_", " ").title() for p in stationary_pts],
+                textposition="top center",
+                textfont=dict(size=10, color="black"),
+                marker=dict(
+                    size=7,
+                    color=colors,
+                    symbol=symbols,
+                    line=dict(color="black", width=1),
+                ),
+                hovertext=stat_labels,
+                hoverinfo="text",
+            )
+        )
+
+    # 3. Multi-State DVR Wavefunction Probability Distributions (Carousel Traces)
+    updatemenus = []
+    if dvr_wavefunctions is not None and len(dvr_wavefunctions) > 0:
+        wf_list = (
+            list(dvr_wavefunctions)
+            if not isinstance(dvr_wavefunctions, list)
+            else dvr_wavefunctions
+        )
+        num_states = len(wf_list)
+
+        # Baseline offset for wavefunction overlay
+        pes_min = float(np.nanmin(pes_sub))
+        pes_max = float(np.nanmax(pes_sub))
+        v_span = max(1.0, pes_max - pes_min)
+
+        # Add a trace for each DVR state
+        for state_idx, wf in enumerate(wf_list):
+            wf_arr = np.asarray(wf, dtype=np.float64)
+            # Decimate wavefunction to match grid stride
+            s1 = max(1, len(phi1) // len(phi1_sub))
+            s2 = max(1, len(phi2) // len(phi2_sub))
+            wf_sub = wf_arr[::s1, ::s2]
+            # Ensure shape match
+            if wf_sub.shape != pes_sub.shape:
+                wf_sub = np.resize(wf_sub, pes_sub.shape)
+
+            # Normalize and elevate probability density
+            prob_density = np.abs(wf_sub)
+            p_max = np.nanmax(prob_density)
+            if p_max > 1e-12:
+                prob_density = prob_density / p_max
+
+            # Offset probability surface slightly above local PES
+            z_wf = pes_sub + prob_density * (v_span * 0.25)
+
+            fig.add_trace(
+                go.Surface(
+                    x=phi2_sub,
+                    y=phi1_sub,
+                    z=z_wf,
+                    colorscale="Plasma",
+                    opacity=0.65,
+                    showscale=False,
+                    name=f"DVR State v={state_idx}",
+                    visible=(state_idx == 0),
+                    hoverinfo="x+y+z",
+                    hovertemplate=(
+                        f"DVR v={state_idx}<br>ϕ₁: %{{y:.1f}}°<br>"
+                        f"ϕ₂: %{{x:.1f}}°<br>"
+                        f"|ψ|² Offset: %{{z:.2f}} cm⁻¹<extra></extra>"
+                    ),
+                )
+            )
+
+        # Create interactive carousel dropdown / button menu
+        buttons = []
+        # Option to show only PES
+        vis_pes_only = [True, True if stationary_pts else False] + [False] * num_states
+        buttons.append(
+            dict(
+                label="PES Base Only",
+                method="update",
+                args=[{"visible": vis_pes_only}, {"title": f"{title} (Base Surface)"}],
+            )
+        )
+
+        # Option for each DVR state
+        for s_idx in range(num_states):
+            vis = [True, True if stationary_pts else False] + [
+                (i == s_idx) for i in range(num_states)
+            ]
+            buttons.append(
+                dict(
+                    label=f"DVR State v={s_idx}",
+                    method="update",
+                    args=[
+                        {"visible": vis},
+                        {
+                            "title": (
+                                f"{title} (DVR State v={s_idx} "
+                                f"Probability Distribution)"
+                            )
+                        },
+                    ],
+                )
+            )
+
+        updatemenus = [
+            dict(
+                type="dropdown",
+                direction="down",
+                x=0.02,
+                y=0.98,
+                xanchor="left",
+                yanchor="top",
+                buttons=buttons,
+                bgcolor="rgba(255, 255, 255, 0.9)",
+                bordercolor="#cccccc",
+                borderwidth=1,
+            )
+        ]
+
+    # Layout styling with color-blind contrast and responsive aspect ratio
+    fig.update_layout(
+        title=dict(
+            text=title,
+            x=0.5,
+            xanchor="center",
+            font=dict(family="Arial, sans-serif", size=16, color="#222222"),
+        ),
+        scene=dict(
+            xaxis=dict(
+                title="Dihedral ϕ₂ (degrees)",
+                backgroundcolor="rgb(245, 245, 245)",
+                gridcolor="white",
+                showbackground=True,
+                zerolinecolor="white",
+            ),
+            yaxis=dict(
+                title="Dihedral ϕ₁ (degrees)",
+                backgroundcolor="rgb(245, 245, 245)",
+                gridcolor="white",
+                showbackground=True,
+                zerolinecolor="white",
+            ),
+            zaxis=dict(
+                title="Potential Energy V (cm⁻¹)",
+                backgroundcolor="rgb(240, 240, 240)",
+                gridcolor="white",
+                showbackground=True,
+                zerolinecolor="white",
+            ),
+            camera=dict(
+                eye=dict(x=1.6, y=-1.6, z=1.2),
+            ),
+            aspectmode="manual",
+            aspectratio=dict(x=1.2, y=1.2, z=0.7),
+        ),
+        margin=dict(l=20, r=20, b=20, t=50),
+        template="plotly_white",
+        updatemenus=updatemenus if updatemenus else None,
+    )
+
+    # Write standalone HTML file with CDN inclusion for lightweight footprint
+    fig.write_html(
+        str(html_outpath),
+        include_plotlyjs="cdn",
+        full_html=True,
+        config={"responsive": True, "displayModeBar": True, "scrollZoom": True},
+    )
+
+    logger.info(f"Generated standalone Plotly 3D Carousel HTML at: {html_outpath}")
+    return html_outpath
+
+
+# ============================================================================
+# Crash Animation & Diagnostic Exporter
+# ============================================================================
+
+
+def _compute_pairwise_distances(coords: np.ndarray) -> tuple[float, tuple[int, int]]:
+    """
+    Computes minimum interatomic distance and colliding pair indices.
+
+    :param coords: (N, 3) Cartesian coordinates in Angstroms.
+    :return: (min_distance, (atom_i, atom_j))
+    """
+    num_atoms = coords.shape[0]
+    if num_atoms < 2:
+        return 999.0, (0, 0)
+
+    # Compute difference vectors: (N, N, 3)
+    diff = coords[:, np.newaxis, :] - coords[np.newaxis, :, :]
+    dist_matrix = np.linalg.norm(diff, axis=-1)
+
+    # Mask diagonal
+    np.fill_diagonal(dist_matrix, np.inf)
+
+    if np.isnan(dist_matrix).all():
+        return 0.0, (0, 1)
+
+    try:
+        min_idx = np.unravel_index(np.nanargmin(dist_matrix), dist_matrix.shape)
+        min_dist = float(dist_matrix[min_idx])
+        return min_dist, (int(min_idx[0]), int(min_idx[1]))
+    except ValueError:
+        return 0.0, (0, 1)
+
+
+def export_crash_animation(
+    trajectory_array: np.ndarray | list[np.ndarray] | dict[str, Any],
+    error_node_id: str = "node_000",
+    symbols: list[str] | None = None,
+    energies: list[float] | None = None,
+    gradients: list[np.ndarray] | None = None,
+    artifact_dir: str | Path | None = None,
+    scratch_dir: str | Path | None = None,
+    abort_reason: str = "Steric Shatter Soft-Quench Abort: Unresolvable atomic overlap",
+) -> dict[str, Path]:
+    """
+    Captures optimization trajectories during Steric Shatter Soft-Quench aborts into
+    `crash_animation.xyz` and `crash_diagnostic.json`.
+    Written strictly to dynamically provided scratch/artifact directories.
+
+    :param trajectory_array: (num_frames, num_atoms, 3) array or coordinate list.
+    :param error_node_id: Topographic or cluster rotor node identifier.
+    :param symbols: List of atomic symbols (e.g. ['C', 'C', 'H', 'H', 'H', 'H']).
+    :param energies: Optional list of frame potential energies.
+    :param gradients: Optional list of frame atomic gradient vectors.
+    :param artifact_dir: Deliverables directory for crash diagnostics.
+    :param scratch_dir: Scratch directory for crash trajectory files.
+    :param abort_reason: Text description of the physics abort condition.
+    :return: Dictionary containing 'xyz_path', 'node_xyz_path', etc.
+    """
+    target_artifacts = _resolve_artifact_dir(artifact_dir)
+    target_scratch = _resolve_scratch_dir(scratch_dir)
+
+    xyz_path = target_artifacts / f"crash_animation_{error_node_id}.xyz"
+    # Also write canonical crash_animation.xyz if default
+    canonical_xyz_path = target_artifacts / "crash_animation.xyz"
+    diag_path = target_artifacts / "crash_diagnostic.json"
+
+    # Unpack trajectory
+    if isinstance(trajectory_array, dict):
+        coords_list = trajectory_array["coordinates"]
+        symbols = trajectory_array.get("symbols", symbols)
+        energies = trajectory_array.get("energies", energies)
+        gradients = trajectory_array.get("gradients", gradients)
+    else:
+        coords_list = trajectory_array
+
+    traj_arr = np.asarray(coords_list, dtype=np.float64)
+    if traj_arr.ndim == 2:
+        # Single frame (1, N, 3)
+        traj_arr = traj_arr[np.newaxis, ...]
+
+    num_frames, num_atoms, _ = traj_arr.shape
+
+    # Default symbols if missing
+    if symbols is None or len(symbols) != num_atoms:
+        symbols = ["X"] * num_atoms
+
+    # Track minimum distance and exploding gradients across trajectory
+    min_overall_dist = float("inf")
+    colliding_pair: tuple[int, int] = (0, 0)
+    crash_frame_idx = num_frames - 1
+    max_grad_norm: float | None = None
+
+    if gradients is not None and len(gradients) > 0:
+        grad_norms = [float(np.linalg.norm(g)) for g in gradients]
+        try:
+            max_grad_norm = float(np.nanmax(np.asarray(grad_norms)))
+        except ValueError:
+            max_grad_norm = None
+
+    # Format multi-frame XYZ string
+    xyz_lines: list[str] = []
+    for f_idx in range(num_frames):
+        frame_coords: np.ndarray = np.asarray(traj_arr[f_idx], dtype=np.float64)
+        frame_min_d, frame_pair = _compute_pairwise_distances(frame_coords)
+
+        if frame_min_d < min_overall_dist:
+            min_overall_dist = frame_min_d
+            colliding_pair = frame_pair
+            crash_frame_idx = f_idx
+
+        e_str = (
+            f" Energy: {energies[f_idx]:.6f} Eh |"
+            if (energies and f_idx < len(energies))
+            else ""
+        )
+        comment = (
+            f"Frame {f_idx}/{num_frames - 1} | Node: {error_node_id} |{e_str} "
+            f"MinDist: {frame_min_d:.4f} A (Atoms {frame_pair[0]}-{frame_pair[1]})"
+        )
+
+        xyz_lines.append(str(num_atoms))
+        xyz_lines.append(comment)
+        for a_idx in range(num_atoms):
+            sym = symbols[a_idx]
+            x, y, z = frame_coords[a_idx]
+            xyz_lines.append(f"{sym:<3} {x:12.6f} {y:12.6f} {z:12.6f}")
+
+    xyz_content = "\n".join(xyz_lines) + "\n"
+
+    # Write XYZ files to artifacts
+    with open(canonical_xyz_path, "w", encoding="utf-8") as f:
+        f.write(xyz_content)
+    with open(xyz_path, "w", encoding="utf-8") as f:
+        f.write(xyz_content)
+
+    # Also persist ephemeral scratch trajectory for IPC
+    scratch_xyz_path = target_scratch / f"crash_spool_{error_node_id}.xyz"
+    with open(scratch_xyz_path, "w", encoding="utf-8") as f:
+        f.write(xyz_content)
+
+    # Build diagnostic JSON payload
+    init_energy = float(energies[0]) if (energies and len(energies) > 0) else None
+    final_energy = float(energies[-1]) if (energies and len(energies) > 0) else None
+
+    diagnostic = CrashDiagnostic(
+        error_node_id=error_node_id,
+        num_frames=num_frames,
+        num_atoms=num_atoms,
+        symbols=symbols,
+        min_interatomic_distance=round(min_overall_dist, 6),
+        colliding_pair=colliding_pair,
+        max_gradient_norm=max_grad_norm,
+        abort_reason=abort_reason,
+        crash_frame_index=crash_frame_idx,
+        initial_energy_hartree=init_energy,
+        final_energy_hartree=final_energy,
+    )
+
+    with open(diag_path, "w", encoding="utf-8") as f:
+        json.dump(
+            diagnostic.model_dump(),
+            f,
+            indent=2,
+            default=_json_serial_default,
+            ensure_ascii=False,
+        )
+
+    logger.info(
+        f"Exported crash trajectory ({num_frames} frames) to "
+        f"{canonical_xyz_path} and diagnostic to {diag_path}."
+    )
+
+    return {
+        "xyz_path": canonical_xyz_path,
+        "node_xyz_path": xyz_path,
+        "scratch_xyz_path": scratch_xyz_path,
+        "diagnostic_path": diag_path,
+    }
+
+--- D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests\test_torq_telemetry.py ---
+"""
+CoChem-TORQ: Test Suite for Visual & Event Telemetry Streamer
+Phase 9 (Stages 5.5 - 6.0) Validation Suite
+-----------------------------------------------------------------------------
+Validates:
+1. stream_webhook_events with real local HTTP server, backoff retries,
+   and circuit-breaker fallback spooling to telemetry_spool.jsonl.
+2. generate_plotly_3d_carousels with 2D regular grid decimation,
+   stationary point preservation, and DVR wavefunction probability states.
+3. export_crash_animation capturing multi-frame crash_animation.xyz
+   and crash_diagnostic.json during Steric Shatter Soft-Quench aborts.
+4. Filesystem Air-Gap compliance writing to dynamic scratch/artifact dirs.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import socket
+import threading
+import time
+from collections.abc import Iterator
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pytest
+
+from Libraries.cochem_torq_telemetry import (
+    TelemetryCircuitBreaker,
+    decimate_2d_grid_with_extrema,
+    export_crash_animation,
+    find_stationary_points_2d,
+    generate_plotly_3d_carousels,
+    stream_webhook_events,
 )
 
 # ============================================================================
-# Physical Helper: Inertial Tensor & Moments for Rigid 3D Molecules
+# Physical Helper: Ephemeral Local HTTP Server for Real Webhook Delivery
 # ============================================================================
 
 
-def compute_principal_moments(
-    coordinates: npt.NDArray[np.float64], masses: npt.NDArray[np.float64]
-) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Computes center-of-mass shifted coordinates, principal moments of inertia.
+class WebhookRecordingHandler(BaseHTTPRequestHandler):
+    """Real HTTP request handler for live socket-level webhook testing."""
 
-    :param coordinates: (N, 3) Cartesian coordinates in Angstroms.
-    :param masses: (N,) atomic masses in atomic mass units (u).
-    :return: (principal_moments, principal_axes_matrix, aligned_coordinates)
-    """
-    total_mass = float(np.sum(masses))
-    com = np.sum(coordinates * masses[:, None], axis=0) / total_mass
-    coords_com = coordinates - com
+    def log_message(self, format: str, *args: Any) -> None:
+        # Suppress standard HTTP server console spam during tests
+        pass
 
-    x = coords_com[:, 0]
-    y = coords_com[:, 1]
-    z = coords_com[:, 2]
+    def do_POST(self) -> None:  # noqa: N802
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length).decode("utf-8")
+        try:
+            payload = json.loads(body) if body else {}
+        except Exception:
+            payload = {"raw_body": body}
 
-    i_xx = float(np.sum(masses * (y**2 + z**2)))
-    i_yy = float(np.sum(masses * (x**2 + z**2)))
-    i_zz = float(np.sum(masses * (x**2 + y**2)))
-    i_xy = -float(np.sum(masses * x * y))
-    i_xz = -float(np.sum(masses * x * z))
-    i_yz = -float(np.sum(masses * y * z))
+        # Check server mode
+        server_obj: Any = self.server
+        server_obj.received_requests.append(
+            {
+                "path": self.path,
+                "headers": dict(self.headers),
+                "payload": payload,
+            }
+        )
 
-    i_tensor = np.array(
-        [[i_xx, i_xy, i_xz], [i_xy, i_yy, i_yz], [i_xz, i_yz, i_zz]], dtype=np.float64
+        if getattr(server_obj, "fail_count_target", 0) > 0:
+            server_obj.fail_count_target -= 1
+            self.send_response(503)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "Service Unavailable"}')
+            return
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"status": "ok", "delivered": true}')
+
+
+def get_free_port() -> int:
+    """Finds an available ephemeral port on 127.0.0.1."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
+@pytest.fixture
+def local_webhook_server() -> Iterator[tuple[HTTPServer, str]]:
+    """Starts a real physical HTTP server on localhost."""
+    port = get_free_port()
+    server = HTTPServer(("127.0.0.1", port), WebhookRecordingHandler)
+    server.received_requests = []  # type: ignore[attr-defined]
+    server.fail_count_target = 0  # type: ignore[attr-defined]
+
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    url = f"http://127.0.0.1:{port}/cochem/webhook"
+    try:
+        yield server, url
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2.0)
+
+
+# ============================================================================
+# Test Suite 1: Webhook Streaming & Circuit Breaker Spooling
+# ============================================================================
+
+
+def test_stream_webhook_events_real_delivery(
+    local_webhook_server: tuple[HTTPServer, str], tmp_path: Path
+) -> None:
+    """Validates real physical HTTP POST delivery to an active webhook endpoint."""
+    server, webhook_url = local_webhook_server
+    scratch_dir = tmp_path / "scratch"
+
+    test_payload = {
+        "event_type": "job_completed",
+        "job_id": "TORQ_JOB_2026_08_001",
+        "node_id": "hpc_worker_node_07",
+        "status": "COMPLETED",
+        "data": {"wall_time_sec": 42.5, "optimized_energy_hartree": -154.29841},
+    }
+
+    result = stream_webhook_events(
+        status_payload=test_payload,
+        webhook_url=webhook_url,
+        scratch_dir=scratch_dir,
+        max_retries=2,
+        timeout=3.0,
     )
-    evals, evecs = sla.eigh(i_tensor)
 
-    idx = np.argsort(evals)
-    evals = evals[idx]
-    evecs = evecs[:, idx]
+    assert result["status"] == "DELIVERED"
+    assert result["status_code"] == 200
+    assert result["spooled"] is False
+    assert len(server.received_requests) == 1  # type: ignore[attr-defined]
+    assert server.received_requests[0]["payload"]["job_id"] == "TORQ_JOB_2026_08_001"  # type: ignore[attr-defined]
 
-    aligned = coords_com @ evecs
-    return evals, evecs, aligned
+
+def test_stream_webhook_events_exponential_backoff_recovery(
+    local_webhook_server: tuple[HTTPServer, str], tmp_path: Path
+) -> None:
+    """Validates exponential backoff retries when encountering transient 503 errors."""
+    server, webhook_url = local_webhook_server
+    server.fail_count_target = 2  # type: ignore[attr-defined] # Fail first 2 attempts with 503, succeed on 3rd
+    scratch_dir = tmp_path / "scratch"
+
+    test_payload = {
+        "event_type": "soft_quench_collision",
+        "job_id": "TORQ_JOB_SQ_09",
+        "node_id": "gpu_node_01",
+        "status": "ALERT",
+        "data": {"collision_distance_angstrom": 0.58},
+    }
+
+    result = stream_webhook_events(
+        status_payload=test_payload,
+        webhook_url=webhook_url,
+        scratch_dir=scratch_dir,
+        max_retries=3,
+        timeout=3.0,
+    )
+
+    assert result["status"] == "DELIVERED"
+    assert result["attempt"] == 3
+    assert len(server.received_requests) == 3  # type: ignore[attr-defined]
+
+
+def test_stream_webhook_events_blackout_spooling(tmp_path: Path) -> None:
+    """Validates spooling to telemetry_spool.jsonl when network fails."""
+    # Use a port that is definitively closed/unreachable
+    closed_port = get_free_port()
+    unreachable_url = f"http://127.0.0.1:{closed_port}/nonexistent_webhook"
+    scratch_dir = tmp_path / "scratch"
+
+    test_payload = {
+        "event_type": "oom_backoff",
+        "job_id": "TORQ_JOB_OOM_003",
+        "node_id": "cpu_node_12",
+        "status": "ALERT",
+        "data": {"memory_rss_gb": 64.2, "backoff_scale": 0.5},
+    }
+
+    result = stream_webhook_events(
+        status_payload=test_payload,
+        webhook_url=unreachable_url,
+        scratch_dir=scratch_dir,
+        max_retries=2,
+        timeout=0.5,
+    )
+
+    # Must NOT raise unhandled exception; must safely spool to disk
+    assert result["status"] == "SPOOLED"
+    assert result["spooled"] is True
+    spool_file = scratch_dir / "telemetry_spool.jsonl"
+    assert spool_file.exists()
+
+    with open(spool_file, encoding="utf-8") as f:
+        lines = [json.loads(line) for line in f if line.strip()]
+
+    assert len(lines) >= 1
+    logged_event = lines[-1]
+    assert logged_event["payload"]["job_id"] == "TORQ_JOB_OOM_003"
+    assert logged_event["delivery_status"] == "SPOOLED"
+
+
+def test_stream_webhook_events_numpy_types(
+    local_webhook_server: tuple[HTTPServer, str], tmp_path: Path
+) -> None:
+    """Validates NumPy scalars and arrays in payload serialize cleanly."""
+    server, webhook_url = local_webhook_server
+    scratch_dir = tmp_path / "scratch"
+
+    numpy_payload = {
+        "event_type": "progress",
+        "job_id": "NUMPY_SERIAL_01",
+        "status": "RUNNING",
+        "data": {
+            "float_metric": np.float64(3.14159265),
+            "int_metric": np.int64(42),
+            "vector": np.array([1.0, 2.0, 3.0]),
+        },
+    }
+
+    result = stream_webhook_events(
+        status_payload=numpy_payload,
+        webhook_url=webhook_url,
+        scratch_dir=scratch_dir,
+    )
+
+    assert result["status"] == "DELIVERED"
+    assert len(server.received_requests) == 1  # type: ignore[attr-defined]
+    rec_payload = server.received_requests[0]["payload"]  # type: ignore[attr-defined]
+    assert rec_payload["data"]["int_metric"] == 42
+    assert rec_payload["data"]["vector"] == [1.0, 2.0, 3.0]
 
 
 # ============================================================================
-# Test Suite 1: Kraitchman Coordinate Engine & Physical Invariants
+# Test Suite 2: 2D PES Decimation & Plotly 3D Carousel Generation
 # ============================================================================
 
 
-def test_kraitchman_real_asymmetric_top() -> None:
-    """Validates Kraitchman coordinates for 3D asymmetric top molecule."""
-    coords = np.array(
+def test_decimate_2d_grid_and_stationary_points() -> None:
+    """Validates 2D grid decimation preserving stationary points."""
+    # Create a dense 500x500 (250,000 nodes) 2D PES grid
+    n1, n2 = 500, 500
+    phi1 = np.linspace(-180.0, 180.0, n1)
+    phi2 = np.linspace(-180.0, 180.0, n2)
+    p1_mesh, p2_mesh = np.meshgrid(phi1, phi2, indexing="ij")
+
+    # Analytical potential:
+    # V(phi1, phi2) = 1500*(1-cos(phi1)) + 800*(1-cos(2*phi2)) + 400*cos(phi1+phi2)
+    # Global minimum at (0, 0) where V = 400 cm-1
+    rad1 = np.radians(p1_mesh)
+    rad2 = np.radians(p2_mesh)
+    pes_grid = (
+        1500.0 * (1.0 - np.cos(rad1))
+        + 800.0 * (1.0 - np.cos(2.0 * rad2))
+        + 400.0 * np.cos(rad1 + rad2)
+    )
+
+    # Test stationary points finder
+    stationary_points = find_stationary_points_2d(phi1, phi2, pes_grid, max_points=10)
+    assert len(stationary_points) > 0
+    # Minima should include near (0, 0)
+    minima = [p for p in stationary_points if p["type"] == "minimum"]
+    assert len(minima) >= 1
+
+    # Test decimation to <= 5000 nodes
+    phi1_dec, phi2_dec, pes_dec, extrema_pts = decimate_2d_grid_with_extrema(
+        phi1, phi2, pes_grid, max_nodes=5000
+    )
+
+    total_dec_nodes = len(phi1_dec) * len(phi2_dec)
+    assert total_dec_nodes <= 5000
+    assert total_dec_nodes > 100
+    assert pes_dec.shape == (len(phi1_dec), len(phi2_dec))
+    assert len(extrema_pts) > 0
+
+
+def test_find_stationary_points_with_nans() -> None:
+    """Validates stationary points finder resilience with NaNs."""
+    n1, n2 = 50, 50
+    phi1 = np.linspace(-180.0, 180.0, n1)
+    phi2 = np.linspace(-180.0, 180.0, n2)
+    pes_grid = np.full((n1, n2), 1000.0)
+    # True minimum at (25, 25)
+    pes_grid[25, 25] = 50.0
+    # Add NaN region (steric crash zone)
+    pes_grid[0:5, 0:5] = np.nan
+
+    pts = find_stationary_points_2d(phi1, phi2, pes_grid)
+    assert len(pts) >= 1
+    assert pts[0]["type"] == "minimum"
+    assert pts[0]["energy"] == 50.0
+
+
+def test_generate_plotly_3d_carousels_standalone_html(tmp_path: Path) -> None:
+    """Validates generation of lightweight interactive Plotly 3D visualizer HTML."""
+    artifact_dir = tmp_path / "artifacts"
+
+    # Dense PES grid: 360x360 (129,600 nodes)
+    n = 360
+    phi1 = np.linspace(-180.0, 180.0, n)
+    phi2 = np.linspace(-180.0, 180.0, n)
+    p1_mesh, p2_mesh = np.meshgrid(phi1, phi2, indexing="ij")
+    pes_grid = 1200.0 * (1.0 - np.cos(np.radians(p1_mesh))) + 600.0 * (
+        1.0 - np.cos(np.radians(3 * p2_mesh))
+    )
+
+    html_path = generate_plotly_3d_carousels(
+        pes_tensor=pes_grid,
+        phi1_grid=phi1,
+        phi2_grid=phi2,
+        artifact_dir=artifact_dir,
+        filename="test_pes_3d.html",
+        max_nodes=4000,
+        colorscale="Viridis",
+        title="1,2-Ethanediol 2D Torsional PES",
+    )
+
+    assert html_path.exists()
+    assert html_path.is_file()
+    assert html_path.parent == artifact_dir
+
+    # Inspect HTML content
+    html_content = html_path.read_text(encoding="utf-8")
+    assert "<html>" in html_content.lower()
+    assert "<body>" in html_content.lower()
+    assert "plotly" in html_content.lower()
+    assert "1,2-Ethanediol 2D Torsional PES" in html_content
+
+    # File size must be lightweight (< 3.5 MB)
+    file_size_mb = html_path.stat().st_size / (1024 * 1024)
+    assert file_size_mb < 3.5
+
+
+def test_generate_plotly_3d_carousels_with_dvr_wavefunctions(tmp_path: Path) -> None:
+    """Validates Plotly 3D carousel with multi-state DVR probability wavefunctions."""
+    artifact_dir = tmp_path / "artifacts"
+
+    n = 100
+    phi1 = np.linspace(-180.0, 180.0, n)
+    phi2 = np.linspace(-180.0, 180.0, n)
+    p1_mesh, p2_mesh = np.meshgrid(phi1, phi2, indexing="ij")
+    pes_grid = 1000.0 * (1.0 - np.cos(np.radians(p1_mesh))) + 500.0 * (
+        1.0 - np.cos(np.radians(2 * p2_mesh))
+    )
+
+    # Create 3 DVR wavefunctions: ground state v=0 and excited states v=1, v=2
+    wf_0 = np.exp(-((p1_mesh / 40.0) ** 2 + (p2_mesh / 40.0) ** 2))
+    wf_0 /= np.sum(wf_0)
+
+    wf_1 = (p1_mesh / 40.0) * np.exp(-((p1_mesh / 40.0) ** 2 + (p2_mesh / 40.0) ** 2))
+    wf_1 = (wf_1**2) / np.sum(wf_1**2)
+
+    wf_2 = (p2_mesh / 40.0) * np.exp(-((p1_mesh / 40.0) ** 2 + (p2_mesh / 40.0) ** 2))
+    wf_2 = (wf_2**2) / np.sum(wf_2**2)
+
+    dvr_wavefunctions = [wf_0, wf_1, wf_2]
+
+    html_path = generate_plotly_3d_carousels(
+        pes_tensor=pes_grid,
+        dvr_wavefunctions=dvr_wavefunctions,
+        phi1_grid=phi1,
+        phi2_grid=phi2,
+        artifact_dir=artifact_dir,
+        filename="test_pes_dvr_carousel.html",
+        max_nodes=2500,
+    )
+
+    assert html_path.exists()
+    html_content = html_path.read_text(encoding="utf-8")
+    assert "DVR State v=0" in html_content
+    assert "DVR State v=1" in html_content
+    assert "DVR State v=2" in html_content
+
+
+def test_generate_plotly_3d_carousels_dict_missing_coords(tmp_path: Path) -> None:
+    """Validates dict with only 'pes' key automatically generates default grids."""
+    artifact_dir = tmp_path / "artifacts"
+    phi = np.linspace(-180, 180, 30)
+    p1_mesh, p2_mesh = np.meshgrid(phi, phi, indexing="ij")
+    pes_grid = (
+        250.0
+        + 10.0 * (1.0 - np.cos(np.radians(p1_mesh)))
+        + 10.0 * (1.0 - np.cos(np.radians(p2_mesh)))
+    )
+
+    html_path = generate_plotly_3d_carousels(
+        pes_tensor={"pes": pes_grid},
+        artifact_dir=artifact_dir,
+        filename="pes_dict_minimal.html",
+    )
+
+    assert html_path.exists()
+    assert html_path.is_file()
+
+
+# ============================================================================
+# Test Suite 3: Crash Animation & Diagnostic Exporter
+# ============================================================================
+
+
+def test_export_crash_animation_steric_collision(tmp_path: Path) -> None:
+    """Validates multi-frame XYZ crash animation and JSON diagnostic generation."""
+    artifact_dir = tmp_path / "artifacts"
+    scratch_dir = tmp_path / "scratch"
+
+    # Define a 6-atom molecule (e.g. ethane-like) undergoing steric shatter collision
+    symbols = ["C", "C", "H", "H", "H", "H"]
+    num_atoms = len(symbols)
+    num_frames = 12
+
+    # Frame 0: Stable geometry
+    base_coords = np.array(
         [
-            [0.000000, 0.000000, 0.000000],  # C
-            [1.080000, 0.000000, 0.000000],  # H
-            [-0.350000, 1.350000, 0.000000],  # F
-            [-0.350000, -0.650000, 1.350000],  # Cl
-            [-0.350000, -0.650000, -1.350000],  # Br
+            [0.0, 0.0, 0.0],  # C1
+            [1.54, 0.0, 0.0],  # C2
+            [-0.5, 1.0, 0.0],  # H3
+            [-0.5, -0.5, 0.86],  # H4
+            [2.04, 1.0, 0.0],  # H5
+            [2.04, -0.5, -0.86],  # H6
         ],
         dtype=np.float64,
     )
-    # Dynamically retrieve CIAAW isotopic masses via Mendeleev library mandate
-    masses_parent = enforce_ciaaw_masses(["C", "H", "F", "35Cl", "79Br"])
 
-    i_parent, _, aligned_parent = compute_principal_moments(coords, masses_parent)
-    parent_mass = float(np.sum(masses_parent))
+    # Generate physical trajectory with H3 (idx 2) and H5 (idx 4) colliding
+    frame_coords_list: list[np.ndarray] = []
+    energies: list[float] = []
+    gradients: list[np.ndarray] = []
 
-    # Deuterated isotopologue substitution (2H / D)
-    masses_sub = enforce_ciaaw_masses(["C", "2H", "F", "35Cl", "79Br"])
-    delta_m = float(masses_sub[1] - masses_parent[1])
+    sigma_lj = 1.1  # Angstrom
+    eps_lj = 0.1  # kcal/mol
 
-    i_sub, _, _ = compute_principal_moments(coords, masses_sub)
-    true_h_coords = np.abs(aligned_parent[1])
+    for f_idx in range(num_frames):
+        coords = base_coords.copy()
+        # Compress H3 and H5 along interaction vector for steric collision
+        compression = float(f_idx) * 0.20
+        coords[2, 0] += compression * 0.5  # H3 moves toward center
+        coords[4, 0] -= compression * 0.6  # H5 moves toward center
+        coords[4, 1] -= compression * 0.05  # slight y-deflection
 
-    result = calculate_kraitchman_coords(
-        parent_moments=i_parent,
-        substituted_moments=i_sub,
-        parent_mass=parent_mass,
-        delta_m=delta_m,
+        frame_coords_list.append(coords)
+
+        # Compute physical Lennard-Jones potential energy and analytical gradients
+        e_frame = -79.8  # baseline Hartree
+        grad_frame = np.empty((num_atoms, 3), dtype=np.float64)
+        grad_frame.fill(0.0)
+
+        for i in range(num_atoms):
+            for j in range(num_atoms):
+                if i == j:
+                    continue
+                r_vec = coords[i] - coords[j]
+                r_dist = float(np.linalg.norm(r_vec))
+                if r_dist > 1e-4:
+                    s_r = sigma_lj / r_dist
+                    # Analytical LJ gradient
+                    force_mag = (
+                        24.0 * eps_lj * (2.0 * (s_r**12) - (s_r**6)) / (r_dist**2)
+                    )
+                    grad_frame[i] += force_mag * r_vec
+                    if i < j:
+                        e_frame += 4.0 * eps_lj * ((s_r**12) - (s_r**6))
+
+        energies.append(float(e_frame))
+        gradients.append(grad_frame)
+
+    trajectory = np.array(frame_coords_list, dtype=np.float64)
+
+    result_paths = export_crash_animation(
+        trajectory_array=trajectory,
+        error_node_id="rotor_node_55",
+        symbols=symbols,
+        energies=energies,
+        gradients=gradients,
+        artifact_dir=artifact_dir,
+        scratch_dir=scratch_dir,
+        abort_reason="Steric Shatter Soft-Quench Abort: Interatomic distance < 0.5 A",
     )
 
-    calc_a = result["coords"]["a"]
-    calc_b = result["coords"]["b"]
-    calc_c = result["coords"]["c"]
+    xyz_path = result_paths["xyz_path"]
+    diag_path = result_paths["diagnostic_path"]
 
-    np.testing.assert_allclose(calc_a, true_h_coords[0], atol=1e-5)
-    np.testing.assert_allclose(calc_b, true_h_coords[1], atol=1e-5)
-    np.testing.assert_allclose(calc_c, true_h_coords[2], atol=1e-5)
+    assert xyz_path.exists()
+    assert diag_path.exists()
 
-    expected_mu = (parent_mass * delta_m) / (parent_mass + delta_m)
-    assert math.isclose(result["reduced_mass"], expected_mu, rel_tol=1e-9)
+    # Verify XYZ structure
+    xyz_lines = xyz_path.read_text(encoding="utf-8").strip().split("\n")
+    # Each frame has num_atoms + 2 lines
+    expected_lines = num_frames * (num_atoms + 2)
+    assert len(xyz_lines) == expected_lines
+    assert xyz_lines[0].strip() == str(num_atoms)
+    assert "rotor_node_55" in xyz_lines[1]
 
+    # Verify Diagnostic JSON
+    with open(diag_path, encoding="utf-8") as diag_file:
+        diag_data = json.load(diag_file)
 
-def test_kraitchman_singularity_guard_damping() -> None:
-    """Validates near-symmetric top damping guard (|Ia - Ib| < 1e-4)."""
-    i_a = 15.00000
-    i_b = 15.00005
-    i_c = 30.00000
-
-    parent_moments = {"Ia": i_a, "Ib": i_b, "Ic": i_c}
-    sub_moments = {"Ia": i_a + 0.1, "Ib": i_b + 0.1, "Ic": i_c + 0.05}
-
-    from mendeleev import element
-    with pytest.warns(
-        KraitchmanSingularityWarning, match="Singularity near-symmetric denominator"
-    ):
-        delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
-        result = calculate_kraitchman_coords(
-            parent_moments=parent_moments,
-            substituted_moments=sub_moments,
-            parent_mass=float(element("Sc").atomic_weight),
-            delta_m=delta_m_c,
-            singularity_threshold=1e-4,
-        )
-
-    assert not math.isnan(result["coords"]["a"])
-    assert not math.isnan(result["coords"]["b"])
-    assert not math.isnan(result["coords"]["c"])
-    assert result["coords"]["a"] >= 0.0
-
-
-def test_kraitchman_zpve_defect_clamping() -> None:
-    """Validates that negative radicands (R_g < 0) are clamped to 0.0000."""
-    i_a, i_b, i_c = 10.0, 25.0, 30.0
-    parent_moments = (i_a, i_b, i_c)
-    sub_moments = (i_a + 1.5, i_b + 0.1, i_c + 0.1)
-
-    with pytest.warns(
-        KraitchmanZPVEWarning,
-        match="ZPVE defect produced imaginary substitution coordinate",
-    ):
-        delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
-        result = calculate_kraitchman_coords(
-            parent_moments=parent_moments,
-            substituted_moments=sub_moments,
-            parent_mass=float(element("C").atomic_weight) * 5,
-            delta_m=delta_m_c,
-        )
-
-    assert result["coords"]["a"] == 0.0
-    assert result["radicands"]["a"] < 0.0
-
-    expected_error = math.sqrt(abs(result["radicands"]["a"]))
-    assert math.isclose(result["costain_errors"]["a"], expected_error, rel_tol=1e-6)
-
-
-def test_kraitchman_piecewise_costain_bounds() -> None:
-    """Validates Piecewise Costain Bounds for large and small coordinates."""
-    delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
-    res = calculate_kraitchman_coords(
-        parent_moments=(10.0, 20.0, 25.0),
-        substituted_moments=(10.2, 20.4, 25.3),
-        parent_mass=float(element("V").atomic_weight),
-        delta_m=delta_m_c,
-    )
-
-    for axis in ["a", "b", "c"]:
-        coord = res["coords"][axis]
-        error = res["costain_errors"][axis]
-        radicand = res["radicands"][axis]
-
-        if coord >= 0.15:
-            assert math.isclose(error, 0.0015 / coord, rel_tol=1e-7)
-        else:
-            assert math.isclose(error, math.sqrt(abs(radicand)), rel_tol=1e-7)
+    assert diag_data["error_node_id"] == "rotor_node_55"
+    assert diag_data["num_frames"] == 12
+    assert diag_data["num_atoms"] == 6
+    assert diag_data["symbols"] == symbols
+    assert diag_data["min_interatomic_distance"] < 0.5
+    assert diag_data["colliding_pair"] == [2, 4] or diag_data["colliding_pair"] == [
+        4,
+        2,
+    ]
+    assert "Steric Shatter" in diag_data["abort_reason"]
 
 
 # ============================================================================
-# Test Suite 2: OOM-Proof PGOPHER XML Skeleton Generation
+# Test Suite 4: Air-Gap Compliance & Direct Memory Ingestion
 # ============================================================================
 
 
-def test_generate_pgopher_skeleton_oom_proof(tmp_path: Path) -> None:
-    """Validates PGOPHER XML generation inspecting Parquet metadata."""
-    parquet_path = tmp_path / "spectral_catalog.parquet"
-    json_path = tmp_path / "metadata.json"
-    pgo_output = tmp_path / "deliverables" / "TargetMolecule.pgo"
+def test_airgap_compliance_no_repo_pollution(tmp_path: Path) -> None:
+    """Validates that no temporary files or logs are created in repo workspace."""
+    repo_files_before = set(Path(".").glob("*"))
 
-    table = pa.Table.from_arrays(
+    scratch_dir = tmp_path / "airgap_scratch"
+    artifact_dir = tmp_path / "airgap_artifacts"
+
+    # Run telemetry functions with explicit isolated dirs
+    payload = {"event_type": "progress", "job_id": "AIRGAP_01", "status": "RUNNING"}
+    stream_webhook_events(payload, webhook_url=None, scratch_dir=scratch_dir)
+
+    coords = np.array(
         [
-            pa.array([12345.67, 23456.78, 34567.89, 45678.90], type=pa.float64()),
-            pa.array([-3.5, -4.2, -2.1, -5.8], type=pa.float64()),
-            pa.array(
-                ["1_0_1-0_0_0", "2_0_2-1_0_1", "2_1_1-1_1_0", "3_0_3-2_0_2"],
-                type=pa.string(),
-            ),
-            pa.array([0.0, 0.41, 0.78, 1.15], type=pa.float64()),
+            [[0.0, 0.0, 0.0], [0.74, 0.0, 0.0], [0.0, 0.74, 0.0], [0.0, 0.0, 0.74]]
+            for _ in range(3)
+        ]
+    )
+    export_crash_animation(
+        coords,
+        error_node_id="airgap_node",
+        symbols=["H", "H", "H", "H"],
+        artifact_dir=artifact_dir,
+        scratch_dir=scratch_dir,
+    )
+
+    phi = np.linspace(-180, 180, 20)
+    p1_mesh, p2_mesh = np.meshgrid(phi, phi, indexing="ij")
+    pes = 100.0 * (1.0 - np.cos(np.radians(p1_mesh))) + 50.0 * (
+        1.0 - np.cos(np.radians(p2_mesh))
+    )
+    generate_plotly_3d_carousels(
+        pes_tensor=pes,
+        artifact_dir=artifact_dir,
+        max_nodes=100,
+    )
+
+    repo_files_after = set(Path(".").glob("*"))
+    # Verify no new files created in cwd
+    diff = repo_files_after - repo_files_before
+    # Ignore pytest temporary markers or cache if any
+    diff = {
+        f
+        for f in diff
+        if not f.name.startswith(".pytest") and not f.name.startswith("__pycache__")
+    }
+    assert len(diff) == 0, f"Air-gap violation detected: created files in repo: {diff}"
+
+
+# ============================================================================
+# Test Suite 5: Extended Edge Cases & Circuit Breaker State Transitions
+# ============================================================================
+
+
+def test_stream_webhook_events_circuit_breaker_transitions(tmp_path: Path) -> None:
+    """Validates circuit breaker transitions: CLOSED -> OPEN -> HALF_OPEN."""
+    scratch_dir = tmp_path / "scratch"
+    closed_port = get_free_port()
+    unreachable_url = f"http://127.0.0.1:{closed_port}/webhook"
+
+    cb = TelemetryCircuitBreaker(
+        failure_threshold=2,
+        recovery_timeout=0.2,
+        backoff_factor=0.01,
+        max_retries=1,
+        request_timeout=0.2,
+    )
+
+    assert cb.state.value == "CLOSED"
+
+    # 1st failure
+    stream_webhook_events(
+        {"event_type": "heartbeat", "job_id": "J1"},
+        webhook_url=unreachable_url,
+        scratch_dir=scratch_dir,
+        circuit_breaker=cb,
+        max_retries=1,
+        timeout=0.2,
+    )
+    assert cb.consecutive_failures == 1
+    assert cb.state.value == "CLOSED"
+
+    # 2nd failure -> trips to OPEN
+    stream_webhook_events(
+        {"event_type": "heartbeat", "job_id": "J2"},
+        webhook_url=unreachable_url,
+        scratch_dir=scratch_dir,
+        circuit_breaker=cb,
+        max_retries=1,
+        timeout=0.2,
+    )
+    assert cb.state.value == "OPEN"
+
+    # Next call while OPEN immediately spools without network call
+    res = stream_webhook_events(
+        {"event_type": "heartbeat", "job_id": "J3"},
+        webhook_url=unreachable_url,
+        scratch_dir=scratch_dir,
+        circuit_breaker=cb,
+        max_retries=1,
+        timeout=0.2,
+    )
+    assert res["status"] == "SPOOLED"
+    assert res["reason"] == "Circuit Breaker OPEN"
+
+    # Wait for recovery timeout to transition to HALF_OPEN
+    time.sleep(0.25)
+    assert cb.can_attempt_request() is True
+    assert cb.state.value == "HALF_OPEN"
+
+
+def test_stream_webhook_events_sync_inside_async_loop(tmp_path: Path) -> None:
+    """Validates synchronous stream_webhook_events inside async loop."""
+    scratch_dir = tmp_path / "scratch"
+
+    async def _async_caller() -> dict[str, Any]:
+        return stream_webhook_events(
+            {"event_type": "heartbeat", "job_id": "ASYNC_LOOP_JOB"},
+            webhook_url=None,
+            scratch_dir=scratch_dir,
+        )
+
+    result = asyncio.run(_async_caller())
+    assert result["status"] == "SPOOLED"
+    assert result["spooled"] is True
+
+
+def test_generate_plotly_3d_carousels_dict_input(tmp_path: Path) -> None:
+    """Validates Plotly 3D carousel generation when pes_tensor is a dictionary."""
+    artifact_dir = tmp_path / "artifacts"
+    n1, n2 = 40, 40
+    phi1 = np.linspace(-180.0, 180.0, n1)
+    phi2 = np.linspace(-180.0, 180.0, n2)
+    p1_mesh, p2_mesh = np.meshgrid(phi1, phi2, indexing="ij")
+    pes_grid = 500.0 * (1.0 - np.cos(np.radians(p1_mesh))) + 200.0 * (
+        1.0 - np.cos(np.radians(p2_mesh))
+    )
+
+    pes_dict = {
+        "pes": pes_grid,
+        "phi1": phi1,
+        "phi2": phi2,
+    }
+
+    html_path = generate_plotly_3d_carousels(
+        pes_tensor=pes_dict,
+        artifact_dir=artifact_dir,
+        filename="pes_dict_test.html",
+        max_nodes=1000,
+        colorscale="Cividis",
+    )
+
+    assert html_path.exists()
+    assert html_path.is_file()
+
+
+def test_export_crash_animation_dict_and_single_frame(tmp_path: Path) -> None:
+    """Validates export_crash_animation with dictionary input and single frame."""
+    artifact_dir = tmp_path / "artifacts"
+    scratch_dir = tmp_path / "scratch"
+
+    coords = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.2, 0.0, 0.0],  # Severe collision: 0.2 A
         ],
-        names=["frequency", "intensity", "quantum_numbers", "lower_state_energy"],
-    )
-    pq.write_table(table, str(parquet_path))
-
-    meta_content = {
-        "molecule_name": "TargetMolecule",
-        "temperature_k": 150.0,
-        "rotational_constants": {
-            "A": 9876.54321,
-            "B": 4321.09876,
-            "C": 2109.87654,
-        },
-        "dipoles": {"mu_a": 1.45, "mu_b": 0.85, "mu_c": 0.12},
-    }
-    json_path.write_text(json.dumps(meta_content, indent=2), encoding="utf-8")
-
-    result_path = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        json_path=json_path,
-        output_path=pgo_output,
+        dtype=np.float64,
     )
 
-    assert Path(result_path).exists()
-    assert Path(result_path) == pgo_output
-
-    tree = ET.parse(str(pgo_output))
-    root = tree.getroot()
-
-    assert root.tag == "Document"
-    assert root.attrib["Type"] == "PGopher"
-
-    top = root.find(".//AsymmetricTop")
-    assert top is not None
-
-    params = {
-        p.attrib["Name"]: float(p.attrib["Value"]) for p in top.findall("Parameter")
-    }
-    assert math.isclose(params["A"], 9876.54321, rel_tol=1e-5)
-    assert math.isclose(params["B"], 4321.09876, rel_tol=1e-5)
-    assert math.isclose(params["C"], 2109.87654, rel_tol=1e-5)
-    assert math.isclose(params["mu_a"], 1.45, rel_tol=1e-5)
-    assert math.isclose(params["mu_b"], 0.85, rel_tol=1e-5)
-    assert math.isclose(params["mu_c"], 0.12, rel_tol=1e-5)
-
-    meta_elem = root.find(".//Form/Metadata")
-    assert meta_elem is not None
-    assert meta_elem.attrib["NumTransitions"] == "4"
-    assert meta_elem.attrib["NumColumns"] == "4"
-    assert "frequency" in meta_elem.attrib["Columns"]
-
-
-# ============================================================================
-# Test Suite 3: Provenance Lock & RFC 8785 Canonical JSON
-# ============================================================================
-
-
-def test_lock_provenance_payload_canonical_json(tmp_path: Path) -> None:
-    """Validates streaming SHA-256 and RFC 8785 Canonical JSON compliance."""
-    payload_dir = tmp_path / "payload_workspace"
-    payload_dir.mkdir()
-
-    file_a = payload_dir / "molecule.var"
-    file_a.write_text("VAR ROTATIONAL PARAMETERS A B C D\n" * 500, encoding="utf-8")
-
-    file_b = payload_dir / "molecule.int"
-    file_b.write_text("INT INTENSITY TRANSITIONS DIPOLE\n" * 300, encoding="utf-8")
-
-    nested_dir = payload_dir / "tensors"
-    nested_dir.mkdir()
-    file_c = nested_dir / "large_tensor.bin"
-    file_c.write_bytes(b"\xaa\xbb\xcc\xdd" * 4096)
-
-    manifest_path = payload_dir / "spycfit_manifest.json"
-    manifest = lock_provenance_payload(
-        target_directory=payload_dir,
-        output_manifest_path=manifest_path,
-        metadata={"project": "CoChem-Unit-Test", "stage": "5.5"},
-        rotational_constants={"A": 10000.0, "B": 5000.0, "C": 3000.0},
-        dipoles={"mu_a": 1.2, "mu_b": 0.5, "mu_c": 0.1},
-    )
-
-    assert manifest_path.exists()
-    assert manifest["format"] == "CoChem-SpycFit-Manifest"
-    assert manifest["file_count"] == 3
-
-    rel_paths = [f["relative_path"] for f in manifest["files"]]
-    assert "spycfit_manifest.json" not in rel_paths
-    assert "molecule.var" in rel_paths
-    assert "molecule.int" in rel_paths
-    assert "tensors/large_tensor.bin" in rel_paths
-
-    large_entry = next(
-        f for f in manifest["files"] if f["relative_path"] == "tensors/large_tensor.bin"
-    )
-    expected_large_sha = compute_file_sha256(file_c)[0]
-    assert large_entry["sha256"] == expected_large_sha
-    assert large_entry["size_bytes"] == 16384
-
-    raw_manifest_text = manifest_path.read_text(encoding="utf-8")
-    expected_canonical = canonical_json_dumps(manifest)
-    assert raw_manifest_text == expected_canonical
-
-
-# ============================================================================
-# Test Suite 4: Deterministic .tar.zst Payload Bundling
-# ============================================================================
-
-
-def test_bundle_spycfit_payload_deterministic(tmp_path: Path) -> None:
-    """Validates deterministic .tar.zst archive with normalized POSIX metadata."""
-    payload_dir = tmp_path / "stage_deliverables"
-    payload_dir.mkdir()
-
-    (payload_dir / "spec.var").write_text("VAR FILE CONTENT\n", encoding="utf-8")
-    (payload_dir / "spec.int").write_text("INT FILE CONTENT\n", encoding="utf-8")
-
-    out_archive_dir = tmp_path / "exported_archives"
-    archive_path_str = bundle_spycfit_payload(
-        manifest_path_or_target_dir=payload_dir,
-        output_dir=out_archive_dir,
-        project_name="Water",
-        compression_level=3,
-    )
-
-    archive_path = Path(archive_path_str)
-    assert archive_path.exists()
-    assert archive_path.name == "CoChem_Water_SpycFit_Payload.tar.zst"
-
-    compressed_bytes = archive_path.read_bytes()
-    dctx = zstd.ZstdDecompressor()
-    decompressed_bytes = dctx.decompress(compressed_bytes)
-
-    with tarfile.open(fileobj=io.BytesIO(decompressed_bytes), mode="r") as tar:
-        members = tar.getmembers()
-        assert len(members) >= 3
-
-        for member in members:
-            assert member.mtime == 0, f"mtime not normalized for {member.name}"
-            assert member.uid == 0
-            assert member.gid == 0
-            assert member.uname == ""
-            assert member.gname == ""
-            if member.isdir():
-                assert member.mode == 0o755
-            else:
-                assert member.mode == 0o644
-
-
-# ============================================================================
-# Test Suite 5: Payload Verification & Tamper / Byte-Flip Error Injection
-# ============================================================================
-
-
-def test_verify_payload_integrity_pass_and_tamper(tmp_path: Path) -> None:
-    """Validates cryptographic verification and error detection on tampered bytes."""
-    payload_dir = tmp_path / "verify_workspace"
-    payload_dir.mkdir()
-
-    file_var = payload_dir / "spec.var"
-    file_var.write_bytes(b"EXACT CANONICAL VAR PARAMETERS 1234567890")
-
-    file_int = payload_dir / "spec.int"
-    file_int.write_bytes(b"EXACT INTENSITIES 9876543210")
-
-    lock_provenance_payload(payload_dir)
-    archive_path = bundle_spycfit_payload(payload_dir, project_name="RigidRotor")
-
-    assert verify_payload_integrity(payload_dir) is True
-    assert verify_payload_integrity(payload_dir / "spycfit_manifest.json") is True
-    assert verify_payload_integrity(archive_path) is True
-
-    # Tamper Injection: Flip a single byte in spec.var
-    original_bytes = file_var.read_bytes()
-    tampered_bytes = original_bytes[:-1] + b"1"
-    file_var.write_bytes(tampered_bytes)
-
-    with pytest.raises(CoChemIntegrityError, match="SHA-256 hash mismatch"):
-        verify_payload_integrity(payload_dir)
-
-    # Missing File Injection: Delete spec.int
-    file_var.write_bytes(original_bytes)
-    file_int.unlink()
-
-    with pytest.raises(CoChemIntegrityError, match="Missing file"):
-        verify_payload_integrity(payload_dir)
-
-
-# ============================================================================
-# Test Suite 6: TorqExporter, PESStore & export_qcschema Integration
-# ============================================================================
-
-
-def test_torq_exporter_and_pes_store(tmp_path: Path) -> None:
-    """Validates PESStore, TorqExporter, and export_qcschema."""
-    h5_file = str(tmp_path / "pes_store.h5")
-    store = PESStore(h5_file)
-
-    store.append_data(step=1, coordinates=[0.0, 0.1, 0.2, 0.3], energy=-76.456)
-    store.append_data(step=2, coordinates=[0.0, 0.15, 0.22, 0.35], energy=-76.458)
-
-    with h5py.File(h5_file, "r") as f:
-        assert "coordinates" in f
-        assert "energies" in f
-        assert f["coordinates"].shape == (2, 4)
-        assert f["energies"].shape == (2,)
-        assert f["coordinates"].scaleoffset is None
-        assert f["energies"].scaleoffset is None
-
-    export_dir = tmp_path / "zstd_exports"
-    exporter = TorqExporter(export_dir=str(export_dir), zstd_compression_level=3)
-
-    compressed_file = exporter.export_tensor_to_zstd(h5_file)
-    assert Path(compressed_file).exists()
-
-    success, metadata = exporter.verify_export(compressed_file)
-    assert success is True
-    assert metadata is not None
-    assert metadata["compression_method"] == "Zstandard"
-
-    qcschema_path = str(tmp_path / "qcschema.json")
-    orca_result = {
-        "geometry": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    traj_dict = {
+        "coordinates": coords,
         "symbols": ["O", "H"],
-        "molecular_charge": 0,
-        "molecular_multiplicity": 1,
-        "driver": "energy",
-        "method": "B3LYP",
-        "basis": "def2-TZVP",
-        "return_energy": -75.123456,
-    }
-    res_path = export_qcschema(orca_result, qcschema_path)
-    assert Path(res_path).exists()
-
-    with open(res_path, encoding="utf-8") as f:
-        schema = json.load(f)
-    assert schema["schema_name"] == "qcschema_output"
-    assert schema["properties"]["return_energy"] == -75.123456
-    assert "hash" in schema["molecule"]["provenance"]
-
-
-# ============================================================================
-# Test Suite 7: Edge Cases, Archive Corruptions & Error Handling
-# ============================================================================
-
-
-def test_verify_payload_corrupted_archive_cases(tmp_path: Path) -> None:
-    """Validates error raising on corrupt .tar.zst archives."""
-    corrupt_zst = tmp_path / "corrupt.tar.zst"
-    corrupt_zst.write_bytes(b"\x28\xb5\x2f\xfd\x00\x00\x00\x00_INVALID_ZSTD_GARBAGE")
-    with pytest.raises(
-        CoChemIntegrityError, match="Failed to decompress Zstandard archive"
-    ):
-        verify_payload_integrity(corrupt_zst)
-
-    tar_no_manifest_buf = io.BytesIO()
-    with tarfile.open(mode="w", fileobj=tar_no_manifest_buf) as tar:
-        ti = tarfile.TarInfo(name="isolated_data.txt")
-        ti.size = 5
-        tar.addfile(ti, io.BytesIO(b"HELLO"))
-
-    no_manifest_zst = tmp_path / "no_manifest.tar.zst"
-    no_manifest_zst.write_bytes(
-        zstd.ZstdCompressor().compress(tar_no_manifest_buf.getvalue())
-    )
-    with pytest.raises(
-        CoChemIntegrityError, match="Manifest 'spycfit_manifest.json' not found"
-    ):
-        verify_payload_integrity(no_manifest_zst)
-
-    valid_dir = tmp_path / "valid_payload"
-    valid_dir.mkdir()
-    (valid_dir / "data.txt").write_text("VALID DATA 123", encoding="utf-8")
-    lock_provenance_payload(valid_dir)
-    valid_archive = bundle_spycfit_payload(valid_dir, project_name="CorruptTest")
-
-    decompressed = zstd.ZstdDecompressor().decompress(Path(valid_archive).read_bytes())
-    tar_tamper_buf = io.BytesIO()
-    with tarfile.open(fileobj=io.BytesIO(decompressed), mode="r") as tar_in:
-        with tarfile.open(fileobj=tar_tamper_buf, mode="w") as tar_out:
-            for member in tar_in.getmembers():
-                f = tar_in.extractfile(member) if member.isreg() else None
-                if member.name == "data.txt":
-                    tampered_data = b"TAMPERED DATA!"
-                    member.size = len(tampered_data)
-                    tar_out.addfile(member, io.BytesIO(tampered_data))
-                elif f:
-                    tar_out.addfile(member, f)
-                else:
-                    tar_out.addfile(member)
-
-    tampered_zst = tmp_path / "tampered_archive.tar.zst"
-    tampered_zst.write_bytes(zstd.ZstdCompressor().compress(tar_tamper_buf.getvalue()))
-
-    with pytest.raises(
-        CoChemIntegrityError, match="(SHA-256 hash mismatch|File size mismatch)"
-    ):
-        verify_payload_integrity(tampered_zst)
-
-
-def test_kraitchman_dictionary_and_planar_inputs() -> None:
-    """Validates calculate_kraitchman_coords() with dictionary input structures."""
-    parent_dict = {"a": 12.5, "b": 24.0, "c": 36.5}
-    sub_dict = {"a": 12.8, "b": 24.4, "c": 36.9}
-
-    delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
-    res = calculate_kraitchman_coords(
-        parent_moments=parent_dict,
-        substituted_moments=sub_dict,
-        parent_mass=float(element("Se").atomic_weight),
-        delta_m=delta_m_c,
-    )
-
-    assert "coords" in res
-    assert "costain_errors" in res
-    assert "radicands" in res
-    assert len(res["coords"]) == 3
-    assert all(c >= 0.0 for c in res["coords"].values())
-
-
-def test_file_not_found_guards(tmp_path: Path) -> None:
-    """Validates FileNotFoundError guards across all export utilities."""
-    non_existent = tmp_path / "does_not_exist"
-
-    with pytest.raises(FileNotFoundError):
-        generate_pgopher_skeleton(parquet_path=non_existent / "catalog.parquet")
-
-    with pytest.raises(FileNotFoundError):
-        lock_provenance_payload(target_directory=non_existent)
-
-    with pytest.raises(FileNotFoundError):
-        bundle_spycfit_payload(manifest_path_or_target_dir=non_existent)
-
-
-def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
-    """Validates PGOPHER skeleton generation with default output and variants."""
-    parquet_path = tmp_path / "spectral.parquet"
-    table = pa.Table.from_arrays(
-        [
-            pa.array([1000.0, 2000.0], type=pa.float64()),
-            pa.array([-1.0, -2.0], type=pa.float64()),
-        ],
-        names=["freq", "intensity"],
-    )
-    pq.write_table(table, str(parquet_path))
-
-    # Test with point_id, temperature, and list-based rotational constants and dipoles
-    json_path = tmp_path / "point_metadata.json"
-    json_content = {
-        "point_id": "Conformer_A",
-        "temperature": 10.0,
-        "properties": {
-            "rotational_constants": [5000.0, 2500.0, 1500.0],
-            "dipole_moment": [0.5, 0.2, 0.0],
-        },
-    }
-    json_path.write_text(json.dumps(json_content), encoding="utf-8")
-
-    # Call with output_path=None to test default path generation
-    out_pgo = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        json_path=json_path,
-        output_path=None,
-    )
-    assert Path(out_pgo).exists()
-    assert Path(out_pgo).name == "Conformer_A.pgo"
-
-    # Call with direct list overrides
-    out_pgo2 = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        output_path=tmp_path / "DirectOverride.pgo",
-        molecule_name="OverrideMol",
-        temperature_k=77.0,
-        rotational_constants=[12000.0, 6000.0, 4000.0],
-        dipoles=[2.0, 1.0, 0.5],
-    )
-    assert Path(out_pgo2).exists()
-    tree = ET.parse(out_pgo2)
-    root = tree.getroot()
-    top = root.find(".//AsymmetricTop")
-    assert top is not None
-    params = {
-        p.attrib["Name"]: float(p.attrib["Value"])
-        for p in top.findall("Parameter")
-    }
-    assert math.isclose(params["A"], 12000.0, rel_tol=1e-5)
-    assert math.isclose(params["mu_a"], 2.0, rel_tol=1e-5)
-
-
-def test_bundle_spycfit_payload_from_manifest_file(tmp_path: Path) -> None:
-    """Validates bundling payload when given direct path to manifest file."""
-    payload_dir = tmp_path / "manifest_bundle_dir"
-    payload_dir.mkdir()
-    (payload_dir / "test.int").write_text("INT DATA", encoding="utf-8")
-
-    manifest_file = payload_dir / "spycfit_manifest.json"
-    lock_provenance_payload(payload_dir, output_manifest_path=manifest_file)
-
-    archive_str = bundle_spycfit_payload(manifest_path_or_target_dir=manifest_file)
-    assert Path(archive_str).exists()
-    assert verify_payload_integrity(archive_str) is True
-
-
-def test_verify_payload_with_dict_and_base_dir(tmp_path: Path) -> None:
-    """Validates verify_payload_integrity when passed a manifest dictionary."""
-    payload_dir = tmp_path / "dict_verify_dir"
-    payload_dir.mkdir()
-    (payload_dir / "file1.txt").write_bytes(b"DATA ONE")
-    (payload_dir / "file2.txt").write_bytes(b"DATA TWO")
-
-    manifest = lock_provenance_payload(payload_dir)
-    assert verify_payload_integrity(manifest, base_dir=payload_dir) is True
-
-    # Test size mismatch in directory verify
-    (payload_dir / "file1.txt").write_bytes(b"LONGER DATA ONE MODIFIED")
-    with pytest.raises(CoChemIntegrityError, match="File size mismatch"):
-        verify_payload_integrity(manifest, base_dir=payload_dir)
-
-
-def test_torq_exporter_batch_and_dvr(tmp_path: Path) -> None:
-    """Validates batch export and Sinc-DVR export methods in TorqExporter."""
-    h5_1 = tmp_path / "mol1.h5"
-    h5_2 = tmp_path / "mol2.h5"
-
-    for h5_path, val in [(h5_1, 10.0), (h5_2, 20.0)]:
-        with h5py.File(str(h5_path), "w") as f:
-            grp = f.create_group("geometry")
-            grp.create_dataset("coords", data=[[0.0, 0.0, val]])
-            f.create_dataset("energy", data=-75.5)
-
-    export_out = tmp_path / "batch_out"
-    exporter = TorqExporter(export_dir=str(export_out))
-
-    exported = exporter.batch_export_to_zstd([str(h5_1), str(h5_2)])
-    assert len(exported) == 2
-    for exp_file in exported:
-        assert Path(exp_file).exists()
-        success, _ = exporter.verify_export(exp_file)
-        assert success is True
-
-    dvr_export = exporter.export_tensor_to_zstd_with_sinc_dvr(str(h5_1))
-    assert Path(dvr_export).exists()
-    assert "_dvr.zst" in dvr_export
-    success, meta = exporter.verify_export(dvr_export)
-    assert success is True
-    assert meta is not None
-
-
-def test_kraitchman_exact_zero_denominator_guard() -> None:
-    """Validates Kraitchman coordinates when moments are identical (Ia == Ib)."""
-    parent_moments = (20.0, 20.0, 40.0)
-    sub_moments = (20.5, 20.5, 40.8)
-
-    delta_m_h = float(element("H").isotopes[1].mass - element("H").isotopes[0].mass)
-    with pytest.warns(KraitchmanSingularityWarning):
-        res = calculate_kraitchman_coords(
-            parent_moments=parent_moments,
-            substituted_moments=sub_moments,
-            parent_mass=float(element("V").atomic_weight),
-            delta_m=delta_m_h,
-            singularity_threshold=1e-4,
-        )
-    assert not math.isnan(res["coords"]["a"])
-    assert not math.isnan(res["coords"]["b"])
-    assert not math.isnan(res["coords"]["c"])
-
-
-def test_pgopher_dict_overrides_and_missing_manifest(tmp_path: Path) -> None:
-    """Validates dict overrides in PGOPHER generator and missing manifest error."""
-    parquet_path = tmp_path / "spec_test.parquet"
-    table = pa.Table.from_arrays(
-        [pa.array([123.45]), pa.array([-2.5])], names=["freq", "int"]
-    )
-    pq.write_table(table, str(parquet_path))
-
-    out_pgo = generate_pgopher_skeleton(
-        parquet_path=parquet_path,
-        output_path=tmp_path / "DictOverride.pgo",
-        molecule_name="DictMol",
-        rotational_constants={"A": 8888.0, "B": 4444.0, "C": 2222.0},
-        dipoles={"mu_a": 0.8, "mu_b": 0.4, "mu_c": 0.2},
-    )
-    assert Path(out_pgo).exists()
-
-    # Missing manifest error
-    non_existent_manifest = tmp_path / "no_such_manifest.json"
-    with pytest.raises(CoChemIntegrityError, match="Manifest file not found"):
-        verify_payload_integrity(non_existent_manifest)
-
-
-def test_torq_exporter_scribe_and_corrupt_verify(tmp_path: Path) -> None:
-    """Validates scribe daemon missing file handling and corrupt verification."""
-    exporter = TorqExporter(export_dir=str(tmp_path))
-
-    # Scribe daemon with missing file returns False
-    res = exporter.export_to_scribe_daemon(str(tmp_path / "non_existent.zst"))
-    assert res is False
-
-    # Corrupt verification returns (False, None)
-    corrupt_file = tmp_path / "bad.zst"
-    corrupt_file.write_bytes(b"NOT_A_VALID_ZSTD_OR_JSON_STREAM")
-    ok, meta = exporter.verify_export(str(corrupt_file))
-    assert ok is False
-    assert meta is None
-
-
-def test_lock_provenance_with_kraitchman_and_nested_dirs(tmp_path: Path) -> None:
-    """Validates lock_provenance_payload with kraitchman_coords and nested directory tarball."""
-    payload_dir = tmp_path / "full_complex_payload"
-    payload_dir.mkdir()
-    sub_dir = payload_dir / "nested_models"
-    sub_dir.mkdir()
-
-    (sub_dir / "geom.xyz").write_text("3\nH2O\nO 0 0 0\nH 0 0 1\nH 0 1 0\n", encoding="utf-8")
-    (payload_dir / "spec.var").write_text("VAR TEST", encoding="utf-8")
-
-    kc = {
-        "coords": {"a": 0.0, "b": 1.25, "c": 0.85},
-        "costain_errors": {"a": 0.0, "b": 0.0012, "c": 0.0017},
-        "radicands": {"a": -0.01, "b": 1.5625, "c": 0.7225},
+        "energies": [-75.123456],
+        "gradients": [np.array([[10.0, 0.0, 0.0], [-10.0, 0.0, 0.0]])],
     }
 
-    manifest = lock_provenance_payload(
-        target_directory=payload_dir,
-        kraitchman_coords=kc,
-        metadata={"run_id": "RUN-001"},
+    result = export_crash_animation(
+        trajectory_array=traj_dict,
+        error_node_id="single_frame_node",
+        artifact_dir=artifact_dir,
+        scratch_dir=scratch_dir,
+        abort_reason="Single frame singularity collision",
     )
 
-    assert "kraitchman_coords" in manifest["metadata"]
-    assert manifest["metadata"]["kraitchman_coords"]["coords"]["b"] == 1.25
+    xyz_path = result["xyz_path"]
+    diag_path = result["diagnostic_path"]
 
-    archive = bundle_spycfit_payload(
-        manifest_path_or_target_dir=payload_dir,
-        project_name="WaterDimer",
-    )
-    assert Path(archive).exists()
-    assert verify_payload_integrity(archive) is True
+    assert xyz_path.exists()
+    assert diag_path.exists()
 
+    with open(diag_path, encoding="utf-8") as diag_file:
+        diag = json.load(diag_file)
 
-
+    assert diag["error_node_id"] == "single_frame_node"
+    assert diag["num_frames"] == 1
+    assert diag["num_atoms"] == 2
+    assert diag["min_interatomic_distance"] == 0.2
+    assert diag["colliding_pair"] == [0, 1] or diag["colliding_pair"] == [1, 0]
 
 Validate Zero-Mock adherence. Target repo is D:\__CoChem\GitHub-Repo\CoChem-TORQ.
