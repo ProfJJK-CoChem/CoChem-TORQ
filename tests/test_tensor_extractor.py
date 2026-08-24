@@ -32,6 +32,8 @@ from pathlib import Path
 
 import h5py  # type: ignore[import-untyped]
 import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.ipc as pa_ipc  # type: ignore[import-untyped]
 import pytest
 
 from Libraries.cochem_tensor_extractor import (
@@ -51,11 +53,16 @@ from Libraries.cochem_tensor_extractor import (
     InertiaTensorResult,
     TorqTensorExtractor,
     TorqTensorOutput,
+    allocate_pyarrow_ipc_buffer,
     apply_cartesian_protections,
     calculate_rays_asymmetry,
+    compute_blake3_seal,
     diagonalize_inertia_tensor,
+    dipole_phase_guard,
     dynamic_representation_switch,
+    filter_ghost_atoms,
     get_atomic_mass,
+    is_ghost_atom,
 )
 
 # =============================================================================
@@ -752,3 +759,185 @@ def test_anti_spoofing_spin_hamiltonian_guard() -> None:
     )
     with pytest.raises(RuntimeError, match="Anti-spoofing mandate"):
         extractor.extract_spin_hamiltonian()
+
+
+# =============================================================================
+# Test Suite 10: Task 9 Quantum Tensor Harvester Deliverables
+# =============================================================================
+
+
+def test_ghost_atom_filtering_and_monoisotopic_resolution() -> None:
+    """Validates ghost-atom filtering (Z_i = 0 / Gh / X / 0) and mono-isotopic mass resolution."""
+    # 1. is_ghost_atom identifier
+    assert is_ghost_atom("Gh") is True
+    assert is_ghost_atom("gh") is True
+    assert is_ghost_atom("Ghost") is True
+    assert is_ghost_atom("X") is True
+    assert is_ghost_atom("0") is True
+    assert is_ghost_atom("Bq") is True
+    assert is_ghost_atom("Gh:1") is True
+    assert is_ghost_atom("gh_01") is True
+    assert is_ghost_atom("H") is False
+    assert is_ghost_atom("13C") is False
+    assert is_ghost_atom("O") is False
+
+    # 2. filter_ghost_atoms on water with ghost atoms
+    symbols = ["O", "H", "H", "Gh", "X", "0"]
+    coords = [
+        [0.0, 0.0, 0.1173],
+        [0.0, 0.7572, -0.4692],
+        [0.0, -0.7572, -0.4692],
+        [1.0, 1.0, 1.0],  # Ghost 1
+        [-1.0, -1.0, -1.0],  # Ghost 2
+        [2.0, 0.0, 0.0],  # Ghost 3
+    ]
+    filt_coords, filt_syms, filt_masses, valid_idx = filter_ghost_atoms(coords, symbols)
+    assert len(filt_syms) == 3
+    assert filt_syms == ["O", "H", "H"]
+    assert valid_idx == [0, 1, 2]
+    assert filt_coords.shape == (3, 3)
+    assert len(filt_masses) == 3
+
+    # 3. Tensor extractor with ghost atoms must match clean H2O
+    clean_coords = coords[:3]
+    clean_syms = symbols[:3]
+    res_clean = diagonalize_inertia_tensor(clean_coords, symbols=clean_syms)
+    res_ghost = diagonalize_inertia_tensor(coords, symbols=symbols)
+
+    assert abs(res_clean.total_mass_u - res_ghost.total_mass_u) < 1e-9
+    assert abs(res_clean.principal_moments_u_A2[0] - res_ghost.principal_moments_u_A2[0]) < 1e-8
+    assert abs(res_clean.principal_moments_u_A2[1] - res_ghost.principal_moments_u_A2[1]) < 1e-8
+    assert abs(res_clean.principal_moments_u_A2[2] - res_ghost.principal_moments_u_A2[2]) < 1e-8
+
+
+def test_lapack_eigh_spectral_diagonalization_so3_parity_lock() -> None:
+    """Validates LAPACK eigh diagonalization (Ia <= Ib <= Ic) and SO(3) Right-Handedness Parity Lock (det(R_PA) = +1.0)."""
+    # Highly chiral / asymmetric test system
+    symbols = ["C", "F", "Cl", "Br", "H"]
+    coords = [
+        [0.000, 0.000, 0.000],  # C
+        [1.350, 0.000, 0.000],  # F
+        [-0.450, 1.700, 0.000],  # Cl
+        [-0.450, -0.600, 1.900],  # Br
+        [-0.450, -0.600, -0.900],  # H
+    ]
+
+    res = diagonalize_inertia_tensor(coords, symbols=symbols)
+    ia, ib, ic = res.principal_moments_u_A2
+
+    # Ascending order check
+    assert ia <= ib <= ic
+
+    # SO(3) Right-Handedness check: det(R_PA) must be strictly +1.0 (not -1.0)
+    r_pa = np.array(res.principal_axes_matrix, dtype=np.float64)
+    det_r = float(np.linalg.det(r_pa))
+    assert abs(det_r - 1.0) < 1e-8
+
+    # Orthonormality check: R_PA.T @ R_PA == Eye(3)
+    identity_check = np.dot(r_pa.T, r_pa)
+    np.testing.assert_allclose(identity_check, np.eye(3), atol=1e-8)
+
+
+def test_cartesian_protection_linear_singularity_flag() -> None:
+    """Validates that Ia < 1.0e-6 triggers LINEAR_SINGULARITY=True and omits A."""
+    symbols = ["O", "C", "O"]
+    coords = [[0.0, 0.0, -1.16], [0.0, 0.0, 0.0], [0.0, 0.0, 1.16]]
+
+    res = diagonalize_inertia_tensor(coords, symbols=symbols)
+    assert res.principal_moments_u_A2[0] < 1.0e-6
+    assert res.rotational_constants.A_MHz is None
+    assert res.rotational_constants.B_MHz > 0.0
+
+    prot = apply_cartesian_protections(coords, symbols=symbols)
+    assert prot.is_linear is True
+    assert prot.LINEAR_SINGULARITY is True
+    assert prot.linear_singularity is True
+    assert prot.rotational_dof == 2
+    assert prot.protected_rotational_constants.A_MHz is None
+
+
+def test_rays_asymmetry_spherical_top_intercept_and_mapping() -> None:
+    """Validates Ray's asymmetry parameter with Spherical Top intercept and representation mapping."""
+    # 1. Spherical top: A = B = C
+    asym_sph = calculate_rays_asymmetry(A=10000.0, B=10000.0, C=10000.0)
+    assert asym_sph.kappa == 0.0
+    assert asym_sph.rotor_type == "Spherical Top"
+    assert asym_sph.recommended_representation == "Ir"
+
+    # 2. Prolate rotor (-1 <= kappa <= 0.5) -> Ir
+    rep_prolate = dynamic_representation_switch(kappa=-0.8, preferred_type="auto")
+    assert rep_prolate["representation"] == "Ir"
+    assert rep_prolate["axis_mapping"] == {"x": "b", "y": "c", "z": "a"}
+    assert rep_prolate["is_right_handed"] is True
+
+    # 3. Oblate rotor (kappa > 0.5) -> IIIr
+    rep_oblate = dynamic_representation_switch(kappa=0.9, preferred_type="auto")
+    assert rep_oblate["representation"] == "IIIr"
+    assert rep_oblate["axis_mapping"] == {"x": "a", "y": "b", "z": "c"}
+    assert rep_oblate["is_right_handed"] is True
+
+
+def test_eckart_dipole_phase_guard_parity_preservation() -> None:
+    """Validates Eckart Dipole Phase-Lock Guard ensuring parity preservation det(R_locked)=+1.0 and dipole projection."""
+    # Reference frame (Eckart frame)
+    r_ref = np.eye(3)
+    raw_dipole = [1.5, -2.0, 0.8]  # Cartesian dipole in Debye
+
+    # Test 1: Normal aligned principal axes
+    r_pa_clean = np.eye(3)
+    res_clean = dipole_phase_guard(raw_dipole, eckart_matrix=r_ref, principal_axes_matrix=r_pa_clean)
+    assert abs(res_clean["det_R_locked"] - 1.0) < 1e-8
+    assert res_clean["mu_PA"] == raw_dipole
+    assert abs(res_clean["mu_norm"] - np.linalg.norm(raw_dipole)) < 1e-8
+
+    # Test 2: Inverted axis in principal axes (e.g. quantum solver flipped x and y signs)
+    r_pa_flipped = np.array([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]])
+    res_flipped = dipole_phase_guard(raw_dipole, eckart_matrix=r_ref, principal_axes_matrix=r_pa_flipped)
+    assert abs(res_flipped["det_R_locked"] - 1.0) < 1e-8
+    # Phase flips must restore positive overlap with reference frame
+    assert res_flipped["phase_flips"] == [-1, -1, 1]
+    np.testing.assert_allclose(res_flipped["mu_PA"], raw_dipole, atol=1e-8)
+
+    # Test 3: Extractor helper integration
+    symbols = ["O", "H", "H"]
+    coords = [[0.0, 0.0, 0.1173], [0.0, 0.7572, -0.4692], [0.0, -0.7572, -0.4692]]
+    extractor = TorqTensorExtractor(symbols, coords, point_id="h2o_dipole")
+    res_ext = extractor.guard_dipole(raw_dipole)
+    assert abs(res_ext["det_R_locked"] - 1.0) < 1e-8
+    assert abs(res_ext["mu_norm"] - np.linalg.norm(raw_dipole)) < 1e-8
+
+
+def test_blake3_cryptographic_sealing_and_pyarrow_ipc_buffer() -> None:
+    """Validates BLAKE3 Cryptographic Sealing & Zero-Copy PyArrow IPC Buffer Allocation."""
+    import pyarrow.ipc as pa_ipc
+
+    symbols = ["O", "H", "H"]
+    coords = [[0.0, 0.0, 0.1173], [0.0, 0.7572, -0.4692], [0.0, -0.7572, -0.4692]]
+    extractor = TorqTensorExtractor(symbols, coords, point_id="h2o_seal_test")
+
+    # 1. BLAKE3 seal generation
+    seal1 = extractor.get_blake3_seal()
+    assert isinstance(seal1, str)
+    assert len(seal1) == 64  # 256-bit hex string
+    # Deterministic test
+    seal2 = extractor.get_blake3_seal()
+    assert seal1 == seal2
+
+    # 2. PyArrow IPC buffer allocation
+    buf, seal_ipc = extractor.to_pyarrow_ipc_buffer()
+    assert isinstance(buf, pa.Buffer)
+    assert len(buf) > 0
+    assert len(seal_ipc) == 64
+
+    # 3. Read back from PyArrow stream and verify contents
+    reader = pa_ipc.open_stream(buf)
+    table = reader.read_all()
+    assert table.num_rows == 1
+    assert "point_id" in table.column_names
+    assert table["point_id"][0].as_py() == "h2o_seal_test"
+    assert "I_a_u_A2" in table.column_names
+    assert "A_MHz" in table.column_names
+    assert "LINEAR_SINGULARITY" in table.column_names
+    assert table["LINEAR_SINGULARITY"][0].as_py() is False
+    assert table["is_planar"][0].as_py() is True
+

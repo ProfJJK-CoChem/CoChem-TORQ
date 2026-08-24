@@ -23,6 +23,7 @@ Implements:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -35,8 +36,18 @@ from typing import Any, Final, Literal, cast
 import h5py  # type: ignore[import-untyped]
 import numpy as np
 import numpy.typing as npt
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.ipc as pa_ipc  # type: ignore[import-untyped]
 import scipy.linalg as sla  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field
+
+# Optional blake3 check
+try:
+    import blake3  # type: ignore[import-untyped]
+
+    _BLAKE3_AVAILABLE = True
+except ImportError:
+    _BLAKE3_AVAILABLE = False
 
 # Configure module logger
 logging.basicConfig(
@@ -126,6 +137,73 @@ def get_atomic_mass(symbol: str) -> float:
         raise ValueError(f"Symbol '{symbol}' not found in mendeleev or error occurred: {e}")
 
 
+def is_ghost_atom(symbol: str) -> bool:
+    """Checks whether an atomic symbol represents a ghost atom (Z_i = 0, Gh, Ghost, X, Bq, 0).
+
+    :param symbol: Element or particle symbol string.
+    :return: True if the symbol is a ghost / dummy atom without mass, False otherwise.
+    """
+    s = symbol.strip().lower()
+    if s in ("gh", "ghost", "x", "bq", "0", "gh0"):
+        return True
+    if s.startswith("gh:") or s.startswith("gh-") or s.startswith("gh_"):
+        return True
+    return False
+
+
+def filter_ghost_atoms(
+    coordinates: npt.ArrayLike,
+    symbols: list[str],
+    masses: npt.ArrayLike | None = None,
+) -> tuple[npt.NDArray[np.float64], list[str], npt.NDArray[np.float64], list[int]]:
+    """Filters out ghost atoms (Z_i = 0, Gh, Ghost, X, mass <= 0) from coordinate and symbol sets.
+
+    :param coordinates: (N, 3) Cartesian coordinates in Angstroms.
+    :param symbols: (N,) atomic symbols.
+    :param masses: Optional (N,) atomic masses in u.
+    :return: Tuple of (filtered_coordinates, filtered_symbols, filtered_masses, valid_indices).
+    """
+    coords_arr = np.array(cast(Any, coordinates), dtype=np.float64)
+    if coords_arr.ndim != 2 or coords_arr.shape[1] != 3:
+        raise ValueError(f"Coordinates must have shape (N, 3), got {coords_arr.shape}.")
+    n_atoms = coords_arr.shape[0]
+    if len(symbols) != n_atoms:
+        raise ValueError(f"Symbols length ({len(symbols)}) != coordinates count ({n_atoms}).")
+
+    if masses is not None:
+        mass_arr = np.array(cast(Any, masses), dtype=np.float64)
+        if mass_arr.shape[0] != n_atoms:
+            raise ValueError(f"Masses length ({mass_arr.shape[0]}) != atom count ({n_atoms}).")
+    else:
+        mass_arr = None
+
+    valid_indices: list[int] = []
+    filtered_symbols: list[str] = []
+    filtered_masses_list: list[float] = []
+
+    for i in range(n_atoms):
+        sym = symbols[i].strip()
+        if is_ghost_atom(sym):
+            continue
+        if mass_arr is not None:
+            m = float(mass_arr[i])
+            if m <= 0.0:
+                continue
+        else:
+            m = get_atomic_mass(sym)
+            if m <= 0.0:
+                continue
+
+        valid_indices.append(i)
+        filtered_symbols.append(sym)
+        filtered_masses_list.append(m)
+
+    if not valid_indices:
+        raise ValueError("Cannot process system: all atoms were filtered out as ghost atoms (Z_i = 0 / Gh).")
+
+    filtered_coords = coords_arr[valid_indices]
+    filtered_masses = np.array(filtered_masses_list, dtype=np.float64)
+    return filtered_coords, filtered_symbols, filtered_masses, valid_indices
 
 
 # =============================================================================
@@ -207,6 +285,12 @@ class CartesianProtectionResult(BaseModel):
 
     is_linear: bool = Field(..., description="Strict linearity flag")
     is_quasi_linear: bool = Field(..., description="Quasi-linear flag")
+    LINEAR_SINGULARITY: bool = Field(
+        default=False, description="Flag for linear coordinate singularity collapse (Ia < 1e-6)"
+    )
+    linear_singularity: bool = Field(
+        default=False, description="Alias for LINEAR_SINGULARITY"
+    )
     rotational_dof: int = Field(
         ..., description="Rotational DOF (2 for linear, 3 for non-linear)"
     )
@@ -282,14 +366,19 @@ def diagonalize_inertia_tensor(
     coordinates: npt.ArrayLike,
     masses: npt.ArrayLike | None = None,
     symbols: list[str] | None = None,
+    filter_ghosts: bool = True,
 ) -> InertiaTensorResult:
     """Computes COM, builds moment of inertia tensor, diagonalizes to principal axes,
-
     and derives rotational constants, planar moments, and inertial defect.
+
+    Enforces CIAAW mono-isotopic masses, ghost-atom stripping (Z_i = 0 / Gh),
+    barycentric Center-of-Mass translation, LAPACK eigh spectral diagonalization
+    (Ia <= Ib <= Ic), and SO(3) Right-Handedness Parity Lock (det(R_PA) = +1.0).
 
     :param coordinates: (N, 3) Cartesian coordinates in Angstroms.
     :param masses: (N,) atomic masses in u (optional if symbols provided).
     :param symbols: (N,) atomic symbols (optional if masses provided).
+    :param filter_ghosts: If True, automatically filters out ghost atoms (Gh, Ghost, Z_i=0).
     :return: Rigorous InertiaTensorResult data model.
     """
     coords: npt.NDArray[np.float64] = np.array(
@@ -301,32 +390,37 @@ def diagonalize_inertia_tensor(
         )
 
     n_atoms = coords.shape[0]
-    if masses is not None:
-        mass_arr: npt.NDArray[np.float64] = np.array(
-            cast(Any, masses), dtype=np.float64
-        )
-        if mass_arr.shape[0] != n_atoms:
-            raise ValueError(
-                f"Masses length ({mass_arr.shape[0]}) != atom count ({n_atoms})."
-            )
-    elif symbols is not None:
-        if len(symbols) != n_atoms:
-            raise ValueError(
-                f"Symbols length ({len(symbols)}) != atom count ({n_atoms})."
-            )
-        mass_arr = np.array(
-            [get_atomic_mass(sym) for sym in symbols], dtype=np.float64
+    if symbols is None and masses is None:
+        raise ValueError("Either masses or symbols must be supplied.")
+
+    if filter_ghosts and symbols is not None:
+        active_coords, active_syms, mass_arr, _ = filter_ghost_atoms(
+            coordinates=coords, symbols=symbols, masses=masses
         )
     else:
-        raise ValueError("Either masses or symbols must be supplied.")
+        active_coords = coords
+        if masses is not None:
+            mass_arr = np.array(cast(Any, masses), dtype=np.float64)
+            if mass_arr.shape[0] != n_atoms:
+                raise ValueError(
+                    f"Masses length ({mass_arr.shape[0]}) != atom count ({n_atoms})."
+                )
+        elif symbols is not None:
+            if len(symbols) != n_atoms:
+                raise ValueError(
+                    f"Symbols length ({len(symbols)}) != atom count ({n_atoms})."
+                )
+            mass_arr = np.array(
+                [get_atomic_mass(sym) for sym in symbols], dtype=np.float64
+            )
 
     total_mass = float(np.sum(mass_arr))
     if total_mass <= 0.0:
         raise ValueError("Total molecular mass must be strictly positive.")
 
-    # 1. Shift to Center of Mass (COM)
-    com = np.sum(coords * mass_arr[:, None], axis=0) / total_mass
-    rel_coords = coords - com
+    # 1. Barycentric Shift to Center of Mass (COM)
+    com = np.sum(active_coords * mass_arr[:, None], axis=0) / total_mass
+    rel_coords = active_coords - com
 
     x = rel_coords[:, 0]
     y = rel_coords[:, 1]
@@ -344,17 +438,21 @@ def diagonalize_inertia_tensor(
         [[i_xx, i_xy, i_xz], [i_xy, i_yy, i_yz], [i_xz, i_yz, i_zz]], dtype=np.float64
     )
 
-    # 3. Diagonalization (Hermitian / Real Symmetric)
+    # 3. LAPACK eigh Spectral Diagonalization (Ia <= Ib <= Ic)
     evals, evecs = sla.eigh(inertia_tensor_u_a2)
 
     # Sort eigenvalues ascending: Ia <= Ib <= Ic
     idx = np.argsort(evals)
     evals_sorted = evals[idx]
-    evecs_sorted = evecs[:, idx]
+    evecs_sorted = evecs[:, idx].copy()
 
-    # Ensure right-handed coordinate frame: det(R) == +1
-    if float(sla.det(evecs_sorted)) < 0:
-        evecs_sorted[:, 2] = -evecs_sorted[:, 2]
+    # SO(3) Right-Handedness Parity Lock: det(R_PA) == +1.0
+    if float(sla.det(evecs_sorted)) < 0.0:
+        # Enforce right-handed coordinate frame: v_c = v_a x v_b
+        evecs_sorted[:, 2] = np.cross(evecs_sorted[:, 0], evecs_sorted[:, 1])
+        norm_c = float(sla.norm(evecs_sorted[:, 2]))
+        if norm_c > 1e-12:
+            evecs_sorted[:, 2] /= norm_c
 
     # Convert to kg * m^2
     evals_kg_m2 = evals_sorted * ATOMIC_MASS_CONSTANT_U * (ANGSTROM_TO_M**2)
@@ -379,9 +477,10 @@ def diagonalize_inertia_tensor(
     delta = float(i_c - i_a - i_b)
     is_planar = bool(abs(delta) < 1e-4 or abs(p_cc) < 1e-4)
 
-    # 6. Rotational Constants A, B, C (MHz, GHz, cm^-1)
-    is_linear = i_a < 1e-4
-    if is_linear:
+    # 6. Rotational Constants A, B, C (MHz, GHz, cm^-1) via NIST CODATA 2022
+    # Cartesian Protection Check: If Ia < 1.0e-6, flag singularity and omit A
+    is_linear_singularity = i_a < 1.0e-6
+    if is_linear_singularity:
         a_mhz = None
         a_ghz = None
         a_cm1 = None
@@ -574,9 +673,13 @@ def apply_cartesian_protections(
         damping_factor = 0.0
         protected_rot = inertia_res.rotational_constants
 
+    is_linear_singularity = bool(i_a < 1.0e-6 or is_strict_linear or is_any_linear)
+
     return CartesianProtectionResult(
         is_linear=is_strict_linear,
         is_quasi_linear=is_quasi_linear,
+        LINEAR_SINGULARITY=is_linear_singularity,
+        linear_singularity=is_linear_singularity,
         rotational_dof=rot_dof,
         collinear_axis=cast(list[float], collinear_axis.tolist()),
         cylindrical_coordinates=cylindrical_coords,
@@ -826,7 +929,228 @@ def dynamic_representation_switch(
 
 
 # =============================================================================
-# 7. High-Level TorqTensorExtractor Class (Integration & Provenance)
+# 7. Eckart Dipole Phase-Lock Guard & Parity Preservation
+# =============================================================================
+
+
+def dipole_phase_guard(
+    raw_dipole_vector: npt.ArrayLike,
+    eckart_matrix: npt.ArrayLike,
+    principal_axes_matrix: npt.ArrayLike | None = None,
+) -> dict[str, Any]:
+    """Projects Cartesian dipole moment onto principal axes while locking phase relative
+    to reference Eckart frame to prevent unphysical sign flips during torsional sweeps.
+
+    Tracks alignment phases against the reference Eckart frame, ensuring parity
+    preservation (det(R_locked) = +1.0) and eliminating artificial sign inversions
+    in projected dipole components (mu_a, mu_b, mu_c).
+
+    :param raw_dipole_vector: (3,) Cartesian dipole moment vector (in Debye or a.u.).
+    :param eckart_matrix: (3, 3) Reference Eckart orientation matrix or previous step frame.
+    :param principal_axes_matrix: (3, 3) Optional current principal axes matrix (R_PA).
+        If None, eckart_matrix is used as the reference projector.
+    :return: Dictionary containing:
+        - 'mu_Cart': List of Cartesian dipole components [mu_x, mu_y, mu_z].
+        - 'mu_PA': List of projected principal axis dipole components [mu_a, mu_b, mu_c].
+        - 'mu_norm': Magnitude of the dipole vector.
+        - 'det_R_locked': Determinant of the phase-locked rotation matrix (+1.0).
+        - 'phase_flips': List of signed multipliers [-1 or +1] applied to each axis.
+        - 'R_locked': (3, 3) Phase-locked right-handed rotation matrix.
+    """
+    mu_cart = np.array(cast(Any, raw_dipole_vector), dtype=np.float64)
+    if mu_cart.shape != (3,):
+        raise ValueError(f"raw_dipole_vector must have shape (3,), got {mu_cart.shape}")
+
+    r_ref = np.array(cast(Any, eckart_matrix), dtype=np.float64)
+    if r_ref.shape != (3, 3):
+        raise ValueError(f"eckart_matrix must have shape (3, 3), got {r_ref.shape}")
+
+    if principal_axes_matrix is not None:
+        r_pa = np.array(cast(Any, principal_axes_matrix), dtype=np.float64)
+        if r_pa.shape != (3, 3):
+            raise ValueError(f"principal_axes_matrix must have shape (3, 3), got {r_pa.shape}")
+    else:
+        r_pa = np.copy(r_ref)
+
+    # Phase-lock check for each axis vector against reference Eckart axis
+    r_locked = np.copy(r_pa)
+    flips = [1, 1, 1]
+
+    for k in range(3):
+        overlap = float(np.dot(r_pa[:, k], r_ref[:, k]))
+        if overlap < 0.0:
+            r_locked[:, k] = -r_locked[:, k]
+            flips[k] = -1
+
+    # Parity check: det(R_locked) must be strictly +1.0 in SO(3)
+    det_val = float(sla.det(r_locked))
+    if det_val < 0.0:
+        # Enforce right-handed SO(3) parity lock: v_c = v_a x v_b
+        r_locked[:, 2] = np.cross(r_locked[:, 0], r_locked[:, 1])
+        norm_c = float(sla.norm(r_locked[:, 2]))
+        if norm_c > 1e-12:
+            r_locked[:, 2] /= norm_c
+        flips[2] = -flips[2]
+        det_val = float(sla.det(r_locked))
+
+    # Project raw Cartesian dipole onto locked principal axes: mu_PA = R_locked^T * mu_Cart
+    mu_pa = np.dot(r_locked.T, mu_cart)
+    mu_norm = float(sla.norm(mu_cart))
+
+    return {
+        "mu_Cart": cast(list[float], mu_cart.tolist()),
+        "mu_PA": cast(list[float], mu_pa.tolist()),
+        "mu_norm": mu_norm,
+        "det_R_locked": det_val,
+        "phase_flips": flips,
+        "R_locked": cast(list[list[float]], r_locked.tolist()),
+    }
+
+
+# =============================================================================
+# 8. BLAKE3 Cryptographic Sealing & Zero-Copy PyArrow IPC Buffer Allocation
+# =============================================================================
+
+
+def compute_blake3_seal(
+    data: bytes | bytearray | memoryview | str | dict[str, Any] | BaseModel,
+) -> str:
+    """Computes a 256-bit BLAKE3 cryptographic hash digest.
+
+    If blake3 is available, uses the native C library. Otherwise falls back to
+    blake2b (32-byte digest) for zero-dependency portability.
+
+    :param data: Input data (bytes, string, dict, or Pydantic model).
+    :return: Hexadecimal hash string.
+    """
+    if isinstance(data, BaseModel):
+        raw_bytes = data.model_dump_json().encode("utf-8")
+    elif isinstance(data, dict):
+        raw_bytes = json.dumps(data, sort_keys=True).encode("utf-8")
+    elif isinstance(data, str):
+        raw_bytes = data.encode("utf-8")
+    elif isinstance(data, (bytes, bytearray, memoryview)):
+        raw_bytes = bytes(data)
+    else:
+        raw_bytes = str(data).encode("utf-8")
+
+    if _BLAKE3_AVAILABLE:
+        try:
+            return blake3.blake3(raw_bytes).hexdigest()
+        except Exception:
+            pass
+    return hashlib.blake2b(raw_bytes, digest_size=32).hexdigest()
+
+
+def allocate_pyarrow_ipc_buffer(
+    tensor_output: TorqTensorOutput | dict[str, Any],
+) -> tuple[pa.Buffer, str]:
+    """Allocates a zero-copy PyArrow RecordBatch / Table IPC buffer containing
+    the harvested quantum tensors, sealed with BLAKE3 cryptographic digest.
+
+    :param tensor_output: Validated TorqTensorOutput model or tensor extraction dictionary.
+    :return: (pa_buffer, blake3_seal_hex).
+    """
+    if isinstance(tensor_output, TorqTensorOutput):
+        d = tensor_output.model_dump()
+    else:
+        d = dict(tensor_output)
+
+    point_id = str(d.get("point_id", "000"))
+
+    # Inertia data
+    in_data = d.get("inertia", {})
+    if isinstance(in_data, InertiaTensorResult):
+        in_data = in_data.model_dump()
+    rc_data = in_data.get("rotational_constants", d.get("rotational_constants", {}))
+    if isinstance(rc_data, RotationalConstants):
+        rc_data = rc_data.model_dump()
+
+    a_mhz = rc_data.get("A_MHz", rc_data.get("A", 0.0))
+    if a_mhz is None:
+        a_mhz = -1.0  # Sentinel for linear / None
+    b_mhz = float(rc_data.get("B_MHz", rc_data.get("B", 0.0)))
+    c_mhz = float(rc_data.get("C_MHz", rc_data.get("C", 0.0)))
+
+    pm_u_a2 = in_data.get("principal_moments_u_A2", [0.0, 0.0, 0.0])
+    i_a = float(pm_u_a2[0]) if len(pm_u_a2) > 0 else 0.0
+    i_b = float(pm_u_a2[1]) if len(pm_u_a2) > 1 else 0.0
+    i_c = float(pm_u_a2[2]) if len(pm_u_a2) > 2 else 0.0
+
+    # Asymmetry
+    asym_data = d.get("asymmetry", {})
+    if isinstance(asym_data, AsymmetryResult):
+        asym_data = asym_data.model_dump()
+    kappa_val = float(asym_data.get("kappa", 0.0))
+    rotor_type_str = str(asym_data.get("rotor_type", "Asymmetric"))
+    rec_rep_str = str(asym_data.get("recommended_representation", "Ir"))
+
+    # Cartesian protection
+    prot_data = d.get("cartesian_protection", {})
+    if isinstance(prot_data, CartesianProtectionResult):
+        prot_data = prot_data.model_dump()
+    is_linear = bool(prot_data.get("is_linear", False))
+    linear_singularity = bool(
+        prot_data.get("LINEAR_SINGULARITY", prot_data.get("linear_singularity", is_linear or i_a < 1e-6))
+    )
+    is_planar = bool(in_data.get("is_planar", d.get("is_planar", False)))
+    inertial_defect = float(
+        in_data.get("inertial_defect_u_A2", d.get("inertial_defect_u_A2", 0.0))
+    )
+
+    # Construct PyArrow RecordBatch schema
+    schema = pa.schema(
+        [
+            ("point_id", pa.string()),
+            ("total_mass_u", pa.float64()),
+            ("I_a_u_A2", pa.float64()),
+            ("I_b_u_A2", pa.float64()),
+            ("I_c_u_A2", pa.float64()),
+            ("A_MHz", pa.float64()),
+            ("B_MHz", pa.float64()),
+            ("C_MHz", pa.float64()),
+            ("kappa", pa.float64()),
+            ("rotor_type", pa.string()),
+            ("representation", pa.string()),
+            ("is_linear", pa.bool_()),
+            ("LINEAR_SINGULARITY", pa.bool_()),
+            ("is_planar", pa.bool_()),
+            ("inertial_defect_u_A2", pa.float64()),
+        ]
+    )
+
+    batch = pa.RecordBatch.from_arrays(
+        [
+            pa.array([point_id], type=pa.string()),
+            pa.array([float(in_data.get("total_mass_u", 0.0))], type=pa.float64()),
+            pa.array([i_a], type=pa.float64()),
+            pa.array([i_b], type=pa.float64()),
+            pa.array([i_c], type=pa.float64()),
+            pa.array([float(a_mhz)], type=pa.float64()),
+            pa.array([b_mhz], type=pa.float64()),
+            pa.array([c_mhz], type=pa.float64()),
+            pa.array([kappa_val], type=pa.float64()),
+            pa.array([rotor_type_str], type=pa.string()),
+            pa.array([rec_rep_str], type=pa.string()),
+            pa.array([is_linear], type=pa.bool_()),
+            pa.array([linear_singularity], type=pa.bool_()),
+            pa.array([is_planar], type=pa.bool_()),
+            pa.array([inertial_defect], type=pa.float64()),
+        ],
+        schema=schema,
+    )
+
+    sink = pa.BufferOutputStream()
+    with pa_ipc.new_stream(sink, schema) as writer:
+        writer.write_batch(batch)
+
+    buf = sink.getvalue()
+    seal = compute_blake3_seal(buf.to_pybytes())
+    return buf, seal
+
+
+# =============================================================================
+# 9. High-Level TorqTensorExtractor Class (Integration & Provenance)
 # =============================================================================
 
 
@@ -886,6 +1210,7 @@ class TorqTensorExtractor:
         self._inertia_result: InertiaTensorResult | None = None
         self._protection_result: CartesianProtectionResult | None = None
         self._asymmetry_result: AsymmetryResult | None = None
+        self._full_output: TorqTensorOutput | None = None
 
         # Legacy backward-compatible attributes
         self.inertia_tensor: npt.NDArray[np.float64] | None = None
@@ -1002,20 +1327,58 @@ class TorqTensorExtractor:
                 divergence_details=vpt2_dict.get("divergence_details", []),
             )
 
-        return TorqTensorOutput(
-            point_id=self.point_id,
-            symbols=self.symbols,
-            coordinates=cast(list[list[float]], self.coordinates.tolist()),
-            inertia=in_res,
-            cartesian_protection=prot_res,
-            asymmetry=asym_res,
-            vpt2=vpt2_model,
-            metadata={
-                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-                "codata_year": CODATA_YEAR,
-                "c_rot_mhz": C_ROT_MHZ,
-            },
+        if self._full_output is None or orca_file is not None:
+            self._full_output = TorqTensorOutput(
+                point_id=self.point_id,
+                symbols=self.symbols,
+                coordinates=cast(list[list[float]], self.coordinates.tolist()),
+                inertia=in_res,
+                cartesian_protection=prot_res,
+                asymmetry=asym_res,
+                vpt2=vpt2_model,
+                metadata={
+                    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                    "codata_year": CODATA_YEAR,
+                    "c_rot_mhz": C_ROT_MHZ,
+                },
+            )
+        return self._full_output
+
+    def guard_dipole(
+        self,
+        raw_dipole_vector: npt.ArrayLike,
+        eckart_matrix: npt.ArrayLike | None = None,
+    ) -> dict[str, Any]:
+        """Applies Eckart Dipole Phase-Lock Guard to raw Cartesian dipole moment.
+
+        :param raw_dipole_vector: (3,) Cartesian dipole vector.
+        :param eckart_matrix: (3, 3) Reference Eckart rotation matrix (defaults to current principal axes).
+        :return: Phase-locked dipole dictionary with det(R_locked)=+1.0 and projected mu_PA.
+        """
+        in_res = self.get_inertia_result()
+        pa_mat = in_res.principal_axes_matrix
+        ref_mat = eckart_matrix if eckart_matrix is not None else pa_mat
+        return dipole_phase_guard(
+            raw_dipole_vector=raw_dipole_vector,
+            eckart_matrix=ref_mat,
+            principal_axes_matrix=pa_mat,
         )
+
+    def to_pyarrow_ipc_buffer(self) -> tuple[pa.Buffer, str]:
+        """Serializes harvested quantum tensors into a zero-copy PyArrow IPC buffer with BLAKE3 seal.
+
+        :return: Tuple of (PyArrow Buffer, BLAKE3 seal hex string).
+        """
+        full_out = self.get_full_output()
+        return allocate_pyarrow_ipc_buffer(full_out)
+
+    def get_blake3_seal(self) -> str:
+        """Returns 256-bit BLAKE3 cryptographic seal of the harvested quantum tensor payload.
+
+        :return: Hexadecimal hash digest string.
+        """
+        full_out = self.get_full_output()
+        return compute_blake3_seal(full_out)
 
     # =========================================================================
     # ORCA VPT2, Coriolis & Centrifugal Distortion Parsing
