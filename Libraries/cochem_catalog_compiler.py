@@ -1015,6 +1015,7 @@ def parallel_temperature_compiler(
 
 def generate_methods_latex(
     metadata: dict[str, Any],
+    output_tex_path: str | Path | None = None,
     method_matrix_v4_check: bool = True,
 ) -> str:
     """Generate an AASTeX 6.3.1 and siunitx compliant LaTeX Computational Methods section.
@@ -1024,9 +1025,11 @@ def generate_methods_latex(
     - Grid definitions must meet DEFGRID2 / DEFGRID3 criteria.
     - Frozen-Monomer and BSSE Counterpoise documentation for weak complexes.
     - Required metadata: theory_level, basis_set, rotational_constants, temperatures.
+    - Parses exact ORCA keywords, hardware limits, MACE versions, and Hessian preconditioning.
 
     Args:
         metadata: Dictionary containing chemical and computational parameters.
+        output_tex_path: Optional destination path to write the generated .tex file.
         method_matrix_v4_check: If True, strictly enforces Method Matrix v4 compliance.
 
     Returns:
@@ -1035,6 +1038,10 @@ def generate_methods_latex(
     Raises:
         MethodMatrixViolationError: If required fields, grids, or dispersion corrections fail.
     """
+    if isinstance(output_tex_path, bool):
+        method_matrix_v4_check = output_tex_path
+        output_tex_path = None
+
     theory_level = str(metadata.get("theory_level", "")).strip()
     basis_set = str(metadata.get("basis_set", "")).strip()
     software_version = str(metadata.get("software_version", "ORCA 6.1.0 / Pickett SPCAT")).strip()
@@ -1142,6 +1149,68 @@ def generate_methods_latex(
         r"on frequencies, intensities, and state energies.",
     ]
 
+    # Parse exact ORCA keywords
+    orca_keywords = str(metadata.get("orca_keywords", metadata.get("keywords", ""))).strip()
+    if orca_keywords:
+        latex_lines.extend([
+            r"",
+            f"Quantum chemical workflow execution was governed by the keyword block: \\texttt{{{orca_keywords}}}.",
+        ])
+
+    # Check for Hessian Preconditioning documentation
+    has_inhess = (
+        "inhess" in orca_keywords.lower()
+        or metadata.get("hessian_preconditioned", False)
+        or str(metadata.get("hessian_preconditioning", "")).strip().lower() in ("xtb2", "lindh")
+    )
+    if has_inhess:
+        latex_lines.extend([
+            r"",
+            r"Hessian preconditioning was enforced using \texttt{InHess XTB2} / \texttt{Lindh} to guarantee robust geometry convergence without direct unconstrained Hessian computation.",
+        ])
+
+    # Parse hardware limits
+    nprocs = metadata.get("nprocs", metadata.get("num_cores", metadata.get("cores", None)))
+    maxcore = metadata.get("maxcore", metadata.get("memory_mb", metadata.get("memory_per_core_mb", None)))
+    memory_gb = metadata.get("memory_gb", metadata.get("total_memory_gb", None))
+
+    if nprocs is not None and maxcore is not None:
+        try:
+            n_cores_int = int(nprocs)
+            m_core_int = int(maxcore)
+            latex_lines.extend([
+                r"",
+                f"Calculations were parallelized across \\qty{{{n_cores_int}}}{{cores}} with a hardware memory allocation of \\qty{{{m_core_int}}}{{\\mega\\byte}} per core.",
+            ])
+        except (ValueError, TypeError):
+            pass
+    elif nprocs is not None:
+        try:
+            n_cores_int = int(nprocs)
+            latex_lines.extend([
+                r"",
+                f"Calculations were parallelized across \\qty{{{n_cores_int}}}{{cores}}.",
+            ])
+        except (ValueError, TypeError):
+            pass
+    elif memory_gb is not None:
+        try:
+            mem_flt = float(memory_gb)
+            latex_lines.extend([
+                r"",
+                f"Hardware resource limits allocated \\qty{{{mem_flt:.1f}}}{{\\giga\\byte}} total system memory.",
+            ])
+        except (ValueError, TypeError):
+            pass
+
+    # Parse MACE versions / Machine Learning potentials
+    mace_version = str(metadata.get("mace_version", metadata.get("mace_model", metadata.get("mace", "")))).strip()
+    if mace_version:
+        latex_lines.extend([
+            r"",
+            f"Machine learning potential pre-relaxation and initial conformational exploration were performed using the MACE architecture (version/model: \\texttt{{{mace_version}}}).",
+        ])
+
     is_non_covalent = metadata.get("is_non_covalent", metadata.get("is_vdw_complex", False))
     if is_non_covalent:
         latex_lines.extend([
@@ -1183,7 +1252,15 @@ def generate_methods_latex(
             f"are immutably archived with SHA-256 digest \\texttt{{{provenance_hash}}}.",
         ])
 
-    return "\n".join(latex_lines) + "\n"
+    tex_content = "\n".join(latex_lines) + "\n"
+
+    if output_tex_path is not None:
+        target_tex = Path(output_tex_path).resolve()
+        target_tex.parent.mkdir(parents=True, exist_ok=True)
+        target_tex.write_text(tex_content, encoding="utf-8")
+        buffer_lock_sync(target_tex, min_bytes=len(tex_content.encode("utf-8")))
+
+    return tex_content
 
 
 # =============================================================================
@@ -1192,13 +1269,26 @@ def generate_methods_latex(
 
 def deduplicate_bibtex(
     bibtex_entries: str | Sequence[str],
+    output_bib_path: str | Path | None = None,
     deduplicate_by: str = "both",
 ) -> str:
     """Deduplicate BibTeX bibliography entries by cite key, normalized DOI, or both.
 
     Uses a robust brace-depth tokenizer that handles inter-entry non-whitespace comments
     (e.g., '% ADS Export') without swallowing or corrupting subsequent entries.
+
+    Args:
+        bibtex_entries: Raw BibTeX string or collection of BibTeX entry strings.
+        output_bib_path: Optional file path to write the compiled, deduplicated .bib file.
+        deduplicate_by: Deduplication strategy: 'key', 'doi', or 'both' (default 'both').
+
+    Returns:
+        Clean, deduplicated BibTeX bibliography string.
     """
+    if isinstance(output_bib_path, str) and output_bib_path.lower() in ("both", "key", "doi"):
+        deduplicate_by = output_bib_path
+        output_bib_path = None
+
     raw_text: str
     if isinstance(bibtex_entries, (list, tuple, set)):
         raw_text = "\n\n".join(str(entry) for entry in bibtex_entries)
@@ -1275,7 +1365,15 @@ def deduplicate_bibtex(
             clean_entry = f"@{entry_type}{{{cite_key},\n  {body}\n}}"
             unique_entries.append(clean_entry)
 
-    return "\n\n".join(unique_entries) + ("\n" if unique_entries else "")
+    bib_content = "\n\n".join(unique_entries) + ("\n" if unique_entries else "")
+
+    if output_bib_path is not None:
+        target_bib = Path(output_bib_path).resolve()
+        target_bib.parent.mkdir(parents=True, exist_ok=True)
+        target_bib.write_text(bib_content, encoding="utf-8")
+        buffer_lock_sync(target_bib, min_bytes=len(bib_content.encode("utf-8")))
+
+    return bib_content
 
 
 # =============================================================================

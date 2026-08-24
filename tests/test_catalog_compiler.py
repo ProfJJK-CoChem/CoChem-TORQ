@@ -702,3 +702,121 @@ def test_methods_latex_non_covalent_documentation() -> None:
     assert "The Frozen-Monomer protocol was applied" in tex
     assert "Basis Set Superposition Error (BSSE) was corrected via the Boys-Bernardi counterpoise procedure" in tex
 
+
+# =============================================================================
+# 19. Extended Methods LaTeX with ORCA Keywords, Hardware Limits & MACE
+# =============================================================================
+
+def test_generate_methods_latex_full_workflow_file_output(tmp_path: Path) -> None:
+    """Verify generate_methods_latex parses ORCA keywords, hardware limits, MACE versions, and writes to file."""
+    tex_file = tmp_path / "methods_section.tex"
+    meta = {
+        "theory_level": "wB97X-D4",
+        "basis_set": "ma-def2-TZVPP",
+        "orca_keywords": "! wB97X-D4 ma-def2-TZVPP Opt Freq InHess XTB2 TightSCF",
+        "software_version": "ORCA 6.1.0 / Pickett SPCAT (v2023)",
+        "rotational_constants": {"A": 825360.0, "B": 435360.0, "C": 278130.0},
+        "temperatures": [10.0, 50.0, 300.0],
+        "defgrid": "DEFGRID3",
+        "nprocs": 16,
+        "maxcore": 4000,
+        "mace_version": "mace-mp-0-medium-v0.3.4",
+        "hessian_preconditioned": True,
+        "is_non_covalent": True,
+        "counterpoise": True,
+        "frozen_monomer": True,
+        "provenance_hash": "sha256:full_methods_test_digest_12345",
+    }
+
+    tex_content = generate_methods_latex(meta, output_tex_path=tex_file, method_matrix_v4_check=True)
+
+    assert tex_file.exists()
+    assert tex_file.read_text(encoding="utf-8") == tex_content
+    assert r"\section{Computational Methods}\label{sec:methods}" in tex_content
+    assert r"! wB97X-D4 ma-def2-TZVPP Opt Freq InHess XTB2 TightSCF" in tex_content
+    assert r"\qty{16}{cores}" in tex_content
+    assert r"\qty{4000}{\mega\byte}" in tex_content
+    assert "mace-mp-0-medium-v0.3.4" in tex_content
+    assert "InHess XTB2" in tex_content
+    assert "Frozen-Monomer" in tex_content
+    assert "Boys-Bernardi" in tex_content
+    assert "sha256:full_methods_test_digest_12345" in tex_content
+
+
+# =============================================================================
+# 20. BibTeX Deduplication with File Output Compilation
+# =============================================================================
+
+def test_deduplicate_bibtex_file_output_and_doi_unification(tmp_path: Path) -> None:
+    """Verify deduplicate_bibtex unifies references and writes directly to cochem_citations.bib."""
+    bib_file = tmp_path / "cochem_citations.bib"
+    raw_bibtex = """
+@article{Pickett1991,
+  author = {Pickett, Herbert M.},
+  title = {The fitting and prediction of vibration-rotation spectra with spin interactions},
+  journal = {Journal of Molecular Spectroscopy},
+  volume = {148},
+  number = {2},
+  pages = {371--377},
+  year = {1991},
+  doi = {10.1016/0022-2852(91)90124-S}
+}
+
+@article{mace2022,
+  author = {Batatia, Ilyes and Kovacs, David P. and Simm, Gregor N. C. and Ortner, Christoph and Csanyi, Gabor},
+  title = {MACE: Higher order equivariant message passing neural networks for materials science},
+  journal = {Advances in Neural Information Processing Systems},
+  year = {2022},
+  doi = {https://doi.org/10.48550/arXiv.2206.07697}
+}
+
+@article{mace_duplicate_doi,
+  author = {Batatia, I. et al.},
+  title = {MACE Neural Networks},
+  year = {2022},
+  doi = {10.48550/arXiv.2206.07697}
+}
+"""
+    result = deduplicate_bibtex(raw_bibtex, output_bib_path=bib_file, deduplicate_by="both")
+
+    assert bib_file.exists()
+    assert bib_file.read_text(encoding="utf-8") == result
+    assert "@article{Pickett1991" in result
+    assert "@article{mace2022" in result
+    assert "mace_duplicate_doi" not in result
+    assert result.count("@article") == 2
+
+
+# =============================================================================
+# 21. Recursive Directory Permission Sealing Test
+# =============================================================================
+
+def test_apply_readonly_chmod_recursive_directory_sealing(tmp_path: Path) -> None:
+    """Verify apply_readonly_chmod recursively seals subdirectories and files."""
+    deliverables_dir = tmp_path / "sealed_deliverables"
+    sub_dir = deliverables_dir / "catalogs"
+    sub_dir.mkdir(parents=True, exist_ok=True)
+
+    file1 = deliverables_dir / "metadata.json"
+    file2 = sub_dir / "catalog_300K.parquet"
+    file1.write_text('{"status": "finalized"}', encoding="utf-8")
+    file2.write_bytes(b"PAR1_DATA_PAYLOAD_TEST")
+
+    apply_readonly_chmod(deliverables_dir, recursive=True)
+
+    with pytest.raises(PermissionError):
+        with open(file1, "w", encoding="utf-8") as f:
+            f.write("CORRUPTION")
+
+    with pytest.raises(PermissionError):
+        with open(file2, "wb") as f:
+            f.write(b"CORRUPTION")
+
+    remove_readonly_seal(deliverables_dir, recursive=True)
+
+    with open(file1, "w", encoding="utf-8") as f:
+        f.write('{"status": "updated"}')
+
+    assert file1.read_text(encoding="utf-8") == '{"status": "updated"}'
+
+
