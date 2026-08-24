@@ -152,11 +152,12 @@ def test_kraitchman_singularity_guard_damping() -> None:
     with pytest.warns(
         KraitchmanSingularityWarning, match="Singularity near-symmetric denominator"
     ):
+        delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
         result = calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
             parent_mass=float(element("Sc").atomic_weight),
-            delta_m=1.003355,
+            delta_m=delta_m_c,
             singularity_threshold=1e-4,
         )
 
@@ -176,11 +177,12 @@ def test_kraitchman_zpve_defect_clamping() -> None:
         KraitchmanZPVEWarning,
         match="ZPVE defect produced imaginary substitution coordinate",
     ):
+        delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
         result = calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
             parent_mass=float(element("C").atomic_weight) * 5,
-            delta_m=1.003355,
+            delta_m=delta_m_c,
         )
 
     assert result["coords"]["a"] == 0.0
@@ -192,11 +194,12 @@ def test_kraitchman_zpve_defect_clamping() -> None:
 
 def test_kraitchman_piecewise_costain_bounds() -> None:
     """Validates Piecewise Costain Bounds for large and small coordinates."""
+    delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
     res = calculate_kraitchman_coords(
         parent_moments=(10.0, 20.0, 25.0),
         substituted_moments=(10.2, 20.4, 25.3),
         parent_mass=float(element("V").atomic_weight),
-        delta_m=1.00335,
+        delta_m=delta_m_c,
     )
 
     for axis in ["a", "b", "c"]:
@@ -535,11 +538,12 @@ def test_kraitchman_dictionary_and_planar_inputs() -> None:
     parent_dict = {"a": 12.5, "b": 24.0, "c": 36.5}
     sub_dict = {"a": 12.8, "b": 24.4, "c": 36.9}
 
+    delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
     res = calculate_kraitchman_coords(
         parent_moments=parent_dict,
         substituted_moments=sub_dict,
         parent_mass=float(element("Se").atomic_weight),
-        delta_m=1.003355,
+        delta_m=delta_m_c,
     )
 
     assert "coords" in res
@@ -682,12 +686,13 @@ def test_kraitchman_exact_zero_denominator_guard() -> None:
     parent_moments = (20.0, 20.0, 40.0)
     sub_moments = (20.5, 20.5, 40.8)
 
+    delta_m_h = float(element("H").isotopes[1].mass - element("H").isotopes[0].mass)
     with pytest.warns(KraitchmanSingularityWarning):
         res = calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
             parent_mass=float(element("V").atomic_weight),
-            delta_m=1.0,
+            delta_m=delta_m_h,
             singularity_threshold=1e-4,
         )
     assert not math.isnan(res["coords"]["a"])
