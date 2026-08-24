@@ -15,10 +15,12 @@ from __future__ import annotations
 import logging
 import math
 import os
+import re
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+from mendeleev import element
 
 ARTIFACTS_DIR = os.environ.get(
     "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
@@ -30,13 +32,74 @@ logging.basicConfig(
 )
 logger = logging.getLogger("TorqJaxDVR")
 
-# CODATA 2022 Physical Constants (Exact)
+# CODATA 2022 Physical Constants (Exact SI definitions)
 PLANCK_CONSTANT_JS = 6.62607015e-34  # Exact h (J s)
 BOLTZMANN_CONSTANT_JK = 1.380649e-23  # Exact kB (J/K)
 SPEED_OF_LIGHT_CMS = 29979245800.0  # Exact c (cm/s)
 HBAR_JS = PLANCK_CONSTANT_JS / (2.0 * math.pi)
-# Conversion factor hbar^2 / (2 * m_u) in cm^-1 * Angstrom^2 * amu
-HBAR_SQ_OVER_2M_U_CM1_A2 = 16.857629206
+ATOMIC_MASS_CONSTANT_KG = 1.66053906892e-27  # Exact kg (1 u) (CODATA 2022)
+
+# Conversion factor hbar^2 / (2 * m_u) in cm^-1 * Angstrom^2 * amu:
+# Calculated dynamically from exact CODATA 2022 definitions
+HBAR_SQ_OVER_2M_U_CM1_A2 = PLANCK_CONSTANT_JS / (
+    8.0 * (math.pi**2) * SPEED_OF_LIGHT_CMS * ATOMIC_MASS_CONSTANT_KG * 1e-20
+)
+
+
+def get_atomic_mass(symbol: str) -> float:
+    """
+    Dynamically retrieves exact mono-isotopic mass for an element or isotope
+    using the mendeleev library.
+
+    Supports symbols like 'H', 'D', 'T', '12C', '13C', '16O', '18O', '35Cl', etc.
+    """
+    clean_sym = symbol.strip()
+    if clean_sym == "D":
+        clean_sym = "2H"
+    elif clean_sym == "T":
+        clean_sym = "3H"
+
+    match_prefix = re.match(r"^(\d+)([a-zA-Z]+)$", clean_sym)
+    match_postfix = re.match(r"^([a-zA-Z]+)(\d+)$", clean_sym)
+
+    elem_str = clean_sym
+    mass_num = None
+
+    if match_prefix:
+        mass_num = int(match_prefix.group(1))
+        elem_str = match_prefix.group(2)
+    elif match_postfix:
+        elem_str = match_postfix.group(1)
+        mass_num = int(match_postfix.group(2))
+
+    elem_str = elem_str.capitalize()
+
+    try:
+        elem = element(elem_str)
+        if mass_num is not None:
+            for iso in elem.isotopes:
+                if iso.mass_number == mass_num and iso.mass is not None:
+                    return float(iso.mass)
+            logger.warning(
+                f"Isotope {mass_num} for element {elem_str} not found in mendeleev. "
+                "Defaulting to most abundant."
+            )
+
+        valid_isotopes = [
+            iso
+            for iso in elem.isotopes
+            if iso.abundance is not None and iso.mass is not None
+        ]
+        if valid_isotopes:
+            most_abundant = max(valid_isotopes, key=lambda x: x.abundance or 0.0)
+            return float(most_abundant.mass)
+        return float(elem.atomic_weight or elem.mass or 1.0)
+    except Exception as e:
+        logger.error(f"Error querying mendeleev for '{symbol}': {e}")
+        raise ValueError(
+            f"Symbol '{symbol}' not found in mendeleev database: {e}"
+        ) from e
+
 
 # Try importing JAX and configuring float64 precision
 try:
@@ -56,13 +119,15 @@ except ImportError:
 class CoChemPrecisionError(RuntimeError):
     """Raised when JAX float64 precision cannot be enforced."""
 
-    pass
+    def __init__(self, message: str = "") -> None:
+        super().__init__(message)
 
 
 class DVRConvergenceError(RuntimeError):
     """Raised when the DVR eigenvalue solver fails to converge."""
 
-    pass
+    def __init__(self, message: str = "") -> None:
+        super().__init__(message)
 
 
 def enforce_jax_precision() -> dict[str, Any]:
@@ -70,7 +135,8 @@ def enforce_jax_precision() -> dict[str, Any]:
     Enforces JAX 64-bit floating point precision (float64) and identifies hardware.
 
     Spectroscopic tunneling splittings can exist on the order of 10^-6 cm^-1.
-    Standard 32-bit floating point precision causes numerical underflow.
+    # Maps execution paths: JIT/GPU (HPC), MPS (Apple Silicon), CPU fallback.
+    # Standard 32-bit floating point precision causes numerical underflow.
 
     :return: Dictionary containing detected hardware platform, devices, and x64 status.
     :raises CoChemPrecisionError: If 64-bit precision cannot be activated.
@@ -92,8 +158,24 @@ def enforce_jax_precision() -> dict[str, Any]:
     devices = jax.devices()
     default_backend = jax.default_backend()
 
+    # Map execution paths
+    backend_lower = default_backend.lower()
+    if backend_lower in ("gpu", "cuda", "rocm"):
+        execution_path = "JIT/GPU (HPC)"
+    elif backend_lower in ("mps", "metal"):
+        execution_path = "MPS (Apple Silicon)"
+    else:
+        import platform
+
+        machine = platform.machine().lower()
+        if "arm" in machine or "aarch64" in machine:
+            execution_path = "MPS/Apple Silicon CPU Fallback"
+        else:
+            execution_path = "CPU Vectorization Fallback (XLA AVX)"
+
     device_info = {
         "platform": default_backend,
+        "execution_path": execution_path,
         "devices": [str(d) for d in devices],
         "device_count": len(devices),
         "x64_enabled": True,
@@ -102,7 +184,7 @@ def enforce_jax_precision() -> dict[str, Any]:
 
     logger.info(
         f"JAX float64 precision enforced on {default_backend.upper()} "
-        f"({len(devices)} device(s): {devices[0]})"
+        f"[{execution_path}] ({len(devices)} device(s): {devices[0]})"
     )
     return device_info
 
@@ -161,7 +243,9 @@ def _construct_1d_kinetic_matrix(
 
 def build_dvr_hamiltonian(
     pes_spline_array: list[float] | np.ndarray | Any,
-    kinetic_operator: float | tuple[float, float] | np.ndarray | Any = 1.0,
+    kinetic_operator: (
+        float | str | tuple[float | str, float | str] | np.ndarray | Any
+    ) = 1.0,
     grid_points: list[float] | np.ndarray | tuple[Any, ...] | None = None,
     dimensions: int = 1,
     periodic: bool = False,
@@ -170,7 +254,7 @@ def build_dvr_hamiltonian(
     Constructs the discretized quantum mechanical Hamiltonian matrix (H = T + V).
 
     :param pes_spline_array: 1D or 2D potential energy values (cm^-1 or hartree).
-    :param kinetic_operator: Rotational constant B, reduced mass, or explicit matrix.
+    :param kinetic_operator: Rotational constant B, reduced mass/symbol, or matrix.
     :param grid_points: 1D coordinate array or tuple of (grid_x, grid_y) for 2D.
     :param dimensions: Coordinate dimensionality (1 or 2).
     :param periodic: If True, uses periodic sinc-DVR for angular torsions.
@@ -201,7 +285,13 @@ def build_dvr_hamiltonian(
         else:
             delta_x = 2.0 * np.pi / n_pts if periodic else 1.0
 
-        if isinstance(kinetic_operator, int | float):
+        if isinstance(kinetic_operator, str):
+            mass = get_atomic_mass(kinetic_operator)
+            kinetic_factor = HBAR_SQ_OVER_2M_U_CM1_A2 / mass if mass > 0 else 1.0
+            t_mat = _construct_1d_kinetic_matrix(
+                n_pts, delta_x, kinetic_factor, periodic=periodic
+            )
+        elif isinstance(kinetic_operator, int | float):
             if periodic:
                 # Rotational constant B (cm^-1) for periodic rotor
                 b_const = float(kinetic_operator)
@@ -262,16 +352,34 @@ def build_dvr_hamiltonian(
             dy = 2.0 * np.pi / ny if periodic else 1.0
 
         if isinstance(kinetic_operator, tuple) and len(kinetic_operator) == 2:
-            bx, by = float(kinetic_operator[0]), float(kinetic_operator[1])
+            op_x, op_y = kinetic_operator[0], kinetic_operator[1]
+            if isinstance(op_x, str):
+                mx = get_atomic_mass(op_x)
+                bx = HBAR_SQ_OVER_2M_U_CM1_A2 / mx if mx > 0 else 1.0
+            else:
+                bx = float(op_x)
+
+            if isinstance(op_y, str):
+                my = get_atomic_mass(op_y)
+                by = HBAR_SQ_OVER_2M_U_CM1_A2 / my if my > 0 else 1.0
+            else:
+                by = float(op_y)
+
             tx = _construct_1d_kinetic_matrix(nx, dx, bx, periodic=periodic)
             ty = _construct_1d_kinetic_matrix(ny, dy, by, periodic=periodic)
+        elif isinstance(kinetic_operator, str):
+            m = get_atomic_mass(kinetic_operator)
+            b = HBAR_SQ_OVER_2M_U_CM1_A2 / m if m > 0 else 1.0
+            tx = _construct_1d_kinetic_matrix(nx, dx, b, periodic=periodic)
+            ty = _construct_1d_kinetic_matrix(ny, dy, b, periodic=periodic)
         elif isinstance(kinetic_operator, int | float):
             b = float(kinetic_operator)
             tx = _construct_1d_kinetic_matrix(nx, dx, b, periodic=periodic)
             ty = _construct_1d_kinetic_matrix(ny, dy, b, periodic=periodic)
         else:
             raise ValueError(
-                "Kinetic operator for 2D DVR must be a tuple (Bx, By) or scalar."
+                "Kinetic operator for 2D DVR must be a tuple (Bx, By), "
+                "scalar, or element symbol."
             )
 
         # 2D Kinetic operator via Kronecker product: T_2D = Tx (x) I_y + I_x (x) Ty

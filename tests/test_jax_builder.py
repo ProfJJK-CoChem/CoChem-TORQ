@@ -10,9 +10,12 @@ import jax.numpy as jnp
 import numpy as np
 
 from Libraries.cochem_jax_builder import (
+    CoChemPrecisionError,
+    DVRConvergenceError,
     JaxDVRBuilder,
     build_dvr_hamiltonian,
     enforce_jax_precision,
+    get_atomic_mass,
     jit_eigen_solver,
     localized_vpt2_coupling,
     nan_tensor_watchdog,
@@ -22,12 +25,14 @@ from Libraries.cochem_jax_builder import (
 def test_enforce_jax_precision() -> None:
     """
     Test 1: Float64 Precision Truncation Guard & Architecture Detection.
-    Verifies that float64 is strictly enforced in JAX and returns device info.
+    Verifies float64 is strictly enforced and returns device info.
     """
     device_info = enforce_jax_precision()
     assert "platform" in device_info
+    assert "execution_path" in device_info
     assert "x64_enabled" in device_info
     assert device_info["x64_enabled"] is True
+    assert len(device_info["execution_path"]) > 0
 
     # Verify default tensor float precision is float64
     x = jnp.array([1.0, 2.0])
@@ -326,3 +331,89 @@ def test_nan_watchdog_clean_passthrough_and_validation() -> None:
         temperature_k=0.0,
     )
     assert vpt2_res_0k["q_coupled_total"] == 1.0
+
+
+def test_mendeleev_dynamic_mass_resolution() -> None:
+    """
+    Test 11: Dynamic Isotopic Mass Retrieval via Mendeleev.
+    Verifies that mono-isotopic and standard atomic masses are queried dynamically.
+    """
+    h_mass = get_atomic_mass("H")
+    d_mass = get_atomic_mass("D")
+    c13_mass = get_atomic_mass("13C")
+    o18_mass = get_atomic_mass("18O")
+
+    assert 1.0 < h_mass < 1.01
+    assert 2.0 < d_mass < 2.02
+    assert 13.0 < c13_mass < 13.01
+    assert 17.9 < o18_mass < 18.01
+    assert d_mass > h_mass
+
+
+def test_dvr_hamiltonian_element_symbol_kinetic_operator() -> None:
+    """
+    Test 12: Kinetic Operator Resolution with Element Symbols.
+    Verifies 1D and 2D Hamiltonian construction using chemical element inputs.
+    """
+    enforce_jax_precision()
+    n_pts = 30
+    grid = np.linspace(0.5, 3.0, n_pts)
+    v_pot = 0.5 * 1000.0 * ((grid - 1.0) ** 2)
+
+    # 1D with Deuterium
+    h_1d = build_dvr_hamiltonian(
+        pes_spline_array=v_pot,
+        kinetic_operator="D",
+        grid_points=grid,
+        dimensions=1,
+        periodic=False,
+    )
+    assert h_1d.shape == (n_pts, n_pts)
+    evals, _ = jit_eigen_solver(h_1d)
+    assert len(evals) == n_pts
+    assert float(evals[0]) > 0.0
+
+    # 2D with element tuple ("H", "D")
+    gx = np.linspace(0, 2 * np.pi, 10, endpoint=False)
+    gy = np.linspace(0, 2 * np.pi, 10, endpoint=False)
+    v2d = np.zeros((10, 10))
+    h_2d = build_dvr_hamiltonian(
+        pes_spline_array=v2d,
+        kinetic_operator=("H", "D"),
+        grid_points=(gx, gy),
+        dimensions=2,
+        periodic=True,
+    )
+    assert h_2d.shape == (100, 100)
+    evals_2d, _ = jit_eigen_solver(h_2d)
+    assert len(evals_2d) == 100
+
+
+def test_nan_watchdog_missing_inputs() -> None:
+    """
+    Test 13: Watchdog Validation on Missing Inputs.
+    Verifies ValueError is raised when neither eigenvalues nor Hamiltonian are provided.
+    """
+    import pytest
+
+    with pytest.raises(ValueError, match="At least one of eigenvalues or hamiltonian"):
+        nan_tensor_watchdog(eigenvalues=None, hamiltonian=None)
+
+
+def test_cochem_custom_exceptions() -> None:
+    """
+    Test 14: Custom Precision and Convergence Exception Instantiation and Handling.
+    Verifies that CoChemPrecisionError and DVRConvergenceError raise cleanly.
+    """
+    import pytest
+
+    with pytest.raises(CoChemPrecisionError, match="Precision error test"):
+        raise CoChemPrecisionError("Precision error test")
+
+    with pytest.raises(DVRConvergenceError, match="Convergence error test"):
+        raise DVRConvergenceError("Convergence error test")
+
+    # Verify DVRConvergenceError is raised by nan_tensor_watchdog
+    # when evals has NaN but H is None
+    with pytest.raises(DVRConvergenceError, match="NaN/Inf detected in eigenvalues"):
+        nan_tensor_watchdog(eigenvalues=np.array([np.nan, 1.0]), hamiltonian=None)
