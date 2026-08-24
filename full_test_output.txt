@@ -1,0 +1,11 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-8.4.2, pluggy-1.5.0
+rootdir: D:\__CoChem\GitHub-Repo\CoChem-TORQ
+configfile: pytest.ini
+testpaths: tests/test_spcat.py
+plugins: anyio-4.10.0, typeguard-4.6.0, zarr-3.3.0
+collected 13 items
+
+tests\test_spcat.py .............                                        [100%]
+
+============================= 13 passed in 1.99s ==============================

@@ -40,6 +40,16 @@ except ImportError:
     _MOLSYM_AVAILABLE = False
 
 try:
+    from mendeleev import (
+        element as get_mendeleev_element,  # type: ignore[import-untyped]
+        isotope as get_mendeleev_isotope,  # type: ignore[import-untyped]
+    )
+
+    _MENDELEEV_AVAILABLE = True
+except ImportError:
+    _MENDELEEV_AVAILABLE = False
+
+try:
     from cochem_base.config_loader import (
         get_base_root,
         get_repo_root,
@@ -113,13 +123,14 @@ class CODATA2022:
     C_ROT: float = 505379.008435
     # Avogadro constant (exact) [mol^-1]
     N_A: float = 6.02214076e23
-    # Atomic mass constant [kg]
-    AMU_KG: float = 1.66053906660e-27
+    # Atomic mass constant [kg] (CODATA 2022 recommended value)
+    AMU_KG: float = 1.66053906892e-27
     # h * c / k_B conversion factor [K * cm]
     # (6.62607015e-34 * 29979245800.0) / 1.380649e-23 = 1.4387768775039336
     HC_OVER_KB: float = 1.4387768775039336
     # k_B / h factor for rotational partition function [Hz / K] = [s^-1 * K^-1]
-    KB_OVER_H: float = 1.380649e-23 / 6.62607015e-34  # ~ 20836619124.62 Hz/K
+    # 1.380649e-23 / 6.62607015e-34 = 20836619123.33 Hz/K
+    KB_OVER_H: float = 1.380649e-23 / 6.62607015e-34
 
 
 CONSTANTS = CODATA2022()
@@ -425,7 +436,7 @@ def apply_symmetry_divisors(
         flat_coords = [float(x) for x in geometry_array.flatten()]
     else:
         for item in geometry_array:
-            if isinstance(item, (list, tuple, np.ndarray, Sequence)):
+            if isinstance(item, list | tuple | np.ndarray | Sequence):
                 for x in item:
                     flat_coords.append(float(x))
             else:
@@ -599,6 +610,133 @@ def _fallback_point_group_solver(
     return "Cs", 1
 
 
+def get_atomic_mass(symbol: str) -> float:
+    """Dynamically retrieve IUPAC atomic or isotopic mass via Mendeleev library.
+
+    Strictly enforces Mendeleev Library Mandate: zero hardcoded atomic masses.
+    Handles standard element symbols (e.g. 'C', 'H', 'O'), isotopes (e.g. '13C', '18O', '15N'),
+    and aliases ('D', '2H', 'T', '3H').
+    """
+    clean_sym = symbol.strip()
+    if not clean_sym:
+        raise ValueError(f"Invalid element/isotope symbol: '{symbol}'")
+
+    if not _MENDELEEV_AVAILABLE:
+        raise RuntimeError(
+            "Mendeleev library is required for atomic mass retrieval but is not available in the runtime."
+        )
+
+    # Handle Deuterium and Tritium aliases
+    if clean_sym in ("D", "2H"):
+        return float(get_mendeleev_isotope("H", 2).mass)
+    if clean_sym in ("T", "3H"):
+        return float(get_mendeleev_isotope("H", 3).mass)
+
+    # Check for isotopic notation e.g. '13C', '18O', '15N'
+    match = re.match(r"^(\d+)([A-Za-z]+)$", clean_sym)
+    if match:
+        mass_num = int(match.group(1))
+        elem_sym = match.group(2)
+        try:
+            iso = get_mendeleev_isotope(elem_sym, mass_num)
+            return float(iso.mass)
+        except Exception as err:
+            raise ValueError(
+                f"Mendeleev failed to retrieve isotope mass for '{symbol}': {err}"
+            ) from err
+
+    elem_sym = "".join([c for c in clean_sym if c.isalpha()])
+    try:
+        elem = get_mendeleev_element(elem_sym)
+        return float(elem.mass)
+    except Exception as err:
+        raise ValueError(
+            f"Mendeleev failed to retrieve atomic mass for element '{symbol}': {err}"
+        ) from err
+
+
+def calculate_rotational_constants_from_geometry(
+    geometry: np.ndarray | Sequence[Sequence[float]] | Sequence[float],
+    symbols: Sequence[str],
+) -> dict[str, float]:
+    """Calculate rotational constants A, B, C in MHz from Cartesian geometry and atomic symbols.
+
+    Calculates center of mass, shifts coordinates to COM, constructs inertia tensor
+    in u * Angstrom^2 using Mendeleev dynamic atomic masses, diagonalizes to find
+    principal moments Ia <= Ib <= Ic, and computes:
+        A = C_rot / Ia
+        B = C_rot / Ib
+        C = C_rot / Ic
+    where C_rot = h / (8 * pi^2 * u * 1e-20) * 1e-6 MHz = CONSTANTS.C_ROT.
+    """
+    flat_coords: list[float] = []
+    if isinstance(geometry, np.ndarray):
+        flat_coords = [float(x) for x in geometry.flatten()]
+    else:
+        for item in geometry:
+            if isinstance(item, list | tuple | np.ndarray | Sequence):
+                for x in item:
+                    flat_coords.append(float(x))
+            else:
+                flat_coords.append(float(item))
+
+    coords = np.array(flat_coords, dtype=np.float64).reshape(-1, 3)
+    num_atoms = coords.shape[0]
+    if len(symbols) != num_atoms:
+        raise ValueError(
+            f"Number of symbols ({len(symbols)}) does not match number of atoms ({num_atoms})"
+        )
+
+    masses = np.array([get_atomic_mass(s) for s in symbols], dtype=np.float64)
+    total_mass = float(np.sum(masses))
+    if total_mass <= 0.0:
+        raise ValueError("Total molecular mass must be greater than zero.")
+
+    # Center of mass
+    com = np.sum(coords * masses[:, np.newaxis], axis=0) / total_mass
+    shifted = coords - com
+
+    # Inertia tensor (u * Angstrom^2)
+    x = shifted[:, 0]
+    y = shifted[:, 1]
+    z = shifted[:, 2]
+
+    ixx = float(np.sum(masses * (y**2 + z**2)))
+    iyy = float(np.sum(masses * (x**2 + z**2)))
+    izz = float(np.sum(masses * (x**2 + y**2)))
+    ixy = float(-np.sum(masses * x * y))
+    ixz = float(-np.sum(masses * x * z))
+    iyz = float(-np.sum(masses * y * z))
+
+    i_tensor = np.array(
+        [
+            [ixx, ixy, ixz],
+            [ixy, iyy, iyz],
+            [ixz, iyz, izz],
+        ],
+        dtype=np.float64,
+    )
+
+    eigenvalues, _ = np.linalg.eigh(i_tensor)
+    eigenvalues = np.sort(eigenvalues)
+
+    ia, ib, ic = float(eigenvalues[0]), float(eigenvalues[1]), float(eigenvalues[2])
+
+    c_rot = CONSTANTS.C_ROT
+    a_mhz = float(c_rot / ia) if ia > 1e-6 else 1e9
+    b_mhz = float(c_rot / ib) if ib > 1e-6 else 0.0
+    c_mhz = float(c_rot / ic) if ic > 1e-6 else 0.0
+
+    return {
+        "A": a_mhz,
+        "B": b_mhz,
+        "C": c_mhz,
+        "Ia": ia,
+        "Ib": ib,
+        "Ic": ic,
+    }
+
+
 # =============================================================================
 # 5. Statistical Mechanics Partition Functions & Vibrational Coupling
 # =============================================================================
@@ -698,7 +836,7 @@ def vibrational_partition_coupling(
     q_rot_dvr: dict[float, float] | Sequence[float] | float | Callable[[float], float],
     q_vib_orca: dict[float, float] | Sequence[float] | np.ndarray | float,
     temp_array: Sequence[float],
-    lam_frequency: float | None = None,
+    lam_frequency: float | Sequence[float] | None = None,
     all_frequencies: Sequence[float] | None = None,
 ) -> dict[float, float]:
     """Compute total coupled internal partition function Q_total(T) = Q_vib(T) * Q_rot(T).
@@ -713,7 +851,7 @@ def vibrational_partition_coupling(
         q_vib_orca: Precomputed Q_vib mapping {T: Q_vib}, list of harmonic frequencies (cm^-1),
                     or scalar.
         temp_array: Sequence of temperatures in Kelvin (e.g. [2.0, 10.0, 50.0, 298.15]).
-        lam_frequency: Specific LAM mode frequency (cm^-1) to drop from Q_vib.
+        lam_frequency: Specific LAM mode frequency (or sequence of frequencies) in cm^-1 to drop from Q_vib.
         all_frequencies: Full set of normal mode harmonic frequencies (cm^-1).
 
     Returns:
@@ -724,17 +862,20 @@ def vibrational_partition_coupling(
 
     excluded: list[float] = []
     if lam_frequency is not None:
-        excluded.append(float(lam_frequency))
+        if isinstance(lam_frequency, int | float):
+            excluded.append(float(lam_frequency))
+        else:
+            excluded.extend([float(x) for x in lam_frequency])
 
     is_freq_list = False
     raw_freqs: list[float] = []
     if all_frequencies is not None:
         is_freq_list = True
         raw_freqs = [float(x) for x in all_frequencies]
-    elif isinstance(q_vib_orca, (list, tuple, np.ndarray)):
+    elif isinstance(q_vib_orca, list | tuple | np.ndarray):
         arr = np.array(q_vib_orca, dtype=float)
         if arr.ndim == 1 and arr.size > 0:
-            if len(arr) != len(temps) or any(float(x) >= 20.0 for x in arr):
+            if excluded or len(arr) != len(temps) or all(float(x) >= 20.0 for x in arr):
                 is_freq_list = True
                 raw_freqs = [float(x) for x in arr]
 
@@ -743,9 +884,9 @@ def vibrational_partition_coupling(
             q_rot_val = float(q_rot_dvr(t))
         elif isinstance(q_rot_dvr, dict):
             q_rot_val = float(q_rot_dvr.get(t, 1.0))
-        elif isinstance(q_rot_dvr, (list, tuple, np.ndarray)):
+        elif isinstance(q_rot_dvr, list | tuple | np.ndarray):
             q_rot_val = float(q_rot_dvr[idx]) if idx < len(q_rot_dvr) else 1.0
-        elif isinstance(q_rot_dvr, (int, float)):
+        elif isinstance(q_rot_dvr, int | float):
             q_rot_val = float(q_rot_dvr)
         else:
             q_rot_val = 1.0
@@ -758,9 +899,9 @@ def vibrational_partition_coupling(
             )
         elif isinstance(q_vib_orca, dict):
             q_vib_val = float(q_vib_orca.get(t, 1.0))
-        elif isinstance(q_vib_orca, (list, tuple, np.ndarray)):
+        elif isinstance(q_vib_orca, list | tuple | np.ndarray):
             q_vib_val = float(q_vib_orca[idx]) if idx < len(q_vib_orca) else 1.0
-        elif isinstance(q_vib_orca, (int, float)):
+        elif isinstance(q_vib_orca, int | float):
             q_vib_val = float(q_vib_orca)
         else:
             q_vib_val = 1.0
@@ -777,7 +918,7 @@ def compute_coupled_partition_functions(
     frequencies_cm1: Sequence[float],
     temp_array: Sequence[float],
     sigma: float = 1.0,
-    lam_frequency: float | None = None,
+    lam_frequency: float | Sequence[float] | None = None,
     is_dvr: bool = False,
 ) -> PartitionFunctionResult:
     """Compute complete coupled partition functions with metadata tracking."""
@@ -786,7 +927,13 @@ def compute_coupled_partition_functions(
     q_vib_dict: dict[float, float] = {}
     q_total_dict: dict[float, float] = {}
 
-    excluded = [float(lam_frequency)] if lam_frequency is not None else []
+    excluded: list[float] = []
+    if lam_frequency is not None:
+        if isinstance(lam_frequency, int | float):
+            excluded.append(float(lam_frequency))
+        else:
+            excluded.extend([float(x) for x in lam_frequency])
+
     stiff = [
         f for f in frequencies_cm1 if not any(abs(f - ex) < 0.1 for ex in excluded)
     ]
@@ -849,7 +996,7 @@ def fortran_overflow_guard(
                 k: _inspect_and_guard(v, f"{path}.{k}" if path else str(k))
                 for k, v in val.items()
             }
-        elif isinstance(val, (list, tuple)):
+        elif isinstance(val, list | tuple):
             return [
                 _inspect_and_guard(item, f"{path}[{i}]") for i, item in enumerate(val)
             ]
@@ -877,7 +1024,7 @@ def fortran_overflow_guard(
                     },
                 )
             return val
-        elif isinstance(val, (int, float)):
+        elif isinstance(val, int | float):
             fval = float(val)
             if math.isinf(fval) or math.isnan(fval) or abs(fval) > max_limit:
                 msg = (
@@ -917,7 +1064,7 @@ def format_fortran_double(
 ) -> str:
     """Convert a Python float into strict Fortran Double Precision scientific notation ('D').
 
-    Examples:
+    Format Specification:
         1.567e-05 -> '1.567D-05' (compact) or ' 1.567000000000000D-05' (fixed width).
 
     Args:
@@ -931,7 +1078,7 @@ def format_fortran_double(
     """
     fval = float(val)
     if fval == 0.0:
-        base = "0.000D+00" if compact else f"0.{'0' * precision}D+00"
+        base = "0.000D+00" if compact else "0." + ("0" * precision) + "D+00"
         return base if compact else f"{base:>{width}}"
 
     sci_str = f"{fval:.{precision}e}"
@@ -949,7 +1096,14 @@ def format_fortran_double(
                 mantissa = f"{parts[0]}.{dec}"
             return f"{mantissa}D{exp_formatted}"
         else:
-            return f"{f'{mantissa}D{exp_formatted}':>{width}}"
+            raw_res = f"{mantissa}D{exp_formatted}"
+            if len(raw_res) > width:
+                overflow = len(raw_res) - width
+                adj_prec = max(1, precision - overflow)
+                sci_str = f"{fval:.{adj_prec}e}"
+                mantissa, _ = sci_str.replace("E", "e").split("e")
+                raw_res = f"{mantissa}D{exp_formatted}"
+            return f"{raw_res:>{width}}"
 
     formatted = f"{sci_str}".replace("e", "D").replace("E", "D")
     return formatted if compact else f"{formatted:>{width}}"
@@ -990,7 +1144,7 @@ def fortran_double_precision_formatter(
     if isinstance(val_or_id, dict):
         lines: list[str] = []
         for p_id, p_val in val_or_id.items():
-            if isinstance(p_val, (tuple, list)):
+            if isinstance(p_val, tuple | list):
                 p_v = float(p_val[0])
                 p_u = float(p_val[1]) if len(p_val) > 1 else 0.0
                 p_lbl = str(p_val[2]) if len(p_val) > 2 else ""
@@ -1021,7 +1175,7 @@ def fortran_double_precision_formatter(
         lbl_part = f"  / {label}" if label else ""
         return f"{param_id_int:>10}  {val_str}  {unc_str}{lbl_part}"
 
-    if isinstance(val_or_id, (int, float)):
+    if isinstance(val_or_id, int | float):
         return format_fortran_double(
             float(val_or_id), width=width, precision=precision, compact=compact
         )
@@ -1074,7 +1228,7 @@ def generate_spcat_var(
 
     param_records: list[SPCATParameter] = []
     for key, val in guarded_params.items():
-        if isinstance(val, (tuple, list)):
+        if isinstance(val, tuple | list):
             v = float(val[0])
             u = float(val[1]) if len(val) > 1 else 1e-4
             lbl = str(val[2]) if len(val) > 2 else str(key)
@@ -1108,7 +1262,7 @@ def generate_spcat_var(
     wtfac_str = format_fortran_double(wtfac, width=22, precision=15)
     scale_str = format_fortran_double(scale, width=22, precision=15)
 
-    control_line = f"{npar:>4}{nline:>6}{nopt:>5}{nwarn:>5}  {erpar_str}  {wtfac_str}  {scale_str}{maxit:>5}"
+    control_line = f"{npar:>5}{nline:>5}{nopt:>5}{nwarn:>5}  {erpar_str}  {wtfac_str}  {scale_str}{maxit:>5}"
 
     var_lines = [title_str, control_line]
     for p in param_records:
@@ -1147,7 +1301,7 @@ def generate_spcat_int(
     """Generate exact Pickett SPCAT .int ASCII intensity files for target temperatures."""
     temps = (
         [float(temperatures)]
-        if isinstance(temperatures, (int, float))
+        if isinstance(temperatures, int | float)
         else [float(t) for t in temperatures]
     )
 
@@ -1234,10 +1388,8 @@ def validate_airgap_boundary(target_path: str | Path) -> Path:
         try:
             rel = resolved.relative_to(root_dir)
             rel_parts = rel.parts
-            if not rel_parts:
-                continue
             # If target is within CoChem-BASE root
-            if rel_parts[0] == "CoChem-BASE":
+            if rel_parts and rel_parts[0] == "CoChem-BASE":
                 sub_parts = rel_parts[1:]
             else:
                 sub_parts = rel_parts
@@ -1333,11 +1485,20 @@ def build_complete_spcat_payload(
     harmonic_frequencies_cm1: Sequence[float],
     temperatures: Sequence[float] = (2.0, 10.0, 50.0, 298.15),
     quartic_distortion: dict[str, float] | None = None,
-    lam_frequency: float | None = None,
+    lam_frequency: float | Sequence[float] | None = None,
+    use_nuclear_spin: bool = False,
     output_dir: str | Path | None = None,
 ) -> SPCATPayload:
     """Build complete, fully validated, air-gapped SPCAT execution payload with provenance manifest."""
-    sym_res = apply_symmetry_divisors(geometry_array=geometry, symbols=symbols)
+    # Enforce low-frequency LAM trap if no explicit DVR LAM frequency was designated
+    if lam_frequency is None:
+        low_frequency_lam_trap(harmonic_frequencies_cm1)
+
+    sym_res = apply_symmetry_divisors(
+        geometry_array=geometry,
+        symbols=symbols,
+        use_nuclear_spin=use_nuclear_spin,
+    )
 
     a = float(rotational_constants_mhz.get("A", 0.0))
     b = float(rotational_constants_mhz.get("B", 0.0))
@@ -1348,7 +1509,7 @@ def build_complete_spcat_payload(
         c_mhz=c,
         frequencies_cm1=harmonic_frequencies_cm1,
         temp_array=temperatures,
-        sigma=sym_res.sigma,
+        sigma=sym_res.effective_divisor,
         lam_frequency=lam_frequency,
     )
 
@@ -1663,12 +1824,7 @@ class TorqSpcatBridge:
 
         self.frequencies_cm1 = freqs
         if self.frequencies_cm1:
-            try:
-                low_frequency_lam_trap(self.frequencies_cm1)
-            except LAMTriggerError:
-                logger.warning(
-                    "LAM trap triggered for mode < 50 cm^-1 in MPQC observables."
-                )
+            low_frequency_lam_trap(self.frequencies_cm1)
 
     def calculate_partition_functions(self) -> tuple[float, float, float]:
         q_rot = calculate_rotational_partition_function(
@@ -1749,4 +1905,6 @@ __all__ = [
     "compute_sha256",
     "generate_spcat_provenance_manifest",
     "build_complete_spcat_payload",
+    "get_atomic_mass",
+    "calculate_rotational_constants_from_geometry",
 ]

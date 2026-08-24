@@ -661,11 +661,15 @@ class TestBootstrapEnvironment:
         nested_artifacts = repo_cwd / "test_nested_artifacts_violation"
         os.environ.__setitem__("COCHEM_ARTIFACTS", str(nested_artifacts))
 
-        with pytest.raises(AirGapViolationError):
-            bootstrap_environment(
-                artifacts_env="COCHEM_ARTIFACTS",
-                enforce_airgap=True,
-            )
+        try:
+            with pytest.raises(AirGapViolationError):
+                bootstrap_environment(
+                    artifacts_env="COCHEM_ARTIFACTS",
+                    enforce_airgap=True,
+                )
+        finally:
+            if nested_artifacts.exists():
+                nested_artifacts.rmdir()
 
     def test_bootstrap_environment_no_enforce(
         self, tmp_path: Path
