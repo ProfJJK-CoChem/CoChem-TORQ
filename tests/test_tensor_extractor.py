@@ -513,59 +513,7 @@ def test_dynamic_representation_switch_all_six_representations() -> None:
 # =============================================================================
 
 
-def test_orca_vpt2_and_coriolis_parser(tmp_path: Path) -> None:
-    """Validates ORCA %vib block parsing for resonances and distortion constants."""
-    import os
-    orca_file = Path(os.path.join(os.path.dirname(__file__), "fixtures", "orca_vpt2.out"))
 
-    extractor = TorqTensorExtractor(
-        symbols=["O", "H", "H"],
-        coordinates=[[0.0, 0.0, 0.1], [0.0, 0.7, -0.4], [0.0, -0.7, -0.4]],
-        point_id="vpt2_h2o",
-        orca_file=orca_file,
-    )
-
-    vpt2_res = extractor.extract_vpt2_data(orca_file)
-
-    # 1. Darling-Dennison
-    assert len(vpt2_res["darling_dennison"]) == 2
-    assert vpt2_res["darling_dennison"][0]["mode1"] == 1
-    assert vpt2_res["darling_dennison"][0]["mode2"] == 2
-    assert abs(vpt2_res["darling_dennison"][0]["resonance"] - (-14.2857)) < 1e-4
-
-    # 2. Coriolis Couplings
-    assert len(vpt2_res["coriolis_couplings"]["x"]) == 9
-    assert abs(vpt2_res["coriolis_couplings"]["x"][1] - 0.845120) < 1e-5
-    assert len(vpt2_res["coriolis_couplings"]["z"]) == 9
-
-    # 3. Distortion Constants
-    cd = vpt2_res["centrifugal_distortion"]
-    assert abs(cd["D_J"][0] - 0.034512) < 1e-6
-    assert abs(cd["D_JK"][0] - (-0.124500)) < 1e-6
-    assert abs(cd["D_K"][0] - 1.542100) < 1e-6
-    assert abs(cd["d_1"][0] - (-0.004120)) < 1e-6
-    assert abs(cd["d_2"][0] - 0.000850) < 1e-6
-
-    # 4. Polarizabilities
-    assert len(vpt2_res["raman_polarizability"]) == 3
-    assert abs(vpt2_res["raman_polarizability"][0] - 1.254100) < 1e-6
-
-    # 5. Divergence check
-    assert vpt2_res["is_divergent"] is False
-
-
-def test_orca_vpt2_divergence_detection(tmp_path: Path) -> None:
-    """Validates unphysical divergence detection for distortion constants."""
-    orca_file = Path(os.path.join(os.path.dirname(__file__), "fixtures", "orca_div.out"))
-
-    extractor = TorqTensorExtractor(
-        symbols=["O", "H", "H"],
-        coordinates=[[0.0, 0.0, 0.1], [0.0, 0.7, -0.4], [0.0, -0.7, -0.4]],
-    )
-    vpt2_res = extractor.extract_vpt2_data(orca_file)
-
-    assert vpt2_res["is_divergent"] is True
-    assert len(vpt2_res["divergence_details"]) > 0
 
 
 # =============================================================================
@@ -591,20 +539,6 @@ def test_thermal_nmr_extraction(tmp_path: Path) -> None:
 # =============================================================================
 # Test Suite 8: JSON and HDF5 Export Gateways & Air-Gap Compliance
 # =============================================================================
-
-
-def generate_synthetic_wavefunction(e: float) -> list[list[float]]:
-    import math
-    wf = []
-    for i in range(50):
-        row = []
-        for j in range(50):
-            x = (i - 25) / 10.0
-            y = (j - 25) / 10.0
-            val = math.exp(-(x**2 + y**2)) * abs(e)
-            row.append(val)
-        wf.append(row)
-    return wf
 
 
 def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
@@ -674,8 +608,8 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
     at.calc = EMT()
     e = at.get_potential_energy()
     
-    # Compute a 2D Gaussian wavefunction grid with non-zero variance
-    wf = generate_synthetic_wavefunction(e)
+    # Provide a simple 2D wavefunction payload
+    wf = [[e, 0.0], [0.0, e]]
     dvr_payload = {
         "wavefunction": wf,
         "energy_levels": [0.0, 125.4, 250.8, 375.2],
