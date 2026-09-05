@@ -138,16 +138,16 @@ class CudaLeakGuardError(WatchdogError):
 
 def get_repo_root() -> Path:
     """Locate the Domain A / Ring 1 immutable Git repository root."""
+    current = Path(__file__).resolve().parent
+    for parent in [current] + list(current.parents):
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent.resolve()
+
     env_val = os.environ.get("COCHEM_REPO_DIR")
     if env_val:
         repo_path = Path(env_val).resolve()
         if repo_path.is_dir():
             return repo_path
-
-    current = Path(__file__).resolve().parent
-    for parent in [current] + list(current.parents):
-        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
-            return parent.resolve()
 
     return Path.cwd().resolve()
 
@@ -1497,3 +1497,12 @@ class TorqWatchdogDaemon:
             active_grid_angle_deg=self._current_grid_angle,
             restart_count=self._restart_count,
         )
+
+
+try:
+    from cochem_base.cochem_torq_watchdog import (
+        DynamicMemoryResult,
+        dynamic_memory_backoff,
+    )
+except ImportError:
+    pass

@@ -507,11 +507,23 @@ def stream_webhook_events(
 
     if loop and loop.is_running():
         # In an active event loop (e.g. Jupyter or async test runner)
-        import concurrent.futures
+        import threading
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(asyncio.run, coro)
-            return future.result()
+        res: list[Any] = [None]
+        err: list[Optional[Exception]] = [None]
+
+        def _runner() -> None:
+            try:
+                res[0] = asyncio.run(coro)
+            except Exception as exc:
+                err[0] = exc
+
+        t = threading.Thread(target=_runner)
+        t.start()
+        t.join()
+        if err[0] is not None:
+            raise err[0]
+        return res[0]
     else:
         return asyncio.run(coro)
 

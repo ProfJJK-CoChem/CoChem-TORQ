@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import h5py
+import h5py  # type: ignore[import-untyped]
 import numpy as np
 import numpy.typing as npt
 import pyarrow.parquet as pq
@@ -285,7 +285,7 @@ def generate_pgopher_skeleton(
         raise FileNotFoundError(f"Parquet catalog file not found: {parquet_path}")
 
     # OOM-Proof metadata inspection
-    pq_metadata: Any = pq.read_metadata(str(parquet_file))
+    pq_metadata: Any = pq.read_metadata(str(parquet_file))  # type: ignore[no-untyped-call]
     num_rows = pq_metadata.num_rows
     num_columns = pq_metadata.num_columns
     column_names = pq_metadata.schema.names

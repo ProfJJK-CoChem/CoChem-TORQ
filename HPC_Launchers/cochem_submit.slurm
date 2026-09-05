@@ -60,12 +60,24 @@ if [[ -z "${PYTHON_EXEC:-}" ]]; then
     fi
 fi
 
+# Environment variables for execution routing
+INPUT_GEOM="${INPUT_GEOM:-${REPO_ROOT}/Structures/input.xyz}"
+THEORY_LEVEL="${THEORY_LEVEL:-B3LYP-D4/def2-TZVP}"
+COCHEM_SCRATCH="${COCHEM_SCRATCH:-${TMPDIR}}"
+TASK_ID="${SLURM_ARRAY_TASK_ID:-1}"
+JOB_ID="${SLURM_JOB_ID:-$$}_task_${TASK_ID}"
+
 # Backend Python engine execution / command passthrough
 if [[ $# -gt 0 ]]; then
     "$@"
 else
     if [[ -f "${REPO_ROOT}/Libraries/cochem_torq_pipeline.py" ]]; then
-        "${PYTHON_EXEC}" -m Libraries.cochem_torq_pipeline
+        "${PYTHON_EXEC}" -m Libraries.cochem_torq_pipeline \
+            --input "${INPUT_GEOM}" \
+            --output-dir "${COCHEM_ARTIFACTS}/${JOB_ID}" \
+            --scratch-dir "${COCHEM_SCRATCH}/${JOB_ID}" \
+            --theory "${THEORY_LEVEL}" \
+            --task-id "${TASK_ID}"
     elif [[ -f "${REPO_ROOT}/cochem_torq_engine.py" ]]; then
         "${PYTHON_EXEC}" -m cochem_torq_engine
     else

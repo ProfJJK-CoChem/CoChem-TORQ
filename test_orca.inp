@@ -1,6 +1,0 @@
-! RHF STO-3G
-%scf MaxIter 1 end
-* xyz 0 1
-H 0 0 0
-H 0 0 2
-*

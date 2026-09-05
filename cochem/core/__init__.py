@@ -1,0 +1,1 @@
+"""CoChem Core package."""

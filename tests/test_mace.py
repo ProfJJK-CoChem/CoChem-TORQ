@@ -5,10 +5,14 @@ from pathlib import Path
 import numpy as np
 
 from Libraries.cochem_torq_mace import (
+    FLOAT32_NOISE_FLOOR_EH,
+    FLOAT32_NOISE_FLOOR_EV,
+    FLOAT32_NOISE_FLOOR_KCAL_MOL,
     TorqMACETriage,
     compute_pes_derivatives,
     evaluate_physical_potential,
     generate_adaptive_grid,
+    get_covalent_radius,
     interpolate_coordinates,
     onnx_cpu_fallback,
 )
@@ -336,3 +340,36 @@ def test_torq_mace_triage_onnx_method() -> None:
     assert isinstance(config, dict)
     assert config["provider"] == "CPUExecutionProvider"
     assert triage.onnx_config == config
+
+
+def test_mendeleev_covalent_radius() -> None:
+    r_c = get_covalent_radius("C")
+    r_h = get_covalent_radius("H")
+    r_o = get_covalent_radius("O")
+    assert 0.70 <= r_c <= 0.80
+    assert 0.30 <= r_h <= 0.35
+    assert 0.60 <= r_o <= 0.70
+
+
+def test_float32_noise_floor_constants() -> None:
+    assert FLOAT32_NOISE_FLOOR_EH == 4.0e-6
+    assert FLOAT32_NOISE_FLOOR_EV > 0.0
+    assert FLOAT32_NOISE_FLOOR_KCAL_MOL > 0.0
+
+
+def test_guard_g4_rank_inversion_audit() -> None:
+    triage = TorqMACETriage.__new__(TorqMACETriage)
+    triage.triage_results = [
+        {"dihedral_angles": [0], "relative_energy_kcal_mol": 0.0},
+        {"dihedral_angles": [30], "relative_energy_kcal_mol": 1.5},
+        {"dihedral_angles": [60], "relative_energy_kcal_mol": 4.2},
+        {"dihedral_angles": [90], "relative_energy_kcal_mol": 8.0},
+    ]
+
+    # Highly correlated reference energies
+    ref_energies = [0.0, 1.4, 4.3, 8.1]
+    audit = triage.audit_rank_inversion(ref_energies, spearman_threshold=0.9)
+    assert audit["spearman_rho"] >= 0.95
+    assert audit["cull_eligible"] is True
+    assert audit["g4_status"] == "PASSED"
+    assert audit["max_rank_displacement"] == 0

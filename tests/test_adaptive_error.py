@@ -33,9 +33,13 @@ from Libraries.cochem_torq_adaptive_error import (
     escalate_topographic_basins,
     export_manifest_pyarrow,
     export_surface_pyarrow,
+    get_artifacts_dir,
     get_mendeleev_element_data,
+    get_repo_root,
+    get_scratch_dir,
     get_system_telemetry,
     interpolate_residual_surface,
+    validate_air_gap_path,
 )
 
 # =============================================================================
@@ -345,7 +349,7 @@ def test_air_gap_violation_in_repo_root() -> None:
     ]
     manifest = escalate_topographic_basins(anchors, threshold_kcal_mol=0.5)
 
-    repo_file = Path("D:/__CoChem/GitHub-Repo/CoChem-TORQ/illegal_file.parquet")
+    repo_file = get_repo_root() / "illegal_file.parquet"
     with pytest.raises(AirGapViolationError):
         export_manifest_pyarrow(manifest, repo_file)
 
@@ -442,4 +446,164 @@ def test_mismatched_coordinates_length_raise_value_error() -> None:
 
     with pytest.raises(ValueError, match="Mismatch between energies"):
         compute_residual_delta(low_energies, mid_energies, coordinates=coords)
+
+
+def test_directory_resolution_and_air_gap_validation(tmp_path: Path) -> None:
+    """Validate dynamic directory resolution and air-gap path validation."""
+    repo_root = get_repo_root()
+    assert repo_root.exists()
+    assert (repo_root / "pyproject.toml").exists() or (repo_root / ".git").exists()
+
+    scratch_dir = get_scratch_dir()
+    assert scratch_dir.exists()
+    assert scratch_dir.is_dir()
+
+    artifacts_dir = get_artifacts_dir()
+    assert artifacts_dir.exists()
+    assert artifacts_dir.is_dir()
+
+    valid_path = tmp_path / "valid_output.parquet"
+    validated = validate_air_gap_path(valid_path)
+    assert validated == valid_path.resolve()
+
+
+def test_escalate_topographic_basins_from_dict_and_none_residual() -> None:
+    """Test escalating anchor points provided as dicts with implicit residual."""
+    anchor_dicts = [
+        {
+            "point_id": "dict_anchor_01",
+            "coordinates": [45.0],
+            "point_type": "TRANSITION_STATE",
+            "energy_low": 2.0,
+            "energy_mid": 3.2,
+            "residual_delta": None,
+        },
+        {
+            "point_id": "dict_anchor_02",
+            "coordinates": [135.0],
+            "point_type": "MINIMUM",
+            "energy_low": 0.5,
+            "energy_mid": 0.7,
+            "residual_delta": None,
+        },
+    ]
+
+    manifest = escalate_topographic_basins(
+        anchor_points=anchor_dicts,
+        threshold_kcal_mol=0.5,
+    )
+
+    assert manifest.total_anchors_evaluated == 2
+    assert manifest.escalated_anchors_count == 1
+    assert manifest.escalated_points[0].point_id == "dict_anchor_01"
+    assert math.isclose(
+        manifest.escalated_points[0].residual_delta or 0.0, 1.2, abs_tol=1e-5
+    )
+
+
+def test_escalate_topographic_basins_2d_dense_grid() -> None:
+    """Test 2D dense grid filtering inside topographic basin bounds."""
+    anchors = [
+        AnchorPoint(
+            point_id="ts_2d_01",
+            coordinates=[90.0, 180.0],
+            point_type=AnchorPointType.TRANSITION_STATE,
+            energy_low=3.5,
+            energy_mid=4.8,
+            residual_delta=1.3,
+        )
+    ]
+
+    coords_1d = np.linspace(0.0, 360.0, 19)
+    phi1, phi2 = np.meshgrid(coords_1d, coords_1d, indexing="ij")
+    dense_2d = np.column_stack([phi1.ravel(), phi2.ravel()])
+
+    manifest = escalate_topographic_basins(
+        anchor_points=anchors,
+        threshold_kcal_mol=0.5,
+        basin_half_width_deg=20.0,
+        dense_grid_coords=dense_2d,
+    )
+
+    assert manifest.escalated_anchors_count == 1
+    basin = manifest.topographic_basins[0]
+    assert basin.coordinate_bounds == [(70.0, 110.0), (160.0, 200.0)]
+    assert len(basin.points_in_basin) > 0
+    for pt in basin.points_in_basin:
+        assert 70.0 <= pt[0] <= 110.0
+        assert 160.0 <= pt[1] <= 200.0
+
+
+def test_interpolate_residual_surface_1d_non_periodic() -> None:
+    """Test 1D natural cubic spline interpolation when is_periodic is False."""
+    dense_x = np.linspace(0.0, 180.0, 37)
+    dense_low = 1.5 * (1.0 - np.cos(np.radians(dense_x)))
+    anchor_x = [0.0, 60.0, 120.0, 180.0]
+    anchor_deltas = [0.0, 0.6, 0.4, 0.0]
+
+    surface = interpolate_residual_surface(
+        dense_grid_coords=dense_x,
+        dense_low_tier_energies=dense_low,
+        anchor_coords=anchor_x,
+        anchor_deltas=anchor_deltas,
+        is_periodic=False,
+    )
+
+    assert surface.dimensions == 1
+    assert surface.is_periodic is False
+    assert len(surface.dense_composite_energies) == 37
+
+
+def test_interpolate_residual_surface_unsupported_dimension_raises() -> None:
+    """Assert ValueError when passing 3D coordinates."""
+    coords_3d = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [30.0, 60.0, 90.0],
+            [60.0, 120.0, 180.0],
+            [90.0, 180.0, 270.0],
+        ]
+    )
+    low_e = [0.0, 1.2, 2.4, 3.6]
+    knots_3d = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [60.0, 120.0, 180.0],
+        ]
+    )
+    deltas = [0.0, 0.8]
+
+    with pytest.raises(ValueError, match="Unsupported coordinate dimensionality"):
+        interpolate_residual_surface(coords_3d, low_e, knots_3d, deltas)
+
+
+def test_pyarrow_manifest_export_empty_basins(tmp_path: Path) -> None:
+    """Test PyArrow Parquet serialization when no basins are escalated."""
+    anchors = [
+        AnchorPoint(
+            point_id="min_01",
+            coordinates=[0.0],
+            point_type=AnchorPointType.MINIMUM,
+            energy_low=0.0,
+            energy_mid=0.1,
+            residual_delta=0.1,
+        )
+    ]
+    manifest = escalate_topographic_basins(anchors, threshold_kcal_mol=0.5)
+    assert manifest.escalated_anchors_count == 0
+
+    out_file = tmp_path / "empty_manifest.parquet"
+    out_path = export_manifest_pyarrow(manifest, out_file)
+    assert out_path.exists()
+
+    table = pq.read_table(out_path)
+    assert table.num_rows == 1
+    assert table.column("point_id")[0].as_py() == "NONE_ESCALATED"
+
+
+def test_convert_energy_unsupported_unit() -> None:
+    """Assert ValueError when invalid energy unit is provided."""
+    with pytest.raises(ValueError):
+        convert_energy(1.0, "UNKNOWN_UNIT", EnergyUnit.KCAL_PER_MOL)
+
 

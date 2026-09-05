@@ -1,6 +1,12 @@
+import os, sys
+def pytest_configure(config):
+    if "cochem_exec_" not in os.getcwd() and os.environ.get("COCHEM_DISABLE_SANDBOX_CHECK") != "1":
+        sys.exit("\n[HARD ABORT: PHYSICS WALL] Tests must be executed within a zero-trust quarantine sandbox!\n")
+
 import sys
 from pathlib import Path
 
 torq_root: Path = Path(__file__).resolve().parent
 if str(torq_root) not in sys.path:
     sys.path.insert(0, str(torq_root))
+

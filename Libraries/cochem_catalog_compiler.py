@@ -17,7 +17,6 @@ Authoritative Standards:
 
 from __future__ import annotations
 
-import concurrent.futures
 import ctypes
 import gc
 import io
@@ -39,8 +38,12 @@ from typing import (
     Any,
 )
 
-import pyarrow as pa  # type: ignore[import-untyped]
-import pyarrow.parquet as pq  # type: ignore[import-untyped]
+try:
+    import pyarrow as pa  # type: ignore[import-untyped]
+    import pyarrow.parquet as pq  # type: ignore[import-untyped]
+except ImportError:
+    pa = None  # type: ignore[assignment]
+    pq = None  # type: ignore[assignment]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-CatCompile] %(message)s")
@@ -60,6 +63,7 @@ class ProvenanceErrorCode:
     METHOD_MATRIX_VIOLATION_DEFGRID = "METHOD_MATRIX_VIOLATION_DEFGRID"
     MISSING_DATA = "MISSING_DATA"
     INTEGRITY_ERROR = "INTEGRITY_ERROR"
+    INVALID_HESSIAN_STRATEGY = "INVALID_HESSIAN_STRATEGY"
 
 
 class CoChemIntegrityError(Exception):
@@ -96,7 +100,13 @@ class InactiveRotorError(SPCATBridgeError):
         super().__init__(message, details=details, error_code=error_code or ProvenanceErrorCode.SPCAT_BRIDGE_ERROR)
 
 
-class MethodMatrixViolationError(Exception):
+try:
+    from cochem_base.exceptions import MethodMatrixViolationError as _BaseMethodMatrixViolationError
+except ImportError:
+    _BaseMethodMatrixViolationError = Exception
+
+
+class MethodMatrixViolationError(_BaseMethodMatrixViolationError):
     """Raised when a Method Matrix v4 compliance standard is violated."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None, error_code: str | None = None) -> None:
@@ -117,20 +127,23 @@ class DispersionMissingError(MethodMatrixViolationError):
 # 1. PyArrow Spectral Catalog Schema (12-Field Precision Schema)
 # =============================================================================
 
-SPECTRAL_CATALOG_SCHEMA: pa.Schema = pa.schema([
-    ("frequency_mhz", pa.float64()),
-    ("uncertainty_mhz", pa.float64()),
-    ("log_intensity", pa.float64()),
-    ("degrees_of_freedom", pa.int32()),
-    ("lower_state_energy_cm1", pa.float64()),
-    ("upper_state_degeneracy", pa.int32()),
-    ("species_tag", pa.int32()),
-    ("qn_format", pa.int32()),
-    ("qn_upper", pa.dictionary(pa.int32(), pa.utf8())),
-    ("qn_lower", pa.dictionary(pa.int32(), pa.utf8())),
-    ("temperature_k", pa.float64()),
-    ("provenance_hash", pa.dictionary(pa.int32(), pa.utf8())),
-])
+if pa is not None:
+    SPECTRAL_CATALOG_SCHEMA: Any = pa.schema([
+        ("frequency_mhz", pa.float64()),
+        ("uncertainty_mhz", pa.float64()),
+        ("log_intensity", pa.float64()),
+        ("degrees_of_freedom", pa.int32()),
+        ("lower_state_energy_cm1", pa.float64()),
+        ("upper_state_degeneracy", pa.int32()),
+        ("species_tag", pa.int32()),
+        ("qn_format", pa.int32()),
+        ("qn_upper", pa.dictionary(pa.int32(), pa.utf8())),
+        ("qn_lower", pa.dictionary(pa.int32(), pa.utf8())),
+        ("temperature_k", pa.float64()),
+        ("provenance_hash", pa.dictionary(pa.int32(), pa.utf8())),
+    ])
+else:
+    SPECTRAL_CATALOG_SCHEMA = None
 
 
 # =============================================================================
@@ -974,39 +987,75 @@ def parallel_temperature_compiler(
     workers = max(1, workers)
 
     results: dict[float, Path] = {}
-    futures: list[concurrent.futures.Future[tuple[float, Path]]] = []
+    for temp in temperatures:
+        temp_k = float(temp)
+        runner_task: Callable[[float, Path], Path] | Path | str
+        if callable(spcat_runner_or_cat_paths):
+            runner_task = spcat_runner_or_cat_paths
+        elif isinstance(spcat_runner_or_cat_paths, dict):
+            runner_task = spcat_runner_or_cat_paths[temp_k]
+        elif isinstance(spcat_runner_or_cat_paths, (list, tuple)):
+            mapping = dict(spcat_runner_or_cat_paths)
+            runner_task = mapping[temp_k]
+        else:
+            raise ValueError("Invalid spcat_runner_or_cat_paths specification.")
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-        for temp in temperatures:
-            temp_k = float(temp)
-            runner_task: Callable[[float, Path], Path] | Path | str
-            if callable(spcat_runner_or_cat_paths):
-                runner_task = spcat_runner_or_cat_paths
-            elif isinstance(spcat_runner_or_cat_paths, dict):
-                runner_task = spcat_runner_or_cat_paths[temp_k]
-            elif isinstance(spcat_runner_or_cat_paths, (list, tuple)):
-                mapping = dict(spcat_runner_or_cat_paths)
-                runner_task = mapping[temp_k]
-            else:
-                raise ValueError("Invalid spcat_runner_or_cat_paths specification.")
-
-            fut = executor.submit(
-                _compile_single_temperature_task,
-                runner_task,
-                temp_k,
-                target_out_dir,
-                scratch_root,
-                chunk_size,
-                provenance_hash,
-                apply_immutable_seal,
-            )
-            futures.append(fut)
-
-        for completed_fut in concurrent.futures.as_completed(futures):
-            t_k, parquet_path = completed_fut.result()
-            results[t_k] = parquet_path
+        t_k, parquet_path = _compile_single_temperature_task(
+            runner_task,
+            temp_k,
+            target_out_dir,
+            scratch_root,
+            chunk_size,
+            provenance_hash,
+            apply_immutable_seal,
+        )
+        results[t_k] = parquet_path
 
     return results
+
+
+def validate_catalog_grid(grid: str, phase: str = "PHASE_FINALOPT") -> bool:
+    """Validates integration grid per execution phase according to Method Matrix v4 §4.4.
+    Permits defgrid1 during PHASE_PREOPT; strictly enforces defgrid3 for PHASE_FINALOPT and PHASE_NUMFREQ.
+    """
+    from cochem_base.config import GridPolicy
+    return GridPolicy.validate_grid(phase, grid)
+
+
+def validate_orca_deck(
+    deck_content: str,
+    preliminary_opt: bool = False,
+    production_opt: bool = False,
+    **kwargs: Any
+) -> bool:
+    """
+    Validates an ORCA input deck against Method Matrix v4 constraints:
+    - Unconditional prohibition on 'Calc_Hess true' (§8B.3).
+    - Quadrature grid scheduling: permits defgrid1 strictly when preliminary_opt=True;
+      strictly rejects defgrid1 and requires defgrid3 when Freq or production_opt=True (§4.4).
+    """
+    # 1. Unconditional check for Calc_Hess true
+    if re.search(r'\bcalc_hess\s+true\b', deck_content, re.IGNORECASE) or re.search(r'\bcalc_hess=true\b', deck_content, re.IGNORECASE):
+        raise MethodMatrixViolationError(
+            "[METHOD-MATRIX-VIOLATION] 'Calc_Hess true' is strictly prohibited for geometry "
+            "optimizations under Method Matrix v4 §8B.3. Model Hessians ('InHess XTB2' or 'Lindh') "
+            "must be used to prevent massive ab initio Hessian computational overhead.",
+            error_code=ProvenanceErrorCode.INVALID_HESSIAN_STRATEGY,
+        )
+
+    # 2. Grid scheduling rules
+    has_defgrid1 = bool(re.search(r'\bdefgrid1\b', deck_content, re.IGNORECASE))
+    has_freq = bool(re.search(r'\bfreq\b', deck_content, re.IGNORECASE) or re.search(r'\bnumfreq\b', deck_content, re.IGNORECASE))
+
+    if (production_opt or has_freq) and has_defgrid1:
+        raise MethodMatrixViolationError(
+            "[METHOD-MATRIX-VIOLATION] Integration grid 'defgrid1' is strictly prohibited for production "
+            "optimization or vibrational frequency (Freq) calculations under Method Matrix v4 §4.4. "
+            "Tight grid 'defgrid3' is required to eliminate loose grid numerical noise.",
+            error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
+        )
+
+    return True
 
 
 # =============================================================================
@@ -1083,11 +1132,12 @@ def generate_methods_latex(
         audit_banned_methods(metadata, raise_on_violation=True)
 
         # Explicit DEFGRID verification
-        if not defgrid or "DEFGRID1" in defgrid or "SG-1" in defgrid:
+        phase = str(metadata.get("phase", metadata.get("execution_phase", "PHASE_FINALOPT"))).upper()
+        if not validate_catalog_grid(defgrid, phase=phase):
             raise MethodMatrixViolationError(
-                f"Method Matrix v4 Violation: Grid {defgrid!r} fails minimum integration threshold (DEFGRID2/DEFGRID3 required).",
+                f"Method Matrix v4 Violation: Grid {defgrid!r} fails minimum integration threshold for {phase}.",
                 error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
-                details={"defgrid": defgrid},
+                details={"defgrid": defgrid, "phase": phase},
             )
 
     def _find_rot_val(key_char: str) -> float:
@@ -1471,13 +1521,18 @@ def audit_banned_methods(
                 f"DISPERSION_MISSING: DFT functional {theory_level!r} lacks required dispersion correction (D3BJ/D4/VV10/3c)."
             )
 
-    # 4. Check for banned Calc_Hess true without preconditioning
-    if "calc_hess true" in keywords or "calc_hess=true" in keywords or metadata.get("calc_hess_true", False):
-        if not ("inhess xtb2" in keywords or "inhess lindh" in keywords or metadata.get("hessian_preconditioned", False)):
-            banned_flags.append(
-                "BANNED_UNPRECONDITIONED_HESSIAN: 'Calc_Hess true' without preconditioning is forbidden. "
-                "Must use 'InHess XTB2' or 'Lindh' Hessian preconditioning."
-            )
+    # 4. Check for banned Calc_Hess true UNCONDITIONALLY under Method Matrix v4 §8B.3
+    if (
+        "calc_hess true" in keywords
+        or "calc_hess=true" in keywords
+        or metadata.get("calc_hess_true", False)
+        or any(re.search(r'\bcalc_hess\s+true\b', kw, re.IGNORECASE) for kw in keywords)
+    ):
+        banned_flags.append(
+            "[METHOD-MATRIX-VIOLATION] 'Calc_Hess true' is strictly prohibited for geometry "
+            "optimizations under Method Matrix v4 §8B.3. Model Hessians ('InHess XTB2' or 'Lindh') "
+            "must be used to prevent massive ab initio Hessian computational overhead."
+        )
 
     # 5. Check for diffuse-in-base compliance on non-covalent complexes
     is_non_covalent = metadata.get("is_non_covalent", metadata.get("is_vdw_complex", False))
@@ -1722,5 +1777,7 @@ __all__ = [
     "generate_methods_latex",
     "deduplicate_bibtex",
     "audit_banned_methods",
+    "validate_catalog_grid",
+    "validate_orca_deck",
     "TorqCatalogCompiler",
 ]

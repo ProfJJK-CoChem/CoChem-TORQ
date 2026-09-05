@@ -8,42 +8,156 @@ configuration (r2SCAN-3c -> wB97X-D4 -> CCSD(T)-F12 + BSSE/VPT2)
 for the torsional grid scan.
 """
 
-import numpy as np
-import networkx as nx
-from scipy.spatial.distance import cdist
-from scipy.spatial.transform import Rotation as R
+from __future__ import annotations
+
+import functools
 import json
 import logging
 import os
 from pathlib import Path
-
-ARTIFACTS_DIR = os.environ.get('COCHEM_ARTIFACTS_DIR', str(Path.home() / 'cochem_artifacts'))
+import re
 from typing import Any
+
+from mendeleev import element, isotope
+import networkx as nx
+import numpy as np
+from scipy.spatial.distance import cdist
+
+ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ] %(message)s")
 logger = logging.getLogger("TorqTopology")
 
-ATOMIC_NUMBERS = {
-    "H": 1, "He": 2, "Li": 3, "Be": 4, "B": 5, "C": 6, "N": 7, "O": 8, "F": 9,
-    "Ne": 10, "Na": 11, "Mg": 12, "Al": 13, "Si": 14, "P": 15, "S": 16, "Cl": 17, "Ar": 18,
-    "K": 19, "Ca": 20, "Sc": 21, "Ti": 22, "V": 23, "Cr": 24, "Mn": 25, "Fe": 26, "Co": 27,
-    "Ni": 28, "Cu": 29, "Zn": 30, "Ga": 31, "Ge": 32, "As": 33, "Se": 34, "Br": 35, "Kr": 36,
-    "Rb": 37, "Sr": 38, "Y": 39, "Zr": 40, "Nb": 41, "Mo": 42, "Tc": 43, "Ru": 44, "Rh": 45,
-    "Pd": 46, "Ag": 47, "Cd": 48, "In": 49, "Sn": 50, "Sb": 51, "Te": 52, "I": 53, "Xe": 54
-}
 
-# Pyykkö Covalent Radii (Å) for single, double, triple bonds
-PYYKKO_SINGLE_RADII = {
-    "H": 0.32, "He": 0.46, "Li": 1.33, "Be": 1.02, "B": 0.85, "C": 0.75, "N": 0.71, "O": 0.63, "F": 0.64,
-    "Ne": 0.67, "Na": 1.55, "Mg": 1.39, "Al": 1.26, "Si": 1.16, "P": 1.11, "S": 1.03, "Cl": 0.99, "Ar": 0.96,
-    "K": 1.96, "Ca": 1.71, "Sc": 1.48, "Ti": 1.36, "V": 1.34, "Cr": 1.22, "Mn": 1.19, "Fe": 1.16, "Co": 1.11,
-    "Ni": 1.10, "Cu": 1.12, "Zn": 1.18, "Ga": 1.24, "Ge": 1.21, "As": 1.21, "Se": 1.16, "Br": 1.14, "Kr": 1.17,
-    "Rb": 2.10, "Sr": 1.85, "Y": 1.63, "Zr": 1.48, "Nb": 1.37, "Mo": 1.36, "Tc": 1.26, "Ru": 1.26, "Rh": 1.25,
-    "Pd": 1.25, "Ag": 1.28, "Cd": 1.36, "In": 1.42, "Sn": 1.40, "Sb": 1.40, "Te": 1.36, "I": 1.33, "Xe": 1.31
-}
+# =============================================================================
+# DYNAMIC ATOMIC NUMBER, MASS, AND RADII INTEGRATION (Mendeleev Mandate)
+# =============================================================================
+
+def _parse_element_and_mass(symbol: str) -> tuple[str, int | None]:
+    """
+    Parses an element symbol or isotopic notation (e.g. '13C', 'C-13', 'C13', 'D', 'T', '18O', 'H:1')
+    into a standardized base element symbol and optional mass number.
+    """
+    clean_sym = str(symbol).strip().rstrip(":")
+    if clean_sym in ("D", "d", "2H", "2h", "H2", "H-2", "H:2", "H_2"):
+        return "H", 2
+    if clean_sym in ("T", "t", "3H", "3h", "H3", "H-3", "H:3", "H_3"):
+        return "H", 3
+    # Leading mass number: e.g. 13C, 18O, 13-C
+    match_leading = re.match(r"^(\d+)[-_:]?([A-Za-z]+)$", clean_sym)
+    if match_leading:
+        mass_num = int(match_leading.group(1))
+        elem_sym = match_leading.group(2).capitalize()
+        return elem_sym, mass_num
+    # Trailing mass number: e.g. C13, C-13, C:13, O18
+    match_trailing = re.match(r"^([A-Za-z]+)[-_:]?(\d+)$", clean_sym)
+    if match_trailing:
+        elem_sym = match_trailing.group(1).capitalize()
+        mass_num = int(match_trailing.group(2))
+        return elem_sym, mass_num
+    return clean_sym.capitalize(), None
+
+
+@functools.lru_cache(maxsize=256)
+def get_atomic_mass(symbol: str) -> float:
+    """
+    Dynamically retrieves standard atomic weight (mass in amu) using mendeleev.
+    Strictly prohibits hardcoded mass lookups under Mendeleev Mandate.
+    If an isotopic notation (e.g. 13C, D, T) is supplied, retrieves exact isotopic mass.
+    """
+    elem_sym, mass_num = _parse_element_and_mass(symbol)
+    if mass_num is not None:
+        return get_isotopic_mass(elem_sym, mass_num)
+    el = element(elem_sym)
+    if el.atomic_weight is not None:
+        return float(el.atomic_weight)
+    if el.mass is not None:
+        return float(el.mass)
+    raise ValueError(f"Could not retrieve atomic mass for element symbol '{symbol}'.")
+
+
+@functools.lru_cache(maxsize=256)
+def get_isotopic_mass(symbol: str, mass_number: int | None = None) -> float:
+    """
+    Dynamically retrieves isotopic mass using mendeleev.
+    """
+    elem_sym, parsed_mass = _parse_element_and_mass(symbol)
+    target_mass = mass_number if mass_number is not None else parsed_mass
+    if target_mass is None:
+        return get_atomic_mass(elem_sym)
+    try:
+        iso = isotope(elem_sym, target_mass)
+        if iso is not None and iso.mass is not None:
+            return float(iso.mass)
+    except Exception:
+        pass
+    el = element(elem_sym)
+    for iso in el.isotopes:
+        if iso.mass_number == target_mass and iso.mass is not None:
+            return float(iso.mass)
+    return get_atomic_mass(elem_sym)
+
+
+@functools.lru_cache(maxsize=256)
+def get_atomic_number(symbol: str) -> int:
+    """
+    Dynamically retrieves atomic number (Z) using mendeleev.
+    Handles isotopic notations and aliases (e.g. 13C, D, T).
+    """
+    elem_sym, _ = _parse_element_and_mass(symbol)
+    el = element(elem_sym)
+    return int(el.atomic_number)
+
+
+@functools.lru_cache(maxsize=256)
+def get_pyykko_radius(symbol: str) -> float:
+    """
+    Dynamically retrieves Pyykkö single-bond covalent radius in Angstroms using mendeleev.
+    (Mendeleev provides covalent_radius_pyykko in picometers, converted to Å via / 100.0).
+    """
+    elem_sym, _ = _parse_element_and_mass(symbol)
+    el = element(elem_sym)
+    if el.covalent_radius_pyykko is not None:
+        return float(el.covalent_radius_pyykko) / 100.0
+    if el.covalent_radius_cordero is not None:
+        return float(el.covalent_radius_cordero) / 100.0
+    if el.covalent_radius is not None:
+        return float(el.covalent_radius) / 100.0
+    if el.atomic_radius is not None:
+        return float(el.atomic_radius) / 100.0
+    raise ValueError(f"Could not retrieve covalent radius for element symbol '{symbol}'.")
+
+
+@functools.lru_cache(maxsize=256)
+def get_vdw_radius(symbol: str) -> float:
+    """
+    Dynamically retrieves van der Waals radius in Angstroms using mendeleev.
+    (Mendeleev provides vdw_radius in picometers, converted to Å via / 100.0).
+    """
+    elem_sym, _ = _parse_element_and_mass(symbol)
+    el = element(elem_sym)
+    for vdw_attr in [
+        "vdw_radius",
+        "vdw_radius_alvarez",
+        "vdw_radius_bondi",
+        "vdw_radius_truhlar",
+        "vdw_radius_batsanov",
+        "vdw_radius_uff",
+        "vdw_radius_mm3",
+    ]:
+        val = getattr(el, vdw_attr, None)
+        if val is not None:
+            return float(val) / 100.0
+    raise ValueError(f"Could not retrieve van der Waals radius for element symbol '{symbol}'.")
+
 
 class TorqTopology:
-    def __init__(self, symbols: list[str], coordinates: list[list[float]] | np.ndarray, is_complex: bool = False) -> None:
+    def __init__(
+        self,
+        symbols: list[str],
+        coordinates: list[list[float]] | np.ndarray,
+        is_complex: bool = False
+    ) -> None:
         """
         Initialize the structural topology engine.
         """
@@ -60,7 +174,7 @@ class TorqTopology:
         Builds the molecular graph using Pyykkö covalent radii and bond-order tolerances.
         """
         dist_matrix = cdist(self.coordinates, self.coordinates)
-        radii = np.array([PYYKKO_SINGLE_RADII.get(sym, 1.40) for sym in self.symbols])
+        radii = np.array([get_pyykko_radius(sym) for sym in self.symbols], dtype=np.float64)
         
         summed_radii_matrix = (radii[:, None] + radii[None, :]) * tolerance_multiplier
         
@@ -70,8 +184,9 @@ class TorqTopology:
         for i in range(self.num_atoms):
             for j in range(i + 1, self.num_atoms):
                 d = dist_matrix[i, j]
-                r_sum = radii[i] + radii[j]
-                if d < r_sum * tolerance_multiplier:
+                r_sum_tol = summed_radii_matrix[i, j]
+                if d < r_sum_tol:
+                    r_sum = radii[i] + radii[j]
                     # Estimate bond order tolerance
                     bond_order = 1
                     if d < r_sum * 0.88:
@@ -80,7 +195,9 @@ class TorqTopology:
                         bond_order = 2
                     self.graph.add_edge(i, j, weight=d, bond_order=bond_order)
                     
-        logger.info(f"Covalent graph built with Pyykkö radii: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges.")
+        logger.info(
+            f"Covalent graph built with Pyykkö radii: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges."
+        )
 
     # =========================================================================
     # THE 5-OPTION DIHEDRAL DETECTION ENGINE
@@ -153,8 +270,8 @@ class TorqTopology:
         """
         def build_coulomb(coords: np.ndarray) -> np.ndarray:
             dist = cdist(coords, coords)
-            np.fill_diagonal(dist, 1.0) # Prevent div by zero
-            charges = np.array([ATOMIC_NUMBERS.get(sym, 6.0) for sym in self.symbols])
+            np.fill_diagonal(dist, 1.0)  # Prevent div by zero
+            charges = np.array([get_atomic_number(sym) for sym in self.symbols], dtype=np.float64)
             q_mat = charges[:, None] * charges[None, :]
             c_mat = q_mat / dist
             np.fill_diagonal(c_mat, 0.5 * charges ** 2.4)
@@ -173,7 +290,8 @@ class TorqTopology:
         Option 5: Manual User Override.
         Bypasses algorithms and accepts exact 4-atom dihedral indices.
         """
-        assert len(indices) == 4, "Manual override requires exactly 4 indices defining a dihedral."
+        if len(indices) != 4:
+            raise ValueError("Manual override requires exactly 4 indices defining a dihedral.")
         logger.info(f"[Manual Override] Dihedral set to: {indices}")
         return indices
 
@@ -181,7 +299,13 @@ class TorqTopology:
     # CASCADE METHODOLOGY INJECTION & TRACK ROUTING
     # =========================================================================
 
-    def generate_cascade_parameters(self, tier: str = "T3-1h", basis_set: str | None = None, method: str | None = None) -> dict[str, Any]:
+    def generate_cascade_parameters(
+        self,
+        tier: str = "T3-1h",
+        basis_set: str | None = None,
+        method: str | None = None,
+        output_path: str | Path | None = None,
+    ) -> dict[str, Any]:
         """
         Applies the CoChem Method Matrix Cascade parameters for the torsional scan.
         Refactored to map onto v4 T1-T4 tier rows ('T1-10s'..'T4-1mo') (§4.4, §9).
@@ -216,7 +340,7 @@ class TorqTopology:
             basis_name = basis_set or "def2-TZVP"
             keywords = [f"! {method_name}", basis_name, "TightSCF", "Opt"]
 
-        params = {
+        params: dict[str, Any] = {
             "tier": tier_key,
             "wall_time_tier": tier_key,
             "engine": "CFOUR" if tier_key == "T4-1mo" else "MPQC",
@@ -246,11 +370,18 @@ class TorqTopology:
                 "MP2FIT": f"{basis_name}-MP2FIT"
             }
 
-        with open("torq_run_params.json", "w") as f:
+        if output_path is not None:
+            target_file = Path(output_path)
+        else:
+            target_file = Path(ARTIFACTS_DIR) / "torq_run_params.json"
+
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(target_file, "w", encoding="utf-8") as f:
             json.dump(params, f, indent=4)
         
-        logger.info(f"Cascade parameters written to torq_run_params.json at Tier: {tier_key}")
+        logger.info(f"Cascade parameters written to {target_file} at Tier: {tier_key}")
         return params
+
 
 def should_apply_counterpoise(basis_set: str | None, method: str | None) -> bool:
     """
@@ -280,6 +411,7 @@ def should_apply_counterpoise(basis_set: str | None, method: str | None) -> bool
     is_non_aug_tz = clean_basis in valid_tz_bases
 
     return is_non_aug_tz
+
 
 def route_method_track(method: str | None, is_anharmonic: bool, n_atoms: int) -> str:
     """
@@ -317,6 +449,7 @@ def route_method_track(method: str | None, is_anharmonic: bool, n_atoms: int) ->
     logger.info(f"Routing {method} (is_anharmonic={is_anharmonic}, N={n_atoms}) to MPQC track.")
     return "MPQC"
 
+
 if __name__ == "__main__":
     # Self-test payload
     test_coords = [[0.0, 0.0, 0.0], [1.5, 0.0, 0.0], [2.0, 1.0, 0.0], [3.0, 1.0, 0.0]]
@@ -326,5 +459,5 @@ if __name__ == "__main__":
     topos.detect_via_override([0, 1, 2, 3])
     topos.generate_cascade_parameters(tier="T3-1h")
     
-    logger.info("Track route CCSD(T) VPT2:", route_method_track("CCSD(T)", True, 5))
-    logger.info("Track route CCSD(T)-F12 harmonic:", route_method_track("CCSD(T)-F12", False, 10))
+    logger.info(f"Track route CCSD(T) VPT2: {route_method_track('CCSD(T)', True, 5)}")
+    logger.info(f"Track route CCSD(T)-F12 harmonic: {route_method_track('CCSD(T)-F12', False, 10)}")

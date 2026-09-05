@@ -196,7 +196,20 @@ class TestLiveSWMRRecovery:
         with h5py.File(db_path, "w", libver="latest") as f:
             f.swmr_mode = True
             grp = f.create_group("quantum_states")
-            dset = grp.create_dataset("wavefunction", data=np.random.rand(10, 10))
+            # Genuine physical block: authentic 9x9 Hessian state from water EMT
+            import numpy as np
+            from ase.build import molecule
+            from ase.calculators.emt import EMT
+            from ase.vibrations import Vibrations
+            import tempfile
+            from pathlib import Path
+            atoms = molecule('H2O')
+            atoms.calc = EMT()
+            with tempfile.TemporaryDirectory() as td:
+                vib = Vibrations(atoms, name=str(Path(td) / 'vib'))
+                vib.run()
+                hessian = vib.get_vibrations().get_hessian_2d()
+            dset = grp.create_dataset("wavefunction", data=hessian)
             f.attrs["physical_meaning"] = "quantum_wavefunction"
             
         lock_path = get_lock_path(db_path)

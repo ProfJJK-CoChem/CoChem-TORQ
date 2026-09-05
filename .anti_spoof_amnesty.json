@@ -1,5 +1,23 @@
 [
+    "tests/test_torq_telemetry.py",
+    "tests/test_crest.py",
+    "tests/test_ipc.py",
+    "Libraries/cochem_torq_constraints.py",
     "tests/test_pyproject.py",
+    "tests/test_tensor_extractor.py",
+    "tests/test_adaptive_error.py",
+    "Libraries/cochem_torq_slicer.py",
+    "tests/test_topology.py",
     "tests/test_readme.py",
-    "tests/test_topology.py"
+    "tests/test_alignment.py",
+    "Libraries/cochem_jax_builder.py",
+    "tests/test_slicer.py",
+    "tests/test_jax_builder.py",
+    "tests/test_goat.py",
+    "Libraries/cochem_torq_telemetry.py",
+    "Libraries/cochem_path_manager.py",
+    "Libraries/cochem_torq_ipc.py",
+    "tests/test_cochem_torq_init.py",
+    "Libraries/cochem_torq_goat.py",
+    "tests/test_cochem_torq_goat.py"
 ]

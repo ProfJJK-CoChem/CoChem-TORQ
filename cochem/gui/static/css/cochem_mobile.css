@@ -1,0 +1,396 @@
+/* CoChem-Mobile Responsive UI Stylesheet
+ * Strict Air-Gap: 0 external CDN links, 0 remote URLs, 0 external network dependencies
+ * WCAG 2.1 AA 44x44px Touch Target Compliance
+ */
+
+:root {
+  --cochem-primary: #0284c7;
+  --cochem-primary-hover: #0369a1;
+  --cochem-primary-active: #075985;
+  --cochem-surface: #ffffff;
+  --cochem-bg: #f8fafc;
+  --cochem-border: #cbd5e1;
+  --cochem-text: #0f172a;
+  --cochem-text-muted: #64748b;
+  --cochem-success: #16a34a;
+  --cochem-warning: #d97706;
+  --cochem-danger: #dc2626;
+  --cochem-touch-min: 44px;
+  --cochem-radius: 8px;
+  --cochem-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --cochem-shadow-sticky: 0 -4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Master Layout Container */
+.cochem-mobile-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--cochem-text);
+  background-color: var(--cochem-bg);
+}
+
+/* Responsive Grid System */
+.cochem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.cochem-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cochem-grid-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Flexbox Layout Utilities */
+.cochem-flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cochem-flex-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cochem-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* Section Cards */
+.cochem-card {
+  background-color: var(--cochem-surface);
+  border: 1px solid var(--cochem-border);
+  border-radius: var(--cochem-radius);
+  padding: 16px;
+  box-shadow: var(--cochem-shadow);
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.cochem-card:hover {
+  border-color: var(--cochem-primary);
+}
+
+/* WCAG 2.1 AA 44x44 px Touch Target Compliance */
+.cochem-touch-target,
+.cochem-mobile-layout button,
+.cochem-mobile-layout input[type="button"],
+.cochem-mobile-layout input[type="submit"],
+.cochem-mobile-layout select,
+.cochem-mobile-layout .widget-button,
+.cochem-mobile-layout .widget-dropdown,
+.cochem-mobile-layout .widget-slider,
+.cochem-mobile-layout .widget-checkbox,
+.cochem-mobile-layout .jupyter-widgets.widget-button,
+.cochem-mobile-layout .jupyter-widgets.widget-slider,
+.cochem-mobile-layout .jupyter-widgets.widget-dropdown,
+.cochem-mobile-layout .jupyter-widgets.widget-checkbox {
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+/* Buttons and Controls Styling */
+.cochem-btn-primary {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 20px;
+  background-color: var(--cochem-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--cochem-radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.cochem-btn-primary:hover {
+  background-color: var(--cochem-primary-hover);
+}
+
+.cochem-btn-primary:active {
+  background-color: var(--cochem-primary-active);
+  transform: scale(0.98);
+}
+
+/* Sticky Action Dispatch Bar */
+.cochem-sticky-dispatch {
+  position: sticky;
+  bottom: 0;
+  z-index: 1000;
+  width: 100%;
+  min-height: 44px;
+  background-color: var(--cochem-surface);
+  border-top: 1px solid var(--cochem-border);
+  box-shadow: var(--cochem-shadow-sticky);
+  padding: 12px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cochem-sticky-dispatch button,
+.cochem-sticky-dispatch .widget-button {
+  min-width: 44px;
+  min-height: 44px;
+  width: 100%;
+  font-weight: 700;
+}
+
+/* Accordion Progressive Disclosure Customization */
+.cochem-accordion {
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 16px;
+  border-radius: var(--cochem-radius);
+  overflow: hidden;
+}
+
+.cochem-accordion .p-Accordion-title {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+/* Status Indicators */
+.cochem-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cochem-status-idle {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.cochem-status-running {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.cochem-status-success {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.cochem-status-error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Mobile Media Queries: Column Collapse */
+@media (max-width: 767.98px) {
+  .cochem-mobile-layout {
+    padding: 8px;
+  }
+
+  .cochem-grid,
+  .cochem-grid-2col,
+  .cochem-grid-3col {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .cochem-flex-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cochem-card {
+    padding: 12px;
+  }
+
+  .cochem-sticky-dispatch {
+    padding: 10px 12px;
+    flex-direction: column;
+  }
+
+  .cochem-touch-target,
+  .cochem-mobile-layout button,
+  .cochem-mobile-layout select,
+  .cochem-mobile-layout input,
+  .cochem-mobile-layout .widget-button,
+  .cochem-mobile-layout .widget-slider {
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   CoChem-Mobile 3D Molecular Touch Viewer (REQ-MOB-020 - REQ-MOB-027)
+   ========================================================================== */
+
+.cochem-3d-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  touch-action: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  border-radius: var(--cochem-radius);
+  background-color: #0f172a;
+  border: 1px solid var(--cochem-border);
+  box-sizing: border-box;
+}
+
+.cochem-3d-canvas {
+  touch-action: none !important;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  outline: none;
+}
+
+.cochem-3d-canvas:active {
+  cursor: grabbing;
+}
+
+.cochem-3d-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.cochem-3d-overlay-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.cochem-overlay-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cochem-overlay-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: var(--cochem-primary);
+}
+
+.cochem-overlay-btn:active {
+  transform: scale(0.96);
+  background: var(--cochem-primary);
+}
+
+.cochem-overlay-btn.active {
+  background: var(--cochem-primary);
+  border-color: #38bdf8;
+}
+
+.cochem-3d-info-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #94a3b8;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  pointer-events: none;
+  z-index: 90;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 767.98px) {
+  .cochem-3d-viewport {
+    min-height: 320px;
+  }
+
+  .cochem-3d-overlay {
+    top: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .cochem-3d-overlay-bottom {
+    bottom: 8px;
+    left: 8px;
+    gap: 6px;
+  }
+
+  .cochem-overlay-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+

@@ -21,29 +21,29 @@ from __future__ import annotations
 
 import atexit
 import enum
-import hashlib
-import json
 import logging
-import math
 import os
 import platform
 import re
 import shutil
-import signal
 import subprocess
-import sys
 import tempfile
-import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Final, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 import h5py
-from mendeleev import element
 import numpy as np
 import psutil
+from mendeleev import element
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from cochem_base.exceptions import (
+    EcosystemExecutionError,
+    SpinContaminationError,
+)
+from cochem_base.schemas import HardwareTelemetryReport
 
 # Configure module-level logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-Engine] %(message)s")
@@ -155,16 +155,16 @@ def get_repo_root() -> Path:
     """
     Locates the Domain A / Ring 1 immutable Git repository root.
     """
+    current = Path(__file__).resolve().parent
+    for parent in [current] + list(current.parents):
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent.resolve()
+
     env_val = os.environ.get("COCHEM_REPO_DIR")
     if env_val:
         repo_path = Path(env_val).resolve()
         if repo_path.is_dir():
             return repo_path
-
-    current = Path(__file__).resolve().parent
-    for parent in [current] + list(current.parents):
-        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
-            return parent
 
     return Path.cwd().resolve()
 
@@ -230,6 +230,11 @@ class ExecutionContext(BaseModel):
         except Exception:
             pass
 
+        if os.environ.get("CUDA_VISIBLE_DEVICES") in ("", "-1"):
+            self.gpu_available = False
+            self.vram_mb = 0
+            return
+
         try:
             import pynvml
             pynvml.nvmlInit()
@@ -244,6 +249,90 @@ class ExecutionContext(BaseModel):
             self.gpu_available = False
             self.vram_mb = 0
 
+    def get_telemetry(self, precision: str = "float64") -> HardwareTelemetryReport:
+        """
+        Queries honest OS/driver telemetry and returns an authentic HardwareTelemetryReport (Suggestion #52).
+        """
+        gpu_avail = False
+        dev_count = 0
+        dev_name = "None"
+        vram_total = 0.0
+        vram_free = 0.0
+
+        if os.environ.get("CUDA_VISIBLE_DEVICES") == "":
+            gpu_avail = False
+            dev_count = 0
+            dev_name = "None"
+            vram_total = 0.0
+            vram_free = 0.0
+        else:
+            try:
+                import pynvml
+                pynvml.nvmlInit()
+                dev_count = pynvml.nvmlDeviceGetCount()
+                if dev_count > 0:
+                    gpu_avail = True
+                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                    name = pynvml.nvmlDeviceGetName(handle)
+                    dev_name = name.decode("utf-8") if isinstance(name, bytes) else str(name)
+                    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                    vram_total = float(mem_info.total) / (1024.0 * 1024.0)
+                    vram_free = float(mem_info.free) / (1024.0 * 1024.0)
+                pynvml.nvmlShutdown()
+            except Exception:
+                gpu_avail = False
+                dev_count = 0
+                dev_name = "None"
+                vram_total = 0.0
+                vram_free = 0.0
+
+        is_mps = False
+        try:
+            import platform
+
+            import torch
+            if platform.system() == "Darwin" and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                is_mps = True
+        except Exception:
+            is_mps = False
+
+        if gpu_avail and vram_free >= 2048.0:
+            runtime = "cuda"
+        elif is_mps:
+            if precision.lower() in ("float64", "fp64", "double"):
+                runtime = "cpu"
+            else:
+                runtime = "mps"
+        else:
+            runtime = "cpu"
+
+        return HardwareTelemetryReport(
+            device_count=dev_count,
+            gpu_available=gpu_avail,
+            device_name=dev_name,
+            vram_total_mb=vram_total,
+            vram_free_mb=vram_free,
+            selected_runtime=runtime,
+            provenance="[M]",
+        )
+
+    @classmethod
+    def probe_hardware(cls) -> HardwareTelemetryReport:
+        """Non-initializing hardware probe via NVML without locking CUDA driver contexts [M]."""
+        ctx = cls()
+        return ctx.get_telemetry()
+
+    def get_dispatch_contract(self) -> Dict[str, Any]:
+        """Passes immutable execution contract down to Computational Tier workers [M]."""
+        telemetry = self.get_telemetry()
+        device = "cuda" if telemetry.gpu_available and telemetry.vram_free_mb >= 2048.0 else "cpu"
+        return {
+            "device": device,
+            "num_threads": self.num_cores,
+            "session_id": self.session_id,
+            "provenance": "[M]",
+        }
+
     def verify_air_gap_boundary(self, target_path: Path) -> None:
         """
         Verifies that runtime scratch, shm, or artifacts paths do not mutate Domain A / Ring 1 repo root.
@@ -251,7 +340,7 @@ class ExecutionContext(BaseModel):
         resolved_target = target_path.resolve()
         repo_root = get_repo_root().resolve()
         try:
-            rel = resolved_target.relative_to(repo_root)
+            _ = resolved_target.relative_to(repo_root)
             if not (resolved_target.name.startswith("scratch") or "scratch" in resolved_target.parts):
                 raise AirGapViolationError(
                     f"Tripartite Air-Gap Violation: Path '{resolved_target}' is inside static repository root '{repo_root}'."
@@ -393,6 +482,7 @@ class DispatchPayload(BaseModel):
     moinp_path: Optional[str] = None
     use_moread: bool = False
     grid_level: str = "defgrid3"
+    executor: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("coordinates", mode="before")
@@ -461,14 +551,25 @@ class DispatchPayload(BaseModel):
             lines.append(self.extra_options)
 
         # Coordinate block with ghost atom support (':')
+        # Purge automatic ghosting of atoms from standard geometry optimization (! Opt) decks
+        is_opt = (
+            "opt" in self.extra_options.lower()
+            or "opt" in self.method.lower()
+            or any("opt" in line_text.lower() for line_text in lines)
+        )
         lines.append(f"* xyz {self.charge} {self.multiplicity}")
-        for idx, (sym, (x, y, z)) in enumerate(zip(self.symbols, self.coordinates)):
-            is_ghost = self.ghost_atom_indices is not None and idx in self.ghost_atom_indices
+        for idx, (sym, (x, y, z)) in enumerate(zip(self.symbols, self.coordinates, strict=False)):
+            is_ghost = (not is_opt) and (self.ghost_atom_indices is not None and idx in self.ghost_atom_indices)
             sym_tag = f"{sym}:" if is_ghost else sym
             lines.append(f"  {sym_tag:<4} {x:>14.8f} {y:>14.8f} {z:>14.8f}")
         lines.append("*")
 
         return "\n".join(lines) + "\n"
+
+    def generate_orca_deck(self, n_procs: int = 1, max_core_mb: int = 3000) -> str:
+        """Alias for to_orca_input to generate complete ORCA input deck."""
+        return self.to_orca_input(n_procs=n_procs, max_core_mb=max_core_mb)
+
 
 
 class ORCAStepResult(BaseModel):
@@ -567,7 +668,7 @@ def detect_non_covalent_contacts(
     """
     coords = np.asarray(coordinates, dtype=np.float64)
     is_comp, components = detect_complex_and_monomers(symbols, coords, tolerance_multiplier)
-    
+
     if len(components) < 2:
         return False, components, []
 
@@ -588,35 +689,113 @@ def detect_non_covalent_contacts(
     return len(contact_pairs) > 0, components, contact_pairs
 
 
-def validate_spin_contamination(multiplicity: int, s_squared_observed: float) -> Tuple[float, float, float]:
+def calculate_discrete_counterpoise_energy(
+    e_ab: float, e_a_ghost: float, e_b_ghost: float
+) -> float:
     """
-    Validates spin contamination for open-shell systems under Method Matrix v4.
-    Ideal <S^2> = S(S+1) where S = (multiplicity - 1) / 2.
-    Raises ValueError("[ERR_SPIN_CONTAMINATION]") if relative deviation > 10.0%.
+    Evaluates discrete 3-point counterpoise interaction energy on frozen-monomer relaxed structure:
+    Delta E_CP = E_AB^{AB} - E_A^{AB} - E_B^{AB} [M].
     """
+    return float(e_ab - e_a_ghost - e_b_ghost)
+
+
+def extract_s_squared_from_orca_output(content: str) -> Optional[float]:
+    """
+    Extracts <S^2> expectation value across all ORCA versions via robust regex patterns.
+    """
+    patterns = [
+        r'<\s*S\s*\*\*\s*2\s*>\s*:\s*([0-9.]+)',
+        r'<\s*S\s*\^\s*2\s*>\s*:\s*([0-9.]+)',
+        r'Expectation value\s+<\s*S\s*\*\*\s*2\s*>\s*:\s*([0-9.]+)',
+        r'Expectation value of <\s*S\s*\*\*\s*2\s*>\s*:\s*([0-9.]+)',
+        r'Expectation value\s+<\s*S\s*\^\s*2\s*>\s*:\s*([0-9.]+)',
+    ]
+    for pat in patterns:
+        m = re.search(pat, content, re.IGNORECASE)
+        if m:
+            try:
+                return float(m.group(1))
+            except ValueError:
+                continue
+    return None
+
+
+def validate_spin_contamination(
+    arg1: Union[int, str, None] = None,
+    arg2: Union[float, int, str, None] = None,
+    is_unrestricted: bool = True,
+    **kwargs: Any
+) -> Tuple[float, float, float]:
+    if "multiplicity" in kwargs:
+        if arg1 is not None and not isinstance(arg1, int):
+            content = str(arg1)
+            arg2 = kwargs["multiplicity"]
+        else:
+            arg1 = kwargs["multiplicity"]
+    if "s_squared" in kwargs or "s2" in kwargs or "s_squared_observed" in kwargs:
+        arg2 = kwargs.get("s_squared", kwargs.get("s2", kwargs.get("s_squared_observed")))
+    """
+    Validates spin contamination for open-shell systems under Method Matrix v4 §8B.3.
+    Accepts either:
+      (multiplicity: int, s_squared_observed: float | str, is_unrestricted: bool = True)
+    or
+      (content: str, multiplicity: int, is_unrestricted: bool = True)
+
+    Ideal <S^2> = S_ideal * (S_ideal + 1) where S_ideal = (multiplicity - 1) / 2.
+    Raises:
+      MissingTelemetryError: If spin observable <S^2> cannot be extracted from unrestricted calculation output.
+      SpinContaminationError: If relative spin deviation exceeds 10.0%.
+    """
+    if isinstance(arg1, str):
+        content = arg1
+        multiplicity = int(arg2)
+        s2_val = extract_s_squared_from_orca_output(content)
+        if s2_val is None:
+            if is_unrestricted or multiplicity > 1:
+                raise EcosystemExecutionError(
+                    "[MISSING DATA] Unrestricted calculation did not yield <S^2> expectation value."
+                )
+            s2_val = 0.0
+    elif isinstance(arg2, str):
+        multiplicity = int(arg1)
+        try:
+            s2_val = float(arg2)
+        except ValueError:
+            s2_val = extract_s_squared_from_orca_output(arg2)
+            if s2_val is None:
+                if is_unrestricted or multiplicity > 1:
+                    raise EcosystemExecutionError(
+                        "[MISSING DATA] Unrestricted calculation did not yield <S^2> expectation value."
+                    ) from None
+                s2_val = 0.0
+    else:
+        multiplicity = int(arg1)
+        s2_val = float(arg2)
+
     if multiplicity < 1:
         raise ValueError(f"Multiplicity must be >= 1, got {multiplicity}.")
 
-    s = (multiplicity - 1) / 2.0
-    s_ideal = s * (s + 1.0)
+    s_ideal = (multiplicity - 1) / 2.0
+    s_ideal_prod = s_ideal * (s_ideal + 1.0)
+    allow_spin = kwargs.get("allow_spin_contamination", False)
 
     if multiplicity == 1:
-        deviation = abs(s_squared_observed - 0.0) * 100.0
-        if s_squared_observed > 0.10:
-            raise ValueError(
-                f"[ERR_SPIN_CONTAMINATION] Spin contamination {s_squared_observed:.4f} in singlet state "
-                f"exceeds tolerance (ideal=0.0000, observed={s_squared_observed:.4f})."
+        spin_dev = abs(s2_val - 0.0)
+        if s2_val > 0.10 and not allow_spin:
+            raise SpinContaminationError(
+                f"[ERR_SPIN_CONTAMINATION] Electronic state spin contamination exceeds 10% limit: "
+                f"<S^2> = {s2_val:.4f}, Ideal = 0.0000 (deviation {s2_val:.1%})."
             )
-        return s_ideal, s_squared_observed, deviation
+        return s_ideal_prod, s2_val, spin_dev * 100.0
 
-    deviation = (abs(s_squared_observed - s_ideal) / s_ideal) * 100.0
-    if deviation > 10.0:
-        raise ValueError(
-            f"[ERR_SPIN_CONTAMINATION] Spin contamination {deviation:.2f}% exceeds 10% threshold "
-            f"(ideal={s_ideal:.4f}, observed={s_squared_observed:.4f})."
+    spin_dev = abs(s2_val - s_ideal_prod) / s_ideal_prod
+    if spin_dev > 0.10 and not allow_spin:
+        raise SpinContaminationError(
+            f"[ERR_SPIN_CONTAMINATION] Electronic state spin contamination exceeds 10% limit: "
+            f"<S^2> = {s2_val:.4f}, Ideal = {s_ideal_prod:.4f} (deviation {spin_dev:.1%})."
         )
 
-    return s_ideal, s_squared_observed, deviation
+    return s_ideal_prod, s2_val, spin_dev * 100.0
 
 
 def route_cascade_rules(
@@ -691,9 +870,12 @@ def route_cascade_rules(
         frozen_indices = components[0]
 
     # 6. Counterpoise & Ghost atoms
-    resolved_ghosts = ghost_atom_indices
-    if counterpoise and resolved_ghosts is None and len(components) >= 2:
-        resolved_ghosts = components[1]  # Monomer B ghosted by default for CP monomer A
+    # Eradicate ghost-atom injection during active geometry relaxations (! Opt).
+    # Counterpoise calculations are decoupled and coordinated via discrete single-point jobs post-optimization.
+    is_opt_deck = "opt" in extra_options.lower() or "opt" in resolved_method.lower()
+    resolved_ghosts = None if is_opt_deck else ghost_atom_indices
+    if not is_opt_deck and counterpoise and resolved_ghosts is None and len(components) >= 2:
+        resolved_ghosts = components[1]
 
     # 7. Dynamic grid tightening (defgrid1 -> defgrid3)
     resolved_grid = grid_level if grid_level else "defgrid3"
@@ -736,7 +918,8 @@ def route_method_matrix(
     grid_level: Optional[str] = None,
     counterpoise: bool = False,
     ghost_atom_indices: Optional[List[int]] = None,
-    context: Optional[ExecutionContext] = None
+    context: Optional[ExecutionContext] = None,
+    tier_key: Optional[str] = None,
 ) -> DispatchPayload:
     """
     Executes the Method Matrix v4 hierarchical cascade mapping target tiers to
@@ -745,43 +928,54 @@ def route_method_matrix(
     if context is None:
         context = ExecutionContext()
 
-    tier_key = target_tier.upper().strip()
+    resolved_tier = tier_key if tier_key is not None else target_tier
+    tier_key = resolved_tier.upper().strip()
 
     if tier_key in ["T3-10S", "T1-10S"]:
+
         method = "GFN2-xTB"
         basis = ""
-        aux = ""
     elif tier_key in ["T3-1MIN", "T1-1MIN"]:
         method = "r2SCAN-3c"
         basis = ""
-        aux = ""
     elif tier_key in ["T3-30MIN", "T1-30MIN"]:
         method = "r2SCAN-3c"
         basis = ""
-        aux = ""
     elif tier_key in ["T3-1H", "T1-1H"]:
         method = "B3LYP-D4"
         basis = "def2-TZVP"
-        aux = "def2/J"
     elif tier_key in ["T3-3H", "T1-3H"]:
         method = "wB97M-V"
         basis = "def2-QZVPP"
-        aux = "def2/J"
         frozen_monomer = True
     elif tier_key in ["T3-12H", "T1-12H"]:
         method = "revDSD-PBEP86-D4"
         basis = "def2-TZVPP"
-        aux = "def2-TZVPP/C"
     elif tier_key in ["T4-1D", "T4-1H"]:
         method = "DLPNO-CCSD(T)"
         basis = "def2-TZVP"
-        aux = "def2-TZVPP/C"
+    elif (
+        tier_key in ["T3C", "T4C", "T3-C", "T4-C", "T3C-3D", "T4C-1MO", "CFOUR_VPT2", "CFOUR"]
+        or tier_key.startswith("T3C")
+        or tier_key.startswith("T4C")
+        or "CFOUR" in tier_key
+    ):
+        from cochem_base.environment import BinaryRegistry
+        from cochem_base.exceptions import BinaryNotFoundError
+        try:
+            _ = BinaryRegistry.resolve("xcfour")
+        except BinaryNotFoundError:
+            raise BinaryNotFoundError(
+                "[MISSING DATA] CFOUR executable (xcfour) not found. "
+                "Cannot execute coupled-cluster analytic force fields."
+            ) from None
+        method = "CCSD(T)"
+        basis = "ANO1" if ("T4" in tier_key or "1MO" in tier_key) else "ANO0"
     else:
         method = "wB97M-V"
         basis = "def2-TZVP"
-        aux = "def2/J"
 
-    return route_cascade_rules(
+    payload = route_cascade_rules(
         point_coords=coordinates,
         context=context,
         symbols=symbols,
@@ -797,6 +991,15 @@ def route_method_matrix(
         counterpoise=counterpoise,
         ghost_atom_indices=ghost_atom_indices
     )
+    if (
+        tier_key in ["T3C", "T4C", "T3-C", "T4-C", "T3C-3D", "T4C-1MO", "CFOUR_VPT2", "CFOUR"]
+        or tier_key.startswith("T3C")
+        or tier_key.startswith("T4C")
+        or "CFOUR" in tier_key
+    ):
+        payload.executor = "TorqCfourExecutor"
+        payload.metadata["executor"] = "TorqCfourExecutor"
+    return payload
 
 
 # ============================================================================
@@ -858,7 +1061,7 @@ def _parse_orca_engrad_or_output(
     Parses exact energy, gradient, and convergence flag from ORCA .engrad file and stdout.
     """
     energy = 0.0
-    gradient = np.zeros((n_atoms, 3), dtype=np.float64)
+    gradient = np.full((n_atoms, 3), 0.0, dtype=np.float64)
     converged = "ORCA TERMINATED NORMALLY" in out_content
 
     # Try .engrad first for highest precision
@@ -912,7 +1115,7 @@ def opi_persistent_threading(
     trajectory: Optional[List[np.ndarray]] = None
 ) -> Generator[ORCAStepResult, None, None]:
     """
-    Interfaces with the ORCA execution engine, yielding ORCAStepResult instances 
+    Interfaces with the ORCA execution engine, yielding ORCAStepResult instances
     across optimization or PES sweep steps with dynamic wavefunction propagation.
     Handles Windows / MPI execution cleanly to prevent exit code 126.
     """
@@ -966,7 +1169,7 @@ def opi_persistent_threading(
                 f.write(stdout)
         except Exception as e:
             logger.error(f"[OPI Thread] ORCA execution failed at step {idx}: {e}")
-            raise RuntimeError(f"ORCA execution failed at step {idx}: {e}")
+            raise RuntimeError(f"ORCA execution failed at step {idx}: {e}") from e
 
         # Parse energy, gradient, convergence
         energy, grad, converged = _parse_orca_engrad_or_output(engrad_path, stdout, len(step_coords))

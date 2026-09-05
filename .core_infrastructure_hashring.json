@@ -1,0 +1,14 @@
+{
+    "hashes": {
+        "ci_tools/anti_spoof_linter.py": "eeed8344786a7319baad69e50c4707dc2605f81180096351f1e81de5e1663c98",
+        "ci_tools/ci_airgap_sweep.py": "365445ed2a682d3f17528b66c7fb08d58b943d8b8c2e1b2f1e03d4d944eb88d8",
+        "ci_tools/cleanup_executor.py": "d28099eac993c38686822a039bdd1af58bbaa97bbab2eb70176792b1db788429",
+        "ci_tools/file_triage_classifier.py": "202fb37ea68c9fe0d11eef2f7aff99b832dcb50dc17f481511fcd488cffd5f7e",
+        "ci_tools/Log_Sanitizer.py": "43afe83927dd1856074eb5fdaa8c5b51bf0fe2ac468ba10045a9190e0391e563",
+        "ci_tools/verify_anti_patching.py": "99ba2b97e510bd60d23ab5f63866de62056e38a0ee402ae3e69f5a08948c9a2a",
+        "ci_tools/verify_core_integrity.py": "358f82d41b50bb15585a23453fd4d76746a614d41f49f6de43fe7c6b4fcad99e",
+        "ci_tools/zero_trust_runner.py": "468fc806bf9d8f4a9de97ebf36e79c907ef09c5652eb1f55bd2a57fbc4eb6707",
+        "ci_tools/__init__.py": "8e1c2caf17ff55969f721556db7722ebf22534678514c38a7f7c670a5817e95b",
+        "core/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+}

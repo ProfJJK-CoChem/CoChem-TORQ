@@ -1,0 +1,20 @@
+{
+  "scan_timestamp": "2026-08-30T17:42:29.032699+00:00",
+  "target_dir": "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ",
+  "total_files_walked": 121,
+  "global_counts": {
+    "KEEP": 68,
+    "TRIAGE": 51,
+    "TRASH": 2
+  },
+  "per_module_counts": {
+    "CoChem-TORQ": {
+      "KEEP": 68,
+      "TRIAGE": 51,
+      "TRASH": 2
+    }
+  },
+  "manifests": [
+    "D:\\__CoChem\\GitHub-Repo\\CoChem-TORQ\\.docs\\triage\\CoChem-TORQ_triage_manifest.json"
+  ]
+}

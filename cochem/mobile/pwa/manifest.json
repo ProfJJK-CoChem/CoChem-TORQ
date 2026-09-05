@@ -1,0 +1,38 @@
+{
+  "name": "CoChem Mobile Studio",
+  "short_name": "CoChem",
+  "description": "CoChem Mobile Studio - Real-Time Computational Chemistry Workspace",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f0f1a",
+  "theme_color": "#1a1a2e",
+  "categories": ["education", "science", "productivity"],
+  "icons": [
+    {
+      "src": "/static/icons/cochem-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/cochem-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/cochem-icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/cochem-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

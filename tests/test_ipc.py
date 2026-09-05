@@ -478,6 +478,7 @@ sys.exit(0)
             capture_output=True,
             text=True,
             cwd=str(get_repo_root()),
+            env=dict(os.environ, PYTHONPATH=str(get_repo_root())),
         )
         assert proc.returncode == 0
         assert "ALLOCATED" in proc.stdout

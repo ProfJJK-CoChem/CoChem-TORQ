@@ -31,7 +31,7 @@ from __future__ import annotations
 import atexit
 import logging
 import mmap
-import multiprocessing.shared_memory as sm
+import multiprocessing.shared_memory as sm  # zero-stub IPC shared memory
 import os
 import shutil
 import tempfile
