@@ -593,6 +593,20 @@ def test_thermal_nmr_extraction(tmp_path: Path) -> None:
 # =============================================================================
 
 
+def generate_synthetic_wavefunction(e: float) -> list[list[float]]:
+    import math
+    wf = []
+    for i in range(50):
+        row = []
+        for j in range(50):
+            x = (i - 25) / 10.0
+            y = (j - 25) / 10.0
+            val = math.exp(-(x**2 + y**2)) * abs(e)
+            row.append(val)
+        wf.append(row)
+    return wf
+
+
 def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
     """Validates JSON and HDF5 serialization with Air-Gap directory compliance."""
     export_dir = tmp_path / "artifacts" / "Tensors"
@@ -659,7 +673,9 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
     at = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
     at.calc = EMT()
     e = at.get_potential_energy()
-    wf = [[e]*50 for _ in range(50)]
+    
+    # Compute a 2D Gaussian wavefunction grid with non-zero variance
+    wf = generate_synthetic_wavefunction(e)
     dvr_payload = {
         "wavefunction": wf,
         "energy_levels": [0.0, 125.4, 250.8, 375.2],

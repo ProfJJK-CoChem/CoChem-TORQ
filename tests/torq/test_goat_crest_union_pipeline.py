@@ -53,7 +53,7 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
 
     atoms_dup = Atoms(symbols, positions=coords_trans.copy())
     MaxwellBoltzmannDistribution(atoms_dup, temperature_K=300)
-    coords_trans_dup = coords_trans + atoms_dup.get_velocities() * 0.00005
+    coords_trans_dup = coords_trans + atoms_dup.get_velocities() * 0.05
     atoms_dup.positions = coords_trans_dup
     atoms_dup.calc = EMT()
     energy_dup = atoms_dup.get_potential_energy()

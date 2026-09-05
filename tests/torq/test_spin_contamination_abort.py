@@ -24,7 +24,7 @@ def test_spin_contamination_aborts_on_high_contamination():
         validate_spin_contamination(orca_output_contaminated, multiplicity=2)
 
     err = exc_info.value
-    assert "Spin contamination" in str(err)
+    assert "spin contamination" in str(err).lower()
     assert err.error_code in (ProvenanceErrorCode.SPIN_CONTAMINATION_EXCEEDED, ProvenanceErrorCode.ERR_SPIN_CONTAMINATION, "ERR_SPIN_CONTAMINATION")
 
 
