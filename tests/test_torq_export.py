@@ -572,8 +572,8 @@ def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
     parquet_path = tmp_path / "spectral.parquet"
     table = pa.Table.from_arrays(
         [
-            pa.array([1000.0, 2000.0], type=pa.float64()),
-            pa.array([-1.0, -2.0], type=pa.float64()),
+            pa.array([3657.0, 1595.0], type=pa.float64()),
+            pa.array([0.5, 0.2], type=pa.float64()),
         ],
         names=["freq", "intensity"],
     )
@@ -606,7 +606,7 @@ def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
         output_path=tmp_path / "DirectOverride.pgo",
         molecule_name="OverrideMol",
         temperature_k=77.0,
-        rotational_constants=[12000.0, 6000.0, 4000.0],
+        rotational_constants=[835840.2, 435352.0, 262223.1],
         dipoles=[2.0, 1.0, 0.5],
     )
     assert Path(out_pgo2).exists()
@@ -618,7 +618,7 @@ def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
         p.attrib["Name"]: float(p.attrib["Value"])
         for p in top.findall("Parameter")
     }
-    assert math.isclose(params["A"], 12000.0, rel_tol=1e-5)
+    assert math.isclose(params["A"], 835840.2, rel_tol=1e-5)
     assert math.isclose(params["mu_a"], 2.0, rel_tol=1e-5)
 
 
@@ -712,7 +712,7 @@ def test_pgopher_dict_overrides_and_missing_manifest(tmp_path: Path) -> None:
         parquet_path=parquet_path,
         output_path=tmp_path / "DictOverride.pgo",
         molecule_name="DictMol",
-        rotational_constants={"A": 8888.0, "B": 4444.0, "C": 2222.0},
+        rotational_constants={"A": 835840.2, "B": 435352.0, "C": 262223.1},
         dipoles={"mu_a": 0.8, "mu_b": 0.4, "mu_c": 0.2},
     )
     assert Path(out_pgo).exists()

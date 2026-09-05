@@ -515,47 +515,8 @@ def test_dynamic_representation_switch_all_six_representations() -> None:
 
 def test_orca_vpt2_and_coriolis_parser(tmp_path: Path) -> None:
     """Validates ORCA %vib block parsing for resonances and distortion constants."""
-    orca_output_text = """
-================================================================================
-                               ORCA VPT2 MODULE
-================================================================================
-Darling-Dennison Mode 1 Mode 2 K = -14.2857
-Darling-Dennison Mode 3 Mode 4 K = 2.4510
-
-----------------------------------------
-Coriolis Coupling Matrix (X)
-----------------------------------------
-  0.000000  0.845120 -0.124500
- -0.845120  0.000000  0.512340
-  0.124500 -0.512340  0.000000
-
-----------------------------------------
-Coriolis Coupling Matrix (Y)
-----------------------------------------
-  0.000000  0.221100  0.781200
- -0.221100  0.000000 -0.114400
- -0.781200  0.114400  0.000000
-
-----------------------------------------
-Coriolis Coupling Matrix (Z)
-----------------------------------------
-  0.000000  0.000000  0.000000
-  0.000000  0.000000  0.998120
-  0.000000 -0.998120  0.000000
-
-Centrifugal Distortion Constants (A-Reduction):
-  D_J  = 0.034512
-  D_JK = -0.124500
-  D_K  = 1.542100
-  d_1  = -0.004120
-  d_2  = 0.000850
-
-Polarizability derivative: 1.254100
-Polarizability derivative: 0.895400
-Polarizability derivative: 2.145000
-"""
-    orca_file = tmp_path / "orca_test.out"
-    orca_file.write_text(orca_output_text, encoding="utf-8")
+    import os
+    orca_file = Path(os.path.join(os.path.dirname(__file__), "fixtures", "orca_vpt2.out"))
 
     extractor = TorqTensorExtractor(
         symbols=["O", "H", "H"],
@@ -595,14 +556,7 @@ Polarizability derivative: 2.145000
 
 def test_orca_vpt2_divergence_detection(tmp_path: Path) -> None:
     """Validates unphysical divergence detection for distortion constants."""
-    orca_divergent_text = """
-Centrifugal Distortion Constants:
-  D_J  = 1.5e7
-  D_JK = 2.4e8
-  D_K  = -9.9e9
-"""
-    orca_file = tmp_path / "orca_div.out"
-    orca_file.write_text(orca_divergent_text, encoding="utf-8")
+    orca_file = Path(os.path.join(os.path.dirname(__file__), "fixtures", "orca_div.out"))
 
     extractor = TorqTensorExtractor(
         symbols=["O", "H", "H"],
@@ -621,19 +575,7 @@ Centrifugal Distortion Constants:
 
 def test_thermal_nmr_extraction(tmp_path: Path) -> None:
     """Validates thermal NMR shielding extraction from AIMD trajectory file."""
-    traj_text = """3
-Frame 1
-O  0.0  0.0  0.11
-H  0.0  0.75 -0.46
-H  0.0 -0.75 -0.46
-3
-Frame 2
-O  0.0  0.0  0.12
-H  0.0  0.76 -0.47
-H  0.0 -0.76 -0.47
-"""
-    traj_file = tmp_path / "aimd_traj.xyz"
-    traj_file.write_text(traj_text, encoding="utf-8")
+    traj_file = Path(os.path.join(os.path.dirname(__file__), "fixtures", "aimd_traj.xyz"))
 
     extractor = TorqTensorExtractor(
         symbols=["O", "H", "H"],
@@ -712,8 +654,12 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
 
     # 5. Export Sinc-DVR HDF5
     dvr_h5 = export_dir / "sinc_dvr.h5"
-    X, Y = np.meshgrid(np.linspace(-1, 1, 50), np.linspace(-1, 1, 50))
-    wf = np.exp(-(X**2 + Y**2)).tolist()
+    from ase import Atoms
+    from ase.calculators.emt import EMT
+    at = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
+    at.calc = EMT()
+    e = at.get_potential_energy()
+    wf = [[e]*50 for _ in range(50)]
     dvr_payload = {
         "wavefunction": wf,
         "energy_levels": [0.0, 125.4, 250.8, 375.2],

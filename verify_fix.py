@@ -1,25 +1,51 @@
+import ast
 import os
-import re
+import sys
 
-banned_patterns = {
-    'semantic_spoofing': re.compile(r'(np\.eye|np\.zeros|np\.ones)')
-}
+def check_file(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        source = f.read()
+    
+    tree = ast.parse(source, filename=filepath)
+    violations = []
+    
+    for node in ast.walk(tree):
+        # 1. Detect np.linspace or np.meshgrid or np.zeros
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+                if node.func.value.id == 'np' and node.func.attr in ['linspace', 'meshgrid', 'zeros', 'ones', 'eye', 'random']:
+                    violations.append(f"Line {node.lineno}: Banned numpy function np.{node.func.attr} used for synthetic data.")
+        
+        # 2. Detect large string literal assignments (mocking file outputs)
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                        # If a string literal assigned to a variable is > 5 lines, it's a mocked file
+                        if node.value.value.count('\n') > 5:
+                            violations.append(f"Line {node.lineno}: Large inline string assignment '{target.id}' (Mocked file).")
+                            
+    return violations
 
-def search_files(directory):
-    for root, _, files in os.walk(directory):
-        if '.git' in root or '__pycache__' in root:
-            continue
-        for file in files:
-            if file.endswith('.py') and file.startswith('test_'):
-                filepath = os.path.join(root, file)
-                try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        lines = f.readlines()
-                        for i, line in enumerate(lines):
-                            for cat, pat in banned_patterns.items():
-                                if pat.search(line):
-                                    print(f"[{cat}] {filepath}:{i+1} : {line.strip()}")
-                except Exception as e:
-                    pass
+def main():
+    target_dir = r"D:\__CoChem\GitHub-Repo\CoChem-TORQ\tests"
+    total_violations = 0
+    for root, _, files in os.walk(target_dir):
+        for f in files:
+            if f.endswith('.py'):
+                path = os.path.join(root, f)
+                violations = check_file(path)
+                if violations:
+                    print(f"Violations in {path}:")
+                    for v in violations:
+                        print(f"  - {v}")
+                    total_violations += len(violations)
+    
+    if total_violations > 0:
+        sys.exit(1)
+    else:
+        print("AST Validation Passed: No inline data mocking detected.")
+        sys.exit(0)
 
-search_files('D:/__CoChem/GitHub-Repo/CoChem-TORQ/tests')
+if __name__ == '__main__':
+    main()
