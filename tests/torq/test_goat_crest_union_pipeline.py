@@ -39,7 +39,24 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
         [2.100, 1.700, 0.850],
     ])
 
-    coords_trans_dup = coords_trans + 0.001
+    from ase import Atoms
+    from ase.calculators.emt import EMT
+    from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+
+    atoms_trans = Atoms(symbols, positions=coords_trans)
+    atoms_trans.calc = EMT()
+    energy_trans = atoms_trans.get_potential_energy()
+
+    atoms_gauche = Atoms(symbols, positions=coords_gauche)
+    atoms_gauche.calc = EMT()
+    energy_gauche = atoms_gauche.get_potential_energy()
+
+    atoms_dup = Atoms(symbols, positions=coords_trans.copy())
+    MaxwellBoltzmannDistribution(atoms_dup, temperature_K=300)
+    coords_trans_dup = coords_trans + atoms_dup.get_velocities() * 0.00005
+    atoms_dup.positions = coords_trans_dup
+    atoms_dup.calc = EMT()
+    energy_dup = atoms_dup.get_potential_energy()
 
     (A1, B1, C1), _, _, _, _ = compute_moments_and_constants(symbols, coords_trans)
     (A2, B2, C2), _, _, _, _ = compute_moments_and_constants(symbols, coords_gauche)
@@ -49,21 +66,21 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
         {
             "symbols": symbols,
             "coordinates": coords_trans.tolist(),
-            "energy_hartree": -154.5000,
+            "energy_hartree": energy_trans,
             "rotational_constants_mhz": (A1, B1, C1),
             "origin": "GOAT",
         },
         {
             "symbols": symbols,
             "coordinates": coords_trans_dup.tolist(),
-            "energy_hartree": -154.4999,
+            "energy_hartree": energy_dup,
             "rotational_constants_mhz": (A3, B3, C3),
             "origin": "CREST",
         },
         {
             "symbols": symbols,
             "coordinates": coords_gauche.tolist(),
-            "energy_hartree": -154.4980,
+            "energy_hartree": energy_gauche,
             "rotational_constants_mhz": (A2, B2, C2),
             "origin": "GOAT",
         },
@@ -74,8 +91,8 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
     assert len(deduped) == 2, f"Expected 2 conformers after deduplication, got {len(deduped)}"
     assert deduped[0]["origin"] == "GOAT"
     energies = [d["energy_hartree"] for d in deduped]
-    assert -154.5000 in energies
-    assert -154.4980 in energies
+    assert energy_trans in energies
+    assert energy_gauche in energies
 
 
 def test_nvidia_mps_health_verification():
