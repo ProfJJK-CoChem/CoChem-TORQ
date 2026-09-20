@@ -1,7 +1,10 @@
-"""Gradient Checkpointing Engine for High-Batch MLFF Training (REQ-TORQ-TRAIN-091 [D]).
+"""Gradient Checkpointing Engine for High-Batch MLFF Training (REQ-TORQ-TRAIN-091 [D] / Task 1.9 [M]).
 
 Enforces autograd second-derivative mechanics (use_reentrant=False, preserve_rng_state=True)
 for conservative atomic forces F = -dE/dR and joint composite loss backpropagation.
+Upgrades local gradient accumulation and loss reductions to double precision (torch.float64)
+to eliminate catastrophic cancellation in near-degenerate states while strictly avoiding
+torch.float128 for CUDA compatibility and memory protection.
 """
 
 from __future__ import annotations
@@ -25,20 +28,28 @@ def compute_composite_loss(
     force_loss_weight: float = 100.0,
     num_atoms_per_molecule: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Calculate joint composite MLFF loss normalized by atomic degrees of freedom. [D]
+    """Calculate joint composite MLFF loss normalized by atomic degrees of freedom in float64. [D]
     
     L(theta) = w_E * (1/B) sum |E_b - E_b^ref|^2 + w_F * (1 / (3 * sum N_b)) sum ||F_i - F_i^ref||^2
+    
+    Upgrades internal differences, squares, and reductions to torch.float64 to eliminate
+    catastrophic cancellation in near-degenerate states and high-batch accumulations.
     
     Returns
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        (total_loss, energy_loss_component, force_loss_component)
+        (total_loss, energy_loss_component, force_loss_component) in float64 precision.
     """
-    batch_size = predicted_energy.shape[0] if predicted_energy.dim() > 0 else 1
-    energy_diff = predicted_energy.view(-1) - reference_energy.view(-1)
+    pred_e_f64 = predicted_energy.to(torch.float64)
+    ref_e_f64 = reference_energy.to(torch.float64)
+    pred_f_f64 = predicted_forces.to(torch.float64)
+    ref_f_f64 = reference_forces.to(torch.float64)
+
+    batch_size = pred_e_f64.shape[0] if pred_e_f64.dim() > 0 else 1
+    energy_diff = pred_e_f64.view(-1) - ref_e_f64.view(-1)
     e_loss = torch.mean(torch.square(energy_diff))
 
-    force_diff = predicted_forces.reshape(-1, 3) - reference_forces.reshape(-1, 3)
+    force_diff = pred_f_f64.reshape(-1, 3) - ref_f_f64.reshape(-1, 3)
     squared_force_errors = torch.sum(torch.square(force_diff), dim=-1)  # shape (N_atoms,)
 
     if num_atoms_per_molecule is not None:
@@ -78,11 +89,13 @@ class CheckpointedMLFF(nn.Module):
         energy_model: nn.Module,
         gradient_checkpointing: bool = True,
         preserve_rng_state: bool = True,
+        force_precision: torch.dtype = torch.float64,
     ) -> None:
         super().__init__()
         self.energy_model = energy_model
         self.gradient_checkpointing = gradient_checkpointing
         self.preserve_rng_state = preserve_rng_state
+        self.force_precision = force_precision
 
     def forward(
         self,
@@ -107,7 +120,7 @@ class CheckpointedMLFF(nn.Module):
         Returns
         -------
         Tuple[torch.Tensor, torch.Tensor]
-            (energy, forces) where forces = -dE/dcoordinates
+            (energy, forces) where forces = -dE/dcoordinates retained in float64 precision.
         """
         if not coordinates.requires_grad:
             coordinates.requires_grad_(True)
@@ -139,8 +152,62 @@ class CheckpointedMLFF(nn.Module):
             only_inputs=True,
         )[0]
 
-        forces = -grad_coords
+        forces = -grad_coords.to(self.force_precision)
         return energy, forces
+
+
+class LocalGradientAccumulator:
+    """High-precision float64 gradient accumulation buffer for model parameters. [M]
+    
+    Accumulates micro-batch gradients in double-precision (torch.float64) to eliminate
+    catastrophic cancellation errors and underflow during high-batch or near-degenerate
+    MLFF training passes, while avoiding torch.float128 for CUDA compatibility.
+    """
+
+    def __init__(self, model: nn.Module, target_dtype: torch.dtype = torch.float64) -> None:
+        if target_dtype != torch.float64:
+            raise ValueError(
+                f"Unsupported gradient accumulation dtype: {target_dtype}. "
+                "Must be torch.float64. float128 is strictly prohibited."
+            )
+        self.model = model
+        self.target_dtype = target_dtype
+        self.accumulated_grads: Dict[str, torch.Tensor] = {}
+        self.accumulation_steps: int = 0
+        self.reset()
+
+    def reset(self) -> None:
+        """Reset all float64 accumulated gradient buffers and step counter."""
+        self.accumulated_grads.clear()
+        self.accumulation_steps = 0
+
+    def accumulate(self, scale: float = 1.0) -> None:
+        """Accumulate current parameter gradients into float64 buffer scaled by scale factor."""
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                grad_f64 = param.grad.detach().to(self.target_dtype) * float(scale)
+                if name not in self.accumulated_grads:
+                    self.accumulated_grads[name] = grad_f64.clone()
+                else:
+                    self.accumulated_grads[name].add_(grad_f64)
+        self.accumulation_steps += 1
+
+    def synchronize_to_model(self, average: bool = False) -> None:
+        """Synchronize accumulated float64 gradients back to model parameter grad tensors."""
+        divisor = float(self.accumulation_steps) if (average and self.accumulation_steps > 0) else 1.0
+        for name, param in self.model.named_parameters():
+            if name in self.accumulated_grads:
+                accum_g = self.accumulated_grads[name] / divisor
+                param.grad = accum_g.to(param.dtype).clone()
+
+    def get_gradient_norm(self) -> float:
+        """Calculate the total L2 norm of accumulated gradients in double precision."""
+        if not self.accumulated_grads:
+            return 0.0
+        total_norm_sq = torch.tensor(0.0, dtype=self.target_dtype)
+        for g in self.accumulated_grads.values():
+            total_norm_sq = total_norm_sq + torch.sum(torch.square(g))
+        return float(torch.sqrt(total_norm_sq).item())
 
 
 def evaluate_forces_parity(
@@ -191,7 +258,7 @@ def evaluate_forces_parity(
     else:
         model.eval()
 
-    max_delta = float(torch.max(torch.abs(forces_eager - forces_chkpt)).item())
+    max_delta = float(torch.max(torch.abs(forces_eager.to(torch.float64) - forces_chkpt.to(torch.float64))).item())
     return max_delta, forces_eager, forces_chkpt
 
 
@@ -213,7 +280,7 @@ def profile_checkpointing_memory(
         wrapper_eager = CheckpointedMLFF(model, gradient_checkpointing=False).to(device)
         coords_eager = coordinates.clone().detach().requires_grad_(True).to(device)
         e_e, f_e = wrapper_eager(coords_eager, species.to(device), edge_index)
-        loss_e = (e_e.sum() + f_e.sum())
+        loss_e = (e_e.to(torch.float64).sum() + f_e.to(torch.float64).sum())
         loss_e.backward()
         vram_eager = float(torch.cuda.max_memory_allocated(device))
 
@@ -221,7 +288,7 @@ def profile_checkpointing_memory(
         wrapper_chk = CheckpointedMLFF(model, gradient_checkpointing=True).to(device)
         coords_chk = coordinates.clone().detach().requires_grad_(True).to(device)
         e_c, f_c = wrapper_chk(coords_chk, species.to(device), edge_index)
-        loss_c = (e_c.sum() + f_c.sum())
+        loss_c = (e_c.to(torch.float64).sum() + f_c.to(torch.float64).sum())
         loss_c.backward()
         vram_chk = float(torch.cuda.max_memory_allocated(device))
 
@@ -234,7 +301,7 @@ def profile_checkpointing_memory(
         wrapper_e = CheckpointedMLFF(model, gradient_checkpointing=False)
         coords_e = coordinates.clone().detach().requires_grad_(True)
         e_e, f_e = wrapper_e(coords_e, species, edge_index)
-        loss_e = (e_e.sum() + f_e.sum())
+        loss_e = (e_e.to(torch.float64).sum() + f_e.to(torch.float64).sum())
         loss_e.backward()
         current_e, peak_e = tracemalloc.get_traced_memory()
         tracemalloc.stop()
@@ -243,7 +310,7 @@ def profile_checkpointing_memory(
         wrapper_c = CheckpointedMLFF(model, gradient_checkpointing=True)
         coords_c = coordinates.clone().detach().requires_grad_(True)
         e_c, f_c = wrapper_c(coords_c, species, edge_index)
-        loss_c = (e_c.sum() + f_c.sum())
+        loss_c = (e_c.to(torch.float64).sum() + f_c.to(torch.float64).sum())
         loss_c.backward()
         current_c, peak_c = tracemalloc.get_traced_memory()
         tracemalloc.stop()
@@ -253,3 +320,4 @@ def profile_checkpointing_memory(
         results["ratio"] = float(peak_c) / max(float(peak_e), 1.0)
 
     return results
+

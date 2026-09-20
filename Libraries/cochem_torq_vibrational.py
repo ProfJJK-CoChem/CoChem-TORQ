@@ -5,21 +5,35 @@ Method Matrix v4 Provenance Tags:
 - [D] Derived: Double-autograd Cartesian Hessian, Gram-Schmidt Eckart projector, CODATA 2022 dimensional scaling.
 - [E] Empirical: Orthonormalization threshold 1e-7, signed frequency non-NaN reporting.
 
-Strict Zero-Mock Mandate v3: Absolutely no stubs, empty pass blocks, or mock data.
+Strict Anti-Spoofing Protocol v4: Zero dead-end stubs, empty pass blocks, or unphysical bypass logic.
 """
 
 from __future__ import annotations
 
 import math
-from typing import Callable, List, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 import mendeleev
 import torch
 
-from Libraries.cochem_torq_inference_errors import (
-    NumericalParityError,
-    PhysicsDivergenceError,
-)
-from Libraries.cochem_torq_inference_schemas import VibrationalModes
+try:
+    from Libraries.cochem_torq_inference_errors import (
+        NumericalParityError,
+        PhysicsDivergenceError,
+    )
+    from Libraries.cochem_torq_inference_schemas import VibrationalModes
+except ImportError:  # pragma: no cover
+    try:
+        from cochem_base.cochem_torq_inference_errors import (
+            NumericalParityError,
+            PhysicsDivergenceError,
+        )
+        from cochem_base.cochem_torq_inference_schemas import VibrationalModes
+    except ImportError:  # pragma: no cover
+        from cochem_torq_inference_errors import (
+            NumericalParityError,
+            PhysicsDivergenceError,
+        )
+        from cochem_torq_inference_schemas import VibrationalModes
 
 # CODATA 2022 Fundamental Constants [M]/[D]
 # 1 eV = 1.602176634e-19 J
@@ -34,6 +48,100 @@ CODATA_2022_H_EVS = 4.135667696e-15
 CODATA_2022_HC_EV_CM = CODATA_2022_H_EVS * CODATA_2022_C_CMS  # 1.239841984e-4 eV*cm
 # Conversion factor from sqrt(eV / (A^2 * u)) to cm^-1: sqrt(kappa) / (2 * pi * c)
 CODATA_2022_FREQ_FACTOR = math.sqrt(CODATA_2022_KAPPA) / (2.0 * math.pi * CODATA_2022_C_CMS)  # ~521.4708316 cm^-1
+
+# Method Matrix v4 / NIST CCCBDB Harmonic Frequency ZPE Scaling Factors [M]/[E]
+# Reference: Kesharwani et al. (2015), Grimme et al., CCCBDB benchmark database
+HARMONIC_ZPE_SCALE_FACTORS: Dict[str, float] = {
+    "xtb2": 1.000,
+    "gfn2-xtb": 1.000,
+    "r2scan-3c": 0.985,
+    "wb97x-3c": 0.975,
+    "wb97x-d3": 0.975,
+    "wb97x-d4": 0.975,
+    "wb97x-d": 0.975,
+    "wb97m-v": 0.975,
+    "mp2": 0.966,
+    "b3lyp-d4": 0.965,
+    "b3lyp-d3": 0.965,
+    "b3lyp": 0.965,
+    "cam-b3lyp": 0.967,
+    "m06-2x": 0.967,
+    "m06-l": 0.970,
+    "m06": 0.969,
+    "pw6b95": 0.964,
+    "pbe0-d4": 0.960,
+    "pbe0": 0.960,
+    "pbe": 0.989,
+    "blyp": 0.990,
+    "tpss": 0.992,
+    "dlpno-ccsd(t)": 0.957,
+    "ccsd(t)-f12": 0.957,
+    "ccsd(t)": 0.957,
+    "junchs": 0.957,
+    "chs": 0.957,
+}
+DEFAULT_HARMONIC_ZPE_SCALE_FACTOR: float = 0.960
+
+
+def resolve_harmonic_zpe_scale_factor(
+    method: Optional[str] = None,
+    explicit_scale_factor: Optional[float] = None,
+) -> Tuple[float, Optional[str]]:
+    """Resolve and enforce physical harmonic frequency ZPE scaling factor [M]/[D].
+
+    Validates that the scaling factor falls within physical bounds [0.5, 1.5]
+    and maps the computational method to authoritative Method Matrix v4 / CCCBDB
+    scaling standards.
+
+    Parameters
+    ----------
+    method : Optional[str]
+        Quantum mechanical or semi-empirical method name (e.g. 'r2scan-3c', 'dlpno-ccsd(t)').
+    explicit_scale_factor : Optional[float]
+        Explicit multiplicative scaling factor overriding method defaults.
+
+    Returns
+    -------
+    Tuple[float, Optional[str]]
+        (scale_factor, resolved_method)
+
+    Raises
+    ------
+    PhysicsDivergenceError
+        If explicit scale factor is outside physical bounds [0.5, 1.5] or non-finite.
+    """
+    if explicit_scale_factor is not None:
+        try:
+            scale = float(explicit_scale_factor)
+        except (ValueError, TypeError) as exc:
+            raise PhysicsDivergenceError(
+                f"ZPE scaling factor must be a numeric float, got {explicit_scale_factor!r}.",
+                error_code="TORQ_INVALID_ZPE_SCALE_FACTOR",
+                component="zpe_scale_resolver",
+                diagnostics={"explicit_scale_factor": str(explicit_scale_factor)},
+            ) from exc
+
+        if math.isnan(scale) or math.isinf(scale) or scale < 0.5 or scale > 1.5:
+            raise PhysicsDivergenceError(
+                f"Harmonic ZPE scaling factor {scale} falls outside physical bounds [0.5, 1.5].",
+                error_code="TORQ_INVALID_ZPE_SCALE_FACTOR",
+                component="zpe_scale_resolver",
+                diagnostics={"scale_factor": scale},
+            )
+        resolved_method = method.strip().lower() if method else "explicit_override"
+        return scale, resolved_method
+
+    if method is not None and method.strip():
+        method_clean = method.strip().lower()
+        # Sort by key length descending to prevent sub-string collisions (e.g. b3lyp matching cam-b3lyp or pbe matching pbe0)
+        for key in sorted(HARMONIC_ZPE_SCALE_FACTORS.keys(), key=len, reverse=True):
+            if key in method_clean:
+                return HARMONIC_ZPE_SCALE_FACTORS[key], method_clean
+        # Default fallback for unmapped method in quantum regime
+        return DEFAULT_HARMONIC_ZPE_SCALE_FACTOR, method_clean
+
+    # Unscaled default when neither method nor explicit factor is specified
+    return 1.000, None
 
 
 def resolve_ciaaw_monoisotopic_mass(atomic_number: int) -> float:
@@ -241,8 +349,10 @@ def analyze_vibrational_frequencies(
     atomic_numbers: Sequence[int],
     energy_fn: Callable[[torch.Tensor], torch.Tensor],
     filter_projected: bool = True,
+    method: Optional[str] = None,
+    zpe_scale_factor: Optional[float] = None,
 ) -> VibrationalModes:
-    """Compute mass-weighted projected normal modes, CODATA 2022 frequencies, and ZPVE [M]/[D].
+    """Compute mass-weighted projected normal modes, CODATA 2022 frequencies, and scaled ZPVE [M]/[D].
 
     Parameters
     ----------
@@ -255,12 +365,18 @@ def analyze_vibrational_frequencies(
     filter_projected : bool
         If True (default), project and remove the D translational/rotational zero modes,
         reporting strictly the 3N - D genuine vibrational normal modes.
+    method : Optional[str]
+        Quantum mechanical or semi-empirical method name (e.g. 'r2scan-3c', 'dlpno-ccsd(t)').
+        Used to resolve canonical Method Matrix v4 / CCCBDB ZPE scaling factors.
+    zpe_scale_factor : Optional[float]
+        Explicit multiplicative harmonic ZPE scaling factor overriding method defaults.
+        Must fall within physical bounds [0.5, 1.5].
 
     Returns
     -------
     VibrationalModes
         Certified normal mode report containing signed wavenumbers (cm^-1), eigenvalues,
-        imaginary mode count, and ZPVE (eV).
+        imaginary mode count, scaled and unscaled ZPVE (eV), and applied scaling factor.
     """
     if coords.dtype != torch.float64:
         raise NumericalParityError(
@@ -275,6 +391,12 @@ def analyze_vibrational_frequencies(
         raise ValueError(
             f"Atomic numbers length ({len(atomic_numbers)}) does not match coordinates atom count ({num_atoms})."
         )
+
+    # Resolve and validate harmonic ZPE scaling factor [M]/[D]
+    scale_factor, resolved_method = resolve_harmonic_zpe_scale_factor(
+        method=method,
+        explicit_scale_factor=zpe_scale_factor,
+    )
 
     # 1. Resolve pure CIAAW monoisotopic masses [M]
     mass_list = [resolve_ciaaw_monoisotopic_mass(int(z)) for z in atomic_numbers]
@@ -323,18 +445,28 @@ def analyze_vibrational_frequencies(
             imaginary_count += 1
 
     # 8. Harmonic Zero-Point Vibrational Energy (ZPVE) summed over real modes (lambda_k > 0) [D]
-    # E_ZPE = 0.5 * sum_{k: nu_k > 0} (h * c * nu_k) in eV
-    zpe_ev = 0.5 * sum(
+    # E_ZPE_unscaled = 0.5 * sum_{k: nu_k > 0} (h * c * nu_k) in eV
+    # E_ZPE_scaled = scale_factor * E_ZPE_unscaled
+    unscaled_zpe_ev = 0.5 * sum(
         CODATA_2022_HC_EV_CM * f
         for f in frequencies_cm1
         if f > 0.0
     )
+    scaled_zpe_ev = scale_factor * unscaled_zpe_ev
+    scaled_frequencies = [
+        float(f * scale_factor)
+        for f in frequencies_cm1
+    ]
 
     return VibrationalModes(
         frequencies_cm1=frequencies_cm1,
-        zero_point_energy_ev=float(zpe_ev),
+        zero_point_energy_ev=float(scaled_zpe_ev),
         imaginary_mode_count=imaginary_count,
         eigenvalues=selected_eigenvalues,
         projected_degrees_of_freedom=d_proj,
         mass_weighting_standard="CIAAW_MONOISOTOPIC",
+        zpe_scale_factor=float(scale_factor),
+        unscaled_zero_point_energy_ev=float(unscaled_zpe_ev),
+        scaled_frequencies_cm1=scaled_frequencies,
+        method=resolved_method,
     )

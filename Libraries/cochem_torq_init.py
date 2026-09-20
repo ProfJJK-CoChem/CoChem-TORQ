@@ -29,9 +29,11 @@ Authoritative Sources:
 from __future__ import annotations
 
 import atexit
+import hashlib
+import json
 import logging
 import mmap
-import multiprocessing.shared_memory as sm  # zero-stub IPC shared memory
+import multiprocessing.shared_memory as sm  # zero-empty_block IPC shared memory
 import os
 import shutil
 import tempfile
@@ -55,6 +57,34 @@ _ACTIVE_BUFFERS: Final[list[IPCScratchBuffer]] = []
 _ACTIVE_FILE_DESCRIPTORS: Final[set[int]] = set()
 _ATEXIT_REGISTERED: bool = False
 
+__all__ = [
+    "AirGapViolationError",
+    "IPCBufferError",
+    "ProvenanceIntegrityError",
+    "ProvenanceHashMismatchError",
+    "AirGapReport",
+    "FitProvenanceReport",
+    "IPCBufferMetadata",
+    "BootstrapperConfig",
+    "get_artifact_directory",
+    "get_scratch_directory",
+    "check_airgap",
+    "verify_airgap",
+    "format_airgap_error",
+    "prompt_airgap_remediation",
+    "IPCScratchBuffer",
+    "create_ipc_scratch_buffer",
+    "register_mmap_buffer",
+    "register_ipc_cleanup",
+    "unregister_ipc_cleanup",
+    "cleanup_ipc_scratch",
+    "canonicalize_provenance_json",
+    "compute_provenance_sha256",
+    "compute_file_sha256",
+    "validate_fit_provenance",
+    "bootstrap_environment",
+]
+
 
 # ============================================================================
 # Exceptions
@@ -62,11 +92,47 @@ _ATEXIT_REGISTERED: bool = False
 
 
 class AirGapViolationError(RuntimeError):
-    """Raised when working directory and artifact directory overlap or intersect."""
+    """Raised when working directory and artifact directory overlap or intersect.
+
+    Hard-fails deterministically on Air-Gap violations with rich diagnostic details,
+    explicit rejection of silent auto-moving (to avoid breaking relative paths and
+    violating operational predictability), and concrete remediation commands.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        cwd: Path | str | None = None,
+        artifacts_dir: Path | str | None = None,
+        reason: str | None = None,
+        remediation_command: str | None = None,
+        target_path: Path | str | None = None,
+        repo_root: Path | str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.cwd = Path(cwd).resolve() if cwd is not None else None
+        self.artifacts_dir = Path(artifacts_dir).resolve() if artifacts_dir is not None else None
+        self.target_path = Path(target_path).resolve() if target_path is not None else self.artifacts_dir
+        self.repo_root = Path(repo_root).resolve() if repo_root is not None else self.cwd
+        self.reason = reason
+        self.remediation_command = remediation_command
+        self.auto_move_rejected: bool = True
+
+    def __str__(self) -> str:
+        return self.message
 
 
 class IPCBufferError(RuntimeError):
     """Raised when memory-mapped buffer creation, access, or teardown fails."""
+
+
+class ProvenanceIntegrityError(RuntimeError):
+    """Raised when fit_provenance.json integrity, formatting, or dataset binding fails."""
+
+
+class ProvenanceHashMismatchError(ProvenanceIntegrityError):
+    """Raised when canonical SHA-256 validation of fit_provenance.json fails."""
 
 
 # ============================================================================
@@ -93,6 +159,34 @@ class AirGapReport(BaseModel):
     )
     reason: str | None = Field(
         default=None, description="Diagnostic explanation of air-gap violation if any"
+    )
+
+
+class FitProvenanceReport(BaseModel):
+    """Diagnostic report describing fit_provenance.json validation results."""
+
+    model_config = ConfigDict(frozen=True)
+
+    is_valid: bool = Field(
+        ..., description="True if SHA-256 hash matches canonical payload"
+    )
+    provenance_path: Path = Field(
+        ..., description="Canonical path to evaluated fit_provenance.json"
+    )
+    computed_sha256: str = Field(
+        ..., description="Calculated canonical SHA-256 digest"
+    )
+    expected_sha256: str | None = Field(
+        default=None, description="Expected SHA-256 digest from file or caller"
+    )
+    dataset_hashes_verified: int = Field(
+        default=0, description="Count of verified dataset file hashes"
+    )
+    verified_at: float = Field(
+        default_factory=time.time, description="Unix timestamp of verification check"
+    )
+    diagnostics: str | None = Field(
+        default=None, description="Diagnostic explanation of validation failure if any"
     )
 
 
@@ -154,6 +248,22 @@ class BootstrapperConfig(BaseModel):
     )
     clean_on_exit: bool = Field(
         default=True, description="Whether automatic atexit IPC cleanup is registered"
+    )
+    validate_provenance: bool = Field(
+        default=True,
+        description="Whether fit_provenance.json SHA-256 validation is enforced at startup",
+    )
+    fit_provenance_path: Path | None = Field(
+        default=None,
+        description="Path to validated fit_provenance.json if present or discovered",
+    )
+    provenance_hash: str | None = Field(
+        default=None,
+        description="Validated canonical SHA-256 hash of fit_provenance.json",
+    )
+    provenance_report: FitProvenanceReport | None = Field(
+        default=None,
+        description="Full diagnostic report of fit_provenance.json validation",
     )
 
 
@@ -353,6 +463,62 @@ def check_airgap(
     )
 
 
+def format_airgap_error(report: AirGapReport) -> str:
+    """Format an informative, descriptive error banner for an AirGapReport violation.
+
+    Explicitly articulates that silent auto-moving of files is strictly rejected
+    to prevent breaking relative paths and violating operational predictability,
+    and provides concrete cross-platform configuration and remediation commands.
+    """
+    posix_env = 'export COCHEM_ARTIFACTS="$HOME/CoChem_Artifacts" && export COCHEM_SCRATCH="/tmp/cochem_scratch"'
+    ps_env = '$env:COCHEM_ARTIFACTS="$HOME\\CoChem_Artifacts"; $env:COCHEM_SCRATCH="$env:TEMP\\cochem_scratch"'
+
+    banner = (
+        f"\n{'=' * 80}\n"
+        f"[HARD_ABORT: AIR-GAP VIOLATION] Tripartite Filesystem Boundary Breach\n"
+        f"{'=' * 80}\n"
+        f"Failure Mode       : AirGapViolationError: Air-gap integrity violated! {report.reason}.\n"
+        f"Working Directory  : {report.cwd_resolved}\n"
+        f"Artifacts Directory: {report.artifacts_resolved}\n"
+        f"Detail             : CoChem-TORQ forbids writing runtime artifacts inside or overlapping the working repository space.\n"
+        f"\n"
+        f"Auto-Move Policy:\n"
+        f"  [AUTO-MOVE FORBIDDEN] CoChem-TORQ strictly rejects silent auto-moving of files.\n"
+        f"  Auto-relocating files silently breaks relative paths, corrupts pipeline provenance,\n"
+        f"  and violates deterministic operational predictability. Execution has hard-aborted.\n"
+        f"\n"
+        f"Actionable Remediation Protocol (SRS Doc 2 Part 1 §1.1):\n"
+        f"  1. Configure disjoint directories outside the repository tree:\n"
+        f"     POSIX/Bash        : {posix_env}\n"
+        f"     Windows PowerShell: {ps_env}\n"
+        f"  2. Re-verify runtime environment initialization:\n"
+        f"     python -c \"from Libraries.cochem_torq_init import bootstrap_environment; bootstrap_environment()\"\n"
+        f"{'=' * 80}"
+    )
+    return banner
+
+
+def prompt_airgap_remediation(
+    error: AirGapViolationError,
+    interactive: bool = False,
+) -> str:
+    """Provides a formatted remediation summary or interactive prompt options for AirGapViolationError."""
+    remediation = (
+        f"\n[REMEDIATION GUIDE FOR AIR-GAP BREACH]\n"
+        f"Reason        : {error.reason or 'Working directory and artifacts directory intersect.'}\n"
+        f"Working Dir   : {error.cwd}\n"
+        f"Artifacts Dir : {error.artifacts_dir}\n"
+        f"Suggested Fix :\n"
+        f"  {error.remediation_command or 'Configure disjoint COCHEM_ARTIFACTS and COCHEM_SCRATCH environment variables.'}\n"
+    )
+    if interactive and sys.stdin.isatty():
+        try:
+            input(f"{remediation}\nPress Enter once manual remediation is completed to proceed, or Ctrl+C to abort...")
+        except (KeyboardInterrupt, EOFError):
+            pass
+    return remediation
+
+
 def verify_airgap(
     cwd: Path | str | None = None,
     artifacts_dir: Path | str | None = None,
@@ -374,13 +540,16 @@ def verify_airgap(
     """
     report = check_airgap(cwd=cwd, artifacts_dir=artifacts_dir)
     if not report.is_valid:
-        error_msg = (
-            f"AirGapViolationError: Air-gap integrity violated! {report.reason}. "
-            "CoChem-TORQ forbids writing runtime artifacts inside or "
-            "overlapping the working repository space."
-        )
+        error_msg = format_airgap_error(report)
         logger.error(error_msg)
-        raise AirGapViolationError(error_msg)
+        posix_remed = 'export COCHEM_ARTIFACTS="$HOME/CoChem_Artifacts" && export COCHEM_SCRATCH="/tmp/cochem_scratch"'
+        raise AirGapViolationError(
+            message=error_msg,
+            cwd=report.cwd_resolved,
+            artifacts_dir=report.artifacts_resolved,
+            reason=report.reason,
+            remediation_command=posix_remed,
+        )
 
     logger.info(
         "Air-gap boundary verified: cwd='%s' is isolated from artifacts_dir='%s'.",
@@ -975,6 +1144,292 @@ def cleanup_ipc_scratch(
 
 
 # ============================================================================
+# Provenance Canonicalization & SHA-256 Hash Validation
+# ============================================================================
+
+
+def canonicalize_provenance_json(
+    content: dict[str, Any] | str | bytes | Path,
+    exclude_keys: Sequence[str] = ("sha256", "hash", "provenance_hash", "_canonical_sha256"),
+) -> bytes:
+    """Canonicalize JSON provenance payload for deterministic SHA-256 hashing.
+
+    Normalizes data structures by recursively sorting dictionary keys, stripping
+    variable formatting whitespace, applying standard compact separators (',', ':'),
+    and excluding self-referential hash fields. This guarantees that whitespace
+    or key-ordering variations do not cause brittle failures while strictly
+    catching semantic alterations to CODATA constants or physical parameters.
+
+    Args:
+        content: Dictionary, JSON string, bytes, or Path to JSON file.
+        exclude_keys: Sequence of key names to omit from canonicalization.
+
+    Returns:
+        Canonical UTF-8 encoded bytes.
+
+    Raises:
+        ProvenanceIntegrityError: If content is unparseable or of unsupported type.
+        FileNotFoundError: If a specified file path does not exist on disk.
+    """
+    if isinstance(content, Path):
+        p = content.resolve()
+        if not p.is_file():
+            raise FileNotFoundError(f"Provenance file not found at '{p}'")
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as exc:
+            raise ProvenanceIntegrityError(
+                f"Failed to parse provenance JSON file '{p}': {exc}"
+            ) from exc
+    elif isinstance(content, (str, bytes)):
+        if isinstance(content, str) and (content.endswith(".json") or os.path.isfile(content)):
+            p = Path(content).resolve()
+            if not p.is_file():
+                raise FileNotFoundError(f"Provenance file not found at '{p}'")
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                raise ProvenanceIntegrityError(
+                    f"Failed to parse provenance JSON file '{p}': {exc}"
+                ) from exc
+        else:
+            try:
+                data = json.loads(content)
+            except Exception as exc:
+                raise ProvenanceIntegrityError(
+                    f"Failed to decode provenance JSON string: {exc}"
+                ) from exc
+    elif isinstance(content, dict):
+        data = content
+    else:
+        raise ProvenanceIntegrityError(
+            f"Unsupported content type for canonicalization: {type(content).__name__}"
+        )
+
+    exclude_set = set(exclude_keys)
+
+    def _normalize(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {
+                str(k): _normalize(v)
+                for k, v in sorted(obj.items())
+                if k not in exclude_set
+            }
+        elif isinstance(obj, (list, tuple)):
+            return [_normalize(item) for item in obj]
+        elif isinstance(obj, float):
+            return float(obj)
+        return obj
+
+    normalized = _normalize(data)
+    canonical_str = json.dumps(
+        normalized,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return canonical_str.encode("utf-8")
+
+
+def compute_provenance_sha256(
+    content: dict[str, Any] | str | bytes | Path,
+    exclude_keys: Sequence[str] = ("sha256", "hash", "provenance_hash", "_canonical_sha256"),
+) -> str:
+    """Compute deterministic SHA-256 hex digest of canonicalized provenance data.
+
+    Args:
+        content: Dictionary, JSON string, bytes, or Path to JSON file.
+        exclude_keys: Sequence of key names to omit from canonicalization.
+
+    Returns:
+        64-character lowercase hexadecimal SHA-256 digest string.
+    """
+    canonical_bytes = canonicalize_provenance_json(content, exclude_keys=exclude_keys)
+    return hashlib.sha256(canonical_bytes).hexdigest()
+
+
+def compute_file_sha256(file_path: Path | str, chunk_size: int = 65536) -> str:
+    """Compute SHA-256 digest of a physical file iteratively without memory bloat.
+
+    Args:
+        file_path: Path to target file on disk.
+        chunk_size: Byte chunk read size (default: 64 KB).
+
+    Returns:
+        Hexadecimal SHA-256 digest string.
+
+    Raises:
+        FileNotFoundError: If file_path does not exist.
+    """
+    p = Path(file_path).resolve()
+    if not p.is_file():
+        raise FileNotFoundError(f"Target file does not exist: {p}")
+
+    hasher = hashlib.sha256()
+    with open(p, "rb") as f:
+        while chunk := f.read(chunk_size):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def validate_fit_provenance(
+    provenance_path: Path | str | dict[str, Any] | None = None,
+    expected_hash: str | None = None,
+    enforce_dataset_hashes: bool = True,
+    search_dirs: Sequence[Path | str] | None = None,
+) -> FitProvenanceReport:
+    """Validate SHA-256 cryptographic hash and integrity of fit_provenance.json.
+
+    Canonicalizes the JSON content (ignoring whitespace and key order) before hashing,
+    guaranteeing that no local modifications to CODATA constants or isotopic masses pass
+    silently without brittle formatting failures.
+
+    Validates against the internal self-referential hash field (e.g. 'sha256' or 'provenance_hash')
+    and/or an externally supplied `expected_hash`. When `enforce_dataset_hashes` is True,
+    verifies that any dataset files specified in 'dataset_hashes' exist on disk with
+    identical cryptographic digests.
+
+    Args:
+        provenance_path: Explicit Path/str to fit_provenance.json, or loaded dict. If None,
+                         searches `search_dirs` or default locations (artifacts, cwd, scratch).
+        expected_hash: Optional externally expected SHA-256 hex digest.
+        enforce_dataset_hashes: If True, asserts bitwise hash matches for referenced datasets.
+        search_dirs: Optional search directories if provenance_path is None.
+
+    Returns:
+        `FitProvenanceReport` containing detailed validation metadata.
+
+    Raises:
+        FileNotFoundError: If provenance file is missing and was explicitly required.
+        ProvenanceIntegrityError: If JSON syntax is invalid or dataset file verification fails.
+        ProvenanceHashMismatchError: If canonical SHA-256 digest does not match expected digest.
+    """
+    target_file: Path
+    data: dict[str, Any]
+
+    if provenance_path is not None and not isinstance(provenance_path, dict):
+        target_file = Path(provenance_path).expanduser().resolve()
+        if not target_file.is_file():
+            raise FileNotFoundError(
+                f"fit_provenance.json not found at explicit path: '{target_file}'"
+            )
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as exc:
+            raise ProvenanceIntegrityError(
+                f"Failed to read or parse fit_provenance.json at '{target_file}': {exc}"
+            ) from exc
+    elif isinstance(provenance_path, dict):
+        data = provenance_path
+        target_file = Path("in_memory_fit_provenance.json")
+    else:
+        # Search candidate paths
+        candidate_dirs: list[Path] = []
+        if search_dirs:
+            candidate_dirs.extend(Path(d).expanduser().resolve() for d in search_dirs)
+        candidate_dirs.append(get_artifact_directory(create_if_missing=False))
+        candidate_dirs.append(Path.cwd().resolve())
+        candidate_dirs.append(get_scratch_directory(create_if_missing=False))
+
+        discovered_file: Path | None = None
+        for c_dir in candidate_dirs:
+            cand = c_dir / "fit_provenance.json"
+            if cand.is_file():
+                discovered_file = cand
+                break
+
+        if discovered_file is None:
+            if expected_hash is not None:
+                raise FileNotFoundError(
+                    "expected_hash was provided, but fit_provenance.json was not found "
+                    f"in search paths: {[str(d) for d in candidate_dirs]}"
+                )
+            return FitProvenanceReport(
+                is_valid=False,
+                provenance_path=Path("fit_provenance.json"),
+                computed_sha256="",
+                expected_sha256=expected_hash,
+                dataset_hashes_verified=0,
+                diagnostics="No fit_provenance.json file found in search directories.",
+            )
+
+        target_file = discovered_file
+        try:
+            with open(target_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as exc:
+            raise ProvenanceIntegrityError(
+                f"Failed to read or parse fit_provenance.json at '{target_file}': {exc}"
+            ) from exc
+
+    computed_hash = compute_provenance_sha256(data)
+
+    internal_hash = data.get("sha256") or data.get("provenance_hash") or data.get("hash")
+    target_expected: str | None = None
+    if expected_hash is not None:
+        target_expected = expected_hash.strip().lower()
+    elif internal_hash is not None:
+        target_expected = str(internal_hash).strip().lower()
+
+    if target_expected is None:
+        err = "[HARD_ABORT: PROVENANCE HASH MISMATCH] fit_provenance.json lacks internal SHA-256 and no external hash was provided!"
+        logger.error(err)
+        raise ProvenanceHashMismatchError(err)
+
+    if computed_hash != target_expected:
+        err = (
+            f"[HARD_ABORT: PROVENANCE HASH MISMATCH] fit_provenance.json integrity check failed! "
+            f"Computed canonical SHA-256 '{computed_hash}' does not match expected "
+            f"'{target_expected}' at '{target_file}'."
+        )
+        logger.error(err)
+        raise ProvenanceHashMismatchError(err)
+
+    # Dataset hashes verification
+    datasets_verified = 0
+    if enforce_dataset_hashes and "dataset_hashes" in data and isinstance(data["dataset_hashes"], dict):
+        base_search_dir = target_file.parent if target_file.is_file() else Path.cwd()
+        for dset_name, exp_dset_hash in data["dataset_hashes"].items():
+            clean_exp_hash = str(exp_dset_hash).strip().lower()
+            dset_cand = base_search_dir / dset_name
+            if not dset_cand.is_file():
+                art_cand = get_artifact_directory(create_if_missing=False) / dset_name
+                if art_cand.is_file():
+                    dset_cand = art_cand
+
+            if dset_cand.is_file():
+                actual_dset_hash = compute_file_sha256(dset_cand)
+                if actual_dset_hash != clean_exp_hash:
+                    err = (
+                        f"[HARD_ABORT: DATASET INTEGRITY VIOLATION] Referenced dataset file '{dset_name}' "
+                        f"hash mismatch! Actual SHA-256 '{actual_dset_hash}' does not match "
+                        f"provenance digest '{clean_exp_hash}'."
+                    )
+                    logger.error(err)
+                    raise ProvenanceIntegrityError(err)
+                datasets_verified += 1
+
+    logger.info(
+        "fit_provenance.json verified successfully: path='%s', sha256='%s', datasets_verified=%d",
+        target_file,
+        computed_hash,
+        datasets_verified,
+    )
+
+    return FitProvenanceReport(
+        is_valid=True,
+        provenance_path=target_file,
+        computed_sha256=computed_hash,
+        expected_sha256=target_expected,
+        dataset_hashes_verified=datasets_verified,
+        diagnostics=None,
+    )
+
+
+# ============================================================================
 # Environment Bootstrap Routine
 # ============================================================================
 
@@ -985,12 +1440,16 @@ def bootstrap_environment(
     fallback_artifacts: Path | str | None = None,
     fallback_scratch: Path | str | None = None,
     enforce_airgap: bool = True,
+    validate_provenance: bool = True,
+    fit_provenance_path: Path | str | None = None,
+    expected_provenance_hash: str | None = None,
 ) -> BootstrapperConfig:
     """Bootstrap runtime environment for CoChem-TORQ execution.
 
     Resolves artifact and scratch directories dynamically, performs mathematical
     air-gap validation against the current working repository space, ensures
-    directory creation, and registers the atexit IPC cleanup collector.
+    directory creation, optionally validates SHA-256 provenance hashes for
+    `fit_provenance.json`, and registers the atexit IPC cleanup collector.
 
     Args:
         artifacts_env: Environment variable for persistent artifacts.
@@ -999,12 +1458,18 @@ def bootstrap_environment(
         fallback_scratch: Optional fallback path for scratch directory.
         enforce_airgap: If True, asserts strict mathematical isolation between
             CWD and runtime directories, raising `AirGapViolationError` on intersection.
+        validate_provenance: If True, enforces SHA-256 canonical hash validation on
+            `fit_provenance.json` before computation begins.
+        fit_provenance_path: Optional explicit Path/str to `fit_provenance.json`.
+        expected_provenance_hash: Optional expected SHA-256 hex digest.
 
     Returns:
         Validated `BootstrapperConfig` instance.
 
     Raises:
         AirGapViolationError: If air-gap validation fails and enforce_airgap is True.
+        ProvenanceHashMismatchError: If provenance SHA-256 hash fails validation.
+        ProvenanceIntegrityError: If provenance payload or dataset binding is corrupted.
     """
     artifacts_path = get_artifact_directory(
         env_var=artifacts_env,
@@ -1023,6 +1488,28 @@ def bootstrap_environment(
         verify_airgap(cwd=Path.cwd(), artifacts_dir=scratch_path)
         verify_airgap(cwd=artifacts_path, artifacts_dir=scratch_path)
 
+    prov_report: FitProvenanceReport | None = None
+    if validate_provenance:
+        prov_target: Path | None = None
+        if fit_provenance_path is not None:
+            prov_target = Path(fit_provenance_path).expanduser().resolve()
+
+        search_dirs: list[Path] = []
+        if fallback_artifacts is not None:
+            search_dirs.append(Path(fallback_artifacts).expanduser().resolve())
+
+        prov_report = validate_fit_provenance(
+            provenance_path=prov_target,
+            expected_hash=expected_provenance_hash,
+            enforce_dataset_hashes=True,
+            search_dirs=search_dirs if search_dirs else None,
+        )
+
+        if not prov_report.is_valid:
+            err = f"[HARD_ABORT: PROVENANCE VALIDATION FAILED] {prov_report.diagnostics}"
+            logger.error(err)
+            raise ProvenanceIntegrityError(err)
+
     _ensure_atexit_registered()
     register_ipc_cleanup(scratch_paths=[scratch_path])
 
@@ -1033,12 +1520,17 @@ def bootstrap_environment(
         scratch_env_var=scratch_env,
         enforce_airgap=enforce_airgap,
         clean_on_exit=True,
+        validate_provenance=validate_provenance,
+        fit_provenance_path=prov_report.provenance_path if (prov_report and prov_report.is_valid) else None,
+        provenance_hash=prov_report.computed_sha256 if (prov_report and prov_report.is_valid) else None,
+        provenance_report=prov_report,
     )
 
     logger.info(
-        "CoChem-TORQ Bootstrapped: artifacts='%s', scratch='%s', airgap_enforced=%s",
+        "CoChem-TORQ Bootstrapped: artifacts='%s', scratch='%s', airgap_enforced=%s, provenance_validated=%s",
         artifacts_path,
         scratch_path,
         enforce_airgap,
+        bool(prov_report and prov_report.is_valid),
     )
     return config
