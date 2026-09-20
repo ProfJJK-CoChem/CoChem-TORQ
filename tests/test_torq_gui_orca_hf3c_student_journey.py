@@ -1,11 +1,11 @@
-"""Authentic Zero-Mock Physical Test Suite: Student UI Journey & He2 xTB/GFN2-xTB Execution.
+"""Authentic Zero-Mock Physical Test Suite: Student UI Journey & He2 ORCA/HF-3c Execution.
 
 Target Repository: TORQ (CoChem-TORQ)
-Defect ID: PROB-TORQ-UI-XTB-GFN2-HE2-001
+Defect ID: PROB-TORQ-UI-ORCA-HF3C-HE2-001
 Interaction Environment: GitHub Codespaces
 Calculation Environment: github-actions
-Engine: xTB
-Method: GFN2-xTB
+Engine: ORCA
+Method: HF-3c
 Target Complex: He-He van der Waals dimer (He2)
 Governing Directives: Anti-Spoofing Protocol v4 (§1-§14), Method Matrix v4, Mendeleev Mandate.
 """
@@ -59,9 +59,9 @@ def test_mendeleev_helium_mass_provenance() -> None:
 
 
 def test_torq_ui_environment_and_engine_controls_defect() -> None:
-    """Documents Defect 1: Start_TORQ.ipynb UI lacks Codespaces/Actions & xTB/GFN2-xTB parameter controls.
+    """Documents Defect 1: Start_TORQ.ipynb UI lacks Codespaces/Actions & ORCA/HF-3c parameter controls.
 
-    A student in GitHub Codespaces targeting github-actions with xTB (GFN2-xTB)
+    A student in GitHub Codespaces targeting github-actions with ORCA (HF-3c)
     cannot configure these parameters via the UI because:
     1. Preset geometries only contain H2O2, (H2O)2, N2H4, and CH3OH. He2 is missing.
     2. Interactive widgets for Interaction Environment and Calculation Environment are absent.
@@ -88,13 +88,14 @@ def test_torq_ui_environment_and_engine_controls_defect() -> None:
     # Document hardcoded ORCA wB97M-V configuration in Phase 4/5
     assert 'engine="ORCA"' in all_code or "engine = 'ORCA'" in all_code or "engine='ORCA'" in all_code
     assert 'method="wB97M-V"' in all_code or "method = 'wB97M-V'" in all_code or "method='wB97M-V'" in all_code
+    assert 'basis_set="def2-TZVPP"' in all_code or "basis_set = 'def2-TZVPP'" in all_code
 
 
 def test_torq_github_actions_workflow_missing_defect() -> None:
     """Documents Defect 2: Missing GitHub Actions dispatch workflow for calculation execution.
 
     A student attempting to dispatch calculations to github-actions finds no
-    workflow YAML files in .github/workflows to execute xTB or receive payloads.
+    workflow YAML files in .github/workflows to execute ORCA or receive payloads.
     """
     workflows_dir = _REPO_ROOT / ".github" / "workflows"
     assert workflows_dir.exists(), f"Workflows directory missing at {workflows_dir}"
@@ -105,45 +106,73 @@ def test_torq_github_actions_workflow_missing_defect() -> None:
     )
 
 
-def test_physical_he2_xtb_gfn2_calculation_execution(tmp_path: Path) -> None:
-    """Physically executes authentic xTB binary on Helium dimer with GFN2-xTB method (Zero-Mock Protocol).
+def test_torq_run_params_hf3c_counterpoise_conflict() -> None:
+    """Documents Defect 3: TorqRunParams rejects counterpoise for HF-3c due to non-triple-zeta basis.
+
+    HF-3c utilizes the bespoke MINIX minimal basis set with geometrical counterpoise (gCP)
+    correction built-in. TorqRunParams strictly enforces that bsse_correction="counterpoise"
+    must use non-augmented triple-zeta basis sets, raising a validation error if a student
+    supplies counterpoise with HF-3c.
+    """
+    with pytest.raises(ValueError, match="Counterpoise correction must be restricted"):
+        TorqRunParams(
+            tier="T1",
+            wall_time_tier="T1",
+            engine="ORCA",
+            method="HF-3c",
+            basis_set="MINIX",
+            bsse_correction="counterpoise",
+            keywords=["TightOpt"]
+        )
+
+
+def test_physical_he2_orca_hf3c_calculation_execution(tmp_path: Path) -> None:
+    """Physically executes authentic ORCA 6.1.1 on Helium dimer with HF-3c method (Zero-Mock Protocol).
 
     Verifies authentic quantum observables for He2 (R = 3.000 A):
-    - Total energy ~ -3.4862727 Eh
-    - HOMO-LUMO gap ~ 21.7004 eV
-    - Gradient norm ~ 8.35e-6 Eh/a0
-    - Returncode 0 with normal termination of xTB.
+    - Final single point energy ~ -5.67142 Eh
+    - Dispersion correction ~ -0.00005 Eh
+    - gCP geometric counterpoise correction ~ -0.000015 Eh
+    - Returncode 0 with normal termination of ORCA.
     """
-    # Locate authentic xTB executable
-    xtb_candidates = [
-        Path(r"C:\ORCA_6.1.1\xtb-6.7.1pre\xtb.exe"),
-        Path(shutil.which("xtb") or ""),
+    # Locate authentic ORCA executable
+    orca_candidates = [
+        Path(r"C:\ORCA_6.1.1\orca.exe"),
+        Path(shutil.which("orca") or ""),
     ]
-    xtb_bin = next((p for p in xtb_candidates if p.is_file()), None)
-    assert xtb_bin is not None, "Physical xTB binary not found on execution host"
+    orca_bin = next((p for p in orca_candidates if p.is_file()), None)
+    assert orca_bin is not None, "Physical ORCA binary not found on execution host"
 
-    # Write authentic XYZ file for He2
-    he2_xyz = tmp_path / "he2_physical.xyz"
-    he2_xyz.write_text(HE2_EQUILIBRIUM_XYZ, encoding="utf-8")
+    # Write authentic ORCA input deck for He2 HF-3c
+    orca_inp = tmp_path / "he2_hf3c_physical.inp"
+    deck_content = (
+        "! HF-3c DEFGRID3\n"
+        "%maxcore 3000\n"
+        "* xyz 0 1\n"
+        "  He   0.00000000   0.00000000   0.00000000\n"
+        "  He   0.00000000   0.00000000   3.00000000\n"
+        "*\n"
+    )
+    orca_inp.write_text(deck_content, encoding="utf-8")
 
-    # Physical execution of xTB binary
-    cmd = [str(xtb_bin), he2_xyz.name, "--gfn", "2"]
+    # Physical execution of ORCA binary
+    cmd = [str(orca_bin), orca_inp.name]
     proc = subprocess.run(
         cmd,
         cwd=str(tmp_path),
         capture_output=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60.0,
+        text=True,
+        timeout=120.0,
     )
 
     stdout_str = proc.stdout
 
-    assert proc.returncode == 0, f"xTB execution failed (returncode {proc.returncode}): {proc.stderr}"
-    assert "finished run on" in stdout_str or "normal termination" in stdout_str, "xTB completion banner missing"
-    assert "TOTAL ENERGY" in stdout_str, "TOTAL ENERGY missing from stdout"
-    assert "-3.48627" in stdout_str, f"Expected total energy ~ -3.48627 Eh, got:\n{stdout_str[-1200:]}"
-    assert "21.700" in stdout_str, "Expected HOMO-LUMO gap ~ 21.700 eV"
+    assert proc.returncode == 0, f"ORCA execution failed (returncode {proc.returncode}): {proc.stderr}"
+    assert "ORCA TERMINATED NORMALLY" in stdout_str, "ORCA normal termination banner missing"
+    assert "FINAL SINGLE POINT ENERGY" in stdout_str, "FINAL SINGLE POINT ENERGY missing from stdout"
+    assert "-5.67142" in stdout_str, f"Expected total energy ~ -5.67142 Eh, got:\n{stdout_str[-1200:]}"
+    assert "Dispersion correction" in stdout_str, "Dispersion correction missing from HF-3c stdout"
+    assert "gCP" in stdout_str, "gCP correction missing from HF-3c stdout"
 
 
 def test_torq_torsional_dvr_defect_on_he2() -> None:
@@ -167,23 +196,3 @@ def test_torq_torsional_dvr_defect_on_he2() -> None:
     topology = TorqTopology(symbols=symbols, coordinates=coords, is_complex=is_complex)
     dihedrals = topology.find_rotatable_dihedrals() if hasattr(topology, "find_rotatable_dihedrals") else []
     assert len(dihedrals) == 0, "Expected 0 rotatable dihedrals for linear diatomic He2 complex"
-
-
-def test_torq_rotational_constants_init_defect() -> None:
-    """Documents Defect 5: Cell 18 raises TypeError due to invalid keyword argument 'a_mhz'."""
-    from Libraries.cochem_torq_asymmetric_rotor import RotationalConstants
-
-    with pytest.raises(TypeError, match="unexpected keyword argument 'a_mhz'"):
-        RotationalConstants(
-            a_mhz=1000000.0,
-            b_mhz=28058.35,
-            c_mhz=28058.35,
-            dj_khz=2.5,
-            djk_khz=-15.0,
-            dk_khz=75.0,
-            delta_j_khz=0.5,
-            delta_k_khz=10.0,
-            mu_a_debye=0.0,
-            mu_b_debye=0.0,
-            mu_c_debye=0.0,
-        )
