@@ -167,8 +167,8 @@ jobs:
       - name: Build the actual isolated calculation image
         run: |
           mkdir -p "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
-          sudo chown "1000:$(id -g)" "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
           chmod 775 "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
+          sudo chown "1000:$(id -g)" "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
           git rev-parse HEAD > "$RUNNER_TEMP/torq-image-evidence/source-commit.txt"
           if docker build --progress=plain --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} . > "$RUNNER_TEMP/torq-image-evidence/build.log" 2>&1; then
             cat "$RUNNER_TEMP/torq-image-evidence/build.log"

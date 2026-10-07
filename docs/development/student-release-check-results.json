@@ -1,6 +1,6 @@
 {
   "schema_version": "cochem.student-release-evidence/1",
-  "recorded_at": "2026-10-07T22:32:44.804160+00:00",
+  "recorded_at": "2026-10-07T23:14:46.051160+00:00",
   "source_base_commit": "d7a4739a5f7d6f22ed659b32eeb4706bef16225e",
   "scope": "Local actual execution; selections overlap and are not summed. Neither complete historical-suite acceptance nor high-accuracy identification qualification.",
   "python_version": "3.12.14",
@@ -109,6 +109,17 @@
       "skipped": 0,
       "raw_report_path": "/tmp/torq-hosted-cpu-reproduction-final.xml",
       "raw_report_sha256": "35fdceaa2f7663926d587d7f9e402d8af94317bf43c18bfd53ff0ed9ef310896"
+    },
+    "clean_native_python312_reproduction": {
+      "tests": 91,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/tmp/cochem_exec_native_clean/torq-native-tests-corrected-report.xml",
+      "raw_report_sha256": "f2c690bc9ab7d7db50c6aa0430f075e6523ed7d36893435d48d342ccb7f5d180",
+      "source_commit": "6ffe17f33bf3c30efb221c3558e5b9926289c38d",
+      "source_worktree_status": "modified",
+      "scope": "Exact native CI selection after adding DFTD4 parser; genuine calculations and software/mathematical checks, zero skips. Local replay, not a hosted outcome."
     }
   },
   "packaging": {
@@ -130,6 +141,14 @@
       "passed": true,
       "receipt_path": "/tmp/torq-platform-sibling-installer-final/interface/environment.json",
       "scope": "Genuine fresh BASE/TOPOS pins and dependency verification; App minting is unrun."
+    },
+    "complete_install_script_latest_execution": {
+      "passed": true,
+      "student_checks": 35,
+      "installed_packages_consistent": 157,
+      "log_path": "/workspace/torq-review/cloud-install-complete-final.log",
+      "log_sha256": "5b3bfc274b5e6d66886402b9a2f86ea243e41bc4de1f23e82bf278387f776a77",
+      "scope": "Actual complete installer against repaired parser declaration; no environment publication or fresh-task restoration claimed."
     }
   },
   "scientific_accuracy_established": false,
@@ -147,7 +166,36 @@
       "CPU DFTD3 lacked its supported TOML parser and inorganic imports loaded optional UI; fixed and all 103 checks passed in the exact clean CPU profile."
     ],
     "qualification_pass": false,
-    "scope": "First actual PR CI; subsequent source fixes require hosted rerun. This record is not a latest-run success claim."
+    "scope": "First actual PR CI; subsequent source fixes require hosted rerun. This record is not a latest-run success claim.",
+    "additional_historical_observations": [
+      {
+        "run_id": 37698704548,
+        "source_commit": "6ffe17f33bf3c30efb221c3558e5b9926289c38d",
+        "status": "failed",
+        "passed_jobs": 5,
+        "failed_jobs": [
+          "real-student-engine",
+          "student-calculation-image"
+        ],
+        "findings": [
+          "Native DFTD4 parser omitted; corrected and exact clean replay passed 91 tests.",
+          "Image step lacked unprivileged permission-order validation."
+        ]
+      },
+      {
+        "run_id": 37700269726,
+        "source_commit": "4054e5fcc1568f9b7946e5035cefc4094d4880f3",
+        "status": "failed",
+        "passed_jobs": 6,
+        "failed_jobs": [
+          "student-calculation-image"
+        ],
+        "findings": [
+          "Native engine gate now passed on GitHub; directory chmod after ownership transfer prevents image-step setup."
+        ],
+        "scope": "Historical snapshot; inspect current PR checks for later runs."
+      }
+    ]
   },
   "live_codespace_started": false,
   "remaining_acceptance": "scientific_acceptance_gaps.md",
@@ -182,5 +230,12 @@
     "collected": 1190,
     "collection_errors": 2,
     "error_scope": "BASE-owned imports in tests/test_chain.py and tests/torq/test_counterpoise_frozen_monomer.py; BASE remains isolated. Not a full-suite execution/pass."
+  },
+  "live_codespaces_provisioning_preflight": {
+    "performed": true,
+    "endpoint": "GET /repos/ProfJJK-CoChem/CoChem-TORQ/codespaces/machines",
+    "http_status": 403,
+    "github_message": "Resource not accessible by integration",
+    "scope": "Current GitHub integration cannot select a repository Codespaces machine; no Codespace created and no live-platform qualification claimed."
   }
 }
