@@ -1,5 +1,10 @@
 # CoChem-TORQ: Comprehensive Architecture & Software Requirements Specification
 
+> Production ML automation follows [ML safeguards](../ML_SAFEGUARDS.md).
+> This contract supersedes ML-only rejection/cutoff and uncalibrated allocation
+> rules below. Defer reversibly, retain candidates, validate QC sentinels, and
+> never infer pathway absence from an ML barrier or failed search.
+
 
 
 ## Chapter 1: Ecosystem Context & Integration

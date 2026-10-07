@@ -29,6 +29,14 @@ from Libraries.cochem_torq_inference_errors import (
 )
 from Libraries.cochem_torq_inference_schemas import ActiveLearningOrchestratorConfig
 from Libraries.cochem_torq_masses import get_monoisotopic_mass
+from Libraries.cochem_torq_ml_policy import (
+    MLPrediction,
+    ScreeningBatch,
+    ScreeningCandidate,
+    ScreeningPolicy,
+    calibration_gate,
+    screen_candidates,
+)
 
 
 class ActiveLearningState(str, Enum):
@@ -458,23 +466,34 @@ class ActiveLearner:
     @classmethod
     def evaluate_candidate_gating(
         cls,
-        sigma_e_mev: float,
+        sigma_e_mev: float | None,
         threshold_sigma_mev: float = 10.0,
+        prediction: MLPrediction | None = None,
+        policy: ScreeningPolicy | None = None,
     ) -> dict[str, Any]:
         """
         Evaluate candidate gating based on epistemic uncertainty sigma_E (meV).
-        If sigma_E <= threshold_sigma_mev (10.0 meV):
-            Action: 'SURROGATE_PREDICT' (query_anchor: False)
-        If sigma_E > threshold_sigma_mev (10.0 meV):
-            Action: 'QUERY_ANCHOR' (query_anchor: True)
+        Only calibrated, in-domain predictions below both interval and committee
+        limits may use a surrogate. Missing evidence escalates to QC.
         """
-        query_anchor = bool(sigma_e_mev > threshold_sigma_mev)
+        if not np.isfinite(threshold_sigma_mev) or threshold_sigma_mev < 0:
+            raise ValueError("Uncertainty threshold must be finite and nonnegative")
+        reason = (
+            "missing_calibrated_prediction" if prediction is None
+            else calibration_gate(prediction, policy or ScreeningPolicy())
+        )
+        if sigma_e_mev is None or not np.isfinite(sigma_e_mev) or sigma_e_mev < 0:
+            reason = "missing_or_invalid_uncertainty"
+        elif sigma_e_mev > threshold_sigma_mev:
+            reason = "committee_uncertainty_threshold_exceeded"
+        query_anchor = reason is not None
         action = "QUERY_ANCHOR" if query_anchor else "SURROGATE_PREDICT"
         return {
             "action": action,
             "query_anchor": query_anchor,
-            "sigma_e_mev": float(sigma_e_mev),
+            "sigma_e_mev": sigma_e_mev,
             "threshold_sigma_mev": float(threshold_sigma_mev),
+            "reason": reason or "calibrated_in_domain_surrogate",
         }
 
 
@@ -618,40 +637,53 @@ class ActiveLearningSampler:
         self,
         threshold_sigma_mev: float = 10.0,
         delta_ml_model: Optional[Any] = None,
+        policy: ScreeningPolicy | None = None,
+        previous_batch: ScreeningBatch | None = None,
     ) -> None:
         self.threshold_sigma_mev = threshold_sigma_mev
         self.delta_ml_model = delta_ml_model
+        self.policy = policy or ScreeningPolicy()
+        self.screening_batch = previous_batch
 
     def evaluate_configuration(
         self,
         candidate_geometry: Any,
         scout_energy_ha: float,
-        committee_sigma_mev: float,
+        committee_sigma_mev: float | None,
         anchor_evaluator: Optional[Callable[[Any], float]] = None,
+        prediction: MLPrediction | None = None,
+        require_qc: bool = False,
     ) -> dict[str, Any]:
         """Evaluate a single configuration through the Active Learning & Delta-ML gate.
 
-        If committee_sigma_mev > threshold_sigma_mev (10.0 meV):
-            Dispatches high-level anchor evaluation (tagged [M]).
-        Else:
-            Interpolates high-level correction via Delta-ML surrogate (tagged [E]).
+        QC is required for missing/invalid uncertainty, calibration or OOD evidence.
+        Unavailable evaluators leave QC pending with the scout marked estimated.
         """
-        import scipy.constants
-        hartree_in_ev = scipy.constants.physical_constants["Hartree energy in eV"][0]
-        gate_tripped = bool(committee_sigma_mev > self.threshold_sigma_mev)
+        if not np.isfinite(scout_energy_ha):
+            raise ValueError("Scout energy must be finite")
+        gate = ActiveLearner.evaluate_candidate_gating(
+            committee_sigma_mev, self.threshold_sigma_mev, prediction, self.policy
+        )
+        gate_tripped = bool(gate["query_anchor"] or require_qc)
 
         if gate_tripped:
             if anchor_evaluator is not None:
                 anchor_energy = float(anchor_evaluator(candidate_geometry))
+                if not np.isfinite(anchor_energy):
+                    raise ValueError("QC evaluator returned nonfinite energy")
+                provenance = "[M]"
+                final_energy = anchor_energy
+                action = "QUERY_ANCHOR"
             else:
-                anchor_energy = scout_energy_ha + (committee_sigma_mev / (1000.0 * hartree_in_ev))
-            provenance = "[M]"
-            final_energy = anchor_energy
-            action = "QUERY_ANCHOR"
+                provenance = "[E]"
+                final_energy = scout_energy_ha
+                action = "QC_PENDING"
         else:
             delta_e = 0.0
             if self.delta_ml_model is not None and hasattr(self.delta_ml_model, "predict"):
                 delta_e = float(self.delta_ml_model.predict(candidate_geometry))
+                if not np.isfinite(delta_e):
+                    raise ValueError("Delta-ML returned nonfinite correction")
             final_energy = scout_energy_ha + delta_e
             provenance = "[E]"
             action = "SURROGATE_PREDICT"
@@ -659,28 +691,73 @@ class ActiveLearningSampler:
         return {
             "action": action,
             "query_anchor": gate_tripped,
-            "sigma_mev": float(committee_sigma_mev),
+            "sigma_mev": committee_sigma_mev,
             "threshold_mev": float(self.threshold_sigma_mev),
             "energy_hartree": float(final_energy),
             "provenance": provenance,
+            "qc_evaluated": gate_tripped and anchor_evaluator is not None,
+            "reason": gate["reason"],
         }
 
     def sample_pes_grid(
         self,
         candidates: Sequence[dict[str, Any]],
         anchor_evaluator: Optional[Callable[[Any], float]] = None,
+        audit_path: Path | None = None,
     ) -> list[dict[str, Any]]:
         """Run active learning committee sampling across a candidate PES grid."""
+        # IDs and geometry digests bind screening evidence to retained grid inputs.
+        screening = []
+        for i, cand in enumerate(candidates):
+            geometry = np.asarray(cand["coordinates"], dtype=np.float64)
+            token = json.dumps({"coordinates": geometry.tolist(),
+                                "atomic_numbers": cand.get("atomic_numbers")},
+                               sort_keys=True, allow_nan=False)
+            screening.append(ScreeningCandidate(
+                candidate_id=str(cand.get("candidate_id", f"grid_{i}")),
+                geometry_sha256=hashlib.sha256(token.encode()).hexdigest(),
+                kind=cand.get("kind", "conformer"),
+                prediction=cand.get("ml_prediction"),
+            ))
+        batch = screen_candidates(screening, self.policy,
+                                  previous_batch=self.screening_batch)
+        revised = []
+        for cand, decision in zip(candidates, batch.decisions):
+            sigma = cand.get("sigma_mev", cand.get("uncertainty_mev"))
+            legacy_gate = ActiveLearner.evaluate_candidate_gating(
+                float(sigma) if sigma is not None else None, self.threshold_sigma_mev,
+                decision.candidate.prediction, self.policy,
+            )
+            if legacy_gate["query_anchor"] and decision.action == "retain_low_priority":
+                data = decision.model_dump()
+                data.update(action="query_qc", reason=legacy_gate["reason"])
+                decision = type(decision).model_validate(data)
+            revised.append(decision)
+        batch = ScreeningBatch(decisions=tuple(revised), audit_failure=batch.audit_failure,
+                               history=batch.history)
+        if audit_path is not None:
+            batch.persist(audit_path)
+        self.screening_batch = batch
         results = []
-        for cand in candidates:
+        for cand, decision in zip(candidates, batch.decisions):
+            sigma = cand.get("sigma_mev", cand.get("uncertainty_mev"))
             res = self.evaluate_configuration(
                 candidate_geometry=cand.get("coordinates"),
-                scout_energy_ha=float(cand.get("scout_energy", cand.get("energy_hartree", 0.0))),
-                committee_sigma_mev=float(cand.get("sigma_mev", cand.get("uncertainty_mev", 0.0))),
-                anchor_evaluator=anchor_evaluator,
+                scout_energy_ha=float(cand.get("scout_energy", cand.get("energy_hartree"))),
+                committee_sigma_mev=float(sigma) if sigma is not None else None,
+                anchor_evaluator=(anchor_evaluator
+                                  if decision.action != "retain_low_priority" else None),
+                prediction=decision.candidate.prediction,
+                require_qc=decision.action == "query_qc",
             )
+            if decision.action == "retain_low_priority":
+                res.update(action="RETAIN_LOW_PRIORITY", query_anchor=False,
+                           qc_evaluated=False)
             cand_result = dict(cand)
             cand_result.update(res)
+            cand_result["ml_decision"] = decision.model_dump(mode="json")
+            # A scalar evaluator is an anchor, not TS/IRC or exclusion confirmation.
+            cand_result["qc_confirmation_required"] = decision.action == "query_qc"
             results.append(cand_result)
         return results
 

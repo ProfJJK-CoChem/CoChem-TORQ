@@ -1,5 +1,10 @@
 # Computational Prediction of Spectroscopic Observables for van der Waals Complexes
 
+> Production ML automation follows [ML safeguards](../ML_SAFEGUARDS.md).
+> This contract supersedes ML-only rejection/cutoff and uncalibrated allocation
+> rules below. Defer reversibly, retain candidates, validate QC sentinels, and
+> never infer pathway absence from an ML barrier or failed search.
+
 **PI/Developer:** Dr. Joshua John Klaassen
 **ORCiD:** https://orcid.org/0009-0007-1506-4401
 **GitHub CoChem Organization:** https://github.com/ProfJJK-CoChem

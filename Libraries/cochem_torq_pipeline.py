@@ -21,6 +21,10 @@ from mendeleev import element as mendeleev_element
 from mendeleev import isotope as mendeleev_isotope
 
 from Libraries.torq_config import TorqRunParams
+from Libraries.cochem_torq_ml_policy import (
+    QCConfirmation, ScreeningBatch, ScreeningCandidate, ScreeningPolicy,
+    confirm_qc, screen_candidates,
+)
 
 ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
 
@@ -222,6 +226,7 @@ class TorqPipeline:
         self.config: TorqRunParams = config
         self.state: str = "S_0"
         self.state_history: list[str] = [self.state]
+        self.ml_screening_batch: ScreeningBatch | None = None
         logger.info(
             f"Initialized TorqPipeline for tier '{self.config.tier}' "
             f"({self.config.method}/{self.config.basis_set}) in state '{self.state}'."
@@ -612,15 +617,46 @@ class TorqPipeline:
         grid_geometries: list[dict[str, Any]],
         anchor_evaluator: Optional[Any] = None,
         threshold_sigma_mev: float = 10.0,
+        policy: ScreeningPolicy | None = None,
+        audit_path: Path | None = None,
     ) -> list[dict[str, Any]]:
         """
         Execute active learning committee sampling and Delta-ML surface correction across a PES grid (§13.2, Suggestion #158).
-        Only configurations where committee epistemic uncertainty sigma > threshold_sigma_mev (10.0 meV)
-        trigger expensive high-level anchor evaluations ([M]); other points are interpolated via Delta-ML ([E]).
+        Missing calibration/OOD evidence and sentinels require QC. All grid inputs
+        are retained, and unavailable evaluators produce explicit QC_PENDING results.
         """
         from Libraries.cochem_torq_active_learning import ActiveLearningSampler
-        sampler = ActiveLearningSampler(threshold_sigma_mev=threshold_sigma_mev)
-        return sampler.sample_pes_grid(grid_geometries, anchor_evaluator=anchor_evaluator)
+        sampler = ActiveLearningSampler(
+            threshold_sigma_mev=threshold_sigma_mev, policy=policy,
+            previous_batch=self.ml_screening_batch,
+        )
+        results = sampler.sample_pes_grid(grid_geometries, anchor_evaluator=anchor_evaluator,
+                                          audit_path=audit_path)
+        self.ml_screening_batch = sampler.screening_batch
+        return results
+
+    def screen_ml_candidates(
+        self, candidates: list[ScreeningCandidate],
+        policy: ScreeningPolicy | None = None, audit_path: Path | None = None,
+    ) -> ScreeningBatch:
+        """Schedule retained candidates through the research-grade ML contract."""
+        batch = screen_candidates(candidates, policy, previous_batch=self.ml_screening_batch)
+        if audit_path is not None:
+            batch.persist(audit_path)
+        self.ml_screening_batch = batch
+        return batch
+
+    def confirm_ml_qc(
+        self, confirmations: list[QCConfirmation], audit_path: Path | None = None,
+    ) -> ScreeningBatch:
+        """Attach validated QC and latch a failed sentinel audit across this run."""
+        if self.ml_screening_batch is None:
+            raise ValueError("Screen candidates before attaching QC confirmations")
+        batch = confirm_qc(self.ml_screening_batch, confirmations)
+        if audit_path is not None:
+            batch.persist(audit_path)
+        self.ml_screening_batch = batch
+        return batch
 
 
 try:
