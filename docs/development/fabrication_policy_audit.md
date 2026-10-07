@@ -78,13 +78,29 @@ with `/workspace/.venvs/cochem-torq/bin/python` (Python 3.12),
 `PYTHONPATH=/workspace/CoChem-TORQ/src:/workspace/CoChem-TORQ`:
 
 - [Mobile authentication integrity](../../tests/test_mobile_auth_integrity.py):
-  **57 passed**, no skips. Actual standard-library HMAC independently checks
+  **57 passed**, no skips, at the initial prepared-environment checkpoint.
+  Following the optional package import repair, **58 passed**, no skips, with
+  `/tmp/torq-wheel-check/bin/python` (Python 3.12.14) using actual core dependencies
+  and RDKit absent. The additional subprocess check confirms core imports do
+  not load molecular implementations, while requesting the genuine conformer
+  API without RDKit raises `ImportError`. The mobile facade preserves its 106
+  public exports through lazy imports; its inorganic facade preserves 29 exports
+  and loads notebook UI dependencies only when a UI export is requested.
+  The extended import-boundary regression also passed in
+  `/tmp/torq-hosted-cpu-reproduction/bin/python` with actual RDKit installed and
+  `anywidget`, `ipywidgets` and `traitlets` absent: **1 passed**, no skips.
+  Genuine scientific models/conformer APIs remain importable while requesting
+  the actual inorganic widget API raises `ImportError`.
+  JUnit: `/tmp/cochem_exec_student_release/mobile-inorganic-clean-cpu.xml`.
+  This is an import contract check, not notebook frontend qualification.
+  Actual standard-library HMAC checks
   canonical bytes, explicit/fresh random keys and tamper rejection. Actual files
   exercise staged size/signature/identity checks; actual loopback HTTP receivers
   exercise authentication, separate keys/storage, protected source/symlink
   rejection, exact signed-byte persistence and actual SQLite WAL records.
   Strict JSON and XYZ failures are checked without replacing application code.
   JUnit: `/tmp/cochem_exec_student_release/mobile-auth-integrity.xml`.
+  Clean-core JUnit: `/tmp/cochem_exec_student_release/mobile-auth-clean-core.xml`.
   The test-source API inventory found zero explicit runtime-replacement APIs;
   that narrow AST result is not a proof of universal no-fabrication safety.
 - [SPCAT script integrity](../../tests/test_spcat_script_integrity.py):

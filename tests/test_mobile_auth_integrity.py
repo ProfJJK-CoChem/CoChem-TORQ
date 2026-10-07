@@ -44,6 +44,60 @@ def independent_signature(body, secret):
     return hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
 
 
+def test_core_imports_do_not_load_optional_molecular_implementations():
+    script = """
+import importlib.util
+import sys
+import cochem.mobile as mobile
+from cochem.mobile import airgap_receiver, payload_serializer
+assert "rdkit" not in sys.modules
+assert "cochem.mobile.assembly" not in sys.modules
+assert "cochem.mobile.conformer_engine" not in sys.modules
+assert mobile.sign_payload is payload_serializer.sign_payload
+assert mobile.make_airgap_receiver_server is airgap_receiver.make_airgap_receiver_server
+assert "generate_3d_conformer" in dir(mobile)
+try:
+    mobile.no_such_mobile_api
+except AttributeError:
+    pass
+else:
+    raise AssertionError("Unknown public API was accepted")
+if importlib.util.find_spec("rdkit") is None:
+    try:
+        mobile.generate_3d_conformer
+    except ImportError as error:
+        assert "rdkit" in str(error)
+    else:
+        raise AssertionError("Missing RDKit was silently accepted")
+else:
+    from cochem.mobile.conformer_engine import generate_3d_conformer
+    assert mobile.generate_3d_conformer is generate_3d_conformer
+from cochem.mobile import inorganic
+from cochem.mobile.inorganic import models
+assert "cochem.mobile.inorganic.ui" not in sys.modules
+assert "anywidget" not in sys.modules
+assert "ipywidgets" not in sys.modules
+assert inorganic.MetalCenter is models.MetalCenter
+assert mobile.calculate_formula_weight is models.calculate_formula_weight
+assert models.calculate_formula_weight("H2O") > 0
+notebook_dependencies = ("anywidget", "ipywidgets", "traitlets")
+if any(importlib.util.find_spec(name) is None for name in notebook_dependencies):
+    try:
+        inorganic.InorganicBuilderWidget
+    except ImportError as error:
+        assert any(name in str(error) for name in notebook_dependencies)
+    else:
+        raise AssertionError("Missing notebook dependencies were silently accepted")
+else:
+    from cochem.mobile.inorganic.ui import InorganicBuilderWidget
+    assert inorganic.InorganicBuilderWidget is InorganicBuilderWidget
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=30
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def execution_payload(tmp_path, *, staged=False):
     # An explicit coordinate input tests serialization, not molecular qualification.
     return ExecutionPayload(

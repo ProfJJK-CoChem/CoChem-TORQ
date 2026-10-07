@@ -77,6 +77,38 @@
       "raw_report_path": "/tmp/cochem_exec_pyscf_suite/final-legacy-scientific-migration.xml",
       "raw_report_sha256": "eb1e8ced313ab0a73bdca15de51830a5961a2556957fced591bb685f30f3061c",
       "skip_scope": "Three optional ONNX checks are unavailable; no scientific profile is qualified by these skips."
+    },
+    "core_python310_reproduction": {
+      "tests": 219,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "raw_report_path": "/tmp/torq-hosted-core310-reproduction.xml",
+      "raw_report_sha256": "d4c60a08e8f2025c962a3456ed8cae65dcde832796848a5516f121224035d0b9"
+    },
+    "clean_core_mobile_auth": {
+      "tests": 58,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "raw_report_path": "/tmp/cochem_exec_student_release/mobile-auth-clean-core.xml",
+      "raw_report_sha256": "9b34242d2ce66f3324f551f77d4bda1354fbec4ddf8fbed0665f4fd2c1e35bd0"
+    },
+    "core_python312_reproduction": {
+      "tests": 219,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "raw_report_path": "/tmp/torq-hosted-core312-reproduction.xml",
+      "raw_report_sha256": "6b93edd28b12014a3cc6ebe4ae10534f5e317675d9928ac8b9501e561e2b94e7"
+    },
+    "clean_cpu_optional_reproduction": {
+      "tests": 103,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "raw_report_path": "/tmp/torq-hosted-cpu-reproduction-final.xml",
+      "raw_report_sha256": "35fdceaa2f7663926d587d7f9e402d8af94317bf43c18bfd53ff0ed9ef310896"
     }
   },
   "packaging": {
@@ -93,14 +125,29 @@
     "actual_authenticated_jupyter_health": "passed",
     "configuration_draft_saved": true,
     "configuration_published": false,
-    "fresh_task_restoration_verified": false
+    "fresh_task_restoration_verified": false,
+    "latest_source_installer_check": {
+      "passed": true,
+      "receipt_path": "/tmp/torq-platform-sibling-installer-final/interface/environment.json",
+      "scope": "Genuine fresh BASE/TOPOS pins and dependency verification; App minting is unrun."
+    }
   },
   "scientific_accuracy_established": false,
   "identification_ready": false,
   "full_srs_accepted": false,
   "hosted_ci": {
-    "performed": false,
-    "status": "pending_first_push"
+    "performed": true,
+    "run_id": 37696948074,
+    "url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37696948074",
+    "source_commit": "bf3eb24da276ba93a3c2ce574d4f8340d68d8ed4",
+    "status": "failed",
+    "findings": [
+      "Private BASE/TOPOS require approved cross-repository source-read identity; built-in TORQ Actions token cannot read them.",
+      "Mobile eager imports required optional RDKit in core authentication tests; fixed and 58 clean-core checks passed.",
+      "CPU DFTD3 lacked its supported TOML parser and inorganic imports loaded optional UI; fixed and all 103 checks passed in the exact clean CPU profile."
+    ],
+    "qualification_pass": false,
+    "scope": "First actual PR CI; subsequent source fixes require hosted rerun. This record is not a latest-run success claim."
   },
   "live_codespace_started": false,
   "remaining_acceptance": "scientific_acceptance_gaps.md",

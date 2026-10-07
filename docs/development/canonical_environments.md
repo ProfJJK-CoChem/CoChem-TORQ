@@ -27,6 +27,14 @@ TOPOS adapter explicitly requires `filelock`: a genuine isolated serializer
 execution exposed that missing upstream dependency. These requirements are not
 an assertion that TOPOS's conformer-search chemistry is qualified.
 
+BASE and TOPOS are private repositories. The Codespaces configuration requests
+contents-read access to these two repositories; GitHub asks the authorized
+student to approve that additional repository access when creating a Codespace.
+The bootstrap uses the authorized Codespaces credential only for Git source
+retrieval. BASE's reviewed installer receives the `COCHEM_SOURCE_READ_TOKEN`
+contract and excludes that credential from builds and dependency installation.
+No source token is written to Git configuration, command arguments, or receipts.
+
 Each container start launches the actual authenticated JupyterLab interface on
 port 8888 and checks the actual student notebook through Jupyter's authenticated
 contents API. The forwarded Codespaces port remains private. Jupyter's local
@@ -63,6 +71,26 @@ versioned; TORQ does not mix sibling namespaces in its interpreter. BASE's own
 upstream distribution manifest still pins an older TORQ revision. A separate
 BASE manifest update to the published TORQ release commit is necessary before
 that upstream installer distributes this release.
+
+The mandatory Actions ecosystem jobs also need source access to both private
+siblings. TORQ's built-in `GITHUB_TOKEN` is limited to TORQ and cannot supply
+this access. The preferred configuration is a GitHub App installed on only
+`CoChem-BASE` and `CoChem-TOPOS`, with repository contents-read permission:
+
+1. Set the TORQ repository variable `COCHEM_MODULES_APP_ID` to the App ID.
+2. Store its private key in the Actions secret
+   `COCHEM_MODULES_APP_PRIVATE_KEY` through GitHub's administrative interface.
+3. The pinned official `actions/create-github-app-token` action mints a temporary
+   installation token restricted to these two repositories and contents-read
+   access; its post-job cleanup revokes the token.
+
+An already provisioned fine-grained contents-read token for exactly those two
+repositories may instead be stored in `COCHEM_SOURCE_READ_TOKEN`. That token is
+passed only to the sibling installer step. Neither route passes source-read
+credentials into calculations or numerical tests. Missing authorization fails
+the required jobs explicitly; it does not skip ecosystem qualification. The
+managed session cannot create these repository secrets because its GitHub
+integration lacks Secrets administration permission.
 
 ## Actions calculation service
 
@@ -162,13 +190,25 @@ interoperability, actual notebook/widget checks and authenticated Jupyter
 start/check/stop. A missing sibling checkout fails the mandatory integration gate.
 An unavailable engine cannot be replaced by a simulated calculation.
 
-All 33 ecosystem tests run in the real-engine lane, including two genuine
-TORQ-calculation → BASE-consumer checks. The interface lane explicitly deselects
+The self-contained `real-student-engine` job qualifies native scientific methods
+without requiring private sibling access. The separately required
+`real-ecosystem-consumers` job runs all 33 ecosystem tests, including two genuine
+TORQ-calculation → BASE-consumer checks, and fails when source authorization is
+unavailable. The interface lane explicitly deselects
 those two `real_engine` tests and executes the 31 producer/file checks without
 installing PySCF into the interface. Both lanes reject skipped selected tests
 using their actual pytest JUnit reports. Artifact publication and bounded
 anharmonic research checks are also mandatory in the calculation lane; research
 passes never activate an unqualified public method.
+
+The independent `student-calculation-image` job builds the exact calculation
+Dockerfile, normalizes and hashes the committed water teaching input, qualifies
+actual native derivatives, and executes every baseline product offline under
+the unprivileged image user. It verifies the sealed result and typed stages
+inside the same image and retains its request, native records, source/image
+identity and verification evidence. Its water request has two cores, 2048 MiB
+application memory and a 600-second deadline; Docker enforces two cores and
+3 GiB total memory. It requires no private sibling credential.
 
 Local validation has built the calculation and interface Docker images, executed
 real H2 native derivative qualification offline in the calculation container,
@@ -195,7 +235,12 @@ See the machine-readable
 the tested source snapshot; later application changes require another image
 build and its own execution checks.
 
-Hosted Actions runs and a live Codespace have not been performed by this local
-validation. Local image/lifecycle evidence and hosted deployment evidence remain
-distinct. The repository's student release report records the broader final
-application and scientific validation scope.
+Hosted Actions integrity run `37696948074` was performed for TORQ pull request
+3. It exposed real import-boundary defects in clean dependency profiles and
+missing authorization for the private sibling repositories. That failed run
+does not qualify a hosted scientific or ecosystem profile. The corrected jobs
+retain every required gate and explicitly require administrator-provisioned
+sibling source access. A live Codespace has not been started. Local
+image/lifecycle evidence and hosted deployment evidence remain distinct. The
+repository's student release report records the broader final application and
+scientific validation scope and subsequent hosted observations.

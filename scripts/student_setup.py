@@ -18,8 +18,11 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "ci_tools" / "ecosystem-modules.json"
@@ -65,6 +68,46 @@ def build_environment() -> dict[str, str]:
     }
 
 
+def source_read_token() -> str | None:
+    """Only the explicit installer or authorized Codespaces credential is used."""
+    for name in ("COCHEM_SOURCE_READ_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"):
+        value = os.environ.get(name)
+        if value:
+            if any(character in value for character in ("\r", "\n", "\0")):
+                raise ValueError("A source credential contains invalid control bytes")
+            return value
+    return None
+
+
+@contextmanager
+def source_git_auth(token: str | None) -> Iterator[tuple[dict[str, str], list[str]]]:
+    """Keep credentials out of Git arguments, persisted config and build hooks."""
+    environment = build_environment()
+    environment["GIT_TERMINAL_PROMPT"] = "0"
+    if token is None:
+        yield environment, []
+        return
+    with TemporaryDirectory(prefix="cochem-source-read-") as temporary:
+        helper = Path(temporary) / "askpass.sh"
+        helper.write_text(
+            '#!/bin/sh\ncase "$1" in\n'
+            '*github.com*) ;;\n*) exit 1 ;;\nesac\n'
+            'case "$1" in\n*sername*) printf "%s\\n" "x-access-token" ;;\n'
+            '*) printf "%s\\n" "$COCHEM_SOURCE_READ_TOKEN" ;;\nesac\n',
+            encoding="utf-8",
+        )
+        helper.chmod(0o700)
+        environment.update(
+            {
+                "COCHEM_SOURCE_READ_TOKEN": token,
+                "GIT_ASKPASS": str(helper),
+                "GIT_CONFIG_GLOBAL": os.devnull,
+                "GIT_CONFIG_NOSYSTEM": "1",
+            }
+        )
+        yield environment, ["-c", "credential.helper=", "-c", "http.extraHeader="]
+
+
 def setup(target: Path, *, install_interface: bool = True) -> dict:
     target = artifact_root(target)
     env = build_environment()
@@ -93,21 +136,44 @@ def setup(target: Path, *, install_interface: bool = True) -> dict:
     bootstrap = target / "bootstrap" / spec["revision"]
     if not bootstrap.exists():
         bootstrap.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--filter=blob:none",
-                "--no-checkout",
-                f"https://github.com/{spec['repository']}.git",
-                str(bootstrap),
-            ],
-            check=True,
-        )
-        subprocess.run(
-            ["git", "-C", str(bootstrap), "checkout", "--detach", spec["revision"]],
-            check=True,
-        )
+        with source_git_auth(source_read_token()) as (git_environment, options):
+            cloned = subprocess.run(
+                [
+                    "git",
+                    *options,
+                    "clone",
+                    "--filter=blob:none",
+                    "--no-checkout",
+                    f"https://github.com/{spec['repository']}.git",
+                    str(bootstrap),
+                ],
+                env=git_environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if cloned.returncode:
+                raise RuntimeError(
+                    "Unable to retrieve the pinned BASE source. BASE and TOPOS "
+                    "are private: authorize Codespaces access or provide "
+                    "COCHEM_SOURCE_READ_TOKEN with contents-read access to both "
+                    f"repositories (Git exit {cloned.returncode})."
+                )
+            # The partial clone may retrieve promised blobs during checkout;
+            # retain source authorization until that real transfer completes.
+            subprocess.run(
+                [
+                    "git",
+                    *options,
+                    "-C",
+                    str(bootstrap),
+                    "checkout",
+                    "--detach",
+                    spec["revision"],
+                ],
+                env=git_environment,
+                check=True,
+            )
     observed = subprocess.check_output(
         ["git", "-C", str(bootstrap), "rev-parse", "HEAD"], text=True
     ).strip()
@@ -146,6 +212,11 @@ def setup(target: Path, *, install_interface: bool = True) -> dict:
                     "--artifact-dir NEW_DIRECTORY; the existing verified "
                     "environment is not overwritten."
                 )
+    installer_environment = env.copy()
+    if credential := source_read_token():
+        # The reviewed BASE installer restricts this to source Git transfers and
+        # excludes it from all build, pip and environment-probe subprocesses.
+        installer_environment["COCHEM_SOURCE_READ_TOKEN"] = credential
     completed = subprocess.run(
         [
             sys.executable,
@@ -163,7 +234,7 @@ def setup(target: Path, *, install_interface: bool = True) -> dict:
             "--json",
         ],
         cwd=target,
-        env=os.environ.copy(),
+        env=installer_environment,
         check=True,
         capture_output=True,
         text=True,

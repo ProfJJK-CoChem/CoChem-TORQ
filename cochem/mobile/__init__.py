@@ -1,138 +1,124 @@
-"""CoChem Mobile 2D Organic & Inorganic Complex Synthesis Platform.
+"""Mobile APIs with optional molecular/UI dependencies loaded when requested.
 
-Zero-Mock implementation of touch-optimized 2D sketcher, RDKit conformer engine,
-Inorganic Complex Generator UI (SRS Chunk 06), and Asynchronous Webhook Offloading & Execution Management (SRS Chunk 08).
+Importing core authentication and payload submodules does not load RDKit or the
+mobile UI. Public exports retain their genuine implementations; requesting an
+API whose dependencies are absent raises the implementation's ImportError.
 """
 
 from __future__ import annotations
 
-from cochem.mobile import assembly, pwa
-from cochem.mobile.airgap_receiver import (
-    AirGapReceiverHTTPRequestHandler,
-    ThreadedHTTPServer,
-    is_path_in_source_dir,
-    make_airgap_receiver_server,
-    verify_hmac_signature,
-)
-from cochem.mobile.async_runner import (
-    AsyncProcessRunner,
-    delegate_pipeline_execution_async,
-    execute_worker_pipeline,
-    isolate_cuda_device,
-    spawn_detached_process,
-)
-from cochem.mobile.conformer_engine import generate_3d_conformer
-from cochem.mobile.inorganic import (
-    ChelateAssembler,
-    ComplexSummaryCard,
-    CoordinateAssembler,
-    CoordinationGeometry,
-    CoordinationPolyhedron,
-    DonorAtom,
-    HDF5InorganicSerializer,
-    InorganicAirGapClient,
-    InorganicAssemblyEngine,
-    InorganicAtom3D,
-    InorganicBondRecord,
-    InorganicBuilderScreen,
-    InorganicBuilderWidget,
-    InorganicComplex,
-    InorganicComplexSchema,
-    IsomerPickerWidget,
-    IsomerResolver,
-    JSONInorganicSerializer,
-    Ligand,
-    LigandBudgetWidget,
-    LigandLibrary,
-    LigandSelectorDialog,
-    MetalCategory,
-    MetalCenter,
-    PolyhedronTemplateRegistry,
-    SQLiteInorganicStore,
-    calculate_formula_weight,
-    complex_to_schema,
-    get_polyhedron_coordination_number,
-)
-from cochem.mobile.job_state import (
-    ExecutionPayload,
-    ExecutionTier,
-    JobStatus,
-    JobStatusRecord,
-    ManifestReference,
-    validate_status_transition,
-)
-from cochem.mobile.payload_serializer import (
-    STAGE_THRESHOLD_BYTES,
-    calculate_xyz_molecular_mass_dynamic,
-    canonical_json_dumps,
-    canonical_serialize,
-    ensure_tripartite_dirs,
-    get_coch_artifacts,
-    get_coch_src,
-    get_cochem_state_dir,
-    get_hmac_secret,
-    get_job_artifact_dir,
-    get_job_lock_path,
-    get_job_status_path,
-    load_staged_payload,
-    sign_payload,
-    stage_or_inline_payload,
-    validate_xyz_structure_dynamic,
-    verify_payload_signature,
-)
-from cochem.mobile.pwa_cache import (
-    OfflineStorageExceededError,
-    PWACacheManager,
-    PWACacheValidationError,
-    QueueStatus,
-    SyncReport,
-)
-from cochem.mobile.rdkit_bridge import (
-    AtomCoordinate3DRecord,
-    ConformerEmbeddingError,
-    InvalidSmilesError,
-    RDKit3DResult,
-    Smiles3DConformerEngine,
-    generate_deterministic_3d_coordinates,
-    relax_geometry_and_calculate_energy,
-    smiles_to_3d,
-    smiles_to_3d_async,
-    validate_and_sanitize_smiles,
-)
-from cochem.mobile.schemas import (
-    AtomCoordinate2D,
-    AtomCoordinate3D,
-    Conformer3DResultSchema,
-    SketcherPayloadSchema,
-    ValenceValidationResultSchema,
-)
-from cochem.mobile.sketcher_widget import SketcherWidget
-from cochem.mobile.state_journal import (
-    VALID_DRACO_TRANSITIONS,
-    DracoLockError,
-    DracoStateError,
-    DracoStateJournal,
-    DracoStateJournalEntry,
-    DracoTransitionError,
-    DracoUIState,
-    validate_draco_transition,
-)
-from cochem.mobile.status_poller import (
-    compute_backoff_delay,
-    map_github_run_to_job_status,
-    poll_github_workflow_run,
-    poll_job_status_async,
-    read_status_atomic,
-    update_status_progress,
-    write_status_atomic,
-)
-from cochem.mobile.webhook_dispatcher import (
-    WebhookDispatcher,
-    build_github_dispatch_request,
-    detect_execution_tier,
-    dispatch_github_action_webhook,
-    synthesize_slurm_script,
-)
+from importlib import import_module
+from typing import Any
+
+# Keep the public facade without importing every optional implementation.
+_EXPORTS = {
+    'AirGapReceiverHTTPRequestHandler': ('cochem.mobile.airgap_receiver', 'AirGapReceiverHTTPRequestHandler'),
+    'AsyncProcessRunner': ('cochem.mobile.async_runner', 'AsyncProcessRunner'),
+    'AtomCoordinate2D': ('cochem.mobile.schemas', 'AtomCoordinate2D'),
+    'AtomCoordinate3D': ('cochem.mobile.schemas', 'AtomCoordinate3D'),
+    'AtomCoordinate3DRecord': ('cochem.mobile.rdkit_bridge', 'AtomCoordinate3DRecord'),
+    'ChelateAssembler': ('cochem.mobile.inorganic', 'ChelateAssembler'),
+    'ComplexSummaryCard': ('cochem.mobile.inorganic', 'ComplexSummaryCard'),
+    'Conformer3DResultSchema': ('cochem.mobile.schemas', 'Conformer3DResultSchema'),
+    'ConformerEmbeddingError': ('cochem.mobile.rdkit_bridge', 'ConformerEmbeddingError'),
+    'CoordinateAssembler': ('cochem.mobile.inorganic', 'CoordinateAssembler'),
+    'CoordinationGeometry': ('cochem.mobile.inorganic', 'CoordinationGeometry'),
+    'CoordinationPolyhedron': ('cochem.mobile.inorganic', 'CoordinationPolyhedron'),
+    'DonorAtom': ('cochem.mobile.inorganic', 'DonorAtom'),
+    'DracoLockError': ('cochem.mobile.state_journal', 'DracoLockError'),
+    'DracoStateError': ('cochem.mobile.state_journal', 'DracoStateError'),
+    'DracoStateJournal': ('cochem.mobile.state_journal', 'DracoStateJournal'),
+    'DracoStateJournalEntry': ('cochem.mobile.state_journal', 'DracoStateJournalEntry'),
+    'DracoTransitionError': ('cochem.mobile.state_journal', 'DracoTransitionError'),
+    'DracoUIState': ('cochem.mobile.state_journal', 'DracoUIState'),
+    'ExecutionPayload': ('cochem.mobile.job_state', 'ExecutionPayload'),
+    'ExecutionTier': ('cochem.mobile.job_state', 'ExecutionTier'),
+    'HDF5InorganicSerializer': ('cochem.mobile.inorganic', 'HDF5InorganicSerializer'),
+    'InorganicAirGapClient': ('cochem.mobile.inorganic', 'InorganicAirGapClient'),
+    'InorganicAssemblyEngine': ('cochem.mobile.inorganic', 'InorganicAssemblyEngine'),
+    'InorganicAtom3D': ('cochem.mobile.inorganic', 'InorganicAtom3D'),
+    'InorganicBondRecord': ('cochem.mobile.inorganic', 'InorganicBondRecord'),
+    'InorganicBuilderScreen': ('cochem.mobile.inorganic', 'InorganicBuilderScreen'),
+    'InorganicBuilderWidget': ('cochem.mobile.inorganic', 'InorganicBuilderWidget'),
+    'InorganicComplex': ('cochem.mobile.inorganic', 'InorganicComplex'),
+    'InorganicComplexSchema': ('cochem.mobile.inorganic', 'InorganicComplexSchema'),
+    'InvalidSmilesError': ('cochem.mobile.rdkit_bridge', 'InvalidSmilesError'),
+    'IsomerPickerWidget': ('cochem.mobile.inorganic', 'IsomerPickerWidget'),
+    'IsomerResolver': ('cochem.mobile.inorganic', 'IsomerResolver'),
+    'JSONInorganicSerializer': ('cochem.mobile.inorganic', 'JSONInorganicSerializer'),
+    'JobStatus': ('cochem.mobile.job_state', 'JobStatus'),
+    'JobStatusRecord': ('cochem.mobile.job_state', 'JobStatusRecord'),
+    'Ligand': ('cochem.mobile.inorganic', 'Ligand'),
+    'LigandBudgetWidget': ('cochem.mobile.inorganic', 'LigandBudgetWidget'),
+    'LigandLibrary': ('cochem.mobile.inorganic', 'LigandLibrary'),
+    'LigandSelectorDialog': ('cochem.mobile.inorganic', 'LigandSelectorDialog'),
+    'ManifestReference': ('cochem.mobile.job_state', 'ManifestReference'),
+    'MetalCategory': ('cochem.mobile.inorganic', 'MetalCategory'),
+    'MetalCenter': ('cochem.mobile.inorganic', 'MetalCenter'),
+    'OfflineStorageExceededError': ('cochem.mobile.pwa_cache', 'OfflineStorageExceededError'),
+    'PWACacheManager': ('cochem.mobile.pwa_cache', 'PWACacheManager'),
+    'PWACacheValidationError': ('cochem.mobile.pwa_cache', 'PWACacheValidationError'),
+    'PolyhedronTemplateRegistry': ('cochem.mobile.inorganic', 'PolyhedronTemplateRegistry'),
+    'QueueStatus': ('cochem.mobile.pwa_cache', 'QueueStatus'),
+    'RDKit3DResult': ('cochem.mobile.rdkit_bridge', 'RDKit3DResult'),
+    'SQLiteInorganicStore': ('cochem.mobile.inorganic', 'SQLiteInorganicStore'),
+    'STAGE_THRESHOLD_BYTES': ('cochem.mobile.payload_serializer', 'STAGE_THRESHOLD_BYTES'),
+    'SketcherPayloadSchema': ('cochem.mobile.schemas', 'SketcherPayloadSchema'),
+    'SketcherWidget': ('cochem.mobile.sketcher_widget', 'SketcherWidget'),
+    'Smiles3DConformerEngine': ('cochem.mobile.rdkit_bridge', 'Smiles3DConformerEngine'),
+    'SyncReport': ('cochem.mobile.pwa_cache', 'SyncReport'),
+    'ThreadedHTTPServer': ('cochem.mobile.airgap_receiver', 'ThreadedHTTPServer'),
+    'VALID_DRACO_TRANSITIONS': ('cochem.mobile.state_journal', 'VALID_DRACO_TRANSITIONS'),
+    'ValenceValidationResultSchema': ('cochem.mobile.schemas', 'ValenceValidationResultSchema'),
+    'WebhookDispatcher': ('cochem.mobile.webhook_dispatcher', 'WebhookDispatcher'),
+    'assembly': ('cochem.mobile.assembly', None),
+    'build_github_dispatch_request': ('cochem.mobile.webhook_dispatcher', 'build_github_dispatch_request'),
+    'calculate_formula_weight': ('cochem.mobile.inorganic', 'calculate_formula_weight'),
+    'calculate_xyz_molecular_mass_dynamic': ('cochem.mobile.payload_serializer', 'calculate_xyz_molecular_mass_dynamic'),
+    'canonical_json_dumps': ('cochem.mobile.payload_serializer', 'canonical_json_dumps'),
+    'canonical_serialize': ('cochem.mobile.payload_serializer', 'canonical_serialize'),
+    'complex_to_schema': ('cochem.mobile.inorganic', 'complex_to_schema'),
+    'compute_backoff_delay': ('cochem.mobile.status_poller', 'compute_backoff_delay'),
+    'delegate_pipeline_execution_async': ('cochem.mobile.async_runner', 'delegate_pipeline_execution_async'),
+    'detect_execution_tier': ('cochem.mobile.webhook_dispatcher', 'detect_execution_tier'),
+    'dispatch_github_action_webhook': ('cochem.mobile.webhook_dispatcher', 'dispatch_github_action_webhook'),
+    'ensure_tripartite_dirs': ('cochem.mobile.payload_serializer', 'ensure_tripartite_dirs'),
+    'execute_worker_pipeline': ('cochem.mobile.async_runner', 'execute_worker_pipeline'),
+    'generate_3d_conformer': ('cochem.mobile.conformer_engine', 'generate_3d_conformer'),
+    'generate_deterministic_3d_coordinates': ('cochem.mobile.rdkit_bridge', 'generate_deterministic_3d_coordinates'),
+    'get_coch_artifacts': ('cochem.mobile.payload_serializer', 'get_coch_artifacts'),
+    'get_coch_src': ('cochem.mobile.payload_serializer', 'get_coch_src'),
+    'get_cochem_state_dir': ('cochem.mobile.payload_serializer', 'get_cochem_state_dir'),
+    'get_hmac_secret': ('cochem.mobile.payload_serializer', 'get_hmac_secret'),
+    'get_job_artifact_dir': ('cochem.mobile.payload_serializer', 'get_job_artifact_dir'),
+    'get_job_lock_path': ('cochem.mobile.payload_serializer', 'get_job_lock_path'),
+    'get_job_status_path': ('cochem.mobile.payload_serializer', 'get_job_status_path'),
+    'get_polyhedron_coordination_number': ('cochem.mobile.inorganic', 'get_polyhedron_coordination_number'),
+    'is_path_in_source_dir': ('cochem.mobile.airgap_receiver', 'is_path_in_source_dir'),
+    'isolate_cuda_device': ('cochem.mobile.async_runner', 'isolate_cuda_device'),
+    'load_staged_payload': ('cochem.mobile.payload_serializer', 'load_staged_payload'),
+    'make_airgap_receiver_server': ('cochem.mobile.airgap_receiver', 'make_airgap_receiver_server'),
+    'map_github_run_to_job_status': ('cochem.mobile.status_poller', 'map_github_run_to_job_status'),
+    'poll_github_workflow_run': ('cochem.mobile.status_poller', 'poll_github_workflow_run'),
+    'poll_job_status_async': ('cochem.mobile.status_poller', 'poll_job_status_async'),
+    'pwa': ('cochem.mobile.pwa', None),
+    'read_status_atomic': ('cochem.mobile.status_poller', 'read_status_atomic'),
+    'relax_geometry_and_calculate_energy': ('cochem.mobile.rdkit_bridge', 'relax_geometry_and_calculate_energy'),
+    'sign_payload': ('cochem.mobile.payload_serializer', 'sign_payload'),
+    'smiles_to_3d': ('cochem.mobile.rdkit_bridge', 'smiles_to_3d'),
+    'smiles_to_3d_async': ('cochem.mobile.rdkit_bridge', 'smiles_to_3d_async'),
+    'spawn_detached_process': ('cochem.mobile.async_runner', 'spawn_detached_process'),
+    'stage_or_inline_payload': ('cochem.mobile.payload_serializer', 'stage_or_inline_payload'),
+    'synthesize_slurm_script': ('cochem.mobile.webhook_dispatcher', 'synthesize_slurm_script'),
+    'update_status_progress': ('cochem.mobile.status_poller', 'update_status_progress'),
+    'validate_and_sanitize_smiles': ('cochem.mobile.rdkit_bridge', 'validate_and_sanitize_smiles'),
+    'validate_draco_transition': ('cochem.mobile.state_journal', 'validate_draco_transition'),
+    'validate_status_transition': ('cochem.mobile.job_state', 'validate_status_transition'),
+    'validate_xyz_structure_dynamic': ('cochem.mobile.payload_serializer', 'validate_xyz_structure_dynamic'),
+    'verify_hmac_signature': ('cochem.mobile.airgap_receiver', 'verify_hmac_signature'),
+    'verify_payload_signature': ('cochem.mobile.payload_serializer', 'verify_payload_signature'),
+    'write_status_atomic': ('cochem.mobile.status_poller', 'write_status_atomic'),
+}
 
 __all__ = [
     "AirGapReceiverHTTPRequestHandler",
@@ -242,3 +228,19 @@ __all__ = [
     "make_airgap_receiver_server",
     "write_status_atomic",
 ]
+
+def __getattr__(name: str) -> Any:
+    target = _EXPORTS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attribute = target
+    # ImportError deliberately propagates: missing optional dependencies do not
+    # select a substitute, fabricate results or produce a successful empty API.
+    module = import_module(module_name)
+    value = module if attribute is None else getattr(module, attribute)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

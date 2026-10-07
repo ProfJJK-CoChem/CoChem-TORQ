@@ -13,16 +13,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         python: ['3.10', '3.12']
     env:
       # CI is already isolated. This bypasses only the historical cwd-name check.
       COCHEM_DISABLE_SANDBOX_CHECK: '1'
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0, Node 24
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -65,10 +66,10 @@ jobs:
       COCHEM_DISABLE_SANDBOX_CHECK: '1'
       JAX_ENABLE_X64: 'true'
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0, Node 24
         with:
           python-version: '3.12'
           cache: pip
@@ -108,15 +109,14 @@ jobs:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
-      COCHEM_REQUIRE_ECOSYSTEM: '1'
       PYTHONDONTWRITEBYTECODE: '1'
       QT_QPA_PLATFORM: offscreen
       COCHEM_HEADLESS: '1'
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0, Node 24
         with:
           python-version: '3.12'
           cache: pip
@@ -127,20 +127,6 @@ jobs:
           python -m pip install 'pytest>=8,<10'
           python -m pip check
           python -c "import pyscf, geometric; from dftd4.interface import DispersionModel; from importlib.metadata import version; assert pyscf.__version__ == '2.14.0'; assert version('geometric') == '1.1.1'; assert version('dftd4') == '3.7.0'"
-      - name: Install actual pinned sibling environments for reverse scientific handoffs
-        run: |
-          python scripts/student_setup.py setup --no-interface-install --artifact-dir "$RUNNER_TEMP/cochem-student-engine"
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP']) / 'cochem-student-engine'
-          with open(os.environ['GITHUB_ENV'], 'a') as target:
-              target.write(f'COCHEM_ARTIFACT_DIR={root}\n')
-              for module in ('base', 'topos'):
-                  receipt = json.loads((root / 'Modules' / module / 'installation.json').read_text())
-                  target.write(f'COCHEM_{module.upper()}_SOURCE={receipt["source_path"]}\n')
-                  target.write(f'COCHEM_{module.upper()}_PYTHON={receipt["python_path"]}\n')
-          PY
       - name: Require actual energies, derivatives and optimization
         run: |
           python -m pytest -q --basetemp "$RUNNER_TEMP/torq-native-tests" \
@@ -148,8 +134,7 @@ jobs:
             tests/test_pyscf_integration.py tests/test_revdsd_integration.py \
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
             tests/test_application_contracts.py tests/test_actions_request.py \
-            tests/test_artifact_publication.py tests/test_anharmonic_research.py \
-            tests/test_ecosystem_integration.py
+            tests/test_artifact_publication.py tests/test_anharmonic_research.py
           python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-native-tests-report.xml"
       - name: Record native derivative qualification evidence
         run: |
@@ -164,6 +149,193 @@ jobs:
             ${{ runner.temp }}/torq-qualification/
             ${{ runner.temp }}/torq-native-tests/
             ${{ runner.temp }}/torq-native-tests-report.xml
+          if-no-files-found: error
+          retention-days: 30
+
+  student-calculation-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
+        with:
+          persist-credentials: false
+      - name: Build the actual isolated calculation image
+        run: |
+          docker build --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} .
+          mkdir -p "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
+          sudo chown "1000:$(id -g)" "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
+          chmod 775 "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
+          docker image inspect torq-pyscf:${GITHUB_SHA} --format '{{.Id}}' > "$RUNNER_TEMP/torq-image-evidence/image-id.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/torq-image-evidence/source-commit.txt"
+      - name: Normalize and hash the actual student water request
+        run: |
+          timeout --signal=TERM --kill-after=15s 180s docker run --rm -i --name torq-image-prepare-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-input,dst=/input" \
+            --entrypoint python torq-pyscf:${GITHUB_SHA} - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import json
+          from cochem_torq.domain import CalculationRequest, canonical_json
+          example = Path('/opt/torq-source/examples/student/water-hf-teaching.json')
+          data = json.loads(example.read_text())
+          data['products'].append('rigid_rotor_catalog')
+          data['source_provenance']['example_file_sha256'] = sha256(example.read_bytes()).hexdigest()
+          request = CalculationRequest.model_validate(data)
+          encoded = canonical_json(request.model_dump(mode='json'))
+          root = Path('/input')
+          (root / 'request.json').write_bytes(encoded)
+          (root / 'request-id.txt').write_text(str(request.request_id))
+          (root / 'request-sha256.txt').write_text(sha256(encoded).hexdigest())
+          PY
+      - name: Require genuine image energy and derivative qualification
+        run: |
+          timeout --signal=TERM --kill-after=15s 180s docker run --rm --name torq-image-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-evidence,dst=/evidence" \
+            --entrypoint python torq-pyscf:${GITHUB_SHA} \
+            /opt/torq-source/ci_tools/qualify_pyscf_image.py \
+            --output /evidence/qualification \
+            --image-identity "$(cat "$RUNNER_TEMP/torq-image-evidence/image-id.txt")" --source-commit "$GITHUB_SHA"
+      - name: Execute the genuine water pipeline offline
+        run: |
+          timeout --signal=TERM --kill-after=15s 660s docker run --rm --name torq-image-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-input,dst=/input,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-results,dst=/results" \
+            --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
+            --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-image-evidence/image-id.txt")" \
+            torq-pyscf:${GITHUB_SHA} execute --request /input/request.json \
+            --output-dir /results/water --request-id "$(cat "$RUNNER_TEMP/torq-image-input/request-id.txt")" \
+            --expected-sha256 "$(cat "$RUNNER_TEMP/torq-image-input/request-sha256.txt")"
+      - name: Verify the sealed typed artifact in the actual image
+        run: |
+          timeout --signal=TERM --kill-after=15s 180s docker run --rm -i --name torq-image-verification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-results,dst=/results,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-input,dst=/input,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-image-evidence,dst=/evidence" \
+            --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
+            --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-image-evidence/image-id.txt")" \
+            --entrypoint python torq-pyscf:${GITHUB_SHA} - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import json, os
+          from cochem_torq.artifacts import verify_shard
+          root = Path('/results/water')
+          manifest = verify_shard(root, expected_request_sha256=Path('/input/request-sha256.txt').read_text())
+          result = json.loads((root / 'result.json').read_text())
+          assert result['status'] == 'complete' and not result['errors']
+          for stage in ('equilibrium_geometry', 'harmonic_analysis', 'equilibrium_constants', 'rigid_rotor_catalog'):
+              assert result['stages'][stage]['status'] == 'available', stage
+          assert not result['identification_ready'] and not result['experimental_accuracy_established']
+          assert manifest['source_identity']['declared_workflow_commit'] == os.environ['COCHEM_SOURCE_COMMIT']
+          assert manifest['source_identity']['declared_engine_image'] == os.environ['COCHEM_IMAGE_ID']
+          evidence = {'status': 'passed', 'request_id': manifest['request_id'], 'verified_files': len(manifest['files']),
+                      'manifest_sha256': sha256((root / 'manifest.json').read_bytes()).hexdigest(),
+                      'source_identity': manifest['source_identity'], 'identification_ready': False}
+          (Path('/evidence') / 'sealed-result-verification.json').write_text(json.dumps(evidence, indent=2) + '\n')
+          print(json.dumps(evidence))
+          PY
+      - name: Reap only containers owned by this image qualification attempt
+        if: always()
+        run: |
+          docker rm --force torq-image-prepare-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-image-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-image-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-image-verification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} 2>/dev/null || true
+      - name: Retain real calculation image artifacts and evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: torq-calculation-image-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/torq-image-results/
+            ${{ runner.temp }}/torq-image-evidence/
+            ${{ runner.temp }}/torq-image-input/
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: false
+
+  real-ecosystem-consumers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      COCHEM_DISABLE_SANDBOX_CHECK: '1'
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      COCHEM_REQUIRE_ECOSYSTEM: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      QT_QPA_PLATFORM: offscreen
+      COCHEM_HEADLESS: '1'
+      COCHEM_MODULES_APP_CONFIGURED: ${{ vars.COCHEM_MODULES_APP_ID != '' && secrets.COCHEM_MODULES_APP_PRIVATE_KEY != '' }}
+      COCHEM_MODULES_TOKEN_CONFIGURED: ${{ secrets.COCHEM_SOURCE_READ_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0, Node 24
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Require private sibling source authorization
+        run: |
+          if [ "$COCHEM_MODULES_APP_CONFIGURED" != true ] && [ "$COCHEM_MODULES_TOKEN_CONFIGURED" != true ]; then
+            echo '::error::Private BASE/TOPOS qualification requires COCHEM_MODULES_APP_ID and COCHEM_MODULES_APP_PRIVATE_KEY, or the existing contents-read COCHEM_SOURCE_READ_TOKEN secret. TORQ GITHUB_TOKEN cannot read sibling repositories.'
+            exit 1
+          fi
+      - name: Mint narrowly scoped sibling source token
+        if: env.COCHEM_MODULES_APP_CONFIGURED == 'true'
+        id: module-auth
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0, Node 24
+        with:
+          app-id: ${{ vars.COCHEM_MODULES_APP_ID }}
+          private-key: ${{ secrets.COCHEM_MODULES_APP_PRIVATE_KEY }}
+          owner: ProfJJK-CoChem
+          repositories: |
+            CoChem-BASE
+            CoChem-TOPOS
+          permission-contents: read
+      - name: Install the genuine named engine and student contracts
+        run: |
+          python -m pip install --require-hashes -r ci_tools/requirements-pyscf-py312.txt
+          python -m pip install --no-deps .
+          python -m pip install 'pytest>=8,<10'
+          python -m pip check
+          python -c "import pyscf, geometric; from dftd4.interface import DispersionModel; from importlib.metadata import version; assert pyscf.__version__ == '2.14.0'; assert version('geometric') == '1.1.1'; assert version('dftd4') == '3.7.0'"
+      - name: Install actual pinned sibling environments for reverse scientific handoffs
+        env:
+          COCHEM_SOURCE_READ_TOKEN: ${{ steps.module-auth.outputs.token || secrets.COCHEM_SOURCE_READ_TOKEN }}
+        run: |
+          python scripts/student_setup.py setup --no-interface-install --artifact-dir "$RUNNER_TEMP/cochem-student-engine"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'cochem-student-engine'
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write(f'COCHEM_ARTIFACT_DIR={root}\n')
+              for module in ('base', 'topos'):
+                  receipt = json.loads((root / 'Modules' / module / 'installation.json').read_text())
+                  target.write(f'COCHEM_{module.upper()}_SOURCE={receipt["source_path"]}\n')
+                  target.write(f'COCHEM_{module.upper()}_PYTHON={receipt["python_path"]}\n')
+          PY
+      - name: Require every genuine sibling producer and reverse scientific consumer
+        run: |
+          python -m pytest -q --basetemp "$RUNNER_TEMP/torq-ecosystem-native-tests" \
+            --junitxml "$RUNNER_TEMP/torq-ecosystem-native-tests-report.xml" \
+            tests/test_ecosystem_integration.py
+          python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-ecosystem-native-tests-report.xml"
+      - name: Record native derivative qualification evidence
+        run: |
+          python ci_tools/qualify_pyscf_image.py --output "$RUNNER_TEMP/torq-qualification" \
+            --image-identity hosted-runner-python-env --source-commit "$GITHUB_SHA"
+      - name: Retain genuine engine evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: torq-real-ecosystem-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/torq-qualification/
+            ${{ runner.temp }}/torq-ecosystem-native-tests/
+            ${{ runner.temp }}/torq-ecosystem-native-tests-report.xml
             ${{ runner.temp }}/cochem-student-engine/interface/environment.json
             ${{ runner.temp }}/cochem-student-engine/Modules/*/installation.json
           if-no-files-found: error
@@ -178,13 +350,33 @@ jobs:
       PYTHONDONTWRITEBYTECODE: '1'
       QT_QPA_PLATFORM: offscreen
       COCHEM_HEADLESS: '1'
+      COCHEM_MODULES_APP_CONFIGURED: ${{ vars.COCHEM_MODULES_APP_ID != '' && secrets.COCHEM_MODULES_APP_PRIVATE_KEY != '' }}
+      COCHEM_MODULES_TOKEN_CONFIGURED: ${{ secrets.COCHEM_SOURCE_READ_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0, Node 24
         with:
           python-version: '3.12'
+      - name: Require private sibling source authorization
+        run: |
+          if [ "$COCHEM_MODULES_APP_CONFIGURED" != true ] && [ "$COCHEM_MODULES_TOKEN_CONFIGURED" != true ]; then
+            echo '::error::Private BASE/TOPOS qualification requires COCHEM_MODULES_APP_ID and COCHEM_MODULES_APP_PRIVATE_KEY, or the existing contents-read COCHEM_SOURCE_READ_TOKEN secret. TORQ GITHUB_TOKEN cannot read sibling repositories.'
+            exit 1
+          fi
+      - name: Mint narrowly scoped sibling source token
+        if: env.COCHEM_MODULES_APP_CONFIGURED == 'true'
+        id: module-auth
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0, Node 24
+        with:
+          app-id: ${{ vars.COCHEM_MODULES_APP_ID }}
+          private-key: ${{ secrets.COCHEM_MODULES_APP_PRIVATE_KEY }}
+          owner: ProfJJK-CoChem
+          repositories: |
+            CoChem-BASE
+            CoChem-TOPOS
+          permission-contents: read
       - name: Install the locked interface independently of calculation engines
         run: |
           python -m pip install --require-hashes -r ci_tools/requirements-interface-py312.txt
@@ -192,6 +384,8 @@ jobs:
           python -m pip install 'pytest>=8,<10'
           python -m pip check
       - name: Use the actual pinned BASE installer for isolated sibling environments
+        env:
+          COCHEM_SOURCE_READ_TOKEN: ${{ steps.module-auth.outputs.token || secrets.COCHEM_SOURCE_READ_TOKEN }}
         run: |
           python scripts/student_setup.py setup --no-interface-install --artifact-dir "$RUNNER_TEMP/cochem-student"
           python - <<'PY'

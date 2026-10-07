@@ -7,6 +7,12 @@
     "workspaceFolder": "/workspaces/CoChem-TORQ",
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/CoChem-TORQ,type=bind,consistency=cached",
     "customizations": {
+        "codespaces": {
+            "repositories": {
+                "ProfJJK-CoChem/CoChem-BASE": {"permissions": {"contents": "read"}},
+                "ProfJJK-CoChem/CoChem-TOPOS": {"permissions": {"contents": "read"}}
+            }
+        },
         "vscode": {
             "extensions": [
                 "ms-python.python",

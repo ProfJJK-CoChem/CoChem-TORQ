@@ -117,8 +117,11 @@ Local evidence recorded during this repair:
   explicitly labelled analytic hydrogenic eigenenergy. These are not simulated
   quantum-program outputs or an external-engine accuracy benchmark.
 - The real Docker image build and non-root post-create install passed.
-- The CI workflow YAML was parsed locally. Hosted GitHub Actions have not been
-  executed as part of this uncommitted working-tree change.
+- The earlier workflow was parsed locally at that repair checkpoint. The newer
+  student workflow has since run on GitHub: its first run exposed private-sibling
+  source authorization and optional-import prerequisites and did not qualify a
+  release. Current actual outcomes are recorded in
+  [student release evidence](student-release-check-results.json).
 
 SPCAT's legacy automatic parameter/intensity writers are deliberately unavailable:
 they previously invented uncertainties/partition values and malformed decks.

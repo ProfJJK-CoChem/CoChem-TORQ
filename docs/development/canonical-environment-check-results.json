@@ -2,7 +2,7 @@
   "schema_version": "cochem.canonical-environment-evidence/1",
   "recorded_at": "2026-10-07T21:50:41.742851+00:00",
   "validation_environment": "local Docker on managed cloud",
-  "hosted_actions_run_performed": false,
+  "hosted_actions_run_performed": true,
   "live_codespace_started": false,
   "source_worktree_status": "modified",
   "actions_transport_tests": {
@@ -97,5 +97,11 @@
         }
       }
     ]
+  },
+  "hosted_actions_observation": {
+    "run_id": 37696948074,
+    "status": "failed",
+    "qualified": false,
+    "scope": "First actual PR CI; authentication/import prerequisites failed before complete scientific acceptance."
   }
 }
