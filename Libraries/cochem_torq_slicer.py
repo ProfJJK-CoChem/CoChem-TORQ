@@ -24,7 +24,6 @@ from collections.abc import Callable, Sequence
 from typing import Any, Final
 
 import numpy as np
-from mendeleev import element as mendeleev_element  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field
 from scipy.integrate import quad  # type: ignore[import-untyped]
 from scipy.interpolate import (  # type: ignore[import-untyped]
@@ -153,6 +152,9 @@ class WKBTunnelingResult(BaseModel):
     tunneling_splitting_mhz: float = Field(
         ..., description="Estimated ground-state tunneling splitting in MHz"
     )
+    model: str
+    quality_flags: list[str]
+    log_tunneling_probability: float
     quantum_treatment_required: bool = Field(
         ...,
         description="Flag indicating if full quantum Hamiltonian is mandatory",
@@ -165,84 +167,16 @@ class WKBTunnelingResult(BaseModel):
 
 
 def get_dynamic_reduced_inertia(rotor_type: str) -> float:
-    """Computes an ab initio reduced moment of inertia using Mendeleev atomic masses.
+    """Reject name-only inertia estimates; inertia requires geometry and masses.
 
-    :param rotor_type: Torsional group identifier (e.g., 'CH3', '-OH', 'NH2', 'SH').
-    :return: Estimated reduced moment of inertia in amu * Angstrom^2.
+    A group name supplies neither a rotation axis, its geometry nor the coupled
+    frame inertia. Callers must compute and document their effective inertia
+    for a declared kinetic-energy model and pass that value explicitly.
     """
-    clean = rotor_type.strip().upper()
-    elem_h = mendeleev_element("H")
-    mass_h = float(elem_h.mass)
-
-    # Dynamic deuterium mass retrieval from mendeleev isotope table
-    deuterium_isotopes = [iso for iso in elem_h.isotopes if iso.mass_number == 2]
-    mass_d = (
-        float(deuterium_isotopes[0].mass) if deuterium_isotopes else 2.014101778
+    raise ValueError(
+        f"Cannot derive a reduced inertia from rotor name {rotor_type!r}; "
+        "provide geometry, isotope masses, rotor/frame partition and kinetic-energy model."
     )
-
-    if "CD3" in clean:
-        r_ch = 1.093
-        sin_alpha = math.sqrt(8.0 / 9.0)
-        r_perp = r_ch * sin_alpha
-        return float(3.0 * mass_d * (r_perp**2))
-    elif "CHD2" in clean:
-        r_ch = 1.093
-        sin_alpha = math.sqrt(8.0 / 9.0)
-        r_perp = r_ch * sin_alpha
-        return float((mass_h + 2.0 * mass_d) * (r_perp**2))
-    elif "CH2D" in clean:
-        r_ch = 1.093
-        sin_alpha = math.sqrt(8.0 / 9.0)
-        r_perp = r_ch * sin_alpha
-        return float((2.0 * mass_h + mass_d) * (r_perp**2))
-    elif "CH3" in clean:
-        # 3 hydrogens in methyl rotor with tetrahedral angle 109.47 deg
-        # and r(C-H) ~ 1.093 Angstrom
-        # Angle of C-H bond with the C3 rotation axis:
-        # alpha = 180 - 109.471 = 70.529 deg
-        r_ch = 1.093
-        sin_alpha = math.sqrt(8.0 / 9.0)
-        r_perp = r_ch * sin_alpha
-        i_top = 3.0 * mass_h * (r_perp**2)
-        return float(i_top)
-    elif "OD" in clean:
-        r_oh = 0.96
-        theta_rad = math.radians(108.5)
-        r_perp = r_oh * math.sin(theta_rad)
-        return float(mass_d * (r_perp**2))
-    elif "OH" in clean:
-        # Hydroxyl rotor with r(O-H) ~ 0.96 Angstrom and theta(C-O-H) ~ 108.5 deg
-        r_oh = 0.96
-        theta_rad = math.radians(108.5)
-        r_perp = r_oh * math.sin(theta_rad)
-        return float(mass_h * (r_perp**2))
-    elif "ND2" in clean:
-        r_nh = 1.01
-        theta_axis_rad = math.radians(68.0)
-        r_perp = r_nh * math.sin(theta_axis_rad)
-        return float(2.0 * mass_d * (r_perp**2))
-    elif "NH2" in clean:
-        # Amino group with r(N-H) ~ 1.01 Angstrom and angle with C-N axis ~ 68.0 deg
-        r_nh = 1.01
-        theta_axis_rad = math.radians(68.0)
-        r_perp = r_nh * math.sin(theta_axis_rad)
-        return float(2.0 * mass_h * (r_perp**2))
-    elif "SH" in clean:
-        # Thiol group with r(S-H) ~ 1.34 Angstrom and theta(C-S-H) ~ 96.5 deg
-        r_sh = 1.34
-        theta_rad = math.radians(96.5)
-        r_perp = r_sh * math.sin(theta_rad)
-        return float(mass_h * (r_perp**2))
-    elif "PHENYL" in clean:
-        # Rigid phenyl rotor rotating about C-C single bond
-        mass_c = float(mendeleev_element("C").mass)
-        r_cc = 1.39
-        r_ch = 1.09
-        i_ring = 2.0 * mass_c * (r_cc**2) + 2.0 * mass_h * ((r_cc + r_ch) ** 2)
-        return float(max(i_ring, 120.0))
-    else:
-        # Default fallback for arbitrary single-rotor fragments
-        return 3.0
 
 
 # =============================================================================
@@ -605,8 +539,10 @@ def fit_continuous_2d_splines(
 def wkb_tunneling_estimator(
     rotor_type: str,
     barrier_height_cm1: float,
-    reduced_moment_inertia_amu_ang2: float = 3.0,
-    periodicity: int = 3,
+    reduced_moment_inertia_amu_ang2: float | None = None,
+    periodicity: int | None = None,
+    *,
+    potential_model: str | None = None,
 ) -> dict[str, Any]:
     """Applies semiclassical Wentzel-Kramers-Brillouin (WKB) estimation.
 
@@ -622,11 +558,15 @@ def wkb_tunneling_estimator(
     clean_rotor = rotor_type.strip().upper()
     is_light_rotor = any(group in clean_rotor for group in LIGHT_ROTOR_PATTERNS)
 
-    # Use provided moment of inertia or dynamically query Mendeleev
-    if reduced_moment_inertia_amu_ang2 <= 0.0:
-        eff_inertia = get_dynamic_reduced_inertia(rotor_type)
-    else:
-        eff_inertia = float(reduced_moment_inertia_amu_ang2)
+    if potential_model != "cosine":
+        raise ValueError("WKB requires the explicitly selected cosine-potential approximation; no potential shape is inferred.")
+    if reduced_moment_inertia_amu_ang2 is None or not math.isfinite(reduced_moment_inertia_amu_ang2) or reduced_moment_inertia_amu_ang2 <= 0:
+        raise ValueError("A finite positive, independently justified reduced inertia is required.")
+    if type(periodicity) is not int or periodicity < 1:
+        raise ValueError("A positive integer potential periodicity must be specified explicitly.")
+    if not math.isfinite(barrier_height_cm1) or barrier_height_cm1 <= 0:
+        raise ValueError("Below-barrier WKB requires a finite positive barrier; free rotation needs another model.")
+    eff_inertia = float(reduced_moment_inertia_amu_ang2)
 
     # Moment of inertia in SI units: kg * m^2
     i_red_si = eff_inertia * AMU_TO_KG * (ANGSTROM_TO_M**2)
@@ -634,34 +574,23 @@ def wkb_tunneling_estimator(
     # Barrier height V0 in Joules
     v0_joules = float(barrier_height_cm1) / JOULE_TO_CM1
 
-    # Torsional harmonic frequency estimate: omega_0 = n * sqrt(V0 / (2 * I_red))
-    if i_red_si > 0.0 and v0_joules > 0.0:
-        omega_0 = float(periodicity) * math.sqrt(v0_joules / (2.0 * i_red_si))
-        # Harmonic zero-point energy approximation: E_0 = 0.5 * hbar * omega_0
-        e0_joules = 0.5 * PLANCK_HBAR_SI * omega_0
-
-        # Semiclassical WKB action for V(theta) = V0/2 * (1 - cos(n*theta))
-        eff_barrier = max(1e-25, v0_joules - e0_joules)
-        action = (4.0 / (float(periodicity) * PLANCK_HBAR_SI)) * math.sqrt(
-            2.0 * i_red_si * eff_barrier
-        )
-        # Cap action to avoid exponential underflow
-        action = min(action, 100.0)
-
-        tunneling_probability = math.exp(-2.0 * action)
-        # Semiclassical tunneling splitting in Hz:
-        # Delta_nu ~ (omega_0 / pi) * exp(-action)
-        tunneling_splitting_hz = (omega_0 / math.pi) * math.exp(-action)
-        tunneling_splitting_mhz = tunneling_splitting_hz / 1.0e6
-    else:
-        tunneling_probability = 0.0
-        tunneling_splitting_mhz = 0.0
-
-    # Quantum treatment required if splitting is resolvable (> 0.01 MHz)
-    # or if rotor is light and barrier is below typical threshold (~1200 cm^-1)
-    quantum_required = is_light_rotor and (
-        tunneling_splitting_mhz > 0.01 or barrier_height_cm1 < 1200.0
+    # Declared cosine model; E0 is a harmonic local-well approximation.
+    omega_0 = float(periodicity) * math.sqrt(v0_joules / (2.0 * i_red_si))
+    e0_joules = 0.5 * PLANCK_HBAR_SI * omega_0
+    if e0_joules >= v0_joules:
+        raise ValueError("Estimated ground-state energy is above the barrier; below-barrier WKB is inapplicable.")
+    turning_1 = math.acos(1.0 - 2.0 * e0_joules / v0_joules) / periodicity
+    turning_2 = 2.0 * math.pi / periodicity - turning_1
+    action = evaluate_wkb_action_integral(
+        lambda theta: 0.5 * v0_joules * (1.0 - math.cos(periodicity * theta)),
+        e0_joules, turning_1, turning_2, i_red_si,
     )
+    tunneling_probability = math.exp(-2.0 * action)
+    # Isolated symmetric two-well estimate DeltaE=(hbar*omega/pi)*exp(-S).
+    # It is not a periodic-rotor A/E splitting or a spin-statistical assignment.
+    splitting_energy = PLANCK_HBAR_SI * omega_0 / math.pi * math.exp(-action)
+    tunneling_splitting_mhz = splitting_energy / (2 * math.pi * PLANCK_HBAR_SI) / 1e6
+    quantum_required = True  # A qualified nuclear-motion solver must validate this estimate.
 
     logger.info(
         "WKB tunneling estimate for %s: barrier=%.1f cm^-1, P_tunnel=%.2e, "
@@ -681,6 +610,9 @@ def wkb_tunneling_estimator(
         "tunneling_probability": tunneling_probability,
         "tunneling_splitting_mhz": tunneling_splitting_mhz,
         "quantum_treatment_required": quantum_required,
+        "model": "cosine_potential_symmetric_two_well_wkb_estimate",
+        "quality_flags": ["harmonic_local_ground_energy", "not_periodic_rotor_A_E_splitting", "uncalibrated"],
+        "log_tunneling_probability": -2.0 * action,
     }
 
 
@@ -704,9 +636,18 @@ def evaluate_wkb_action_integral(
     :return: Dimensionless WKB action integral S.
     """
 
+    if not all(math.isfinite(value) for value in (energy_joules, theta_turning_1_rad, theta_turning_2_rad, reduced_moment_inertia_kg_m2)):
+        raise ValueError("WKB action inputs must be finite.")
+    if reduced_moment_inertia_kg_m2 <= 0 or theta_turning_2_rad <= theta_turning_1_rad:
+        raise ValueError("WKB action requires positive inertia and an ordered forbidden interval.")
+
     def integrand(theta: float) -> float:
         v_val = potential_func(theta)
-        delta = max(0.0, v_val - energy_joules)
+        if not math.isfinite(v_val):
+            raise ValueError("The potential returned a nonfinite energy.")
+        delta = v_val - energy_joules
+        if delta < 0:
+            raise ValueError("The supplied interval includes a classically allowed region.")
         return math.sqrt(2.0 * reduced_moment_inertia_kg_m2 * delta)
 
     integral_val, _ = quad(

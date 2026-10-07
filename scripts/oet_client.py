@@ -40,19 +40,17 @@ Contract Specifications (Method Matrix v4 §10.1-10.8):
     atomic force uncertainty U_F, writing an uncertainty marker file if exceeding
     eps_E / eps_F.
 - Physical Mass Mandate: Dynamic atomic mass and property resolution via `mendeleev`.
-- Zero-Mock Policy: Authentic socket IPC, robust retry mechanism, and genuine
-  analytical physical molecular mechanics potential fallback when remote is offline.
+- Scientific integrity: authentic socket IPC and explicit missing-engine errors.
+  An unavailable daemon never selects an alternate model or generates results.
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime
-from datetime import timezone
 import functools
 import json
 import logging
-import math
 import os
 import platform
 import socket
@@ -62,6 +60,7 @@ import time
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Final, Optional, Union
 
@@ -69,15 +68,17 @@ import mendeleev  # type: ignore[import-untyped]
 import numpy as np
 
 try:
-    from cochem_base.schemas import OETFallbackAlertManifest
     from cochem_base.exceptions import OETDaemonConnectionError
+    from cochem_base.schemas import OETFallbackAlertManifest
 except ImportError:
     from pydantic import BaseModel, ConfigDict, Field
 
     class OETFallbackAlertManifest(BaseModel):
         model_config = ConfigDict(frozen=True, extra="forbid")
         calculation_base: str
-        timestamp: str = Field(default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat())
+        timestamp: str = Field(
+            default_factory=lambda: datetime.datetime.now(timezone.utc).isoformat()
+        )
         trigger_event: str
         fallback_calculator: str
         provenance_tag: str = "[E]"
@@ -87,16 +88,19 @@ except ImportError:
 
     class OETDaemonConnectionError(RuntimeError):
         """Raised when communication with persistent OET server daemon fails."""
+
         pass
 
 
 class OETDaemonUnavailableError(RuntimeError):
-    """Raised when OET daemon is unavailable and fail_on_fallback or strict_provenance is active."""
+    """The configured OET daemon or scientific engine is unavailable."""
+
     pass
 
 
 class AirGapViolationError(RuntimeError):
     """Raised when writing to static Ring 1 repository files is detected."""
+
     pass
 
 
@@ -110,7 +114,7 @@ def emit_fallback_alert(
     artifacts_dir: Path | str | None = None,
     host_telemetry: dict[str, Any] | None = None,
 ) -> OETFallbackAlertManifest:
-    """Emit fallback alert manifest to Ring 2 scratch and stage to Ring 3 artifacts atomically. [M]"""
+    """Persist a compatibility alert; this does not enable an alternate engine."""
     clean_base = calculation_base
     if clean_base.endswith("_EXT"):
         clean_base = clean_base[:-4]
@@ -139,9 +143,13 @@ def emit_fallback_alert(
     if cochem_root:
         root_path = Path(cochem_root).resolve()
         if root_path in s_dir.parents or root_path == s_dir:
-            raise AirGapViolationError(f"Prohibited write to Ring 1 repository root: {s_dir}")
+            raise AirGapViolationError(
+                f"Prohibited write to Ring 1 repository root: {s_dir}"
+            )
         if root_path in alerts_dir.parents or root_path == alerts_dir:
-            raise AirGapViolationError(f"Prohibited write to Ring 1 repository root: {alerts_dir}")
+            raise AirGapViolationError(
+                f"Prohibited write to Ring 1 repository root: {alerts_dir}"
+            )
 
     scratch_alert_file = s_dir / f"{clean_base}_EXT.fallback_alert.json"
     staged_artifact_file = alerts_dir / f"{clean_base}_EXT.fallback_alert.json"
@@ -228,21 +236,10 @@ logger = logging.getLogger("cochem.torq.oet_client")
 
 @functools.lru_cache(maxsize=128)
 def get_element_atomic_mass(symbol: str) -> float:
-    """Retrieve dynamic atomic mass for an element symbol using Mendeleev.
+    """Resolve a tabulated isotope mass; never return a mixture as one isotope."""
+    from Libraries.cochem_isotopes import isotope_mass
 
-    Strictly complies with the CoChem Mendeleev Mass Mandate (no hardcoded masses).
-    """
-    clean_sym = symbol.strip().capitalize()
-    try:
-        elem = mendeleev.element(clean_sym)
-        mass = elem.mass
-        if mass is None:
-            raise ValueError(f"Mendeleev mass is None for '{clean_sym}'")
-        return float(mass)
-    except Exception as err:
-        raise ValueError(
-            f"Failed to get atomic mass for '{symbol}' via Mendeleev: {err}"
-        ) from err
+    return isotope_mass(symbol)
 
 
 @functools.lru_cache(maxsize=128)
@@ -278,31 +275,22 @@ def get_element_symbol(atomic_number: int) -> str:
 
 @functools.lru_cache(maxsize=128)
 def get_element_covalent_radius(symbol: str) -> float:
-    """Retrieve covalent radius in Angstroms via Mendeleev."""
-    clean_sym = symbol.strip().capitalize()
-    try:
-        elem = mendeleev.element(clean_sym)
-        rad_pm = (
-            elem.covalent_radius_pyykko
-            or elem.covalent_radius_bragg
-            or elem.covalent_radius
-            or 100.0
-        )
-        return float(rad_pm) / 100.0
-    except Exception:
-        return 1.0
+    """Retrieve the specified tabulated Pyykko radius, failing if unavailable."""
+    elem = mendeleev.element(symbol)
+    radius = elem.covalent_radius_pyykko
+    if radius is None or not np.isfinite(radius) or radius <= 0:
+        raise ValueError(f"No tabulated Pyykko covalent radius for {symbol!r}.")
+    return float(radius) / 100
 
 
 @functools.lru_cache(maxsize=128)
 def get_element_vdw_radius(symbol: str) -> float:
-    """Retrieve van der Waals radius in Angstroms via Mendeleev."""
-    clean_sym = symbol.strip().capitalize()
-    try:
-        elem = mendeleev.element(clean_sym)
-        rad_pm = elem.vdw_radius or elem.vdw_radius_alvarez or 170.0
-        return float(rad_pm) / 100.0
-    except Exception:
-        return 1.70
+    """Retrieve an actual database van der Waals radius; no guessed value."""
+    elem = mendeleev.element(symbol)
+    radius = elem.vdw_radius
+    if radius is None or not np.isfinite(radius) or radius <= 0:
+        raise ValueError(f"No tabulated van der Waals radius for {symbol!r}.")
+    return float(radius) / 100
 
 
 # =============================================================================
@@ -347,7 +335,7 @@ class OETClientConfig:
     retries: int = 3
     retry_delay_seconds: float = 0.5
     scf_tole: float = 1e-5
-    allow_fallback: bool = True
+    allow_fallback: bool = False
     standalone: bool = False
     fallback_driver: str = "physical"
     device: str = "cpu"
@@ -405,9 +393,13 @@ def read_extinp(path: str | Path) -> ExtInpData:
 
     ncores = int(clean_lines[3])
     if ncores < 1:
-        ncores = 1
+        raise ValueError(
+            "NCores must be positive; the requested value is not replaced."
+        )
 
     dograd_int = int(clean_lines[4])
+    if dograd_int not in (0, 1):
+        raise ValueError("do_gradient must be exactly 0 or 1.")
     dograd = bool(dograd_int)
 
     pcfile: Path | None = None
@@ -418,6 +410,10 @@ def read_extinp(path: str | Path) -> ExtInpData:
             pc_candidate = p.parent / pc_str
         if pc_candidate.is_file():
             pcfile = pc_candidate
+        else:
+            raise FileNotFoundError(
+                f"Requested point-charge file is unavailable: {pc_candidate}"
+            )
 
     return ExtInpData(
         xyz_file=xyz_path,
@@ -447,6 +443,8 @@ def read_xyz(
         raise ValueError(
             f"Invalid XYZ header in {p}: first line must be integer count: '{lines[0]}'"
         ) from err
+    if num_atoms < 1 or len(lines) != num_atoms + 2:
+        raise ValueError("Supply exactly one nonempty XYZ frame with its comment line.")
 
     symbols: list[str] = []
     coords: list[tuple[float, float, float]] = []
@@ -472,6 +470,8 @@ def read_xyz(
             raise ValueError(
                 f"Non-numeric coordinates on line {idx} in {p}: '{line}'"
             ) from err
+        if not np.isfinite([x, y, z]).all():
+            raise ValueError(f"Nonfinite coordinate on line {idx} in {p}.")
         symbols.append(sym)
         coords.append((x, y, z))
 
@@ -509,6 +509,19 @@ def write_engrad(
     dograd: bool = True,
 ) -> Path:
     """Write ORCA `<base>_EXT.engrad` file adhering to Section 10.2 format verbatim."""
+    if not dograd:
+        raise ValueError(
+            "An engrad gradient block requires an actual derivative; "
+            "energy-only data cannot supply zero placeholders."
+        )
+    if type(num_atoms) is not int or num_atoms < 1 or not np.isfinite(energy_eh):
+        raise ValueError(
+            "Engrad needs an actual nonempty atom count and finite energy."
+        )
+    if not np.isfinite(np.asarray(gradient_eh_bohr, dtype=float)).all():
+        raise ValueError(
+            "Nonfinite derivatives cannot be written as scientific results."
+        )
     p = Path(engrad_path).resolve()
     p.parent.mkdir(parents=True, exist_ok=True)
 
@@ -536,9 +549,6 @@ def write_engrad(
             )
         for g_val in grad_list:
             lines.append(f"{g_val:20.12f}")
-    else:
-        for _ in range(num_atoms * 3):
-            lines.append(f"{0.0:20.12f}")
 
     p.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return p
@@ -575,129 +585,23 @@ def convert_orca_gradient_to_ase_forces(
 
 
 # =============================================================================
-# 5. Genuine Physical Fallback Calculator (Zero-Mock Physical Protocol)
+# 5. Rejected historical standalone calculator
 # =============================================================================
 
 
 class PhysicalOETFallbackCalculator:
-    """Authentic analytical physical molecular potential calculator.
+    """Compatibility name for an unavailable, unqualified historical calculator.
 
-    Complies strictly with the CoChem Zero-Mock Anti-Spoofing Protocol.
-    Computes genuine molecular potential energy E(R) (Hartree) and analytic
-    gradients nabla E = -F (Eh/bohr) directly using dynamic Mendeleev masses,
-    covalent radii, and vdW radii.
+    The former atomic reference, pair parameters and charges were invented.
+    No physical energy, gradient or uncertainty is produced by this class.
+    Configure an actual model server with an explicit scientific recipe instead.
     """
 
     def __init__(self, eps_dispersion: float = 0.05, k_bond: float = 0.35) -> None:
-        self.eps_dispersion = eps_dispersion
-        self.k_bond = k_bond
+        self.unavailable_reason = "No qualified standalone OET engine is configured."
 
-    def calculate(
-        self,
-        symbols: Sequence[str],
-        coordinates: Sequence[tuple[float, float, float]],
-        charge: int = 0,
-        multiplicity: int = 1,
-        dograd: bool = True,
-    ) -> tuple[float, list[float]]:
-        """Calculate authentic physical potential energy and analytical gradients."""
-        n_atoms = len(symbols)
-        if n_atoms == 0:
-            return 0.0, []
-
-        if n_atoms == 1:
-            z = get_element_atomic_number(symbols[0])
-            e_atom = -0.5 * (z**2) * (1.0 - 0.1 * charge)
-            return float(e_atom), [0.0, 0.0, 0.0] if dograd else []
-
-        coords_arr = np.array(coordinates, dtype=np.float64)
-        cov_radii = np.array(
-            [get_element_covalent_radius(s) for s in symbols], dtype=np.float64
-        )
-        vdw_radii = np.array(
-            [get_element_vdw_radius(s) for s in symbols], dtype=np.float64
-        )
-        z_vals = np.array(
-            [get_element_atomic_number(s) for s in symbols], dtype=np.float64
-        )
-
-        e_ref = -float(np.sum(0.5 * (z_vals**1.85)))
-
-        total_energy_kcal = 0.0
-        forces_kcal_ang = np.full((n_atoms, 3), 0.0, dtype=np.float64)
-
-        for i in range(n_atoms):
-            for j in range(i + 1, n_atoms):
-                rij_vec = coords_arr[i] - coords_arr[j]
-                rij = float(np.linalg.norm(rij_vec))
-                if rij < 1e-6:
-                    rij = 1e-6
-                    rij_vec = np.array([1e-6, 0.0, 0.0])
-
-                unit_vec = rij_vec / rij
-
-                r_cov = cov_radii[i] + cov_radii[j]
-                r_vdw = vdw_radii[i] + vdw_radii[j]
-
-                # Covalent contribution (Morse / harmonic)
-                d_e = 80.0 * (z_vals[i] * z_vals[j]) ** 0.35
-                delta_r = rij - r_cov
-                e_cov = 0.5 * self.k_bond * 100.0 * (delta_r**2) - d_e
-                de_cov_dr = self.k_bond * 100.0 * delta_r
-
-                # Non-bonded contribution (buffered Lennard-Jones 12-6 + Coulomb)
-                sigma = r_vdw * 0.890898718
-                eps = self.eps_dispersion * math.sqrt(z_vals[i] * z_vals[j])
-                sr6 = (sigma / rij) ** 6
-                sr12 = sr6**2
-                e_lj = 4.0 * eps * (sr12 - sr6)
-
-                q_i = (charge / n_atoms) + (0.1 if z_vals[i] == 1 else -0.1)
-                q_j = (charge / n_atoms) + (0.1 if z_vals[j] == 1 else -0.1)
-                e_coul = (332.0637 * q_i * q_j) / rij
-                e_nb = e_lj + e_coul
-                de_nb_dr = -(24.0 * eps / rij) * (2.0 * sr12 - sr6) - (332.0637 * q_i * q_j) / (rij**2)
-
-                # C^2-continuous quintic polynomial switching envelope (Method Matrix v4 §10.2, §10.3)
-                r_on = 1.15 * r_cov
-                r_off = 1.45 * r_cov
-
-                if rij <= r_on:
-                    s = 1.0
-                    ds_dr = 0.0
-                elif rij >= r_off:
-                    s = 0.0
-                    ds_dr = 0.0
-                else:
-                    delta_range = r_off - r_on
-                    u = (rij - r_on) / delta_range
-                    s = 1.0 - 10.0 * (u**3) + 15.0 * (u**4) - 6.0 * (u**5)
-                    ds_dr = (1.0 / delta_range) * (-30.0 * (u**2) + 60.0 * (u**3) - 30.0 * (u**4))
-
-                # Composite potential energy: V(rij) = S*V_cov + (1 - S)*V_nb
-                v_pair = s * e_cov + (1.0 - s) * e_nb
-                total_energy_kcal += v_pair
-
-                # Analytical conservative force: F_i = -nabla_i V = -(dV/dr) * unit_vec
-                # dV/dr = S * (de_cov/dr) + (1 - S) * (de_nb/dr) + (dS/dr) * (e_cov - e_nb)
-                dv_dr = s * de_cov_dr + (1.0 - s) * de_nb_dr + ds_dr * (e_cov - e_nb)
-                f_pair_mag = -dv_dr
-
-                forces_kcal_ang[i] += f_pair_mag * unit_vec
-                forces_kcal_ang[j] -= f_pair_mag * unit_vec
-
-        e_pot_eh = total_energy_kcal / HARTREE_TO_KCAL_MOL
-        total_energy_eh = e_ref + e_pot_eh
-
-        forces_ev_ang = forces_kcal_ang * (1.0 / 23.06054801)
-        grad_eh_bohr = convert_ase_forces_to_orca_gradient(forces_ev_ang)
-
-        return float(total_energy_eh), grad_eh_bohr if dograd else []
-
-
-# =============================================================================
-# 6. OET Client Network Bridge
-# =============================================================================
+    def calculate(self, symbols, coordinates, charge=0, multiplicity=1, dograd=True):
+        raise OETDaemonUnavailableError(self.unavailable_reason)
 
 
 class OETClient:
@@ -715,7 +619,7 @@ class OETClient:
         retries: int = 3,
         retry_delay: float = 0.5,
         scf_tole: float = 1e-5,
-        allow_fallback: bool = True,
+        allow_fallback: bool = False,
         fail_on_fallback: bool = False,
         strict_provenance: bool = False,
         standalone: bool = False,
@@ -736,7 +640,6 @@ class OETClient:
         self.socket_path = Path(socket_path) if socket_path else None
         self.scratch_dir = Path(scratch_dir) if scratch_dir else None
         self.artifacts_dir = Path(artifacts_dir) if artifacts_dir else None
-        self.fallback_calc = PhysicalOETFallbackCalculator()
         self.last_manifest: Optional[OETFallbackAlertManifest] = None
 
     def format_orca_extopt_input(
@@ -773,7 +676,8 @@ end
         if self.socket_path is not None:
             if not hasattr(socket, "AF_UNIX"):
                 raise OETDaemonConnectionError(
-                    f"AF_UNIX not supported on {sys.platform} for domain socket {self.socket_path}"
+                    f"AF_UNIX not supported on {sys.platform} "
+                    f"for domain socket {self.socket_path}"
                 )
             if not self.socket_path.exists():
                 raise OETDaemonConnectionError(
@@ -811,7 +715,10 @@ end
                     "message": f"Unexpected response type: {type(resp)}",
                 }
             except Exception as err:
-                raise OETDaemonConnectionError(f"Failed to communicate with domain socket {self.socket_path}: {err}") from err
+                raise OETDaemonConnectionError(
+                    f"Failed to communicate with domain socket "
+                    f"{self.socket_path}: {err}"
+                ) from err
             finally:
                 try:
                     sock.close()
@@ -892,7 +799,7 @@ end
         pointcharges_file: Path | None = None,
         calculation_base: str = "calculation",
     ) -> dict[str, Any]:
-        """Execute calculation through OET server daemon or fallback calculator."""
+        """Use the configured OET engine; absence never selects another model."""
         clean_base = calculation_base
         if xyz_file is not None and clean_base == "calculation":
             clean_base = xyz_file.stem
@@ -900,36 +807,29 @@ end
             clean_base = clean_base[:-4]
 
         if self.standalone:
-            logger.info(
-                "Executing in Standalone Mode via Physical Fallback Calculator (§10.5)."
+            raise OETDaemonUnavailableError(
+                "Standalone OET execution is unavailable: configure an actual "
+                "scientific engine. No generated physical fallback is permitted."
             )
-            manifest = emit_fallback_alert(
-                calculation_base=clean_base,
-                trigger_event="StandaloneModeActivated",
-                fallback_calculator="PhysicalOETFallbackCalculator",
-                scratch_dir=self.scratch_dir,
-                artifacts_dir=self.artifacts_dir,
+        coordinates_array = np.asarray(coordinates, dtype=float)
+        if (
+            not symbols
+            or coordinates_array.shape != (len(symbols), 3)
+            or not np.isfinite(coordinates_array).all()
+        ):
+            raise ValueError("OET needs an actual nonempty finite [N,3] geometry.")
+        if (
+            type(charge) is not int
+            or type(multiplicity) is not int
+            or multiplicity < 1
+            or type(ncores) is not int
+            or ncores < 1
+            or type(dograd) is not bool
+        ):
+            raise ValueError(
+                "OET needs explicit integer state/resources "
+                "and a boolean derivative flag."
             )
-            self.last_manifest = manifest
-
-            e_eh, grad_eh_bohr = self.fallback_calc.calculate(
-                symbols=symbols,
-                coordinates=coordinates,
-                charge=charge,
-                multiplicity=multiplicity,
-                dograd=dograd,
-            )
-            return {
-                "status": "OK",
-                "energy_Eh": e_eh,
-                "gradient_Eh_bohr": grad_eh_bohr,
-                "num_atoms": len(symbols),
-                "uncertainty_energy_Eh": 0.0,
-                "uncertainty_force_max": 0.0,
-                "fallback_active": True,
-                "provenance_tag": "[E]",
-                "manifest": manifest,
-            }
 
         payload: dict[str, Any] = {
             "command": "calculate",
@@ -950,45 +850,10 @@ end
                 resp, dograd=dograd, n_atoms=len(symbols)
             )
         except (ConnectionRefusedError, OETDaemonConnectionError, OSError) as conn_err:
-            if not self.allow_fallback or self.fail_on_fallback or self.strict_provenance:
-                raise OETDaemonUnavailableError(
-                    f"OET server at {self.host}:{self.port} offline and "
-                    f"fallback disabled or strict provenance active: {conn_err}"
-                ) from conn_err
-
-            logger.info(
-                "OET server at %s:%d offline. Activating Physical Fallback (§10.5).",
-                self.host,
-                self.port,
-            )
-            manifest = emit_fallback_alert(
-                calculation_base=clean_base,
-                trigger_event=f"SocketConnectionError: {conn_err}",
-                fallback_calculator="PhysicalOETFallbackCalculator",
-                socket_target=f"{self.host}:{self.port}",
-                scratch_dir=self.scratch_dir,
-                artifacts_dir=self.artifacts_dir,
-            )
-            self.last_manifest = manifest
-
-            e_eh, grad_eh_bohr = self.fallback_calc.calculate(
-                symbols=symbols,
-                coordinates=coordinates,
-                charge=charge,
-                multiplicity=multiplicity,
-                dograd=dograd,
-            )
-            return {
-                "status": "OK",
-                "energy_Eh": e_eh,
-                "gradient_Eh_bohr": grad_eh_bohr,
-                "num_atoms": len(symbols),
-                "uncertainty_energy_Eh": 0.0,
-                "uncertainty_force_max": 0.0,
-                "fallback_active": True,
-                "provenance_tag": "[E]",
-                "manifest": manifest,
-            }
+            raise OETDaemonUnavailableError(
+                f"The configured OET server at {self.host}:{self.port} is unavailable. "
+                "No replacement engine, energy, gradient or uncertainty was supplied."
+            ) from conn_err
 
     def _normalize_server_response(
         self,
@@ -997,53 +862,90 @@ end
         n_atoms: int = 1,
     ) -> dict[str, Any]:
         """Normalize response dictionary across different OET server versions."""
-        status = resp.get("status", "OK").upper()
+        if not isinstance(resp, dict):
+            raise ValueError("OET response must be an explicit result object.")
+        status = str(resp.get("status", "")).upper()
         if status not in ("OK", "SUCCESS"):
-            err_msg = resp.get("message") or resp.get("error") or "Unknown server error"
-            raise RuntimeError(f"OET server reported error: {err_msg}")
-
+            raise RuntimeError(
+                "OET server did not report an explicit successful calculation."
+            )
         if "energy_Eh" in resp:
-            energy_eh = float(resp["energy_Eh"])
+            raw_energy = resp["energy_Eh"]
         elif "energy_hartree" in resp:
-            energy_eh = float(resp["energy_hartree"])
-        elif "energy" in resp:
-            energy_eh = float(resp["energy"])
+            raw_energy = resp["energy_hartree"]
+        elif "energy" in resp and resp.get("units", {}).get("energy") == "hartree":
+            raw_energy = resp["energy"]
         else:
-            raise ValueError(f"OET response missing energy field: {resp.keys()}")
-
-        gradient_eh_bohr: list[float] = []
-        if dograd:
-            if "gradient_Eh_bohr" in resp:
-                gradient_eh_bohr = [float(g) for g in resp["gradient_Eh_bohr"]]
-            elif "gradients_hartree_bohr" in resp:
-                gradient_eh_bohr = list(
-                    np.asarray(
-                        resp["gradients_hartree_bohr"], dtype=np.float64
-                    ).flatten()
+            raise ValueError(
+                "OET response requires a real energy with explicit Hartree units."
+            )
+        if (
+            isinstance(raw_energy, bool)
+            or not isinstance(raw_energy, (int, float))
+            or not np.isfinite(raw_energy)
+        ):
+            raise ValueError("OET energy must be an actual finite number.")
+        gradient = None
+        if "gradient_Eh_bohr" in resp:
+            gradient = resp["gradient_Eh_bohr"]
+        elif "gradients_hartree_bohr" in resp:
+            gradient = resp["gradients_hartree_bohr"]
+        elif (
+            "gradient" in resp
+            and resp.get("units", {}).get("gradient") == "hartree/bohr"
+        ):
+            gradient = resp["gradient"]
+        elif "forces" in resp and resp.get("units", {}).get("forces") == "eV/angstrom":
+            gradient = convert_ase_forces_to_orca_gradient(resp["forces"])
+        elif dograd:
+            raise ValueError(
+                "The requested OET gradient is unavailable; zero is not a substitute."
+            )
+        if gradient is not None:
+            gradient = np.asarray(gradient, dtype=float).reshape(-1)
+            if gradient.shape != (n_atoms * 3,) or not np.isfinite(gradient).all():
+                raise ValueError(
+                    "OET gradient must contain three finite components per actual atom."
                 )
-            elif "gradient" in resp:
-                gradient_eh_bohr = list(
-                    np.asarray(resp["gradient"], dtype=np.float64).flatten()
+            gradient = gradient.tolist()
+        reported_atoms = resp.get("num_atoms", n_atoms)
+        if type(reported_atoms) is not int or reported_atoms != n_atoms:
+            raise ValueError(
+                "OET response atom count disagrees with the actual request."
+            )
+        u_energy = (
+            resp["uncertainty_energy_Eh"]
+            if "uncertainty_energy_Eh" in resp
+            else resp.get("sigma_E")
+        )
+        u_force = (
+            resp["uncertainty_force_max"]
+            if "uncertainty_force_max" in resp
+            else resp.get("U_F")
+        )
+        for uncertainty in (u_energy, u_force):
+            if uncertainty is not None and (
+                isinstance(uncertainty, bool)
+                or not isinstance(uncertainty, (float, int))
+                or not np.isfinite(uncertainty)
+                or uncertainty < 0
+            ):
+                raise ValueError(
+                    "Provider uncertainty must be finite and nonnegative "
+                    "when available."
                 )
-            elif "forces" in resp:
-                forces_arr = np.asarray(resp["forces"], dtype=np.float64)
-                gradient_eh_bohr = convert_ase_forces_to_orca_gradient(forces_arr)
-            else:
-                gradient_eh_bohr = [0.0] * (n_atoms * 3)
-        else:
-            gradient_eh_bohr = [0.0] * (n_atoms * 3)
-
-        u_energy = resp.get("uncertainty_energy_Eh") or resp.get("sigma_E")
-        u_force = resp.get("uncertainty_force_max") or resp.get("U_F")
-
         return {
             "status": "OK",
-            "energy_Eh": energy_eh,
-            "gradient_Eh_bohr": gradient_eh_bohr,
-            "num_atoms": int(resp.get("num_atoms", n_atoms)),
-            "uncertainty_energy_Eh": float(u_energy) if u_energy is not None else None,
-            "uncertainty_force_max": float(u_force) if u_force is not None else None,
+            "energy_Eh": float(raw_energy),
+            "gradient_Eh_bohr": gradient,
+            "num_atoms": n_atoms,
+            "uncertainty_energy_Eh": u_energy,
+            "uncertainty_force_max": u_force,
             "fallback_active": False,
+            "uncertainty_status": "unavailable"
+            if u_energy is None and u_force is None
+            else "provider_reported_uncalibrated",
+            "response_provenance": resp.get("provenance"),
         }
 
 
@@ -1087,7 +989,10 @@ def run_oet_client(
     )
 
     energy_eh = float(resp["energy_Eh"])
-    gradient_eh_bohr = list(resp.get("gradient_Eh_bohr", []))
+    gradient_eh_bohr = resp.get("gradient_Eh_bohr")
+    if gradient_eh_bohr is None:
+        raise ValueError("ORCA engrad export requires an actual calculated gradient.")
+    gradient_eh_bohr = list(gradient_eh_bohr)
     u_energy = resp.get("uncertainty_energy_Eh")
     u_force = resp.get("uncertainty_force_max")
 
@@ -1211,19 +1116,19 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-fallback",
         action="store_true",
-        help="Disable automatic physical fallback if OET server is unreachable",
+        help="Compatibility flag: unavailable engines always fail explicitly",
     )
     parser.add_argument(
         "--standalone",
         action="store_true",
-        help="Execute in local standalone mode without connecting to server",
+        help="Historical unsupported mode; returns an explicit unavailable error",
     )
     parser.add_argument(
         "-m",
         "--model",
         "--driver",
-        default="physical",
-        help="MLFF model or driver name (e.g. 'aimnet2', 'mace', 'uma', 'physical')",
+        default=None,
+        help="Historical driver metadata; never selects a replacement engine",
     )
     parser.add_argument(
         "-d",
@@ -1263,7 +1168,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version="CoChem-TORQ oet_client v4.0.0 (Method Matrix v4 Compliant)",
+        version="CoChem-TORQ oet_client v4.0.0 (explicit-engine bridge)",
     )
     return parser
 
@@ -1302,10 +1207,6 @@ def main(argv: list[str] | None = None) -> int:
         else:
             server_host = args.bind
 
-    allow_fallback = not args.no_fallback
-    if args.standalone:
-        allow_fallback = True
-
     config = OETClientConfig(
         server_host=server_host,
         server_port=server_port,
@@ -1313,7 +1214,7 @@ def main(argv: list[str] | None = None) -> int:
         retries=1 if args.standalone else args.retries,
         retry_delay_seconds=args.retry_delay,
         scf_tole=args.scf_tole,
-        allow_fallback=allow_fallback,
+        allow_fallback=False,
         standalone=args.standalone,
         fallback_driver=args.model,
         device=args.device,

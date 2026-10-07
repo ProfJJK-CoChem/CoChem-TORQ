@@ -1,0 +1,632 @@
+{
+  "classification": "genuine_engine_software_and_numerical_evidence",
+  "generated_at": "2026-10-07T21:29:31.061823+00:00",
+  "hf_two_step_max_errors": [
+    [
+      1.0258936128382246e-06,
+      3.3214827683258896e-06
+    ],
+    [
+      2.564726969689346e-07,
+      8.303693694311498e-07
+    ]
+  ],
+  "limitations": [
+    "Finite differences are internal derivative-consistency evidence, not an independent electronic-structure engine comparison.",
+    "The H2 energy contraction is an independent algorithm using the same native AO integrals.",
+    "DFT and MP2 checks cover the explicitly recorded small systems; they do not establish transferable chemistry or spectroscopy accuracy.",
+    "DFT Cartesian Hessians use two-scale numerical derivatives of full moving-grid analytic gradients.",
+    "MP2 relaxed-response dipoles, open-shell references, ECPs, frozen core, solvation and density fitting are not implemented.",
+    "This report does not qualify revDSD, anharmonic rotational constants, VPT2, or astronomical identification."
+  ],
+  "profiles": [
+    {
+      "adapter_source_sha256": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+      "basis_definition_sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+      "density_functional": null,
+      "dispersion": null,
+      "energy_hartree": -1.116714325062551,
+      "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+      "engine_version": "2.14.0",
+      "hessian_evidence": {
+        "absolute_symmetry_tolerance_hartree_bohr2": 5e-06,
+        "coordinate_order": "atom-major xyz, unweighted Cartesian",
+        "derivative": "analytic",
+        "engine_tensor_order": "atom_i,atom_j,cart_i,cart_j",
+        "max_asymmetry_hartree_bohr2": 0.0,
+        "relative_frobenius_asymmetry": 0.0
+      },
+      "libxc_version": "7.0.0",
+      "manifest_artifact_count": 11,
+      "manifest_sha256": "a377a2743d826f37ad990e4217617535effb0a73c37495083883d0089864dbcb",
+      "max_abs_gradient_hartree_bohr": 0.028454058433955987,
+      "method": {
+        "basis": "sto-3g",
+        "density_fitting": false,
+        "dispersion": null,
+        "frozen_core": false,
+        "name": "hf",
+        "reference": "restricted"
+      },
+      "molecule": {
+        "atom_ids": null,
+        "charge": 0,
+        "geometry_bohr": [
+          [
+            0.0,
+            0.0,
+            -0.7
+          ],
+          [
+            0.0,
+            0.0,
+            0.7
+          ]
+        ],
+        "isotope_symbols": [
+          "H",
+          "H"
+        ],
+        "isotopes": null,
+        "multiplicity": 1,
+        "symbols": [
+          "H",
+          "H"
+        ]
+      },
+      "optimization": null,
+      "raw_evidence_directory": "/workspace/torq-review/student-engine-evidence/cochem_exec_h2_actual0",
+      "scf": {
+        "converged": true,
+        "cycles": 2,
+        "electron_count": 2,
+        "energy_hartree": -1.116714325062551
+      },
+      "stability": {
+        "external_stable": true,
+        "internal_stable": true,
+        "scope": "restricted real-orbital internal and unrestricted external stability",
+        "status": "stable"
+      }
+    },
+    {
+      "adapter_source_sha256": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+      "basis_definition_sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+      "density_functional": null,
+      "dispersion": null,
+      "energy_hartree": -74.9659011923004,
+      "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+      "engine_version": "2.14.0",
+      "hessian_evidence": {
+        "absolute_symmetry_tolerance_hartree_bohr2": 5e-06,
+        "coordinate_order": "atom-major xyz, unweighted Cartesian",
+        "derivative": "analytic",
+        "engine_tensor_order": "atom_i,atom_j,cart_i,cart_j",
+        "max_asymmetry_hartree_bohr2": 7.771561172376096e-16,
+        "relative_frobenius_asymmetry": 5.773163766823745e-16
+      },
+      "libxc_version": "7.0.0",
+      "manifest_artifact_count": 18,
+      "manifest_sha256": "1677b1a8671c9b45d037d70ac0a99441937df0bab92b055959c3f5ec4167a915",
+      "max_abs_gradient_hartree_bohr": 3.8701783555694647e-08,
+      "method": {
+        "basis": "sto-3g",
+        "density_fitting": false,
+        "dispersion": null,
+        "frozen_core": false,
+        "name": "hf",
+        "reference": "restricted"
+      },
+      "molecule": {
+        "atom_ids": null,
+        "charge": 0,
+        "geometry_bohr": [
+          [
+            -0.009841663152844425,
+            7.16898343051023e-16,
+            0.07259183525818184
+          ],
+          [
+            0.10108482934851473,
+            -1.880283122237218e-15,
+            1.9390109902564103
+          ],
+          [
+            1.8087568338036637,
+            5.468587022314277e-15,
+            -0.3616028255153579
+          ]
+        ],
+        "isotope_symbols": [
+          "O",
+          "H",
+          "H"
+        ],
+        "isotopes": null,
+        "multiplicity": 1,
+        "symbols": [
+          "O",
+          "H",
+          "H"
+        ]
+      },
+      "optimization": {
+        "converged": true,
+        "engine": "geomeTRIC",
+        "evaluations": 8,
+        "final_geometry_source": "geomeTRIC returned molecular coordinates; independent final PySCF evaluation",
+        "final_gradient_verified": true,
+        "initial_geometry_bohr": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.15
+          ],
+          [
+            1.9,
+            0.0,
+            -0.5
+          ]
+        ],
+        "parameters": {
+          "convergence_dmax": 0.00015,
+          "convergence_drms": 0.0001,
+          "convergence_energy": 1e-08,
+          "convergence_gmax": 1.5e-05,
+          "convergence_grms": 1e-05,
+          "maxsteps": 80
+        },
+        "stationary_point": "unclassified_until_hessian_analysis",
+        "version": "1.1.1"
+      },
+      "raw_evidence_directory": "/workspace/torq-review/student-engine-evidence/cochem_exec_water_actual0",
+      "scf": {
+        "converged": true,
+        "cycles": 7,
+        "electron_count": 10,
+        "energy_hartree": -74.9659011923004
+      },
+      "stability": {
+        "external_stable": true,
+        "internal_stable": true,
+        "scope": "restricted real-orbital internal and unrestricted external stability",
+        "status": "stable"
+      }
+    },
+    {
+      "adapter_source_sha256": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+      "basis_definition_sha256": "42b8f4e0791b9bfad8c0f165df6c8d476a36dbda3ca5c2a27bc1217aedfef26c",
+      "density_functional": null,
+      "dispersion": null,
+      "energy_hartree": -1.1287094489798908,
+      "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+      "engine_version": "2.14.0",
+      "hessian_evidence": {
+        "absolute_symmetry_tolerance_hartree_bohr2": 5e-06,
+        "coordinate_order": "atom-major xyz, unweighted Cartesian",
+        "derivative": "analytic",
+        "engine_tensor_order": "atom_i,atom_j,cart_i,cart_j",
+        "max_asymmetry_hartree_bohr2": 1.2833262411661409e-18,
+        "relative_frobenius_asymmetry": 2.1675145527151975e-18
+      },
+      "libxc_version": "7.0.0",
+      "manifest_artifact_count": 11,
+      "manifest_sha256": "d27c0fe4410eb09a84ca953ef7053f4087d7e9a8603b52984a3d11ef8f5fdd1c",
+      "max_abs_gradient_hartree_bohr": 0.005501261737618335,
+      "method": {
+        "basis": "cc-pvdz",
+        "density_fitting": false,
+        "dispersion": null,
+        "frozen_core": false,
+        "name": "hf",
+        "reference": "restricted"
+      },
+      "molecule": {
+        "atom_ids": null,
+        "charge": 0,
+        "geometry_bohr": [
+          [
+            0.0,
+            0.0,
+            -0.7
+          ],
+          [
+            0.0,
+            0.0,
+            0.7
+          ]
+        ],
+        "isotope_symbols": [
+          "H",
+          "H"
+        ],
+        "isotopes": null,
+        "multiplicity": 1,
+        "symbols": [
+          "H",
+          "H"
+        ]
+      },
+      "optimization": null,
+      "raw_evidence_directory": "/workspace/torq-review/student-engine-evidence/test_hf_cc_pvdz_is_real_separa0",
+      "scf": {
+        "converged": true,
+        "cycles": 5,
+        "electron_count": 2,
+        "energy_hartree": -1.1287094489798908
+      },
+      "stability": {
+        "external_stable": true,
+        "internal_stable": true,
+        "scope": "restricted real-orbital internal and unrestricted external stability",
+        "status": "stable"
+      }
+    },
+    {
+      "adapter_source_sha256": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+      "basis_definition_sha256": "c02188e032201ac39b17b93c129c7527df6ca71d7f9e79e386ee05a53fddcb1e",
+      "density_functional": {
+        "gradient_grid_response": true,
+        "hybrid_coefficients": [
+          0,
+          0,
+          0
+        ],
+        "libxc_alias": "pbe",
+        "references": [
+          "J. P. Perdew, K. Burke, and M. Ernzerhof.,  Phys. Rev. Lett. 77, 3865 (1996)",
+          "J. P. Perdew, K. Burke, and M. Ernzerhof.,  Phys. Rev. Lett. 78, 1396 (1997)",
+          "J. P. Perdew, K. Burke, and M. Ernzerhof.,  Phys. Rev. Lett. 77, 3865 (1996)",
+          "J. P. Perdew, K. Burke, and M. Ernzerhof.,  Phys. Rev. Lett. 78, 1396 (1997)"
+        ],
+        "resolved_components": [
+          [
+            101,
+            1.0
+          ],
+          [
+            130,
+            1.0
+          ]
+        ]
+      },
+      "dispersion": {
+        "charge": 0,
+        "energy_hartree": -0.00019336247198063219,
+        "gradient_hartree_bohr": [
+          [
+            4.637558702806946e-05,
+            0.0,
+            3.2888477592241566e-05
+          ],
+          [
+            -7.96659629789371e-06,
+            0.0,
+            -3.8009372358063194e-05
+          ],
+          [
+            -3.840899073017577e-05,
+            0.0,
+            5.1208947658216295e-06
+          ]
+        ],
+        "library_version": "3.7.0",
+        "parameters": {
+          "a1": 0.38574991,
+          "a2": 4.80688534,
+          "alp": 16.0,
+          "s6": 1.0,
+          "s8": 0.95948085,
+          "s9": 1.0
+        },
+        "variant": "D4(BJ)-EEQ-ATM"
+      },
+      "energy_hartree": -76.27098204107891,
+      "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+      "engine_version": "2.14.0",
+      "hessian_evidence": {
+        "absolute_symmetry_tolerance_hartree_bohr2": 5e-06,
+        "coordinate_order": "atom-major xyz, unweighted Cartesian",
+        "derivative": "centered_difference_of_analytic_gradient",
+        "displacement_count": 36,
+        "max_asymmetry_hartree_bohr2": 8.237726056847805e-07,
+        "max_step_difference_hartree_bohr2": 3.919853885925306e-06,
+        "relative_frobenius_asymmetry": 1.254154848006758e-06,
+        "returned_step_bohr": 0.001,
+        "steps_bohr": [
+          0.002,
+          0.001
+        ],
+        "symmetrized": false
+      },
+      "libxc_version": "7.0.0",
+      "manifest_artifact_count": 338,
+      "manifest_sha256": "ac44c18ba35dfb19266ea2895702de2c0c16bddbd1124b739c9084d19c37b410",
+      "max_abs_gradient_hartree_bohr": 0.02812954055163086,
+      "method": {
+        "basis": "def2-svp",
+        "density_fitting": false,
+        "dispersion": "d4",
+        "frozen_core": false,
+        "name": "pbe",
+        "reference": "restricted"
+      },
+      "molecule": {
+        "atom_ids": null,
+        "charge": 0,
+        "geometry_bohr": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.8
+          ],
+          [
+            1.7,
+            0.0,
+            -0.6
+          ]
+        ],
+        "isotope_symbols": [
+          "O",
+          "H",
+          "H"
+        ],
+        "isotopes": null,
+        "multiplicity": 1,
+        "symbols": [
+          "O",
+          "H",
+          "H"
+        ]
+      },
+      "optimization": null,
+      "raw_evidence_directory": "/workspace/torq-review/student-engine-evidence/test_real_dft_d4_def2_svp_grad0__parent",
+      "scf": {
+        "converged": true,
+        "cycles": 9,
+        "electron_count": 10,
+        "energy_hartree": -76.27098204107891
+      },
+      "stability": {
+        "external_stable": true,
+        "internal_stable": true,
+        "scope": "restricted real-orbital internal and unrestricted external stability",
+        "status": "stable"
+      }
+    },
+    {
+      "adapter_source_sha256": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+      "basis_definition_sha256": "c02188e032201ac39b17b93c129c7527df6ca71d7f9e79e386ee05a53fddcb1e",
+      "density_functional": {
+        "gradient_grid_response": true,
+        "hybrid_coefficients": [
+          0,
+          0,
+          0
+        ],
+        "libxc_alias": "b3lyp",
+        "references": [
+          "P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)"
+        ],
+        "resolved_components": [
+          [
+            402,
+            1.0
+          ]
+        ]
+      },
+      "dispersion": {
+        "charge": 0,
+        "energy_hartree": -0.0003064341025752741,
+        "gradient_hartree_bohr": [
+          [
+            7.329168673415884e-05,
+            0.0,
+            5.197628538313816e-05
+          ],
+          [
+            -1.2596888581024351e-05,
+            0.0,
+            -6.006009682198338e-05
+          ],
+          [
+            -6.0694798153134485e-05,
+            0.0,
+            8.083811438845207e-06
+          ]
+        ],
+        "library_version": "3.7.0",
+        "parameters": {
+          "a1": 0.40868035,
+          "a2": 4.53807137,
+          "alp": 16.0,
+          "s6": 1.0,
+          "s8": 2.02929367,
+          "s9": 1.0
+        },
+        "variant": "D4(BJ)-EEQ-ATM"
+      },
+      "energy_hartree": -76.35748970513133,
+      "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+      "engine_version": "2.14.0",
+      "hessian_evidence": {
+        "absolute_symmetry_tolerance_hartree_bohr2": 5e-06,
+        "coordinate_order": "atom-major xyz, unweighted Cartesian",
+        "derivative": "centered_difference_of_analytic_gradient",
+        "displacement_count": 36,
+        "max_asymmetry_hartree_bohr2": 7.596910878149288e-07,
+        "max_step_difference_hartree_bohr2": 3.6360636723742346e-06,
+        "relative_frobenius_asymmetry": 1.2216684637361734e-06,
+        "returned_step_bohr": 0.001,
+        "steps_bohr": [
+          0.002,
+          0.001
+        ],
+        "symmetrized": false
+      },
+      "libxc_version": "7.0.0",
+      "manifest_artifact_count": 338,
+      "manifest_sha256": "a602479088ec5f712e4e8de7ed4dc3f13fb71357e1570f7c286200636a399a9e",
+      "max_abs_gradient_hartree_bohr": 0.0205959254505923,
+      "method": {
+        "basis": "def2-svp",
+        "density_fitting": false,
+        "dispersion": "d4",
+        "frozen_core": false,
+        "name": "b3lyp",
+        "reference": "restricted"
+      },
+      "molecule": {
+        "atom_ids": null,
+        "charge": 0,
+        "geometry_bohr": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.8
+          ],
+          [
+            1.7,
+            0.0,
+            -0.6
+          ]
+        ],
+        "isotope_symbols": [
+          "O",
+          "H",
+          "H"
+        ],
+        "isotopes": null,
+        "multiplicity": 1,
+        "symbols": [
+          "O",
+          "H",
+          "H"
+        ]
+      },
+      "optimization": null,
+      "raw_evidence_directory": "/workspace/torq-review/student-engine-evidence/test_real_dft_d4_def2_svp_grad1__parent",
+      "scf": {
+        "converged": true,
+        "cycles": 8,
+        "electron_count": 10,
+        "energy_hartree": -76.35748970513133
+      },
+      "stability": {
+        "external_stable": true,
+        "internal_stable": true,
+        "scope": "restricted real-orbital internal and unrestricted external stability",
+        "status": "stable"
+      }
+    },
+    {
+      "adapter_source_sha256": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+      "basis_definition_sha256": "42b8f4e0791b9bfad8c0f165df6c8d476a36dbda3ca5c2a27bc1217aedfef26c",
+      "density_functional": null,
+      "dispersion": null,
+      "energy_hartree": -1.155088688268031,
+      "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+      "engine_version": "2.14.0",
+      "hessian_evidence": {
+        "absolute_symmetry_tolerance_hartree_bohr2": 5e-06,
+        "coordinate_order": "atom-major xyz, unweighted Cartesian",
+        "derivative": "centered_difference_of_analytic_gradient",
+        "displacement_count": 24,
+        "max_asymmetry_hartree_bohr2": 2.220446049250313e-13,
+        "max_step_difference_hartree_bohr2": 2.284605601921008e-06,
+        "relative_frobenius_asymmetry": 4.0241545439085303e-13,
+        "returned_step_bohr": 0.001,
+        "steps_bohr": [
+          0.002,
+          0.001
+        ],
+        "symmetrized": false
+      },
+      "libxc_version": "7.0.0",
+      "manifest_artifact_count": 204,
+      "manifest_sha256": "e01800e7a4d2ce6ea2a4c4c77f3a3ab521461dfa3a3c6cf239fcc721ce7d404f",
+      "max_abs_gradient_hartree_bohr": 0.010293132931846805,
+      "method": {
+        "basis": "cc-pvdz",
+        "density_fitting": false,
+        "dispersion": null,
+        "frozen_core": false,
+        "name": "mp2",
+        "reference": "restricted"
+      },
+      "molecule": {
+        "atom_ids": null,
+        "charge": 0,
+        "geometry_bohr": [
+          [
+            0.0,
+            0.0,
+            -0.7
+          ],
+          [
+            0.0,
+            0.0,
+            0.7
+          ]
+        ],
+        "isotope_symbols": [
+          "H",
+          "H"
+        ],
+        "isotopes": null,
+        "multiplicity": 1,
+        "symbols": [
+          "H",
+          "H"
+        ]
+      },
+      "optimization": null,
+      "raw_evidence_directory": "/workspace/torq-review/student-engine-evidence/test_real_mp2_cc_pvdz_gradient0__parent",
+      "scf": {
+        "converged": true,
+        "cycles": 5,
+        "electron_count": 2,
+        "energy_hartree": -1.1287094489798908
+      },
+      "stability": {
+        "external_stable": true,
+        "internal_stable": true,
+        "scope": "restricted real-orbital internal and unrestricted external stability",
+        "status": "stable"
+      }
+    }
+  ],
+  "release_scope": "small closed-shell all-electron CPU teaching and validation calculations",
+  "schema_version": "cochem-torq.cpu-engine-qualification.v1",
+  "scientific_accuracy": "uncalibrated",
+  "source_sha256": {
+    "src/cochem_torq/engines/pyscf_backend.py": "ce4aa28b656831ed5e10907abcd91163cbb63990c7792e20c7a28b695aa5282d",
+    "tests/test_pyscf_integration.py": "69ebb9cbcc6d1f14ec7ae7d25516639fe33ca736098ef8da290e1ffce29ef582"
+  },
+  "test_xml_sha256": "c3c17e6fe575ac54fa860549d86c18cfe13962759b0dfbc6f9f148c2ad159202",
+  "tests": {
+    "errors": "0",
+    "failures": "0",
+    "hostname": "de5d28e8dd1d",
+    "name": "pytest",
+    "skipped": "0",
+    "tests": "17",
+    "time": "133.960",
+    "timestamp": "2026-10-07T21:26:05.473194+00:00"
+  }
+}

@@ -11,7 +11,7 @@ Authoritative Standards:
 - Method Matrix v4 (Sections 1.1, 13.5, 13.6, 20.2): Rotational observables & catalogs
 - Pickett SPCAT fixed-width format specifications [F13.4, 2F8.4, I2, F10.4, I3, I7, I4, 12I2]
 - Memory Complexity: Strictly O(1) constant RAM via chunked streaming serialization
-- RFC 8785: Canonical JSON serialization for cryptographic provenance manifests
+- Deterministic JSON serialization for provenance manifests (no RFC 8785 conformance claim)
 - AASTeX 6.3.1 + siunitx standard for manuscript methods documentation
 """
 
@@ -655,7 +655,10 @@ def parse_spcat_cat_line(
 
     def _parse_fortran_float(val_str: str) -> float:
         clean = val_str.strip().replace("D", "E").replace("d", "e")
-        return float(clean)
+        value = float(clean)
+        if not math.isfinite(value):
+            raise ValueError("Nonfinite SPCAT field")
+        return value
 
     if len(raw) >= 55:
         try:
@@ -1067,250 +1070,87 @@ def generate_methods_latex(
     output_tex_path: str | Path | None = None,
     method_matrix_v4_check: bool = True,
 ) -> str:
-    """Generate an AASTeX 6.3.1 and siunitx compliant LaTeX Computational Methods section.
+    """Render a factual methods record from supplied provenance only.
 
-    Validates Method Matrix v4 constraints:
-    - DFT methods require explicit dispersion correction (-D3BJ, -D4, -VV10, -3c).
-    - Grid definitions must meet DEFGRID2 / DEFGRID3 criteria.
-    - Frozen-Monomer and BSSE Counterpoise documentation for weak complexes.
-    - Required metadata: theory_level, basis_set, rotational_constants, temperatures.
-    - Parses exact ORCA keywords, hardware limits, MACE versions, and Hessian preconditioning.
-
-    Args:
-        metadata: Dictionary containing chemical and computational parameters.
-        output_tex_path: Optional destination path to write the generated .tex file.
-        method_matrix_v4_check: If True, strictly enforces Method Matrix v4 compliance.
-
-    Returns:
-        Formatted LaTeX code string ready for direct insertion into scientific manuscripts.
-
-    Raises:
-        MethodMatrixViolationError: If required fields, grids, or dispersion corrections fail.
+    Legacy templates asserted calculations, programs, reductions and corrections
+    without evidence. This writer requires the core provenance and reports only
+    explicitly supplied quantities/procedures. It cannot certify those claims.
     """
     if isinstance(output_tex_path, bool):
         method_matrix_v4_check = output_tex_path
         output_tex_path = None
-
-    theory_level = str(metadata.get("theory_level", "")).strip()
-    basis_set = str(metadata.get("basis_set", "")).strip()
-    software_version = str(metadata.get("software_version", "ORCA 6.1.0 / Pickett SPCAT")).strip()
-    rot_constants = metadata.get("rotational_constants", {})
-    dipoles = metadata.get("dipole_moments", {})
-    centrifugal = metadata.get("centrifugal_distortion", {})
-    raw_temps = metadata.get("temperatures", [300.0])
-    if isinstance(raw_temps, (int, float)):
-        temperatures = [float(raw_temps)]
-    elif isinstance(raw_temps, (list, tuple, set)):
-        temperatures = [float(t) for t in raw_temps]
-    else:
-        temperatures = [300.0]
-
-    defgrid = str(metadata.get("defgrid", "DEFGRID3")).strip().upper()
-    provenance_hash = str(metadata.get("provenance_hash", "")).strip()
-
+    required = ("theory_level", "basis_set", "software_version", "provenance_hash")
+    missing = [key for key in required if not isinstance(metadata.get(key), str) or not metadata[key].strip()]
+    if missing:
+        raise MethodMatrixViolationError(
+            "Missing method provenance: " + ", ".join(missing),
+            error_code=ProvenanceErrorCode.MISSING_DATA,
+        )
     if method_matrix_v4_check:
-        if not theory_level:
-            raise MethodMatrixViolationError(
-                "Method Matrix v4 Violation: Missing required theory_level in metadata.",
-                error_code=ProvenanceErrorCode.MISSING_DATA,
-                details={"metadata": metadata},
-            )
-        if not basis_set:
-            raise MethodMatrixViolationError(
-                "Method Matrix v4 Violation: Missing required basis_set in metadata.",
-                error_code=ProvenanceErrorCode.MISSING_DATA,
-                details={"metadata": metadata},
-            )
-        if not rot_constants:
-            raise MethodMatrixViolationError(
-                "Method Matrix v4 Violation: Missing rotational_constants in metadata.",
-                error_code=ProvenanceErrorCode.MISSING_DATA,
-                details={"metadata": metadata},
-            )
-
-        # Audit banned methods and dispersion / grid standards
         audit_banned_methods(metadata, raise_on_violation=True)
-
-        # Explicit DEFGRID verification
-        phase = str(metadata.get("phase", metadata.get("execution_phase", "PHASE_FINALOPT"))).upper()
-        if not validate_catalog_grid(defgrid, phase=phase):
-            raise MethodMatrixViolationError(
-                f"Method Matrix v4 Violation: Grid {defgrid!r} fails minimum integration threshold for {phase}.",
-                error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
-                details={"defgrid": defgrid, "phase": phase},
-            )
-
-    def _find_rot_val(key_char: str) -> float:
-        for k, v in rot_constants.items():
-            k_clean = str(k).strip().upper()
-            if k_clean in (key_char, f"{key_char}_MHZ", f"{key_char}0", f"{key_char}_0", f"{key_char}_E"):
-                try:
-                    return float(v)
-                except (ValueError, TypeError):
-                    pass
-        return 0.0
-
-    a_mhz = _find_rot_val("A")
-    b_mhz = _find_rot_val("B")
-    c_mhz = _find_rot_val("C")
-
-    def _find_dipole_val(comp: str) -> float:
-        for k, v in dipoles.items():
-            k_clean = str(k).strip().lower()
-            if k_clean in (f"mu_{comp}", f"mu{comp}", f"dipole_{comp}", comp):
-                try:
-                    return float(v)
-                except (ValueError, TypeError):
-                    pass
-        return 0.0
-
-    mu_a = _find_dipole_val("a")
-    mu_b = _find_dipole_val("b")
-    mu_c = _find_dipole_val("c")
-    mu_tot = dipoles.get("total", (mu_a**2 + mu_b**2 + mu_c**2) ** 0.5)
-
-    temp_formatted = ", ".join(f"\\qty{{{t:.2f}}}{{\\kelvin}}" for t in temperatures)
-
-    latex_lines: list[str] = [
-        r"% -----------------------------------------------------------------------------",
-        r"% CoChem Automated Computational Methods Section (AASTeX 6.3.1 / siunitx)",
-        r"% -----------------------------------------------------------------------------",
+    def tex(value: Any) -> str:
+        escapes = {"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
+        return "".join(escapes.get(char, char) for char in str(value))
+    lines = [
         r"\section{Computational Methods}\label{sec:methods}",
-        r"",
-        "All electronic structure calculations and rovibrational predictions were performed",
-        f"using the CoChem ecosystem ({software_version}) in strict compliance with the",
-        r"CoChem Method Matrix standards \citep{MethodMatrix2024}.",
-        "Geometry optimizations and harmonic force fields were evaluated at the",
-        f"\\mbox{{{theory_level}/{basis_set}}} level of theory using {defgrid} integration grids.",
-        r"",
-        r"Rotational and centrifugal distortion constants were derived in Watson's",
-        r"$A$-reduced Hamiltonian representation ($I^r$ coordinate representation).",
-        f"The predicted equilibrium rotational constants are $A = \\qty{{{a_mhz:.3f}}}{{\\mega\\hertz}}$,",
-        f"$B = \\qty{{{b_mhz:.3f}}}{{\\mega\\hertz}}$, and $C = \\qty{{{c_mhz:.3f}}}{{\\mega\\hertz}}$.",
-        "The electric dipole moment components along the principal inertial axes are",
-        f"$\\mu_a = \\qty{{{mu_a:.3f}}}{{\\debye}}$, $\\mu_b = \\qty{{{mu_b:.3f}}}{{\\debye}}$, and",
-        f"$\\mu_c = \\qty{{{mu_c:.3f}}}{{\\debye}}$ (total dipole $\\mu = \\qty{{{mu_tot:.3f}}}{{\\debye}}$).",
-        r"",
-        "Rotational spectral line catalogs were simulated using Pickett's SPCAT suite \\citep{Pickett1991}",
-        f"across thermodynamic temperatures $T \\in \\{{{temp_formatted}\\}}$.",
-        r"Partition functions $Q(T)$ incorporate full nuclear spin statistical weights",
-        r"and vibrational state summations. Out-of-core binary catalogs were compiled into",
-        r"columnar PyArrow Parquet format with double-precision floating-point precision",
-        r"on frequencies, intensities, and state energies.",
+        "The recorded electronic-structure recipe is " + tex(metadata["theory_level"]) + "/" + tex(metadata["basis_set"]) + ".",
+        "The supplied software/version provenance is " + tex(metadata["software_version"]) + ".",
+        "The associated provenance digest is " + r"\texttt{" + tex(metadata["provenance_hash"]) + "}.",
     ]
-
-    # Parse exact ORCA keywords
-    orca_keywords = str(metadata.get("orca_keywords", metadata.get("keywords", ""))).strip()
-    if orca_keywords:
-        latex_lines.extend([
-            r"",
-            f"Quantum chemical workflow execution was governed by the keyword block: \\texttt{{{orca_keywords}}}.",
-        ])
-
-    # Check for Hessian Preconditioning documentation
-    has_inhess = (
-        "inhess" in orca_keywords.lower()
-        or metadata.get("hessian_preconditioned", False)
-        or str(metadata.get("hessian_preconditioning", "")).strip().lower() in ("xtb2", "lindh")
-    )
-    if has_inhess:
-        latex_lines.extend([
-            r"",
-            r"Hessian preconditioning was enforced using \texttt{InHess XTB2} / \texttt{Lindh} to guarantee robust geometry convergence without direct unconstrained Hessian computation.",
-        ])
-
-    # Parse hardware limits
-    nprocs = metadata.get("nprocs", metadata.get("num_cores", metadata.get("cores", None)))
-    maxcore = metadata.get("maxcore", metadata.get("memory_mb", metadata.get("memory_per_core_mb", None)))
-    memory_gb = metadata.get("memory_gb", metadata.get("total_memory_gb", None))
-
-    if nprocs is not None and maxcore is not None:
-        try:
-            n_cores_int = int(nprocs)
-            m_core_int = int(maxcore)
-            latex_lines.extend([
-                r"",
-                f"Calculations were parallelized across \\qty{{{n_cores_int}}}{{cores}} with a hardware memory allocation of \\qty{{{m_core_int}}}{{\\mega\\byte}} per core.",
-            ])
-        except (ValueError, TypeError):
-            pass
-    elif nprocs is not None:
-        try:
-            n_cores_int = int(nprocs)
-            latex_lines.extend([
-                r"",
-                f"Calculations were parallelized across \\qty{{{n_cores_int}}}{{cores}}.",
-            ])
-        except (ValueError, TypeError):
-            pass
-    elif memory_gb is not None:
-        try:
-            mem_flt = float(memory_gb)
-            latex_lines.extend([
-                r"",
-                f"Hardware resource limits allocated \\qty{{{mem_flt:.1f}}}{{\\giga\\byte}} total system memory.",
-            ])
-        except (ValueError, TypeError):
-            pass
-
-    # Parse MACE versions / Machine Learning potentials
-    mace_version = str(metadata.get("mace_version", metadata.get("mace_model", metadata.get("mace", "")))).strip()
-    if mace_version:
-        latex_lines.extend([
-            r"",
-            f"Machine learning potential pre-relaxation and initial conformational exploration were performed using the MACE architecture (version/model: \\texttt{{{mace_version}}}).",
-        ])
-
-    is_non_covalent = metadata.get("is_non_covalent", metadata.get("is_vdw_complex", False))
-    if is_non_covalent:
-        latex_lines.extend([
-            r"",
-            "The Frozen-Monomer protocol was applied to lock intramolecular monomer coordinates,",
-            "fixing the monomer $A$ constant while optimizing intermolecular degrees of freedom.",
-            "Basis Set Superposition Error (BSSE) was corrected via the Boys-Bernardi counterpoise procedure.",
-        ])
-
-    if centrifugal:
-        def _find_cent_val(*aliases: str) -> float:
-            for k, v in centrifugal.items():
-                k_clean = str(k).strip().lower().replace("_", "")
-                for a in aliases:
-                    if k_clean == a.lower().replace("_", ""):
-                        try:
-                            return float(v)
-                        except (ValueError, TypeError):
-                            pass
-            return 0.0
-
-        dj = _find_cent_val("DJ", "D_J")
-        djk = _find_cent_val("DJK", "D_JK")
-        dk = _find_cent_val("DK", "D_K")
-        d1 = _find_cent_val("d1", "d_1")
-        d2 = _find_cent_val("d2", "d_2")
-        latex_lines.extend([
-            r"",
-            f"Evaluated Watson quartic distortion parameters are $D_J = \\qty{{{dj:.5f}}}{{\\mega\\hertz}}$, "
-            f"$D_{{JK}} = \\qty{{{djk:.5f}}}{{\\mega\\hertz}}$, $D_K = \\qty{{{dk:.5f}}}{{\\mega\\hertz}}$, "
-            f"$d_1 = \\qty{{{d1:.5f}}}{{\\mega\\hertz}}$, and $d_2 = \\qty{{{d2:.5f}}}{{\\mega\\hertz}}$.",
-        ])
-
-    if provenance_hash:
-        latex_lines.extend([
-            r"",
-            f"% Cryptographic Provenance SHA-256 Digest: {provenance_hash}",
-            r"\noindent\textbf{Data Availability:} Spectral catalogs and raw quantum chemical artifacts",
-            f"are immutably archived with SHA-256 digest \\texttt{{{provenance_hash}}}.",
-        ])
-
-    tex_content = "\n".join(latex_lines) + "\n"
-
+    # These labels describe source metadata; they never infer a completed stage.
+    for key, label in (
+        ("geometry_method", "Geometry method"), ("force_field_method", "Force-field method"),
+        ("defgrid", "Recorded integration grid"), ("orca_keywords", "Recorded engine keywords"),
+        ("rotational_constants_kind", "Rotational-constant type"),
+        ("hamiltonian_reduction", "Hamiltonian reduction"), ("axis_representation", "Axis representation"),
+        ("partition_function_model", "Partition-function model"), ("catalog_program", "Catalog program"),
+    ):
+        if metadata.get(key) is not None:
+            lines.append(label + ": " + tex(metadata[key]) + ".")
+    for key, label, unit in (
+        ("rotational_constants", "Rotational constants", "MHz"),
+        ("dipole_moments", "Dipole components", "debye"),
+        ("centrifugal_distortion", "Distortion parameters", "MHz"),
+    ):
+        values = metadata.get(key)
+        if values is None:
+            continue
+        if not isinstance(values, dict):
+            raise ValueError(f"{key} must be a mapping with declared units")
+        if values and metadata.get(key + "_units") != unit:
+            raise ValueError(f"{key}_units must explicitly be {unit}")
+        if key == "rotational_constants" and values and not metadata.get("rotational_constants_kind"):
+            raise ValueError("Specify equilibrium, ground-state, fitted, or composite rotational-constant type")
+        parts = []
+        for name, value in values.items():
+            if value is None:
+                parts.append(tex(name) + " unavailable")
+            else:
+                numeric = float(value)
+                if not math.isfinite(numeric):
+                    raise ValueError(f"Nonfinite {key}.{name}")
+                parts.append(tex(name) + " = " + format(numeric, ".10g") + " " + unit)
+        if parts:
+            lines.append(label + ": " + "; ".join(parts) + ".")
+    if "temperatures" in metadata:
+        temps = metadata["temperatures"]
+        temps = [temps] if isinstance(temps, (int, float)) else list(temps)
+        if not temps or any(not math.isfinite(float(t)) or float(t) <= 0 for t in temps):
+            raise ValueError("Temperatures must be finite positive values")
+        lines.append("Recorded temperatures: " + ", ".join(format(float(t), ".8g") for t in temps) + " K.")
+    # A molecular class, requested keyword or boolean is not execution evidence.
+    procedures = metadata.get("executed_procedures", [])
+    for procedure in procedures:
+        if not isinstance(procedure, dict) or not procedure.get("description") or not procedure.get("artifact_digest"):
+            raise ValueError("Executed procedures require a description and evidence digest")
+        lines.append(tex(procedure["description"]) + " (evidence: " + tex(procedure["artifact_digest"]) + ").")
+    content = "\n".join(lines) + "\n"
     if output_tex_path is not None:
-        target_tex = Path(output_tex_path).resolve()
-        target_tex.parent.mkdir(parents=True, exist_ok=True)
-        target_tex.write_text(tex_content, encoding="utf-8")
-        buffer_lock_sync(target_tex, min_bytes=len(tex_content.encode("utf-8")))
-
-    return tex_content
+        target = Path(output_tex_path).resolve()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        buffer_lock_sync(target, min_bytes=len(content.encode("utf-8")))
+    return content
 
 
 # =============================================================================
@@ -1639,8 +1479,7 @@ class TorqCatalogCompiler:
                     parsed_data["QNs_Up"].append(parsed["qn_upper"])
                     parsed_data["QNs_Low"].append(parsed["qn_lower"])
             except FortranOverflowError:
-                logger.debug(f"Skipping line due to Fortran overflow: {line.strip()}")
-                continue
+                raise
             except Exception as exc:
                 logger.error(f"Malformed line encountered: {line.strip()}: {exc}")
                 raise ValueError(f"Malformed line: {line.strip()}") from exc
@@ -1737,20 +1576,31 @@ class TorqCatalogCompiler:
             raise RuntimeError(f"Serialization failed: {e}") from e
 
     def compute_temperature_dependent_partition_function(
-        self, temp_k: float, A_MHz: float = 10000.0, B_MHz: float = 2000.0, C_MHz: float = 1500.0, sigma: int = 1
+        self, temp_k: float, A_MHz: float | None = None, B_MHz: float | None = None,
+        C_MHz: float | None = None, sigma: int | None = None,
     ) -> float:
-        """Computes temperature-dependent rotational partition function Q_rot(T)."""
-        kB = 1.380649e-23
-        h = 6.62607015e-34
-        kT = kB * temp_k
+        """High-temperature nonlinear rigid-rotor approximation, not a full Q(T).
 
-        A_Hz = max(abs(A_MHz), 1e-6) * 1e6
-        B_Hz = max(abs(B_MHz), 1e-6) * 1e6
-        C_Hz = max(abs(C_MHz), 1e-6) * 1e6
-
-        q_rot = (math.sqrt(math.pi) / max(sigma, 1)) * math.sqrt((kT**3) / ((h**3) * A_Hz * B_Hz * C_Hz))
-        logger.info(f"Q_rot({temp_k} K) = {q_rot:.4f}")
+        Requires explicit rotational constants and rotational symmetry number.
+        This expression omits vibrational/electronic/nuclear-spin contributions
+        and is not an exact sum or a validated low-temperature approximation.
+        """
+        if any(value is None or isinstance(value, bool) for value in (A_MHz, B_MHz, C_MHz)):
+            raise ValueError("Explicit positive A, B, C rotational constants are required")
+        constants = [float(A_MHz), float(B_MHz), float(C_MHz)]
+        if (not math.isfinite(temp_k) or temp_k <= 0
+                or any(not math.isfinite(value) or value <= 0 for value in constants)
+                or not constants[0] >= constants[1] >= constants[2]):
+            raise ValueError("Require finite T > 0 and ordered A >= B >= C > 0")
+        if type(sigma) is not int or sigma < 1:
+            raise ValueError("Explicit positive integer rotational symmetry number required")
+        kB, h = 1.380649e-23, 6.62607015e-34
+        theta_a, theta_b, theta_c = [h * value * 1e6 / kB for value in constants]
+        q_rot = math.sqrt(math.pi) / sigma * math.sqrt((temp_k / theta_a) * (temp_k / theta_b) * (temp_k / theta_c))
+        if not math.isfinite(q_rot) or q_rot <= 0:
+            raise ValueError("Rotational partition approximation overflowed or underflowed")
         return q_rot
+
 
 
 __all__ = [

@@ -7,10 +7,10 @@ and .var/.int files into a unified, cryptographically locked export payload
 specifically designed for seamless ingestion by CoChem-SpycFit.
 
 Implements:
-1. Kraitchman coordinate calculations with singularity damping, ZPVE clamping,
-   and piecewise Costain bounds.
+1. Kraitchman coordinate calculations with explicit unavailable coordinates
+   and rejection of singular inversions.
 2. OOM-proof PGOPHER XML skeleton generation using PyArrow parquet metadata.
-3. Provenance lock manifest generation under RFC 8785 Canonical JSON.
+3. Provenance lock manifest generation with deterministic strict JSON.
 4. Deterministic .tar.zst payload bundling with normalized POSIX metadata.
 5. Cryptographic payload verification raising CoChemIntegrityError.
 6. Legacy TorqExporter, PESStore, and export_qcschema integration.
@@ -32,7 +32,6 @@ from pathlib import Path
 from typing import Any
 
 import h5py  # type: ignore[import-untyped]
-import numpy as np
 import numpy.typing as npt
 import pyarrow.parquet as pq
 import zstandard as zstd
@@ -71,11 +70,13 @@ class KraitchmanSingularityWarning(UserWarning):
 
 
 def canonical_json_dumps(data: Any) -> str:
-    """Serializes a Python data structure into RFC 8785 compliant Canonical JSON.
+    """Serialize deterministic strict JSON (not an RFC 8785 implementation).
 
-    Keys are sorted lexicographically, and whitespace is strictly minimized.
+    Nonfinite numbers are rejected; unavailable values must use JSON null.
     """
-    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        data, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    )
 
 
 def compute_file_sha256(
@@ -121,52 +122,39 @@ def calculate_kraitchman_coords(
     :param substituted_moments: Moments (Ia', Ib', Ic') of isotopologue (u*A^2).
     :param parent_mass: Total molecular mass of parent molecule (u).
     :param delta_m: Mass difference of substituted atom m' - m (u).
-    :param singularity_threshold: Threshold below which denominators are damped.
+    :param singularity_threshold: Reject inversion below this denominator threshold.
     :return: Dictionary containing coordinates, Costain errors, radicands, reduced mass.
     """
-    # Extract parent moments
-    if isinstance(parent_moments, dict):
-        i_a = float(
-            parent_moments.get(
-                "Ia", parent_moments.get("a", parent_moments.get("IA", 0.0))
-            )
-        )
-        i_b = float(
-            parent_moments.get(
-                "Ib", parent_moments.get("b", parent_moments.get("IB", 0.0))
-            )
-        )
-        i_c = float(
-            parent_moments.get(
-                "Ic", parent_moments.get("c", parent_moments.get("IC", 0.0))
-            )
-        )
-    else:
-        i_a = float(parent_moments[0])
-        i_b = float(parent_moments[1])
-        i_c = float(parent_moments[2])
 
-    # Extract substituted moments
-    if isinstance(substituted_moments, dict):
-        i_ap = float(
-            substituted_moments.get(
-                "Ia", substituted_moments.get("a", substituted_moments.get("IA", 0.0))
+    def read_moments(values: Any, label: str) -> tuple[float, float, float]:
+        if isinstance(values, dict):
+            parsed = []
+            for axis in ("a", "b", "c"):
+                keys = (f"I{axis}", axis, f"I{axis.upper()}")
+                present = [values[key] for key in keys if key in values]
+                if not present or any(value is None for value in present):
+                    raise ValueError(f"{label}: missing principal moment I{axis}")
+                if len({float(value) for value in present}) != 1:
+                    raise ValueError(f"{label}: conflicting aliases for I{axis}")
+                parsed.append(float(present[0]))
+        else:
+            parsed = [float(value) for value in values]
+        if len(parsed) != 3 or not all(math.isfinite(v) and v > 0 for v in parsed):
+            raise ValueError(
+                f"{label}: three finite positive principal moments required"
             )
-        )
-        i_bp = float(
-            substituted_moments.get(
-                "Ib", substituted_moments.get("b", substituted_moments.get("IB", 0.0))
-            )
-        )
-        i_cp = float(
-            substituted_moments.get(
-                "Ic", substituted_moments.get("c", substituted_moments.get("IC", 0.0))
-            )
-        )
-    else:
-        i_ap = float(substituted_moments[0])
-        i_bp = float(substituted_moments[1])
-        i_cp = float(substituted_moments[2])
+        if parsed != sorted(parsed):
+            raise ValueError(f"{label}: principal moments must satisfy Ia <= Ib <= Ic")
+        return parsed[0], parsed[1], parsed[2]
+
+    i_a, i_b, i_c = read_moments(parent_moments, "parent")
+    i_ap, i_bp, i_cp = read_moments(substituted_moments, "substituted")
+    if not all(math.isfinite(v) for v in (parent_mass, delta_m, singularity_threshold)):
+        raise ValueError("Masses and singularity threshold must be finite")
+    if parent_mass <= 0 or parent_mass + delta_m <= 0 or delta_m == 0:
+        raise ValueError("Positive total masses and nonzero substitution mass required")
+    if singularity_threshold <= 0:
+        raise ValueError("Singularity threshold must be positive")
 
     # Principal moment differences
     d_ia = i_ap - i_a
@@ -181,21 +169,14 @@ def calculate_kraitchman_coords(
     # Reduced mass for substitution mu = (M * delta_m) / (M + delta_m)
     mu = (parent_mass * delta_m) / (parent_mass + delta_m)
 
-    # Singularity guard for near-symmetric denominators
+    # Near-degenerate principal moments do not support this asymmetric-top
+    # inversion. Changing the denominator would create a different result.
     def _guard_denom(denom: float, label: str) -> float:
         if abs(denom) < singularity_threshold:
-            warnings.warn(
-                f"Singularity near-symmetric denominator |{label}| = "
-                f"{abs(denom):.6e} < {singularity_threshold}. Applying damping guard.",
-                KraitchmanSingularityWarning,
-                stacklevel=2,
+            raise ValueError(
+                f"Kraitchman inversion unavailable: near-symmetric denominator "
+                f"|{label}|={abs(denom):.6e} < {singularity_threshold}"
             )
-            logger.warning(
-                f"Kraitchman singularity damping applied to {label}: denom={denom:.6e}"
-            )
-            if denom != 0.0:
-                return math.copysign(singularity_threshold, denom)
-            return singularity_threshold
         return denom
 
     d_ab = _guard_denom(i_a - i_b, "Ia - Ib")
@@ -211,38 +192,39 @@ def calculate_kraitchman_coords(
     r_c = (d_pc / mu) * (1.0 + d_pa / d_ca) * (1.0 + d_pb / d_cb)
 
     radicands = {"a": float(r_a), "b": float(r_b), "c": float(r_c)}
-    coords: dict[str, float] = {}
-    costain_errors: dict[str, float] = {}
+    coords: dict[str, float | None] = {}
+    costain_errors: dict[str, float | None] = {}
+    quality_flags: dict[str, str] = {}
 
     for axis, r_val in radicands.items():
-        if math.isnan(r_val) or r_val < 0.0:
+        if not math.isfinite(r_val):
+            raise ValueError(f"Nonfinite Kraitchman radicand for axis {axis}")
+        if r_val < 0.0:
             warnings.warn(
-                f"ZPVE defect produced imaginary substitution coordinate "
-                f"for axis {axis} (R_{axis} = {r_val:.6e} < 0). Clamping to 0.0000.",
+                f"Imaginary substitution coordinate for axis {axis} "
+                f"(radicand={r_val:.6e}); coordinate unavailable. "
+                "Vibrational effects, measurement error or input inconsistency "
+                "require investigation.",
                 KraitchmanZPVEWarning,
                 stacklevel=2,
             )
-            logger.warning(
-                f"ZPVE defect clamped coordinate for axis {axis}: "
-                f"R={r_val:.6e} -> 0.0000"
-            )
-            coord_val = 0.0
-        else:
-            coord_val = float(np.sqrt(r_val))
-
+            coords[axis] = None
+            costain_errors[axis] = None
+            quality_flags[axis] = "imaginary_coordinate"
+            continue
+        coord_val = math.sqrt(r_val)
         coords[axis] = coord_val
-
-        # Piecewise Costain Bounds (Costain 1958)
-        # For |g_s| >= 0.15 A: error = 0.0015 / |g_s|
-        # For |g_s| < 0.15 A: error = sqrt(|R_g|)
-        if coord_val >= 0.15:
-            costain_errors[axis] = 0.0015 / coord_val
-        else:
-            costain_errors[axis] = float(np.sqrt(abs(r_val)))
+        quality_flags[axis] = "real_substitution_coordinate"
+        # Historical empirical Costain estimate, not calibrated uncertainty.
+        costain_errors[axis] = (
+            0.0015 / coord_val if coord_val >= 0.15 else math.sqrt(r_val)
+        )
 
     return {
         "coords": coords,
         "costain_errors": costain_errors,
+        "costain_errors_kind": "legacy_empirical_estimate_not_calibrated_uncertainty",
+        "quality_flags": quality_flags,
         "radicands": radicands,
         "delta_moments": {"a": d_ia, "b": d_ib, "c": d_ic},
         "planar_delta_moments": {"a": d_pa, "b": d_pb, "c": d_pc},
@@ -290,99 +272,79 @@ def generate_pgopher_skeleton(
     num_columns = pq_metadata.num_columns
     column_names = pq_metadata.schema.names
 
-    # Defaults
-    a_val = 10000.0
-    b_val = 5000.0
-    c_val = 3000.0
-    mu_a = 0.0
-    mu_b = 0.0
-    mu_c = 0.0
-
-    # Parse JSON if provided
+    jdata: dict[str, Any] = {}
     if json_path is not None:
-        json_file = Path(json_path)
-        if json_file.exists():
-            with open(json_file, encoding="utf-8") as f:
-                jdata = json.load(f)
+        # An explicitly requested but missing/invalid source is an error.
+        with open(json_path, encoding="utf-8") as source:
+            jdata = json.load(source)
+        if not isinstance(jdata, dict):
+            raise ValueError("PGOPHER metadata must be a JSON object")
+        molecule_name = str(
+            jdata.get("molecule_name", jdata.get("point_id", molecule_name))
+        )
+        temperature_k = float(
+            jdata.get("temperature_k", jdata.get("temperature", temperature_k))
+        )
 
-            if "molecule_name" in jdata:
-                molecule_name = str(jdata["molecule_name"])
-            elif "point_id" in jdata:
-                molecule_name = str(jdata["point_id"])
+    properties = jdata.get("properties", {})
+    if rotational_constants is None:
+        rotational_constants = jdata.get(
+            "rotational_constants", properties.get("rotational_constants")
+        )
+    if dipoles is None:
+        dipoles = jdata.get(
+            "dipoles", jdata.get("dipole_moment", properties.get("dipole_moment"))
+        )
 
-            if "temperature_k" in jdata:
-                temperature_k = float(jdata["temperature_k"])
-            elif "temperature" in jdata:
-                temperature_k = float(jdata["temperature"])
+    def read_triplet(
+        values: Any, names: tuple[tuple[str, ...], ...], label: str
+    ) -> tuple[float, float, float]:
+        if isinstance(values, dict):
+            parsed = []
+            for aliases in names:
+                present = [values[key] for key in aliases if key in values]
+                if not present or any(value is None for value in present):
+                    raise ValueError(f"Missing {label} component {aliases[0]}")
+                if len({float(value) for value in present}) != 1:
+                    raise ValueError(f"Conflicting {label} aliases {aliases}")
+                parsed.append(float(present[0]))
+        elif isinstance(values, (list, tuple)):
+            parsed = [float(value) for value in values]
+        else:
+            raise ValueError(f"Explicit {label} required; no physical defaults exist")
+        if len(parsed) != 3 or not all(math.isfinite(value) for value in parsed):
+            raise ValueError(f"Three finite {label} components required")
+        return parsed[0], parsed[1], parsed[2]
 
-            rc = jdata.get("rotational_constants") or jdata.get("properties", {}).get(
-                "rotational_constants"
-            )
-            if rc:
-                if isinstance(rc, dict):
-                    a_val = float(rc.get("A") or rc.get("a") or a_val)
-                    b_val = float(rc.get("B") or rc.get("b") or b_val)
-                    c_val = float(rc.get("C") or rc.get("c") or c_val)
-                elif isinstance(rc, list | tuple) and len(rc) >= 3:
-                    a_val, b_val, c_val = float(rc[0]), float(rc[1]), float(rc[2])
-
-            dp = (
-                jdata.get("dipoles")
-                or jdata.get("dipole_moment")
-                or jdata.get("properties", {}).get("dipole_moment")
-            )
-            if dp:
-                if isinstance(dp, dict):
-                    mu_a = float(dp.get("mu_a") or dp.get("a") or dp.get("x") or mu_a)
-                    mu_b = float(dp.get("mu_b") or dp.get("b") or dp.get("y") or mu_b)
-                    mu_c = float(dp.get("mu_c") or dp.get("c") or dp.get("z") or mu_c)
-                elif isinstance(dp, list | tuple) and len(dp) >= 3:
-                    mu_a, mu_b, mu_c = float(dp[0]), float(dp[1]), float(dp[2])
-
-    # Direct keyword overrides
-    if rotational_constants is not None:
-        if isinstance(rotational_constants, dict):
-            a_val = float(
-                rotational_constants.get("A") or rotational_constants.get("a") or a_val
-            )
-            b_val = float(
-                rotational_constants.get("B") or rotational_constants.get("b") or b_val
-            )
-            c_val = float(
-                rotational_constants.get("C") or rotational_constants.get("c") or c_val
-            )
-        elif (
-            isinstance(rotational_constants, list | tuple)
-            and len(rotational_constants) >= 3
-        ):
-            a_val, b_val, c_val = (
-                float(rotational_constants[0]),
-                float(rotational_constants[1]),
-                float(rotational_constants[2]),
-            )
-
-    if dipoles is not None:
-        if isinstance(dipoles, dict):
-            mu_a = float(
-                dipoles.get("mu_a") or dipoles.get("a") or dipoles.get("x") or mu_a
-            )
-            mu_b = float(
-                dipoles.get("mu_b") or dipoles.get("b") or dipoles.get("y") or mu_b
-            )
-            mu_c = float(
-                dipoles.get("mu_c") or dipoles.get("c") or dipoles.get("z") or mu_c
-            )
-        elif isinstance(dipoles, list | tuple) and len(dipoles) >= 3:
-            mu_a, mu_b, mu_c = float(dipoles[0]), float(dipoles[1]), float(dipoles[2])
+    a_val, b_val, c_val = read_triplet(
+        rotational_constants,
+        (("A", "a"), ("B", "b"), ("C", "c")),
+        "rotational constants in MHz",
+    )
+    if not a_val >= b_val >= c_val > 0:
+        raise ValueError(
+            "Asymmetric-top rotational constants must satisfy A >= B >= C > 0"
+        )
+    mu_a, mu_b, mu_c = read_triplet(
+        dipoles,
+        (("mu_a", "a"), ("mu_b", "b"), ("mu_c", "c")),
+        "principal-axis dipoles in Debye",
+    )
+    if not math.isfinite(temperature_k) or temperature_k <= 0:
+        raise ValueError("Temperature must be finite and positive")
+    # No vibrational state is inferred from a geometry or a set of constants.
+    rotational_state = jdata.get("rotational_state", "unspecified")
+    if not isinstance(rotational_state, str) or not rotational_state.strip():
+        raise ValueError("rotational_state must be a nonempty string")
 
     # Build PGOPHER XML document
     root = ET.Element("Document", attrib={"Type": "PGopher", "Version": "10.1"})
     species = ET.SubElement(root, "Species", attrib={"Name": molecule_name})
     mol = ET.SubElement(species, "AsymmetricMolecule", attrib={"Name": molecule_name})
     manifold = ET.SubElement(
-        mol, "AsymmetricManifold", attrib={"Initial": "true", "Name": "Ground"}
+        mol, "AsymmetricManifold", attrib={"Name": rotational_state}
     )
-    top = ET.SubElement(manifold, "AsymmetricTop", attrib={"Name": "v=0"})
+    top = ET.SubElement(manifold, "AsymmetricTop", attrib={"Name": rotational_state})
 
     ET.SubElement(top, "Parameter", attrib={"Name": "A", "Value": f"{a_val:.6f}"})
     ET.SubElement(top, "Parameter", attrib={"Name": "B", "Value": f"{b_val:.6f}"})
@@ -513,7 +475,7 @@ def lock_provenance_payload(
         "files": file_entries,
     }
 
-    # RFC 8785 Canonical JSON Serialization
+    # Deterministic strict JSON serialization
     canonical_json_str = canonical_json_dumps(manifest)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(canonical_json_str, encoding="utf-8")
@@ -756,18 +718,23 @@ class TorqExporter:
         self,
         point_id: str,
         tensor_data: dict[str, Any],
-        lam_trigger_required: bool = False,
-        symmetry_group: str = "C1",
+        lam_trigger_required: bool | None = None,
+        symmetry_group: str | None = None,
     ) -> dict[str, Any]:
-        return {
+        metadata: dict[str, Any] = {
             "point_id": point_id,
             "export_timestamp": datetime.now(timezone.utc).isoformat(),
-            "data_hash": hashlib.sha256(str(tensor_data).encode()).hexdigest(),
+            "data_hash": hashlib.sha256(
+                canonical_json_dumps(tensor_data).encode()
+            ).hexdigest(),
             "compression_method": "Zstandard",
             "compression_level": self.zstd_compression_level,
-            "LAM_TRIGGER_REQUIRED": bool(lam_trigger_required),
-            "symmetry_group": str(symmetry_group),
         }
+        if lam_trigger_required is not None:
+            metadata["LAM_TRIGGER_REQUIRED"] = lam_trigger_required
+        if symmetry_group is not None:
+            metadata["symmetry_group"] = symmetry_group
+        return metadata
 
     def export_tensor_to_zstd(
         self, h5_file_path: str, output_file: str | None = None
@@ -807,7 +774,7 @@ class TorqExporter:
             "metadata": metadata,
         }
 
-        json_data = json.dumps(export_data, indent=2)
+        json_data = json.dumps(export_data, indent=2, allow_nan=False)
         if output_file is None:
             output_file = f"{Path(h5_file_path).stem}.zst"
 
@@ -864,7 +831,7 @@ class TorqExporter:
             "metadata": metadata,
         }
 
-        json_data = json.dumps(export_data, indent=2)
+        json_data = json.dumps(export_data, indent=2, allow_nan=False)
         if output_file is None:
             output_file = f"{Path(h5_file_path).stem}_dvr.zst"
 
@@ -913,8 +880,16 @@ class TorqExporter:
                 decompressed_data = decompressor.decompress(f.read())
 
             export_data = json.loads(decompressed_data.decode("utf-8"))
+            metadata = export_data["metadata"]
+            actual_hash = hashlib.sha256(
+                canonical_json_dumps(export_data["tensor_data"]).encode("utf-8")
+            ).hexdigest()
+            if actual_hash != metadata.get("data_hash"):
+                raise CoChemIntegrityError(
+                    "Tensor payload hash does not match metadata"
+                )
             logger.info(f"Verification successful for {compressed_file_path}")
-            return True, export_data.get("metadata")
+            return True, metadata
         except Exception as e:
             logger.error(f"Verification failed for {compressed_file_path}: {e}")
             return False, None
@@ -1013,34 +988,81 @@ class PESStore:
 
 
 def export_qcschema(result_dict: dict[str, Any], output_filename: str) -> str:
-    """Accepts an OrcaResult (or dict) and writes a FAIR QCSchema output JSON."""
-    data_to_hash = json.dumps(result_dict, sort_keys=True).encode()
-    hash_val = hashlib.sha256(data_to_hash).hexdigest()
+    """Validate and serialize a complete QCSchema v1 AtomicResult.
 
-    qcschema = {
-        "schema_name": "qcschema_output",
-        "schema_version": 1,
-        "molecule": {
-            "geometry": result_dict.get("geometry", []),
-            "symbols": result_dict.get("symbols", []),
-            "molecular_charge": result_dict.get("molecular_charge", 0),
-            "molecular_multiplicity": result_dict.get("molecular_multiplicity", 1),
-            "provenance": {
-                "creator": "CoChem-SCRIBE",
-                "version": "4.1",
-                "hash": hash_val,
-            },
-        },
-        "driver": result_dict.get("driver", "energy"),
-        "model": {
-            "method": result_dict.get("method", "unknown"),
-            "basis": result_dict.get("basis", "unknown"),
-        },
-        "properties": {
-            "return_energy": result_dict.get("return_energy", 0.0),
-        },
+    QCSchema geometry and energy use bohr and hartree. The caller must supply
+    actual engine provenance and explicit charge/spin; this function does not
+    infer a method, convert ambiguous units, or create absent results. Composite
+    spectroscopy results belong in :func:`export_torq_result_bundle` instead.
+    """
+    required = {
+        "schema_name",
+        "schema_version",
+        "molecule",
+        "driver",
+        "model",
+        "properties",
+        "return_result",
+        "success",
+        "provenance",
     }
+    missing = required.difference(result_dict)
+    if missing:
+        raise ValueError(f"Complete AtomicResult required; missing: {sorted(missing)}")
+    if (
+        result_dict["schema_name"] != "qcschema_output"
+        or result_dict["schema_version"] != 1
+    ):
+        raise ValueError("Only QCSchema AtomicResult schema_version=1 is supported")
+    if result_dict["success"] is not True:
+        raise ValueError(
+            "A failed calculation cannot be exported as a successful AtomicResult"
+        )
+    for key in ("symbols", "geometry", "molecular_charge", "molecular_multiplicity"):
+        if key not in result_dict["molecule"] or result_dict["molecule"][key] is None:
+            raise ValueError(f"Explicit molecule.{key} required")
+    if not result_dict["molecule"]["symbols"]:
+        raise ValueError("AtomicResult requires a nonempty molecule")
+    for key in ("creator", "version", "routine"):
+        if not result_dict["provenance"].get(key):
+            raise ValueError(f"Actual engine provenance.{key} required")
+    if not result_dict["model"].get("method"):
+        raise ValueError("Actual model.method required")
+    # Ensure strict JSON before schema validation can normalize array values.
+    canonical_json_dumps(result_dict)
+    if result_dict["driver"] == "energy":
+        energy = result_dict["properties"].get("return_energy")
+        if energy is None:
+            raise ValueError("Energy driver requires properties.return_energy")
+        if isinstance(energy, bool) or energy != result_dict["return_result"]:
+            raise ValueError("Energy return_result must match properties.return_energy")
+    try:
+        from qcelemental.models import AtomicResult
+    except ImportError as exc:
+        raise ImportError("QCSchema export requires the qcelemental package") from exc
+    validated = AtomicResult(**result_dict)
+    # Serialize only explicitly present fields: reference-model defaults may
+    # describe molecule metadata, but must not invent optional observables.
+    payload = json.loads(validated.json(exclude_unset=True))
+    encoded = json.dumps(payload, indent=2, allow_nan=False)
+    # Validation completes before touching an existing output file.
+    Path(output_filename).write_text(encoded, encoding="utf-8")
+    return output_filename
 
-    with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump(qcschema, f, indent=2)
+
+def export_torq_result_bundle(result_dict: dict[str, Any], output_filename: str) -> str:
+    """Write a namespaced TORQ bundle, preserving absent values and raw provenance.
+
+    This format is a transparent container, not an AtomicResult or a claim of
+    scientific validation. Its digest verifies the supplied payload bytes only.
+    """
+    payload_json = canonical_json_dumps(result_dict)
+    bundle = {
+        "schema_name": "cochem_torq_result_bundle",
+        "schema_version": 1,
+        "payload_sha256": hashlib.sha256(payload_json.encode("utf-8")).hexdigest(),
+        "result": result_dict,
+    }
+    encoded = json.dumps(bundle, indent=2, allow_nan=False)
+    Path(output_filename).write_text(encoded, encoding="utf-8")
     return output_filename

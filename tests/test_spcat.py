@@ -31,7 +31,7 @@ from Libraries.cochem_spcat_bridge import (
 
 logger = logging.getLogger(__name__)
 
-# Real experimental / ab initio Cartesian geometry for Water (H2O in Angstroms)
+# Declared water-shaped mathematical geometry (angstrom); no optimized-state claim
 H2O_GEOMETRY = np.array(
     [
         [0.000000, 0.000000, 0.117300],
@@ -42,7 +42,7 @@ H2O_GEOMETRY = np.array(
 )
 H2O_SYMBOLS = ["O", "H", "H"]
 
-# Real geometry for Ammonia (NH3 in Angstroms)
+# Declared mathematical geometry for Ammonia (NH3 in Angstroms)
 NH3_GEOMETRY = np.array(
     [
         [0.000000, 0.000000, 0.116489],
@@ -54,7 +54,7 @@ NH3_GEOMETRY = np.array(
 )
 NH3_SYMBOLS = ["N", "H", "H", "H"]
 
-# Real geometry for Ethylene (C2H4 in Angstroms)
+# Declared mathematical geometry for Ethylene (C2H4 in Angstroms)
 C2H4_GEOMETRY = np.array(
     [
         [0.000000, 0.000000, 0.669500],
@@ -70,92 +70,66 @@ C2H4_SYMBOLS = ["C", "C", "H", "H", "H", "H"]
 
 
 def test_torq_spcat_bridge_init(tmp_path: Path) -> None:
-    tensor_file = tmp_path / "tensor.json"
-    tensor_file.write_text(
+    """Construct an explicit mathematical geometry record with no engine properties."""
+    constants = calculate_rotational_constants_from_geometry(H2O_GEOMETRY, H2O_SYMBOLS)
+    path = tmp_path / "model-geometry.json"
+    path.write_text(
         json.dumps(
             {
-                "point_id": "001",
+                "point_id": "geometry-only",
+                "is_linear": False,
                 "coordinates": H2O_GEOMETRY.tolist(),
                 "symbols": H2O_SYMBOLS,
+                "symmetry": {
+                    "sigma": 2,
+                    "source": "Exact twofold rotation of the declared mathematical geometry",
+                },
                 "tensors": {
                     "rotational_constants_MHz": {
-                        "A": 825360.0,
-                        "B": 435360.0,
-                        "C": 278130.0,
+                        axis: constants[axis] for axis in ("A", "B", "C")
                     }
                 },
             }
-        ),
-        encoding="utf-8",
+        )
     )
-
-    mpqc_file = tmp_path / "mpqc.out"
-    mpqc_file.write_text("FINAL SINGLE POINT ENERGY -76.123\n", encoding="utf-8")
-
-    bridge = TorqSpcatBridge(str(tensor_file), str(mpqc_file), temperature_k=298.15)
-    assert bridge.temperature_k == 298.15
-    assert bridge.mpqc_file == Path(mpqc_file)
-    assert bridge.rot_A_MHz == 825360.0
-    assert bridge.rot_B_MHz == 435360.0
-    assert bridge.rot_C_MHz == 278130.0
-    assert bridge.sigma == 2
+    bridge = TorqSpcatBridge(
+        path, tmp_path / "unavailable-native-output", temperature_k=298.15
+    )
+    assert bridge.rot_A_MHz == constants["A"]
+    assert bridge.rot_B_MHz == constants["B"]
+    assert bridge.rot_C_MHz == constants["C"]
+    assert bridge.frequencies_cm1 is None and bridge.dipole_moments is None
 
 
 def test_torq_spcat_bridge_extract_orca(tmp_path: Path) -> None:
-    tensor_file = tmp_path / "tensor.json"
-    tensor_file.write_text(
+    """A mixed vendor parser must reject unsupported property extraction."""
+    constants = calculate_rotational_constants_from_geometry(H2O_GEOMETRY, H2O_SYMBOLS)
+    path = tmp_path / "geometry.json"
+    path.write_text(
         json.dumps(
             {
-                "point_id": "002",
-                "coordinates": H2O_GEOMETRY.tolist(),
-                "symbols": H2O_SYMBOLS,
+                "point_id": "geometry-only",
+                "is_linear": False,
+                "symmetry": {
+                    "sigma": 2,
+                    "source": "Declared mathematical geometry C2 rotation",
+                },
                 "tensors": {
                     "rotational_constants_MHz": {
-                        "A": 825360.0,
-                        "B": 435360.0,
-                        "C": 278130.0,
+                        axis: constants[axis] for axis in ("A", "B", "C")
                     }
                 },
             }
-        ),
-        encoding="utf-8",
+        )
     )
-    mpqc_file = tmp_path / "mpqc.out"
-    mpqc_file.write_text(
-        "Total Dipole Moment : 0.000 0.000 1.854\n"
-        "VIBRATIONAL FREQUENCIES\n"
-        "-----------------------\n"
-        " 1: 1595.00 cm**-1\n"
-        " 2: 3657.00 cm**-1\n"
-        " 3: 3756.00 cm**-1\n",
-        encoding="utf-8",
-    )
-
-    bridge = TorqSpcatBridge(str(tensor_file), str(mpqc_file), temperature_k=298.15)
-    bridge.parse_mpqc_observables()
-    assert len(bridge.frequencies_cm1) == 3
-    assert bridge.dipole_moments["c"] == 1.854
-
-    q_rot, q_vib, q_total = bridge.calculate_partition_functions()
-    assert q_rot > 0.0
-    assert q_vib >= 1.0
-    assert math.isclose(q_total, q_rot * q_vib, rel_tol=1e-9)
-
-    spcat_dir = tmp_path / "scratch"
-
-    import os
-
-    original_env = os.environ.get("COCHEM_ARTIFACT_DIR")
-    os.environ["COCHEM_ARTIFACT_DIR"] = str(spcat_dir)
-    try:
+    bridge = TorqSpcatBridge(path, tmp_path / "unavailable-native-output")
+    with pytest.raises(NotImplementedError, match="unqualified"):
+        bridge.parse_mpqc_observables()
+    with pytest.raises(ValueError, match="unavailable"):
+        bridge.calculate_partition_functions()
+    with pytest.raises(NotImplementedError, match="unqualified"):
         bridge.export_spcat_catalog()
-    finally:
-        if original_env is not None:
-            os.environ["COCHEM_ARTIFACT_DIR"] = original_env
-        else:
-            del os.environ["COCHEM_ARTIFACT_DIR"]
-    assert (spcat_dir / "spcat" / "spcat_002.var").exists()
-    assert (spcat_dir / "spcat" / "spcat_002.int").exists()
+    assert not list(tmp_path.glob("*.var")) and not list(tmp_path.glob("*.int"))
 
 
 def test_exact_codata_2022_constants() -> None:
@@ -271,52 +245,21 @@ def test_generate_spcat_var_and_int(tmp_path: Path) -> None:
 
 
 def test_3tier_routing_protocol() -> None:
-    """Verify the 3-Tier Routing Protocol (MPQC primary, ORCA secondary, CFOUR legacy)."""
-    mpqc_data = {
-        "energy_hartree": -76.4321,
-        "frequencies": [1595.0, 3657.0, 3756.0],
-        "dipoles": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.85},
-    }
-    orca_data = {
-        "electronic_energy": -76.4300,
-        "harmonic_frequencies": [1590.0, 3650.0, 3750.0],
-        "anharmonic_x_matrix": np.array(
-            [[-42.6, -15.9, -165.8], [-15.9, -42.9, -166.1], [-165.8, -166.1, -47.8]]
-        ),
-        "dipole_moments": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.84},
-    }
-    cfour_data = {
-        "eccsd_t": -76.4310,
-        "frequencies": [1592.0, 3652.0, 3752.0],
-        "dipoles": {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.845},
-    }
+    """Retain actual archived ORCA energy without inventing other engine/VPT2 data."""
+    from Libraries.cochem_torq_engine import _read_orca_engrad
 
-    # Standard routing selects Tier 1 (MPQC)
-    res_tier1 = route_3tier_abinitio_payload(
-        mpqc_data=mpqc_data, orca_data=orca_data, cfour_data=cfour_data
-    )
-    assert res_tier1.selected_tier == 1
-    assert res_tier1.primary_engine == "MPQC"
-    assert res_tier1.is_mpqc_primary is True
-    assert res_tier1.electronic_energy_hartree == -76.4321
-
-    # When analytic VPT2 is requested, Tier 2 (ORCA) is selected
-    res_tier2 = route_3tier_abinitio_payload(
-        mpqc_data=mpqc_data,
-        orca_data=orca_data,
-        cfour_data=cfour_data,
-        require_analytic_vpt2=True,
-    )
-    assert res_tier2.selected_tier == 2
-    assert res_tier2.primary_engine == "ORCA"
-    assert res_tier2.is_analytic_vpt2_active is True
-
-    # Fallback to Tier 3 when only CFOUR is available
-    res_tier3 = route_3tier_abinitio_payload(cfour_data=cfour_data)
-    assert res_tier3.selected_tier == 3
-    assert res_tier3.primary_engine == "CFOUR"
-
-    with pytest.raises(ValueError, match="No ab initio data provided"):
+    energy, _, _, _ = _read_orca_engrad(Path(__file__).parents[1] / "test.engrad", 10)
+    data = {"energy_hartree": energy, "method": "archived; method identity unverified"}
+    result = route_3tier_abinitio_payload(orca_data=data)
+    assert result.primary_engine == "ORCA" and result.selected_tier == 2
+    assert result.electronic_energy_hartree == energy
+    assert result.harmonic_frequencies is None
+    assert result.dipole_moments_debye is None
+    assert result.vpt2_x_matrix is None
+    assert result.is_analytic_vpt2_active is False
+    with pytest.raises(ValueError, match="No supplied record"):
+        route_3tier_abinitio_payload(orca_data=data, require_analytic_vpt2=True)
+    with pytest.raises(ValueError, match="No supplied record"):
         route_3tier_abinitio_payload()
 
 

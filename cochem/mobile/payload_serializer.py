@@ -8,7 +8,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -19,22 +21,74 @@ from cochem.mobile.job_state import ExecutionPayload, ManifestReference
 
 STAGE_THRESHOLD_BYTES: int = 65536  # 64 KB exact threshold (65,536 bytes)
 DEFAULT_HMAC_ENV_VAR: str = "COCHEM_HMAC_SECRET"
-DEFAULT_HMAC_SECRET_FALLBACK: str = "cochem_airgap_secret_key_v1_secure_default"
 
 
 def get_hmac_secret(explicit_secret: Optional[str] = None) -> str:
-    """Resolve HMAC secret key from explicit argument or environment with fallback."""
-    if explicit_secret is not None and explicit_secret.strip():
-        return explicit_secret.strip()
-    return os.environ.get(DEFAULT_HMAC_ENV_VAR, DEFAULT_HMAC_SECRET_FALLBACK)
+    """Require an explicit or configured nonblank key, preserving its exact bytes.
+
+    An explicitly empty key is rejected even when the environment contains a key.
+    Keys are not trimmed, guessed, generated, logged or replaced by a public value.
+    """
+    secret = (
+        os.environ.get(DEFAULT_HMAC_ENV_VAR)
+        if explicit_secret is None
+        else explicit_secret
+    )
+    if not isinstance(secret, str) or not secret.strip():
+        raise ValueError(
+            "Configure a nonempty authentication key explicitly or through "
+            "COCHEM_HMAC_SECRET before signing or receiving payloads."
+        )
+    return secret
 
 
 def canonical_json_dumps(obj: Any) -> str:
     """Serialize object to deterministic canonical JSON string."""
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    )
 
 
-def canonical_serialize(data: Union[Dict[str, Any], BaseModel, ExecutionPayload]) -> bytes:
+def strict_json_loads(raw: Union[str, bytes]) -> Any:
+    """Read JSON without nonfinite numbers or silently overwritten object keys."""
+
+    def finite_float(value: str) -> float:
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ValueError("JSON numbers must be finite.")
+        return parsed
+
+    def reject_constant(value: str) -> None:
+        raise ValueError(f"Invalid JSON number: {value}")
+
+    def unique_object(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
+        result: Dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"Duplicate JSON object key: {key}")
+            result[key] = value
+        return result
+
+    return json.loads(
+        raw,
+        parse_float=finite_float,
+        parse_constant=reject_constant,
+        object_pairs_hook=unique_object,
+    )
+
+
+def validate_job_id(job_id: str) -> str:
+    """Require an opaque identifier that is safe as a single filename component."""
+    if not isinstance(job_id, str) or re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", job_id
+    ) is None:
+        raise ValueError("job_id must be 1-128 ASCII letters, digits, underscores or hyphens.")
+    return job_id
+
+
+def canonical_serialize(
+    data: Union[Dict[str, Any], BaseModel, ExecutionPayload],
+) -> bytes:
     """Serialize dictionary or Pydantic model into deterministic canonical UTF-8 bytes.
 
     Automatically excludes the 'hmac_sha256' signature field from the canonical hash representation.
@@ -48,7 +102,9 @@ def canonical_serialize(data: Union[Dict[str, Any], BaseModel, ExecutionPayload]
         raw_dict = dict(data)
         raw_dict.pop("hmac_sha256", None)
     else:
-        raise TypeError(f"Unsupported payload type for canonical serialization: {type(data)}")
+        raise TypeError(
+            f"Unsupported payload type for canonical serialization: {type(data)}"
+        )
 
     return canonical_json_dumps(raw_dict).encode("utf-8")
 
@@ -63,10 +119,13 @@ def verify_payload_signature(
     canonical_bytes: bytes, signature: str, secret_key: Optional[str] = None
 ) -> bool:
     """Verify HMAC-SHA256 signature using constant-time digest comparison."""
-    if not signature or not signature.strip():
+    secret = get_hmac_secret(secret_key)
+    if not isinstance(signature, str) or re.fullmatch(
+        r"[0-9a-fA-F]{64}", signature.strip()
+    ) is None:
         return False
-    expected_signature = sign_payload(canonical_bytes, secret_key)
-    return hmac.compare_digest(expected_signature, signature.strip())
+    expected_signature = sign_payload(canonical_bytes, secret)
+    return hmac.compare_digest(expected_signature, signature.strip().lower())
 
 
 def get_coch_src() -> Path:
@@ -98,22 +157,24 @@ def get_cochem_state_dir() -> Path:
     return (Path.cwd() / "state").resolve()
 
 
-def get_job_artifact_dir(job_id: str, base_artifacts_dir: Optional[Path] = None) -> Path:
+def get_job_artifact_dir(
+    job_id: str, base_artifacts_dir: Optional[Path] = None
+) -> Path:
     """Construct POSIX-normalized job artifact directory path ($COCH_ARTIFACTS/jobs/{job_id}/)."""
     base = base_artifacts_dir or get_coch_artifacts()
-    return base / "jobs" / job_id
+    return base / "jobs" / validate_job_id(job_id)
 
 
 def get_job_status_path(job_id: str, state_dir: Optional[Path] = None) -> Path:
     """Construct job status JSON path ($COCHEM_STATE_DIR/{job_id}.status.json)."""
     base = state_dir or get_cochem_state_dir()
-    return base / f"{job_id}.status.json"
+    return base / f"{validate_job_id(job_id)}.status.json"
 
 
 def get_job_lock_path(job_id: str, state_dir: Optional[Path] = None) -> Path:
     """Construct job lock file path ($COCHEM_STATE_DIR/{job_id}.lock)."""
     base = state_dir or get_cochem_state_dir()
-    return base / f"{job_id}.lock"
+    return base / f"{validate_job_id(job_id)}.lock"
 
 
 def ensure_tripartite_dirs(
@@ -127,7 +188,7 @@ def ensure_tripartite_dirs(
     resolved_artifacts = (artifacts_dir or get_coch_artifacts()).resolve()
     resolved_state = (state_dir or get_cochem_state_dir()).resolve()
 
-    resolved_job_artifacts = resolved_artifacts / "jobs" / job_id
+    resolved_job_artifacts = resolved_artifacts / "jobs" / validate_job_id(job_id)
 
     resolved_src.mkdir(parents=True, exist_ok=True)
     resolved_job_artifacts.mkdir(parents=True, exist_ok=True)
@@ -136,39 +197,53 @@ def ensure_tripartite_dirs(
     return resolved_src, resolved_job_artifacts, resolved_state
 
 
-def validate_xyz_structure_dynamic(xyz_block: str) -> List[Tuple[str, float, float, float, float]]:
+def validate_xyz_structure_dynamic(
+    xyz_block: str,
+) -> List[Tuple[str, float, float, float, float]]:
     """Dynamically validate XYZ coordinate elements and look up atomic masses via Mendeleev.
 
     Returns:
         List of tuples: (element_symbol, x, y, z, dynamic_atomic_weight)
     """
-    lines = [ln.strip() for ln in xyz_block.strip().splitlines() if ln.strip()]
-    if not lines:
-        return []
-
-    # Check for standard XYZ header (atom count on line 0, comment on line 1)
+    if not isinstance(xyz_block, str) or not xyz_block.strip():
+        raise ValueError("XYZ coordinates must be nonempty.")
+    # Keep physical line positions: the standard XYZ comment may be blank.
+    lines = xyz_block.splitlines()
     coord_lines = lines
-    if len(lines) >= 2:
-        first_token = lines[0].split()[0]
-        if first_token.isdigit() and len(lines[0].split()) == 1:
-            coord_lines = lines[2:]
+    declared_count: Optional[int] = None
+    if re.fullmatch(r"[+-]?[0-9]+", lines[0].strip()):
+        declared_count = int(lines[0].strip())
+        if declared_count <= 0 or len(lines) < 2:
+            raise ValueError("XYZ requires a positive atom count and a comment line.")
+        coord_lines = lines[2:]
+        if len(coord_lines) != declared_count:
+            raise ValueError(
+                f"XYZ atom count mismatch: declared {declared_count}, got {len(coord_lines)}."
+            )
+    if not coord_lines:
+        raise ValueError("XYZ coordinates must contain at least one atom.")
 
     parsed_atoms: List[Tuple[str, float, float, float, float]] = []
-    for line in coord_lines:
+    for index, line in enumerate(coord_lines, start=1):
         parts = line.split()
-        if len(parts) < 4:
-            continue
-        sym = parts[0].strip()
-        # Clean symbol of non-alpha characters if any
-        clean_sym = "".join(c for c in sym if c.isalpha())
-        if not clean_sym:
-            continue
-
-        # Dynamic retrieval from mendeleev library
-        elem = _mendeleev_element(clean_sym.capitalize())
-        atomic_mass = float(elem.atomic_weight or elem.mass or 0.0)
-
-        x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+        if len(parts) != 4 or re.fullmatch(r"[A-Z][a-z]?", parts[0]) is None:
+            raise ValueError(f"Invalid XYZ atom record {index}: expected element and x, y, z.")
+        try:
+            x, y, z = (float(value) for value in parts[1:])
+        except ValueError as exc:
+            raise ValueError(f"Invalid XYZ coordinates in atom record {index}.") from exc
+        if not all(math.isfinite(value) for value in (x, y, z)):
+            raise ValueError(f"XYZ coordinates in atom record {index} must be finite.")
+        # Actual conventional atomic weights; unavailable data are not zero mass.
+        try:
+            elem = _mendeleev_element(parts[0])
+        except (ValueError, KeyError) as exc:
+            raise ValueError(f"Unknown XYZ element in atom record {index}: {parts[0]}") from exc
+        if elem.symbol != parts[0] or elem.atomic_weight is None:
+            raise ValueError(f"Atomic weight is unavailable for XYZ element {parts[0]}.")
+        atomic_mass = float(elem.atomic_weight)
+        if not math.isfinite(atomic_mass) or atomic_mass <= 0:
+            raise ValueError(f"Atomic weight is invalid for XYZ element {parts[0]}.")
         parsed_atoms.append((elem.symbol, x, y, z, atomic_mass))
 
     return parsed_atoms
@@ -192,6 +267,8 @@ def stage_or_inline_payload(
         - If size <= 65,536 bytes: (False, ExecutionPayload with attached hmac_sha256)
         - If size > 65,536 bytes: (True, ManifestReference pointing to staged payload.json)
     """
+    validate_job_id(payload.job_id)
+    validate_xyz_structure_dynamic(payload.molecule_xyz)
     canonical_bytes = canonical_serialize(payload)
     signature = sign_payload(canonical_bytes, secret_key)
     payload_size = len(canonical_bytes)
@@ -231,9 +308,14 @@ def load_staged_payload(
     manifest_ref: ManifestReference, secret_key: Optional[str] = None
 ) -> ExecutionPayload:
     """Load, verify HMAC-SHA256 signature, and deserialize staged payload.json from manifest reference."""
+    # Missing authentication is an error before any file contents are read.
+    resolved_secret = get_hmac_secret(secret_key)
+    validate_job_id(manifest_ref.job_id)
     file_path = Path(manifest_ref.manifest_uri)
     if not file_path.exists():
-        raise FileNotFoundError(f"Staged payload file does not exist: {manifest_ref.manifest_uri}")
+        raise FileNotFoundError(
+            f"Staged payload file does not exist: {manifest_ref.manifest_uri}"
+        )
 
     raw_bytes = file_path.read_bytes()
     if len(raw_bytes) != manifest_ref.file_size_bytes:
@@ -242,12 +324,22 @@ def load_staged_payload(
             f"got {len(raw_bytes)} bytes."
         )
 
-    if not verify_payload_signature(raw_bytes, manifest_ref.hmac_sha256, secret_key):
+    if not verify_payload_signature(raw_bytes, manifest_ref.hmac_sha256, resolved_secret):
         raise ValueError(
             f"Cryptographic HMAC-SHA256 integrity verification failed for payload {manifest_ref.job_id}"
         )
 
-    parsed_json = json.loads(raw_bytes.decode("utf-8"))
+    parsed_json = strict_json_loads(raw_bytes.decode("utf-8"))
+    if not isinstance(parsed_json, dict):
+        raise ValueError("Staged JSON payload must be a root object.")
+    unexpected = set(parsed_json) - (set(ExecutionPayload.model_fields) - {"hmac_sha256"})
+    if unexpected:
+        raise ValueError("Staged payload contains unsupported fields.")
     payload = ExecutionPayload.model_validate(parsed_json)
+    if payload.job_id != manifest_ref.job_id:
+        raise ValueError("Staged payload job_id does not match the manifest identity.")
+    if payload.created_at_utc != manifest_ref.created_at_utc:
+        raise ValueError("Staged payload created_at_utc does not match the manifest identity.")
+    validate_xyz_structure_dynamic(payload.molecule_xyz)
     payload.hmac_sha256 = manifest_ref.hmac_sha256
     return payload

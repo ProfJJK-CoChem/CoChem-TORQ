@@ -1,0 +1,21 @@
+{
+  "source_revision": "d7a4739a5f7d6f22ed659b32eeb4706bef16225e",
+  "status": "passed",
+  "source_records": 601,
+  "source_record_counts": {
+    "proposal": 345,
+    "contract": 25,
+    "section": 223,
+    "architecture": 8
+  },
+  "matrix_rows": 140,
+  "requirements": 73,
+  "acceptance_definitions": 41,
+  "decisions": 12,
+  "decision_questions": 24,
+  "claim_register_entries": 29,
+  "relative_file_links_checked": 87,
+  "historical_sources_byte_preserved": 9,
+  "errors": [],
+  "scope": "Document coverage/consistency only; no scientific engine certification"
+}

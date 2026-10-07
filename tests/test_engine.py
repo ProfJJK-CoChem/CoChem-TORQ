@@ -1,7 +1,7 @@
 """
-CoChem-TORQ: High-Fidelity Quantum Engine & Cascade Broker Test Suite
+CoChem-TORQ: Engine contract, mathematical input geometry and actual native-evidence tests
 ======================================================================
-Phase 5 (Stage 4.0) Authentic Physical Test Matrix
+Phase 5 (Stage 4.0) Declared mathematical Test Matrix
 --------------------------------------------------
 Validates Method Matrix v4 execution cascade (defgrid1 -> defgrid3),
 ORCA Python Interface (OPI) persistent memory threading, dynamic wavefunction
@@ -61,22 +61,23 @@ from Libraries.cochem_torq_engine import (
 
 
 # ============================================================================
-# Authentic Physical Molecular Geometry Fixtures
+# Declared mathematical Molecular Geometry Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def water_dimer_geometry() -> Tuple[List[str], np.ndarray]:
     """
-    Authentic equilibrium Water Dimer (H2O)2 geometry (Cs symmetry, R(O...O) = 2.91 A).
+    Declared model Water Dimer (H2O)2 geometry (Cs symmetry, R(O...O) = 2.91 A).
     """
     symbols = ["O", "H", "H", "O", "H", "H"]
     coords = np.array(
         [
             [0.0000, 0.0000, -1.4550],  # O1 donor
             [0.0000, 0.7600, -0.8650],  # H1 donor
-            [0.0000, -0.7600, -0.8650], # H2 donor
-            [0.0000, 0.0000, 1.4550],   # O2 acceptor
-            [0.7600, 0.0000, 2.0450],   # H3 acceptor
+            [0.0000, -0.7600, -0.8650],  # H2 donor
+            [0.0000, 0.0000, 1.4550],  # O2 acceptor
+            [0.7600, 0.0000, 2.0450],  # H3 acceptor
             [-0.7600, 0.0000, 2.0450],  # H4 acceptor
         ],
         dtype=np.float64,
@@ -87,21 +88,21 @@ def water_dimer_geometry() -> Tuple[List[str], np.ndarray]:
 @pytest.fixture
 def formic_acid_dimer_geometry() -> Tuple[List[str], np.ndarray]:
     """
-    Authentic equilibrium Formic Acid Dimer (HCOOH)2 (C2h symmetry, double H-bonded).
+    Declared model Formic Acid Dimer (HCOOH)2 (C2h symmetry, double H-bonded).
     """
     symbols = ["C", "O", "O", "H", "H", "C", "O", "O", "H", "H"]
     coords = np.array(
         [
-            [ 0.0000,  1.8500,  0.0000],   # C1
-            [-1.2200,  1.3500,  0.0000],   # O1 (=O)
-            [ 1.2200,  1.3500,  0.0000],   # O2 (-OH)
-            [ 1.2200,  0.3800,  0.0000],   # H1 (hydroxyl H)
-            [ 0.0000,  2.9300,  0.0000],   # H2 (formyl H)
-            [ 0.0000, -1.8500,  0.0000],   # C2
-            [ 1.2200, -1.3500,  0.0000],   # O3 (=O)
-            [-1.2200, -1.3500,  0.0000],   # O4 (-OH)
-            [-1.2200, -0.3800,  0.0000],   # H3 (hydroxyl H)
-            [ 0.0000, -2.9300,  0.0000],   # H4 (formyl H)
+            [0.0000, 1.8500, 0.0000],  # C1
+            [-1.2200, 1.3500, 0.0000],  # O1 (=O)
+            [1.2200, 1.3500, 0.0000],  # O2 (-OH)
+            [1.2200, 0.3800, 0.0000],  # H1 (hydroxyl H)
+            [0.0000, 2.9300, 0.0000],  # H2 (formyl H)
+            [0.0000, -1.8500, 0.0000],  # C2
+            [1.2200, -1.3500, 0.0000],  # O3 (=O)
+            [-1.2200, -1.3500, 0.0000],  # O4 (-OH)
+            [-1.2200, -0.3800, 0.0000],  # H3 (hydroxyl H)
+            [0.0000, -2.9300, 0.0000],  # H4 (formyl H)
         ],
         dtype=np.float64,
     )
@@ -111,24 +112,24 @@ def formic_acid_dimer_geometry() -> Tuple[List[str], np.ndarray]:
 @pytest.fixture
 def zinc_formate_geometry() -> Tuple[List[str], np.ndarray]:
     """
-    Authentic Zinc(II) Formate complex [Zn(HCOO)3]^- geometry.
+    Declared Zinc-shaped model(II) Formate complex [Zn(HCOO)3]^- geometry.
     """
     symbols = ["Zn", "C", "O", "O", "H", "C", "O", "O", "H", "C", "O", "O", "H"]
     coords = np.array(
         [
-            [0.0000, 0.0000, 0.0000],   # Zn
-            [2.3000, 0.0000, 0.0000],   # C1
-            [1.6000, 1.0500, 0.0000],   # O1
+            [0.0000, 0.0000, 0.0000],  # Zn
+            [2.3000, 0.0000, 0.0000],  # C1
+            [1.6000, 1.0500, 0.0000],  # O1
             [1.6000, -1.0500, 0.0000],  # O2
-            [3.3800, 0.0000, 0.0000],   # H1
+            [3.3800, 0.0000, 0.0000],  # H1
             [-1.1500, 1.9919, 0.0000],  # C2
             [-0.1096, 1.9125, 0.0000],  # O3
             [-1.7096, 0.8625, 0.0000],  # O4
             [-1.6900, 2.9272, 0.0000],  # H2
-            [-1.1500, -1.9919, 0.0000], # C3
-            [-1.7096, -0.8625, 0.0000], # O5
-            [-0.1096, -1.9125, 0.0000], # O6
-            [-1.6900, -2.9272, 0.0000], # H3
+            [-1.1500, -1.9919, 0.0000],  # C3
+            [-1.7096, -0.8625, 0.0000],  # O5
+            [-0.1096, -1.9125, 0.0000],  # O6
+            [-1.6900, -2.9272, 0.0000],  # H3
         ],
         dtype=np.float64,
     )
@@ -138,7 +139,7 @@ def zinc_formate_geometry() -> Tuple[List[str], np.ndarray]:
 @pytest.fixture
 def ethanediol_geometry() -> Tuple[List[str], np.ndarray]:
     """
-    Authentic 1,2-Ethanediol (HO-CH2-CH2-OH) gauche conformer geometry.
+    Declared 1,2-ethanediol-shaped model (HO-CH2-CH2-OH) gauche conformer geometry.
     """
     symbols = ["C", "C", "O", "O", "H", "H", "H", "H", "H", "H"]
     coords = np.array(
@@ -162,7 +163,7 @@ def ethanediol_geometry() -> Tuple[List[str], np.ndarray]:
 @pytest.fixture
 def propane_geometry() -> Tuple[List[str], np.ndarray]:
     """
-    Authentic Propane (C3H8) equilibrium geometry (N=11 atoms, 33x33 Hessian).
+    Declared propane-shaped model (C3H8) equilibrium geometry (N=11 atoms, 33x33 Hessian).
     """
     symbols = ["C", "C", "C", "H", "H", "H", "H", "H", "H", "H", "H"]
     coords = np.array(
@@ -187,6 +188,7 @@ def propane_geometry() -> Tuple[List[str], np.ndarray]:
 # ============================================================================
 # 1. Mendeleev Dynamic Retrieval Tests (Mendeleev Mandate)
 # ============================================================================
+
 
 class TestMendeleevDynamicRetrieval:
     """Tests dynamic atomic mass, isotopic mass, and covalent/vdW radii retrieval via Mendeleev."""
@@ -224,6 +226,7 @@ class TestMendeleevDynamicRetrieval:
 # ============================================================================
 # 2. 6-Tier Environment Matrix & Path Resolution Tests
 # ============================================================================
+
 
 class TestEnvironmentMatrix:
     """Tests 6-Tier Environment Matrix detection, dynamic path resolution, and air-gap integrity."""
@@ -286,6 +289,7 @@ class TestEnvironmentMatrix:
 # ============================================================================
 # 3. Method Matrix Routing & Cascade Rules Tests
 # ============================================================================
+
 
 class TestMethodMatrixCascade:
     """Tests Method Matrix v4 rules, complex detection, grid tightening, and initial Hessian enforcement."""
@@ -450,6 +454,7 @@ class TestMethodMatrixCascade:
 # 4. Counterpoise & Ghost Atoms Tests
 # ============================================================================
 
+
 class TestCounterpoiseAndGhostAtoms:
     """Tests Counterpoise ghost atom routing and non-covalent contact detection."""
 
@@ -489,6 +494,7 @@ class TestCounterpoiseAndGhostAtoms:
 # 5. Spin Contamination Verification Tests
 # ============================================================================
 
+
 class TestSpinContamination:
     """Tests ideal <S^2> calculations and strict <10% spin contamination error gates."""
 
@@ -523,97 +529,98 @@ class TestSpinContamination:
 # 6. In-Memory Wavefunction Propagation & OPI Persistent Threading Tests
 # ============================================================================
 
+
 class TestWavefunctionPropagationAndOPI:
     """Tests dynamic wavefunction propagation (! MOREAD / %moinp) and persistent OPI threading."""
 
     def test_opi_persistent_threading_generator(
-        self, ethanediol_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, ethanediol_geometry, tmp_path: Path
     ) -> None:
-        syms, coords = ethanediol_geometry
-        ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch", max_memory_mb=4000)
+        """Run ORCA only when installed; otherwise require an explicit missing-engine error."""
+        import shutil
 
+        symbols, coordinates = ethanediol_geometry
+        context = ExecutionContext(
+            custom_scratch_dir=tmp_path / "scratch", max_memory_mb=4000
+        )
         payload = DispatchPayload(
-            symbols=syms,
-            coordinates=coords,
+            symbols=symbols,
+            coordinates=coordinates,
             charge=0,
             multiplicity=1,
             method="r2SCAN-3c",
         )
-
-        # Generate 4-step trajectory
-        traj = [coords + (i * 0.005) for i in range(4)]
-        generator = opi_persistent_threading(payload, context=ctx, trajectory=traj)
-
-        results: List[ORCAStepResult] = list(generator)
-        assert len(results) == 4
-
-        for idx, res in enumerate(results):
-            assert res.step_idx == idx
-            assert res.converged is True
-            assert res.gradient is not None
-            assert len(res.coordinates) == len(syms)
-            assert res.gbw_bytes is not None
+        iterator = opi_persistent_threading(payload, context=context, n_steps=1)
+        if not shutil.which(os.environ.get("ORCA_PATH", "orca")):
+            with pytest.raises(FileNotFoundError, match="unavailable"):
+                list(iterator)
+        else:
+            observed = list(iterator)
+            assert len(observed) == 1
+            assert observed[0].scf_converged and observed[0].normally_terminated
+            assert observed[0].gradient is not None
 
 
 # ============================================================================
 # 7. Stateful SCF Checkpointing Tests
 # ============================================================================
 
+
 class TestStatefulCheckpointing:
     """Tests persistence of .gbw and HDF5 binary checkpoints to scratch directory."""
 
     def test_stateful_scf_checkpointing_binary(self, tmp_path: Path) -> None:
+        """An unavailable native checkpoint is rejected instead of creating GBW bytes."""
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
-        physical_gbw = b"ORCA_GBW_CHECKPOINT_SEED_V61\n\x00\x01\x02\x03\x04"
-
-        chk_path = stateful_scf_checkpointing(5, physical_gbw, ctx, checkpoint_type="gbw")
-        assert chk_path.exists()
-        assert chk_path.name == "checkpoint_step_0005.gbw"
-        assert chk_path.read_bytes() == physical_gbw
+        with pytest.raises(ValueError, match="Empty checkpoint"):
+            stateful_scf_checkpointing(5, b"", ctx, checkpoint_type="gbw")
 
     def test_stateful_scf_checkpointing_hdf5(self, tmp_path: Path) -> None:
+        """Archive actual repository ORCA energy/gradient/coordinates as TORQ HDF5."""
+        from Libraries.cochem_torq_engine import _read_orca_engrad
+
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
-        data_dict = {
-            "mo_coefficients": np.random.randn(20, 20),
-            "fock_matrix": np.random.randn(20, 20),
-            "energy": -245.891234,
-        }
+        energy, gradient, _, coordinates = _read_orca_engrad(
+            Path(__file__).parents[1] / "test.engrad", 10
+        )
+        data = {"energy": energy, "gradient": gradient, "coordinates": coordinates}
+        checkpoint = stateful_scf_checkpointing(12, data, ctx, checkpoint_type="chk")
+        assert checkpoint.suffix == ".h5"
+        with h5py.File(checkpoint, "r") as handle:
+            np.testing.assert_array_equal(handle["gradient"][:], gradient)
+            np.testing.assert_array_equal(handle["coordinates"][:], coordinates)
+            assert handle.attrs["energy"] == energy
+            assert handle.attrs["step_idx"] == 12
 
-        chk_path = stateful_scf_checkpointing(12, data_dict, ctx, checkpoint_type="chk")
-        assert chk_path.exists()
-        assert chk_path.name == "checkpoint_step_0012.chk"
+    def test_propane_cartesian_hessian_checkpoint(self, tmp_path: Path) -> None:
+        """Persist a genuine H2 HF Hessian, rather than random data labeled propane."""
+        pytest.importorskip("pyscf")
+        from pyscf import gto, lib, scf
 
-        with h5py.File(chk_path, "r") as h5f:
-            assert "mo_coefficients" in h5f
-            assert "fock_matrix" in h5f
-            assert h5f.attrs["step_idx"] == 12
-            assert math.isclose(h5f.attrs["energy"], -245.891234, abs_tol=1e-6)
-
-    def test_propane_cartesian_hessian_checkpoint(
-        self, propane_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
-    ) -> None:
-        syms, coords = propane_geometry
-        ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
-
-        n_atoms = len(syms)
-        hess_dim = 3 * n_atoms
-        np.random.seed(123)
-        rand_mat = np.random.randn(hess_dim, hess_dim)
-        hessian = 0.5 * (rand_mat + rand_mat.T)
-
-        chk_path = stateful_scf_checkpointing(1, hessian, ctx, checkpoint_type="hess")
-        assert chk_path.exists()
-        assert chk_path.name == "checkpoint_step_0001.hess"
-
-        with h5py.File(chk_path, "r") as h5f:
-            loaded_hess = h5f["tensor_data"][:]
-            assert loaded_hess.shape == (33, 33)
-            np.testing.assert_allclose(loaded_hess, hessian, atol=1e-12)
+        old_threads = lib.num_threads()
+        lib.num_threads(1)
+        try:
+            molecule = gto.M(
+                atom="H 0 0 -.7; H 0 0 .7", unit="Bohr", basis="sto-3g", verbose=0
+            )
+            method = scf.RHF(molecule).run(conv_tol=1e-11)
+            assert method.converged
+            tensor = method.Hessian().kernel().transpose(0, 2, 1, 3).reshape(6, 6)
+        finally:
+            lib.num_threads(old_threads)
+        context = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
+        checkpoint = stateful_scf_checkpointing(
+            1, tensor, context, checkpoint_type="hess"
+        )
+        assert checkpoint.suffix == ".h5"
+        with h5py.File(checkpoint, "r") as handle:
+            np.testing.assert_array_equal(handle["tensor_data"][:], tensor)
 
 
 # ============================================================================
 # 8. GPU4PySCF Dynamic Batching Tests
 # ============================================================================
+
 
 class TestGPU4PySCFBatching:
     """Tests hardware-aware dynamic batching and VRAM headroom retention."""
@@ -627,7 +634,9 @@ class TestGPU4PySCFBatching:
             vram_mb=12288,
         )
 
-        grid_points = [coords + (0.01 * i * np.random.randn(*coords.shape)) for i in range(100)]
+        grid_points = [
+            coords + (0.01 * i * np.random.randn(*coords.shape)) for i in range(100)
+        ]
 
         batches = gpu4pyscf_dynamic_batching(
             grid_points=grid_points,
@@ -646,6 +655,7 @@ class TestGPU4PySCFBatching:
 # 9. Subprocess Safety & Process Tree Teardown Tests
 # ============================================================================
 
+
 class TestSubprocessSafety:
     """Tests safe process execution, timeout handling, and process tree teardown."""
 
@@ -656,12 +666,22 @@ class TestSubprocessSafety:
         assert "TORQ_ENGINE_OK" in stdout
 
     def test_execute_subprocess_safe_timeout_and_teardown(self) -> None:
-        cmd = [sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(50)]"]
+        cmd = [
+            sys.executable,
+            "-c",
+            "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(50)]",
+        ]
         with pytest.raises(TimeoutError, match=r"timed out after 0.5 seconds"):
             execute_subprocess_safe(cmd, timeout=0.5)
 
     def test_safe_process_tree_teardown(self) -> None:
-        proc = subprocess.Popen([sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(50)]"])
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(50)]",
+            ]
+        )
         pid = proc.pid
         assert psutil.pid_exists(pid)
 

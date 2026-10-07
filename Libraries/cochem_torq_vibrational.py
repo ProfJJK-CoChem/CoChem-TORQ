@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import math
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
-import mendeleev
 import torch
 
 try:
@@ -49,165 +48,49 @@ CODATA_2022_HC_EV_CM = CODATA_2022_H_EVS * CODATA_2022_C_CMS  # 1.239841984e-4 e
 # Conversion factor from sqrt(eV / (A^2 * u)) to cm^-1: sqrt(kappa) / (2 * pi * c)
 CODATA_2022_FREQ_FACTOR = math.sqrt(CODATA_2022_KAPPA) / (2.0 * math.pi * CODATA_2022_C_CMS)  # ~521.4708316 cm^-1
 
-# Method Matrix v4 / NIST CCCBDB Harmonic Frequency ZPE Scaling Factors [M]/[E]
-# Reference: Kesharwani et al. (2015), Grimme et al., CCCBDB benchmark database
-HARMONIC_ZPE_SCALE_FACTORS: Dict[str, float] = {
-    "xtb2": 1.000,
-    "gfn2-xtb": 1.000,
-    "r2scan-3c": 0.985,
-    "wb97x-3c": 0.975,
-    "wb97x-d3": 0.975,
-    "wb97x-d4": 0.975,
-    "wb97x-d": 0.975,
-    "wb97m-v": 0.975,
-    "mp2": 0.966,
-    "b3lyp-d4": 0.965,
-    "b3lyp-d3": 0.965,
-    "b3lyp": 0.965,
-    "cam-b3lyp": 0.967,
-    "m06-2x": 0.967,
-    "m06-l": 0.970,
-    "m06": 0.969,
-    "pw6b95": 0.964,
-    "pbe0-d4": 0.960,
-    "pbe0": 0.960,
-    "pbe": 0.989,
-    "blyp": 0.990,
-    "tpss": 0.992,
-    "dlpno-ccsd(t)": 0.957,
-    "ccsd(t)-f12": 0.957,
-    "ccsd(t)": 0.957,
-    "junchs": 0.957,
-    "chs": 0.957,
-}
-DEFAULT_HARMONIC_ZPE_SCALE_FACTOR: float = 0.960
+# No method-only scaling table is supported: frequency and ZPE calibrations
+# depend on the complete method/basis/domain and on the target observable.
+HARMONIC_ZPE_SCALE_FACTORS: Dict[str, float] = {}
+DEFAULT_HARMONIC_ZPE_SCALE_FACTOR: float = 1.0
 
 
 def resolve_harmonic_zpe_scale_factor(
     method: Optional[str] = None,
     explicit_scale_factor: Optional[float] = None,
+    *,
+    basis: Optional[str] = None,
+    scaling_provenance: Optional[dict] = None,
 ) -> Tuple[float, Optional[str]]:
-    """Resolve and enforce physical harmonic frequency ZPE scaling factor [M]/[D].
+    """Return unscaled harmonic results unless a traceable calibration is supplied.
 
-    Validates that the scaling factor falls within physical bounds [0.5, 1.5]
-    and maps the computational method to authoritative Method Matrix v4 / CCCBDB
-    scaling standards.
-
-    Parameters
-    ----------
-    method : Optional[str]
-        Quantum mechanical or semi-empirical method name (e.g. 'r2scan-3c', 'dlpno-ccsd(t)').
-    explicit_scale_factor : Optional[float]
-        Explicit multiplicative scaling factor overriding method defaults.
-
-    Returns
-    -------
-    Tuple[float, Optional[str]]
-        (scale_factor, resolved_method)
-
-    Raises
-    ------
-    PhysicsDivergenceError
-        If explicit scale factor is outside physical bounds [0.5, 1.5] or non-finite.
+    This factor applies to ZPE only. Harmonic frequencies remain unscaled;
+    predicting fundamentals requires a distinct, validated calibration.
     """
-    if explicit_scale_factor is not None:
-        try:
-            scale = float(explicit_scale_factor)
-        except (ValueError, TypeError) as exc:
-            raise PhysicsDivergenceError(
-                f"ZPE scaling factor must be a numeric float, got {explicit_scale_factor!r}.",
-                error_code="TORQ_INVALID_ZPE_SCALE_FACTOR",
-                component="zpe_scale_resolver",
-                diagnostics={"explicit_scale_factor": str(explicit_scale_factor)},
-            ) from exc
-
-        if math.isnan(scale) or math.isinf(scale) or scale < 0.5 or scale > 1.5:
-            raise PhysicsDivergenceError(
-                f"Harmonic ZPE scaling factor {scale} falls outside physical bounds [0.5, 1.5].",
-                error_code="TORQ_INVALID_ZPE_SCALE_FACTOR",
-                component="zpe_scale_resolver",
-                diagnostics={"scale_factor": scale},
-            )
-        resolved_method = method.strip().lower() if method else "explicit_override"
-        return scale, resolved_method
-
-    if method is not None and method.strip():
-        method_clean = method.strip().lower()
-        # Sort by key length descending to prevent sub-string collisions (e.g. b3lyp matching cam-b3lyp or pbe matching pbe0)
-        for key in sorted(HARMONIC_ZPE_SCALE_FACTORS.keys(), key=len, reverse=True):
-            if key in method_clean:
-                return HARMONIC_ZPE_SCALE_FACTORS[key], method_clean
-        # Default fallback for unmapped method in quantum regime
-        return DEFAULT_HARMONIC_ZPE_SCALE_FACTOR, method_clean
-
-    # Unscaled default when neither method nor explicit factor is specified
-    return 1.000, None
+    resolved_method = method.strip().lower() if method else None
+    scale = 1.0 if explicit_scale_factor is None else float(explicit_scale_factor)
+    if not math.isfinite(scale) or not 0.5 <= scale <= 1.5:
+        raise PhysicsDivergenceError("ZPE scale must be finite and within the supported range [0.5, 1.5].")
+    if scale != 1.0:
+        provenance = scaling_provenance or {}
+        required = ("source", "method", "basis", "domain", "target_observable")
+        if not all(provenance.get(k) for k in required):
+            raise PhysicsDivergenceError("Nonunit ZPE scaling requires source, exact method, basis, domain, and target observable provenance.")
+        if (not resolved_method or str(provenance["method"]).strip().lower() != resolved_method
+                or not basis or str(provenance["basis"]).strip().lower() != basis.strip().lower()
+                or provenance["target_observable"] != "zpe"):
+            raise PhysicsDivergenceError("ZPE calibration must match the exact method/basis and target observable 'zpe'.")
+    return scale, resolved_method
 
 
 def resolve_ciaaw_monoisotopic_mass(atomic_number: int) -> float:
-    """Retrieve pure CIAAW monoisotopic mass for the most abundant isotope of element Z [M].
-
-    Queries mendeleev.element(Z).isotopes and filters by maximum terrestrial
-    isotopic abundance. Standard terrestrial average weights are strictly forbidden.
-
-    Parameters
-    ----------
-    atomic_number : int
-        Nuclear charge Z (1 <= Z <= 118).
-
-    Returns
-    -------
-    float
-        Pure monoisotopic mass in unified atomic mass units (u).
-
-    Raises
-    ------
-    PhysicsDivergenceError
-        If element is invalid or no isotopic record is available.
-    """
-    if atomic_number < 1 or atomic_number > 118:
-        raise PhysicsDivergenceError(
-            f"Invalid atomic number Z={atomic_number}. Must be in chemical domain [1, 118].",
-            error_code="TORQ_INVALID_ATOMIC_NUMBER",
-            component="monoisotopic_resolver",
-            diagnostics={"atomic_number": atomic_number},
-        )
-
+    """Resolve the most abundant isotope; ambiguous elements require explicit isotopes."""
+    from Libraries.cochem_torq_masses import get_monoisotopic_mass
+    if not 1 <= atomic_number <= 118:
+        raise PhysicsDivergenceError("Vibrational masses require physical atoms with 1 <= Z <= 118.")
     try:
-        elem = mendeleev.element(int(atomic_number))
-    except Exception as exc:
-        raise PhysicsDivergenceError(
-            f"Failed to retrieve element record for Z={atomic_number}: {exc}",
-            error_code="TORQ_MENDELEEV_QUERY_FAIL",
-            component="monoisotopic_resolver",
-            diagnostics={"atomic_number": atomic_number, "exception": str(exc)},
-        ) from exc
-
-    isotopes = [
-        iso
-        for iso in elem.isotopes
-        if iso.abundance is not None and iso.abundance > 0.0
-    ]
-    if not isotopes:
-        isotopes = elem.isotopes
-    if not isotopes:
-        raise PhysicsDivergenceError(
-            f"No isotopic mass records available for atomic number Z={atomic_number}.",
-            error_code="TORQ_NO_ISOTOPES",
-            component="monoisotopic_resolver",
-            diagnostics={"atomic_number": atomic_number, "symbol": elem.symbol},
-        )
-
-    most_abundant = max(isotopes, key=lambda iso: iso.abundance or 0.0)
-    if most_abundant.mass is None:
-        raise PhysicsDivergenceError(
-            f"CIAAW mass undefined for element {elem.symbol} (Z={atomic_number}).",
-            error_code="TORQ_UNDEFINED_ISOTOPE_MASS",
-            component="monoisotopic_resolver",
-            diagnostics={"atomic_number": atomic_number, "symbol": elem.symbol},
-        )
-
-    return float(most_abundant.mass)
+        return get_monoisotopic_mass(atomic_number)
+    except ValueError as exc:
+        raise PhysicsDivergenceError(str(exc)) from exc
 
 
 def compute_cartesian_hessian(
@@ -351,6 +234,9 @@ def analyze_vibrational_frequencies(
     filter_projected: bool = True,
     method: Optional[str] = None,
     zpe_scale_factor: Optional[float] = None,
+    *,
+    basis: Optional[str] = None,
+    scaling_provenance: Optional[dict] = None,
 ) -> VibrationalModes:
     """Compute mass-weighted projected normal modes, CODATA 2022 frequencies, and scaled ZPVE [M]/[D].
 
@@ -367,9 +253,9 @@ def analyze_vibrational_frequencies(
         reporting strictly the 3N - D genuine vibrational normal modes.
     method : Optional[str]
         Quantum mechanical or semi-empirical method name (e.g. 'r2scan-3c', 'dlpno-ccsd(t)').
-        Used to resolve canonical Method Matrix v4 / CCCBDB ZPE scaling factors.
+        Recorded method identity; no implicit scaling is selected.
     zpe_scale_factor : Optional[float]
-        Explicit multiplicative harmonic ZPE scaling factor overriding method defaults.
+        Explicit ZPE-only calibration requiring complete scaling_provenance.
         Must fall within physical bounds [0.5, 1.5].
 
     Returns
@@ -396,6 +282,8 @@ def analyze_vibrational_frequencies(
     scale_factor, resolved_method = resolve_harmonic_zpe_scale_factor(
         method=method,
         explicit_scale_factor=zpe_scale_factor,
+        basis=basis,
+        scaling_provenance=scaling_provenance,
     )
 
     # 1. Resolve pure CIAAW monoisotopic masses [M]
@@ -453,10 +341,7 @@ def analyze_vibrational_frequencies(
         if f > 0.0
     )
     scaled_zpe_ev = scale_factor * unscaled_zpe_ev
-    scaled_frequencies = [
-        float(f * scale_factor)
-        for f in frequencies_cm1
-    ]
+    scaled_frequencies = None  # ZPE calibration does not establish fundamental frequencies.
 
     return VibrationalModes(
         frequencies_cm1=frequencies_cm1,
@@ -469,4 +354,6 @@ def analyze_vibrational_frequencies(
         unscaled_zero_point_energy_ev=float(unscaled_zpe_ev),
         scaled_frequencies_cm1=scaled_frequencies,
         method=resolved_method,
+        basis=basis,
+        scaling_provenance=scaling_provenance if scale_factor != 1.0 else None,
     )

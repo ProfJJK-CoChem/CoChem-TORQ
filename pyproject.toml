@@ -12,32 +12,63 @@ authors = [
     {name = "CoChem Swarm"}
 ]
 dependencies = [
-    "pydantic",
-    "h5py",
-    "pyarrow",
-    "jax",
-    "jaxlib",
-    "psutil",
-    "networkx",
-    "scipy"
+    "numpy>=2.0,<3",
+    "pydantic>=2.7,<3",
+    "h5py>=3.10,<4",
+    "hdf5plugin>=4.4,<7",
+    "pyarrow>=15",
+    "pandas>=2.2,<4",
+    "mendeleev>=1.0,<2",
+    "zstandard>=0.22,<1",
+    "filelock>=3.13,<5",
+    "blake3>=1,<2",
+    "psutil>=5.9",
+    "networkx>=3.2",
+    "scipy>=1.14"
 ]
+
+[project.scripts]
+cochem-torq = "cochem_torq.cli:main"
+
+[project.entry-points."cochem.modules"]
+torq = "cochem_torq.ecosystem:module_provider"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "ruff",
-    "mypy"
+    "pytest>=8,<10",
+    "ruff>=0.9",
+    "mypy>=1.10",
+    "build>=1.2"
 ]
+qcschema = ["qcelemental>=0.29,<1"]
+dvr = ["jax>=0.4.30", "jaxlib>=0.4.30"]
+ml = ["torch>=2.4", "ase>=3.23", "scikit-learn>=1.5", "safetensors>=0.4"]
+molecular = ["rdkit>=2024.3", "ase>=3.23"]
+dispersion = ["dftd3==1.6.0"]
+telemetry = ["plotly>=6,<7", "httpx>=0.28,<1"]
+notebooks = ["jupyterlab>=4,<5", "ipywidgets>=8,<9", "anywidget>=0.9", "traitlets>=5", "matplotlib>=3.8"]
+interface = ["jupyterlab==4.5.6", "ipywidgets==8.1.8", "anywidget==0.9.21", "traitlets==5.15.0", "matplotlib>=3.8"]
+calculations = ["pyscf==2.14.0", "geometric==1.1.1", "dftd4==3.7.0", "qcelemental>=0.29,<1"]
+ipc = ["pyzmq>=25", "xxhash>=3"]
+
+[tool.setuptools.package-dir]
+cochem_torq = "src/cochem_torq"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["Libraries*"]
+where = [".", "src"]
+include = ["Libraries*", "cochem*", "orchestrator*", "scripts*", "UI*", "core*"]
+exclude = ["tests*", "build*", "dist*"]
+
+[tool.setuptools.package-data]
+cochem = ["mobile/pwa/*.js", "mobile/pwa/*.json"]
+UI = ["Start_TORQ.ipynb"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+markers = ["cpu_ml: requires optional CPU PyTorch/ML dependencies", "real_engine: executes genuine electronic-structure calculations", "student_profile: bounded canonical student workflow", "research: independently gated research implementation"]
 filterwarnings = [
     "ignore::DeprecationWarning"
 ]

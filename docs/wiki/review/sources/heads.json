@@ -1,0 +1,12 @@
+{
+  "MolSSI/QCElemental": "7828af830a1fa8de78517bcaec750eee8a9468ca\tHEAD",
+  "coltonbh/qcio": "a93394d1b91c954920c1e6be67260d80b80bf4ac\tHEAD",
+  "pyscf/gpu4pyscf": "f0e4de92f7e1046cfa6cb642e433c376aecdfabc\tHEAD",
+  "pyscf/pyscf.github.io": "f899927ce5b3015886ebd684d185935b58ad4b5e\tHEAD",
+  "h5py/h5py": "0f9cbe7c3814ef8007c20ef5cfba0b134f6aa699\tHEAD",
+  "Ltotheois/Pyckett": "783bbad282c0e5140015b8d493e092b9f929394a\tHEAD",
+  "psi4/psi4": "23be3de4b1f6cd70e337b98a2a200008cf350274\tHEAD",
+  "dftd4/dftd4": "d5f891808c2145becdcce742f67ecc7e711067d7\tHEAD",
+  "MolSSI/QCEngine": "bf1b799c4a17010f679a4472bb1ec56492f2d0d9\tHEAD",
+  "openssl/openssl": "866d2dbe55805eead5eee5bd49e9633ea135132e\tHEAD"
+}

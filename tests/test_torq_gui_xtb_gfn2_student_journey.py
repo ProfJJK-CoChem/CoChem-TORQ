@@ -1,189 +1,86 @@
-"""Authentic Zero-Mock Physical Test Suite: Student UI Journey & He2 xTB/GFN2-xTB Execution.
+"""Canonical student interface and unsupported vendor-profile rejection.
 
-Target Repository: TORQ (CoChem-TORQ)
-Defect ID: PROB-TORQ-UI-XTB-GFN2-HE2-001
-Interaction Environment: GitHub Codespaces
-Calculation Environment: github-actions
-Engine: xTB
-Method: GFN2-xTB
-Target Complex: He-He van der Waals dimer (He2)
-Governing Directives: Anti-Spoofing Protocol v4 (§1-§14), Method Matrix v4, Mendeleev Mandate.
+These checks do not assert unmeasured He2 binding, energies, gaps, dispersion,
+or gCP values. A supplied He2-shaped geometry is an input, not an equilibrium
+structure. ORCA/xTB require separately qualified site calculation workflows.
 """
 
-from __future__ import annotations
-
-import json
-import os
-import shutil
-import subprocess
-import sys
 from pathlib import Path
-from typing import Any
+import json
 
-import numpy as np
 import pytest
-from mendeleev import element
 
-# Ensure repository root and Libraries are on sys.path
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-_LIBRARIES = _REPO_ROOT / "Libraries"
-if str(_LIBRARIES) not in sys.path:
-    sys.path.insert(0, str(_LIBRARIES))
-_COCHEM_SRC = Path(r"D:\__CoChem\src")
-if _COCHEM_SRC.exists() and str(_COCHEM_SRC) not in sys.path:
-    sys.path.insert(0, str(_COCHEM_SRC))
+from Libraries.cochem_isotopes import isotope_mass
+from cochem_torq.application import validate_request
+from cochem_torq.registry import get_profile
+from cochem_torq.spectroscopy.harmonic import equilibrium_rotor
 
-from Libraries.torq_config import TorqRunParams
-from Libraries.cochem_torq_engine import ExecutionContext, route_cascade_rules
-
-NOTEBOOK_PATH = _REPO_ROOT / "UI" / "Start_TORQ.ipynb"
-
-# Authentic Helium Dimer (He2) van der Waals complex (R = 3.000 Angstrom)
-HE2_EQUILIBRIUM_XYZ = (
-    "2\n"
-    "Helium dimer van der Waals complex (R = 3.000 A)\n"
-    "He 0.000000 0.000000 0.000000\n"
-    "He 0.000000 0.000000 3.000000\n"
-)
+ROOT = Path(__file__).parents[1]
 
 
-def test_mendeleev_helium_mass_provenance() -> None:
-    """Validates that Helium dynamic mass is strictly retrieved via mendeleev library (Zero-Mock Invariant)."""
-    he = element("He")
-    assert he.atomic_number == 2
-    assert abs(float(he.mass) - 4.002602) < 1e-4
-    assert he.name == "Helium"
-    assert he.symbol == "He"
+def request(recipe):
+    return {
+        "molecule": {
+            "symbols": ["He", "He"],
+            "geometry_bohr": [[0, 0, 0], [0, 0, 6]],
+            "charge": 0,
+            "multiplicity": 1,
+        },
+        "recipe": recipe,
+        "products": ["geometry"],
+    }
 
 
-def test_torq_ui_environment_and_engine_controls_defect() -> None:
-    """Documents Defect 1: Start_TORQ.ipynb UI lacks Codespaces/Actions & xTB/GFN2-xTB parameter controls.
+def test_mendeleev_helium_mass_provenance():
+    from mendeleev import element
 
-    A student in GitHub Codespaces targeting github-actions with xTB (GFN2-xTB)
-    cannot configure these parameters via the UI because:
-    1. Preset geometries only contain H2O2, (H2O)2, N2H4, and CH3OH. He2 is missing.
-    2. Interactive widgets for Interaction Environment and Calculation Environment are absent.
-    3. Interactive widgets for Engine and Method selection are absent.
-    4. Cell 12 statically hardcodes engine="ORCA", method="wB97M-V", and basis_set="def2-TZVPP".
-    """
-    assert NOTEBOOK_PATH.exists(), f"Notebook missing at {NOTEBOOK_PATH}"
-    nb_data = json.loads(NOTEBOOK_PATH.read_text(encoding="utf-8"))
-    cells = nb_data.get("cells", [])
-
-    all_code = "\n".join("".join(c.get("source", [])) for c in cells if c.get("cell_type") == "code")
-
-    # Document missing He2 preset
-    assert "Helium dimer" not in all_code and "He2" not in all_code, (
-        "Expected He2 preset to be missing from Start_TORQ.ipynb until SRS remediation"
+    mass = isotope_mass("4He")
+    genuine = next(
+        record.mass for record in element("He").isotopes if record.mass_number == 4
     )
-
-    # Document missing environment and engine widgets
-    assert "interact_env_dropdown" not in all_code, "Expected interact_env widget to be missing"
-    assert "calc_env_dropdown" not in all_code, "Expected calc_env widget to be missing"
-    assert "engine_dropdown" not in all_code, "Expected engine dropdown widget to be missing"
-    assert "method_dropdown" not in all_code, "Expected method dropdown widget to be missing"
-
-    # Document hardcoded ORCA wB97M-V configuration in Phase 4/5
-    assert 'engine="ORCA"' in all_code or "engine = 'ORCA'" in all_code or "engine='ORCA'" in all_code
-    assert 'method="wB97M-V"' in all_code or "method = 'wB97M-V'" in all_code or "method='wB97M-V'" in all_code
+    assert mass == pytest.approx(float(genuine), abs=1e-12)
 
 
-def test_torq_github_actions_workflow_missing_defect() -> None:
-    """Documents Defect 2: Missing GitHub Actions dispatch workflow for calculation execution.
-
-    A student attempting to dispatch calculations to github-actions finds no
-    workflow YAML files in .github/workflows to execute xTB or receive payloads.
-    """
-    workflows_dir = _REPO_ROOT / ".github" / "workflows"
-    assert workflows_dir.exists(), f"Workflows directory missing at {workflows_dir}"
-
-    workflow_files = list(workflows_dir.glob("*.yml")) + list(workflows_dir.glob("*.yaml"))
-    assert len(workflow_files) == 0, (
-        f"Expected .github/workflows to be empty until SRS remediation, found: {workflow_files}"
+def test_torq_ui_environment_and_engine_controls_defect():
+    notebook = json.loads((ROOT / "UI" / "Start_TORQ.ipynb").read_text())
+    code = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code"
     )
+    assert "cochem_torq.student_app" in code and "launch_student_app" in code
+    assert "TorqPipeline(" not in code
+    profile = get_profile("hf-sto-3g-education")
+    assert profile["engine"] == "PySCF" and profile["runnable"]
 
 
-def test_physical_he2_xtb_gfn2_calculation_execution(tmp_path: Path) -> None:
-    """Physically executes authentic xTB binary on Helium dimer with GFN2-xTB method (Zero-Mock Protocol).
-
-    Verifies authentic quantum observables for He2 (R = 3.000 A):
-    - Total energy ~ -3.4862727 Eh
-    - HOMO-LUMO gap ~ 21.7004 eV
-    - Gradient norm ~ 8.35e-6 Eh/a0
-    - Returncode 0 with normal termination of xTB.
-    """
-    # Locate authentic xTB executable
-    xtb_candidates = [
-        Path(r"C:\ORCA_6.1.1\xtb-6.7.1pre\xtb.exe"),
-        Path(shutil.which("xtb") or ""),
-    ]
-    xtb_bin = next((p for p in xtb_candidates if p.is_file()), None)
-    assert xtb_bin is not None, "Physical xTB binary not found on execution host"
-
-    # Write authentic XYZ file for He2
-    he2_xyz = tmp_path / "he2_physical.xyz"
-    he2_xyz.write_text(HE2_EQUILIBRIUM_XYZ, encoding="utf-8")
-
-    # Physical execution of xTB binary
-    cmd = [str(xtb_bin), he2_xyz.name, "--gfn", "2"]
-    proc = subprocess.run(
-        cmd,
-        cwd=str(tmp_path),
-        capture_output=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60.0,
-    )
-
-    stdout_str = proc.stdout
-
-    assert proc.returncode == 0, f"xTB execution failed (returncode {proc.returncode}): {proc.stderr}"
-    assert "finished run on" in stdout_str or "normal termination" in stdout_str, "xTB completion banner missing"
-    assert "TOTAL ENERGY" in stdout_str, "TOTAL ENERGY missing from stdout"
-    assert "-3.48627" in stdout_str, f"Expected total energy ~ -3.48627 Eh, got:\n{stdout_str[-1200:]}"
-    assert "21.700" in stdout_str, "Expected HOMO-LUMO gap ~ 21.700 eV"
+def test_torq_github_actions_workflow_missing_defect():
+    workflow = (ROOT / ".github" / "workflows" / "calculation.yml").read_text()
+    assert "workflow_dispatch:" in workflow
+    assert "request_sha256:" in workflow and "expected_source_sha:" in workflow
+    assert "options: [pyscf]" in workflow
 
 
-def test_torq_torsional_dvr_defect_on_he2() -> None:
-    """Documents Defect 4: Torsional Topology & DVR solver lack 1D radial potential handling for He2.
-
-    Because He2 is a diatomic noble gas complex (2 atoms), it possesses 0 dihedral
-    angles. TorqTopology correctly identifies 0 rotatable dihedrals, but Start_TORQ.ipynb
-    Phase 4/7 assumes a periodic angular scan V(theta) and fails to provide a radial
-    dissociation curve V(R) for van der Waals complexes.
-    """
-    from Libraries.cochem_torq_topology import TorqTopology
-    from Libraries.cochem_torq_engine import detect_complex_and_monomers
-
-    symbols = ["He", "He"]
-    coords = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 3.0]], dtype=np.float64)
-
-    is_complex, components = detect_complex_and_monomers(symbols, coords)
-    assert is_complex is True, "Expected He2 to be detected as van der Waals complex"
-    assert len(components) == 2, "Expected 2 isolated He monomers"
-
-    topology = TorqTopology(symbols=symbols, coordinates=coords, is_complex=is_complex)
-    dihedrals = topology.find_rotatable_dihedrals() if hasattr(topology, "find_rotatable_dihedrals") else []
-    assert len(dihedrals) == 0, "Expected 0 rotatable dihedrals for linear diatomic He2 complex"
+def test_torq_rotational_constants_init_defect():
+    """The undefined axial linear-rotor constant remains None."""
+    mass = isotope_mass("4He")
+    rotor = equilibrium_rotor([[0, 0, 0], [0, 0, 6]], [mass, mass])
+    assert rotor.rotor_type == "linear"
+    assert rotor.constants_mhz[0] is None
+    assert rotor.constants_mhz[1] == pytest.approx(rotor.constants_mhz[2])
 
 
-def test_torq_rotational_constants_init_defect() -> None:
-    """Documents Defect 5: Cell 18 raises TypeError due to invalid keyword argument 'a_mhz'."""
-    from Libraries.cochem_torq_asymmetric_rotor import RotationalConstants
+def test_physical_he2_xtb_gfn2_calculation_execution(tmp_path):
+    """Unavailable recipe requests fail before any physical result is invented."""
+    with pytest.raises(ValueError, match="Unknown recipe"):
+        validate_request(request("xtb-gfn2"))
+    assert not list(tmp_path.iterdir())
 
-    with pytest.raises(TypeError, match="unexpected keyword argument 'a_mhz'"):
-        RotationalConstants(
-            a_mhz=1000000.0,
-            b_mhz=28058.35,
-            c_mhz=28058.35,
-            dj_khz=2.5,
-            djk_khz=-15.0,
-            dk_khz=75.0,
-            delta_j_khz=0.5,
-            delta_k_khz=10.0,
-            mu_a_debye=0.0,
-            mu_b_debye=0.0,
-            mu_c_debye=0.0,
-        )
+
+def test_torq_torsional_dvr_defect_on_he2():
+    """Two atoms define a linear geometry, never an invented torsional spectrum."""
+    mass = isotope_mass("4He")
+    rotor = equilibrium_rotor([[0, 0, 0], [0, 0, 6]], [mass, mass])
+    assert rotor.rotor_type == "linear"
+    assert rotor.constants_mhz[0] is None
+    assert rotor.constants_mhz[1] > 0

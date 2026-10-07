@@ -1,17 +1,15 @@
-"""Unit and integration test suite for Stage 6.0 / 7.0: Out-Of-Core PyArrow Spectral Catalog Compiler in CoChem-TORQ.
+"""Actual PyArrow serialization, mathematical column-format and missing-evidence checks.
 
-Strict Authentic Physics and Direct Execution Mandate Compliant:
-- 100% genuine PyArrow Parquet serialization, physical disk I/O, and buffer syncs.
-- Real multi-temperature concurrent compilation with ThreadPoolExecutor hardware saturation.
-- Real memory profiling asserting O(1) flat memory footprint during chunked streaming.
-- Real cross-platform NTFS/POSIX read-only permission seals asserting PermissionError on write.
-- Real Fortran overflow parsing error traps asserting FortranOverflowError.
-- Real AASTeX 6.3.1 / siunitx LaTeX compilation and BibTeX deduplication.
+Fixed-column examples and method cards are explicitly test inputs, with no
+native SPCAT, ORCA, measured-spectrum or publication-accuracy claim. No engine
+subprocess is replaced by a file-writing helper. Valid Parquet examples are
+produced by PyArrow, and execution claims require real retained evidence.
 """
 
 from __future__ import annotations
 
 import gc
+from hashlib import sha256
 import math
 import os
 from collections.abc import Iterator
@@ -48,11 +46,11 @@ from Libraries.cochem_catalog_compiler import (
 )
 
 # =============================================================================
-# Authentic Physical Test Constants (Water H2O & Ammonia NH3)
+# Mathematical fixed-column format examples; no scientific observations
 # =============================================================================
 
-# Authentic Pickett .cat spectral lines for Water (H2O)
-H2O_CAT_LINES = [
+# Explicit fixed-column format examples, not native SPCAT or measured transitions
+CAT_FORMAT_EXAMPLES = [
     "   22235.0800  0.0050 -4.5678 2    0.0000  3  18001 103 6 1 6       5 2 3      ",
     "  183310.0870  0.0020 -2.3456 2   14.2500  3  18001 103 3 1 3       2 2 0      ",
     "  380197.3720  0.0010 -1.8901 2   28.5000  3  18001 103 4 1 4       3 2 1      ",
@@ -60,37 +58,19 @@ H2O_CAT_LINES = [
     "  556936.0020  0.0005 -0.8900 2    0.0000  3  18001 103 1 1 0       1 0 1      ",
 ]
 
-H2O_METADATA: dict[str, Any] = {
-    "theory_level": "wB97X-D4",
-    "basis_set": "def2-TZVP",
-    "software_version": "ORCA 6.1.0 / Pickett SPCAT (v2023)",
-    "rotational_constants": {
-        "A": 825360.0,
-        "B": 435360.0,
-        "C": 278130.0,
-    },
-    "dipole_moments": {
-        "mu_a": 0.0,
-        "mu_b": 1.8546,
-        "mu_c": 0.0,
-        "total": 1.8546,
-    },
-    "centrifugal_distortion": {
-        "DJ": 0.01567,
-        "DJK": -0.05230,
-        "DK": 0.28900,
-        "d1": 0.00345,
-        "d2": 0.01120,
-    },
-    "temperatures": [2.0, 9.375, 18.75, 37.5, 75.0, 150.0, 300.0],
-    "defgrid": "DEFGRID3",
-    "provenance_hash": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+FORMAT_METHOD_CARD: dict[str, Any] = {
+    "theory_level": "HF",
+    "basis_set": "STO-3G",
+    "software_version": "Format-card example; no engine calculation was executed",
+    "provenance_hash": "sha256:" + sha256(Path(__file__).read_bytes()).hexdigest(),
+    "temperatures": [2.0, 10.0, 300.0],
 }
 
 
 # =============================================================================
 # 1. OOM-Proof Streaming Validation Test (O(1) Flat Memory Complexity)
 # =============================================================================
+
 
 def test_oom_proof_streaming_validation_flat_memory(tmp_path: Path) -> None:
     """Stream a high-volume row stream through pyarrow_chunked_serializer."""
@@ -147,9 +127,10 @@ def test_oom_proof_streaming_validation_flat_memory(tmp_path: Path) -> None:
 # 2. Vectorized Type-Casting & Schema Assertion Test
 # =============================================================================
 
+
 def test_vectorized_type_casting_and_schema_verification(tmp_path: Path) -> None:
     """Verify PyArrow Parquet schema with float64 precision on frequencies & energies."""
-    cat_content = "\n".join(H2O_CAT_LINES)
+    cat_content = "\n".join(CAT_FORMAT_EXAMPLES)
     cat_file = tmp_path / "water_spectrum.cat"
     cat_file.write_text(cat_content, encoding="utf-8")
 
@@ -184,7 +165,7 @@ def test_vectorized_type_casting_and_schema_verification(tmp_path: Path) -> None
     assert pa.types.is_dictionary(schema_read.field("provenance_hash").type)
 
     table = pq.read_table(final_parquet)
-    assert table.num_rows == len(H2O_CAT_LINES)
+    assert table.num_rows == len(CAT_FORMAT_EXAMPLES)
 
     freq_col = table.column("frequency_mhz").to_pylist()
     assert math.isclose(freq_col[0], 22235.0800, abs_tol=1e-4)
@@ -198,58 +179,46 @@ def test_vectorized_type_casting_and_schema_verification(tmp_path: Path) -> None
 # 3. Isolated Workspace Race Condition Test (Multi-Temperature Concurrency)
 # =============================================================================
 
-def test_isolated_workspace_race_condition_concurrent_temperatures(tmp_path: Path) -> None:
-    """Execute parallel multi-temperature catalog compilation using ThreadPoolExecutor."""
-    scratch_dir = tmp_path / "scratch"
-    deliverables_dir = tmp_path / "deliverables"
-    scratch_dir.mkdir(parents=True, exist_ok=True)
-    deliverables_dir.mkdir(parents=True, exist_ok=True)
 
-    temperatures = [2.0, 9.375, 18.75, 37.5, 75.0, 150.0, 300.0]
-
-    def physical_spcat_runner(t_k: float, worker_ws: Path) -> Path:
-        assert worker_ws.exists()
-        assert worker_ws.is_dir()
-        cat_file = worker_ws / f"water_T_{t_k:.3f}K.cat"
-        import subprocess
-        import sys
-        code = f"""
-from pathlib import Path
-Path({str(cat_file)!r}).write_text({repr(chr(10).join(H2O_CAT_LINES))}, encoding='utf-8')
-"""
-        subprocess.run([sys.executable, "-c", code], check=True)
-        return cat_file
-
+def test_isolated_workspace_race_condition_concurrent_temperatures(
+    tmp_path: Path,
+) -> None:
+    """Serialize supplied format files concurrently without simulating SPCAT."""
+    temperatures = [2.0, 10.0, 50.0]
+    inputs = {}
+    content = "\n".join(CAT_FORMAT_EXAMPLES)
+    for temperature in temperatures:
+        path = tmp_path / f"format-{temperature}.cat"
+        path.write_text(content)
+        inputs[temperature] = path
     results = parallel_temperature_compiler(
-        spcat_runner_or_cat_paths=physical_spcat_runner,
+        spcat_runner_or_cat_paths=inputs,
         temperatures=temperatures,
-        output_dir=deliverables_dir,
-        max_workers=4,
-        base_scratch=scratch_dir,
-        chunk_size=5,
-        provenance_hash="sha256:water_multi_temp_test",
+        output_dir=tmp_path / "serialized",
+        base_scratch=tmp_path / "scratch",
+        max_workers=3,
+        chunk_size=2,
+        provenance_hash="sha256:" + sha256(content.encode()).hexdigest(),
         apply_immutable_seal=False,
     )
-
-    assert len(results) == len(temperatures)
-    for t_k in temperatures:
-        assert t_k in results
-        parquet_file = results[t_k]
-        assert parquet_file.exists()
-        table = pq.read_table(parquet_file)
-        assert table.num_rows == len(H2O_CAT_LINES)
-        t_vals = table.column("temperature_k").to_pylist()
-        assert all(math.isclose(val, t_k) for val in t_vals)
+    assert set(results) == set(temperatures)
+    for temperature, path in results.items():
+        table = pq.read_table(path)
+        assert table.num_rows == len(CAT_FORMAT_EXAMPLES)
+        assert all(value == temperature for value in table["temperature_k"].to_pylist())
 
 
 # =============================================================================
 # 4. Read-Only Immutable Seal Test (Cross-Platform NTFS / POSIX)
 # =============================================================================
 
-def test_readonly_immutable_seal_prevents_write_and_restores_write(tmp_path: Path) -> None:
+
+def test_readonly_immutable_seal_prevents_write_and_restores_write(
+    tmp_path: Path,
+) -> None:
     """Validate that apply_readonly_chmod enforces an immutable permission seal."""
     test_file = tmp_path / "immutable_catalog.parquet"
-    test_file.write_bytes(b"PAR1_AUTHENTIC_BINARY_PAYLOAD_TEST_DATA_BYTES")
+    pq.write_table(pa.table({"integer_index": [0, 1]}), test_file)
 
     apply_readonly_chmod(test_file, recursive=False)
 
@@ -272,6 +241,7 @@ def test_readonly_immutable_seal_prevents_write_and_restores_write(tmp_path: Pat
 # 5. Fortran Overflow `****.****` Parsing Error Trap Test
 # =============================================================================
 
+
 def test_fortran_overflow_asterisk_trap_raises_error() -> None:
     """Assert that parse_spcat_cat_line intercepts Fortran overflow/underflow asterisks."""
     overflow_line = "   ****.****  0.0050 -4.5678 2   ****.****  3  18001 103 6 1 6       5 2 3      "
@@ -289,6 +259,7 @@ def test_fortran_overflow_asterisk_trap_raises_error() -> None:
 # 6. Inactive Rotor 0-Byte Interception Test
 # =============================================================================
 
+
 def test_inactive_rotor_zero_byte_interception(tmp_path: Path) -> None:
     """Assert that inactive_rotor_catcher intercepts 0-byte catalog outputs."""
     empty_cat = tmp_path / "inactive_rotor.cat"
@@ -304,7 +275,7 @@ def test_inactive_rotor_zero_byte_interception(tmp_path: Path) -> None:
     assert inactive_rotor_catcher(empty_cat, allow_empty=True) is True
 
     active_cat = tmp_path / "active_rotor.cat"
-    active_cat.write_text("\n".join(H2O_CAT_LINES), encoding="utf-8")
+    active_cat.write_text("\n".join(CAT_FORMAT_EXAMPLES), encoding="utf-8")
     assert inactive_rotor_catcher(active_cat, allow_empty=False) is False
 
 
@@ -312,73 +283,26 @@ def test_inactive_rotor_zero_byte_interception(tmp_path: Path) -> None:
 # 7. Method Matrix v4 LaTeX Methods Block & BibTeX Deduplication Test
 # =============================================================================
 
+
 def test_generate_methods_latex_and_bibtex_deduplication() -> None:
-    """Validate Method Matrix v4 compliance checks, LaTeX methods block, and BibTeX deduplication."""
-    latex_out = generate_methods_latex(H2O_METADATA, method_matrix_v4_check=True)
-    assert r"\section{Computational Methods}\label{sec:methods}" in latex_out
-    assert r"\qty{825360.000}{\mega\hertz}" in latex_out
-    assert r"\qty{1.855}{\debye}" in latex_out
-    assert r"\qty{300.00}{\kelvin}" in latex_out
-    assert r"\citep{MethodMatrix2024}" in latex_out
-    assert r"\citep{Pickett1991}" in latex_out
-    assert "wB97X-D4/def2-TZVP" in latex_out
-    assert "DEFGRID3" in latex_out
-
-    invalid_dft_meta = dict(H2O_METADATA)
-    invalid_dft_meta["theory_level"] = "B3LYP"
-
-    with pytest.raises((DispersionMissingError, MethodMatrixViolationError)) as exc_info:
-        generate_methods_latex(invalid_dft_meta, method_matrix_v4_check=True)
-
-    assert exc_info.value.error_code in (
-        ProvenanceErrorCode.DISPERSION_MISSING,
-        ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
-    )
-
-    raw_bibtex = """
-@article{Pickett1991,
-  author = {Pickett, Herbert M.},
-  title = {The fitting and prediction of vibration-rotation spectra with spin interactions},
-  journal = {Journal of Molecular Spectroscopy},
-  volume = {148},
-  number = {2},
-  pages = {371--377},
-  year = {1991},
-  doi = {10.1016/0022-2852(91)90124-S}
-}
-
-@article{pickett_dup_key,
-  author = {Pickett, Herbert M.},
-  title = {The fitting and prediction of vibration-rotation spectra},
-  journal = {J. Mol. Spectrosc.},
-  year = {1991},
-  doi = {https://doi.org/10.1016/0022-2852(91)90124-S}
-}
-
-@article{MethodMatrix2024,
-  author = {CoChem Consortium},
-  title = {CoChem Method Matrix v4 Standards},
-  year = {2024},
-  doi = {10.5281/zenodo.1234567}
-}
-
-@article{Pickett1991,
-  author = {Pickett, H. M.},
-  title = {Duplicate key test},
-  year = {1991}
-}
-"""
-
-    deduped = deduplicate_bibtex(raw_bibtex, deduplicate_by="both")
-    assert "@article{Pickett1991" in deduped
-    assert "@article{MethodMatrix2024" in deduped
-    assert "pickett_dup_key" not in deduped
-    assert deduped.count("@article") == 2
+    """A method-format card must not acquire invented properties or citations."""
+    content = generate_methods_latex(FORMAT_METHOD_CARD, method_matrix_v4_check=False)
+    assert "no engine calculation was executed" in content
+    assert "HF/STO-3G" in content
+    assert "Dipole components" not in content
+    assert "Distortion parameters" not in content
+    assert "Frozen-Monomer" not in content
+    assert "MethodMatrix2024" not in content
+    assert "ORCA" not in content
+    incomplete = {"theory_level": "HF", "basis_set": "STO-3G"}
+    with pytest.raises(MethodMatrixViolationError, match="Missing method provenance"):
+        generate_methods_latex(incomplete)
 
 
 # =============================================================================
 # 8. 6-Tier CoChemPathManager & Ghost Output Purger Integration Tests
 # =============================================================================
+
 
 def test_cochem_path_manager_6_tiers_and_ghost_purger(tmp_path: Path) -> None:
     """Validate all 6 resolution tiers of CoChemPathManager and ghost output purging."""
@@ -404,7 +328,7 @@ def test_cochem_path_manager_6_tiers_and_ghost_purger(tmp_path: Path) -> None:
     ghost_dir.mkdir(parents=True, exist_ok=True)
 
     valid_file = ghost_dir / "valid.parquet"
-    valid_file.write_bytes(b"VALID_PARQUET_HEADER_DATA")
+    pq.write_table(pa.table({"integer_index": [0, 1]}), valid_file)
 
     ghost_0byte = ghost_dir / "ghost_failed.cat"
     ghost_0byte.write_bytes(b"")
@@ -423,6 +347,7 @@ def test_cochem_path_manager_6_tiers_and_ghost_purger(tmp_path: Path) -> None:
 # =============================================================================
 # 9. Buffer Lock Sync Physical Disk Verification Test
 # =============================================================================
+
 
 def test_buffer_lock_sync_disk_verification(tmp_path: Path) -> None:
     """Validate buffer_lock_sync physical flush and minimum byte validation."""
@@ -444,6 +369,7 @@ def test_buffer_lock_sync_disk_verification(tmp_path: Path) -> None:
 # =============================================================================
 # 10. Method Matrix v4 Flagship Functionals & Scalar Temperature LaTeX Test
 # =============================================================================
+
 
 def test_method_matrix_v4_flagship_functionals_and_scalar_temperature() -> None:
     """Verify that all Method Matrix v4 recommended functionals pass dispersion validation."""
@@ -477,6 +403,7 @@ def test_method_matrix_v4_flagship_functionals_and_scalar_temperature() -> None:
 # 11. Method Matrix v4 Integration Grid Threshold Violations Test
 # =============================================================================
 
+
 def test_method_matrix_v4_defgrid_violations() -> None:
     """Assert that DEFGRID1 or SG-1 integration grids raise MethodMatrixViolationError."""
     for bad_grid in ["DEFGRID1", "SG-1", "defgrid1"]:
@@ -489,12 +416,16 @@ def test_method_matrix_v4_defgrid_violations() -> None:
         with pytest.raises(MethodMatrixViolationError) as exc_info:
             generate_methods_latex(meta, method_matrix_v4_check=True)
 
-        assert exc_info.value.error_code == ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID
+        assert (
+            exc_info.value.error_code
+            == ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID
+        )
 
 
 # =============================================================================
 # 12. Fortran Double-Precision D/d Exponent Parsing Test
 # =============================================================================
+
 
 def test_fortran_double_precision_d_exponent_parsing() -> None:
     """Verify that parse_spcat_cat_line properly parses Fortran D and d exponent numbers."""
@@ -510,6 +441,7 @@ def test_fortran_double_precision_d_exponent_parsing() -> None:
 # =============================================================================
 # 13. Staging Cleanup on Unhandled Stream Exception Test
 # =============================================================================
+
 
 def test_staging_cleanup_on_unhandled_stream_exception(tmp_path: Path) -> None:
     """Assert that an exception during stream iteration immediately unlinks the staging file."""
@@ -530,9 +462,11 @@ def test_staging_cleanup_on_unhandled_stream_exception(tmp_path: Path) -> None:
             "temperature_k": 300.0,
             "provenance_hash": "sha256:test",
         }
-        raise RuntimeError("Simulated mid-stream failure during data acquisition.")
+        raise RuntimeError(
+            "Deliberately rejected software stream after one format row."
+        )
 
-    with pytest.raises(RuntimeError, match="Simulated mid-stream failure"):
+    with pytest.raises(RuntimeError, match="Deliberately rejected software stream"):
         pyarrow_chunked_serializer(
             records_stream=_faulty_stream(),
             output_parquet_path=output_parquet,
@@ -548,28 +482,22 @@ def test_staging_cleanup_on_unhandled_stream_exception(tmp_path: Path) -> None:
 # 14. TorqCatalogCompiler Class Integration Test
 # =============================================================================
 
+
 def test_torq_catalog_compiler_engine(tmp_path: Path) -> None:
-    """Validate TorqCatalogCompiler class interface and partition functions."""
-    cat_content = (
-        "    22557.5181  0.0039 -8.8475 3    3.7661  3 13002 1 1 0 1 0 1\n"
-        "    22650.0000  0.0010 -7.1234 3   15.1000  5 13002 2 1 1 2 0 2\n"
+    """Compile supplied format examples; no catalog engine is emulated."""
+    source = tmp_path / "column-format.cat"
+    source.write_text("\n".join(CAT_FORMAT_EXAMPLES))
+    compiler = TorqCatalogCompiler(
+        source, point_id="format-example", output_dir=tmp_path / "output"
     )
-    cat_file = tmp_path / "test_spcat.cat"
-    cat_file.write_text(cat_content, encoding="utf-8")
-
-    out_dir = tmp_path / "torq_out"
-    compiler = TorqCatalogCompiler(cat_file, point_id="pt001", output_dir=out_dir)
-    success = compiler.compile_to_parquet(chunk_size=1)
-    assert success is True
-    assert compiler.parquet_outpath.exists()
-
-    q_rot = compiler.compute_temperature_dependent_partition_function(298.15, A_MHz=825360.0, B_MHz=435360.0, C_MHz=278130.0, sigma=2)
-    assert q_rot > 0.0
+    assert compiler.compile_to_parquet(chunk_size=2)
+    assert pq.read_table(compiler.parquet_outpath).num_rows == len(CAT_FORMAT_EXAMPLES)
 
 
 # =============================================================================
 # 15. Banned Methods Auditor Test
 # =============================================================================
+
 
 def test_banned_methods_auditor() -> None:
     """Validate audit_banned_methods detection of additive diffuse and unpreconditioned hessians."""
@@ -611,6 +539,7 @@ def test_banned_methods_auditor() -> None:
 # 16. Inter-Entry Comment BibTeX Deduplication Test
 # =============================================================================
 
+
 def test_bibtex_deduplication_with_inter_entry_comments() -> None:
     """Verify that comments between BibTeX entries do not collapse or corrupt entries."""
     raw_bibtex_with_comments = """
@@ -649,6 +578,7 @@ def test_bibtex_deduplication_with_inter_entry_comments() -> None:
 # 17. Method Matrix v4 Extended Non-Covalent Rules & Double Dispersion Test
 # =============================================================================
 
+
 def test_banned_methods_extended_matrix_rules() -> None:
     """Validate that jun-cc-pVTZ passes for non-covalent complexes and ONIOM/double-dispersion are rejected."""
     # jun-cc-pVTZ must pass for non-covalent
@@ -686,66 +616,43 @@ def test_banned_methods_extended_matrix_rules() -> None:
 # 18. Non-Covalent Frozen-Monomer & BSSE LaTeX Documentation Test
 # =============================================================================
 
+
 def test_methods_latex_non_covalent_documentation() -> None:
-    """Assert that non-covalent metadata triggers Frozen-Monomer and BSSE Counterpoise documentation in LaTeX."""
-    meta = {
-        "theory_level": "wB97X-D4",
-        "basis_set": "jun-cc-pVTZ",
+    """Requested molecular-class/correction flags cannot assert executed work."""
+    metadata = {
+        **FORMAT_METHOD_CARD,
         "is_non_covalent": True,
         "counterpoise": True,
         "frozen_monomer": True,
-        "rotational_constants": {"A": 12000.0, "B": 2400.0, "C": 1800.0},
-        "temperatures": [300.0],
-        "defgrid": "DEFGRID3",
     }
-    tex = generate_methods_latex(meta, method_matrix_v4_check=True)
-    assert "The Frozen-Monomer protocol was applied" in tex
-    assert "Basis Set Superposition Error (BSSE) was corrected via the Boys-Bernardi counterpoise procedure" in tex
+    content = generate_methods_latex(metadata, method_matrix_v4_check=False)
+    assert "protocol was applied" not in content
+    assert "corrected via" not in content
+    assert "Boys-Bernardi" not in content
 
 
 # =============================================================================
 # 19. Extended Methods LaTeX with ORCA Keywords, Hardware Limits & MACE
 # =============================================================================
 
+
 def test_generate_methods_latex_full_workflow_file_output(tmp_path: Path) -> None:
-    """Verify generate_methods_latex parses ORCA keywords, hardware limits, MACE versions, and writes to file."""
-    tex_file = tmp_path / "methods_section.tex"
-    meta = {
-        "theory_level": "wB97X-D4",
-        "basis_set": "ma-def2-TZVPP",
-        "orca_keywords": "! wB97X-D4 ma-def2-TZVPP Opt Freq InHess XTB2 TightSCF",
-        "software_version": "ORCA 6.1.0 / Pickett SPCAT (v2023)",
-        "rotational_constants": {"A": 825360.0, "B": 435360.0, "C": 278130.0},
-        "temperatures": [10.0, 50.0, 300.0],
-        "defgrid": "DEFGRID3",
-        "nprocs": 16,
-        "maxcore": 4000,
-        "mace_version": "mace-mp-0-medium-v0.3.4",
-        "hessian_preconditioned": True,
-        "is_non_covalent": True,
-        "counterpoise": True,
-        "frozen_monomer": True,
-        "provenance_hash": "sha256:full_methods_test_digest_12345",
-    }
-
-    tex_content = generate_methods_latex(meta, output_tex_path=tex_file, method_matrix_v4_check=True)
-
-    assert tex_file.exists()
-    assert tex_file.read_text(encoding="utf-8") == tex_content
-    assert r"\section{Computational Methods}\label{sec:methods}" in tex_content
-    assert r"! wB97X-D4 ma-def2-TZVPP Opt Freq InHess XTB2 TightSCF" in tex_content
-    assert r"\qty{16}{cores}" in tex_content
-    assert r"\qty{4000}{\mega\byte}" in tex_content
-    assert "mace-mp-0-medium-v0.3.4" in tex_content
-    assert "InHess XTB2" in tex_content
-    assert "Frozen-Monomer" in tex_content
-    assert "Boys-Bernardi" in tex_content
-    assert "sha256:full_methods_test_digest_12345" in tex_content
+    """Write only factual supplied format provenance, without software defaults."""
+    destination = tmp_path / "format-methods.tex"
+    content = generate_methods_latex(
+        FORMAT_METHOD_CARD, output_tex_path=destination, method_matrix_v4_check=False
+    )
+    assert destination.read_text() == content
+    assert "no engine calculation was executed" in content
+    assert "DEFGRID3" not in content
+    assert "Pickett" not in content
+    assert "MACE" not in content
 
 
 # =============================================================================
 # 20. BibTeX Deduplication with File Output Compilation
 # =============================================================================
+
 
 def test_deduplicate_bibtex_file_output_and_doi_unification(tmp_path: Path) -> None:
     """Verify deduplicate_bibtex unifies references and writes directly to cochem_citations.bib."""
@@ -777,7 +684,9 @@ def test_deduplicate_bibtex_file_output_and_doi_unification(tmp_path: Path) -> N
   doi = {10.48550/arXiv.2206.07697}
 }
 """
-    result = deduplicate_bibtex(raw_bibtex, output_bib_path=bib_file, deduplicate_by="both")
+    result = deduplicate_bibtex(
+        raw_bibtex, output_bib_path=bib_file, deduplicate_by="both"
+    )
 
     assert bib_file.exists()
     assert bib_file.read_text(encoding="utf-8") == result
@@ -791,6 +700,7 @@ def test_deduplicate_bibtex_file_output_and_doi_unification(tmp_path: Path) -> N
 # 21. Recursive Directory Permission Sealing Test
 # =============================================================================
 
+
 def test_apply_readonly_chmod_recursive_directory_sealing(tmp_path: Path) -> None:
     """Verify apply_readonly_chmod recursively seals subdirectories and files."""
     deliverables_dir = tmp_path / "sealed_deliverables"
@@ -800,7 +710,7 @@ def test_apply_readonly_chmod_recursive_directory_sealing(tmp_path: Path) -> Non
     file1 = deliverables_dir / "metadata.json"
     file2 = sub_dir / "catalog_300K.parquet"
     file1.write_text('{"status": "finalized"}', encoding="utf-8")
-    file2.write_bytes(b"PAR1_DATA_PAYLOAD_TEST")
+    pq.write_table(pa.table({"integer_index": [0, 1]}), file2)
 
     apply_readonly_chmod(deliverables_dir, recursive=True)
 
@@ -818,5 +728,3 @@ def test_apply_readonly_chmod_recursive_directory_sealing(tmp_path: Path) -> Non
         f.write('{"status": "updated"}')
 
     assert file1.read_text(encoding="utf-8") == '{"status": "updated"}'
-
-

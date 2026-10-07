@@ -1,0 +1,281 @@
+"""Authenticated GitHub Actions transport through the official GitHub CLI.
+
+GitHub failures remain visible. Calculation submission never silently runs in
+Codespaces, and hosted workflow completion is distinct from scientific success.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+from .artifacts import verify_shard
+from .domain import canonical_json, digest, read_json
+
+
+class GitHubAccessError(RuntimeError):
+    pass
+
+
+class GitHubActions:
+    def __init__(
+        self,
+        repository: str,
+        ref: str = "main",
+        state_directory: str | Path | None = None,
+    ):
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+            raise ValueError("Specify a GitHub owner/repository.")
+        if (
+            not re.fullmatch(r"[A-Za-z0-9_./-]+", ref)
+            or ".." in ref
+            or ref.startswith("-")
+        ):
+            raise ValueError("Specify an explicit valid calculation branch or tag.")
+        self.repository, self.ref = repository, ref
+        self.state_directory = Path(
+            state_directory or Path.home() / ".local/state/cochem-torq/submissions"
+        )
+
+    @classmethod
+    def from_environment(cls):
+        return cls(
+            os.environ.get(
+                "COCHEM_TORQ_GITHUB_REPOSITORY",
+                os.environ.get("GITHUB_REPOSITORY", "ProfJJK-CoChem/CoChem-TORQ"),
+            ),
+            os.environ.get("COCHEM_TORQ_CALCULATION_REF", "main"),
+        )
+
+    def _api(self, endpoint: str, *, data: dict[str, Any] | None = None) -> Any:
+        if shutil.which("gh") is None:
+            raise GitHubAccessError(
+                "GitHub CLI is unavailable. Install gh in the interface environment and authenticate with access to the calculation repository."
+            )
+        command = ["gh", "api", "--hostname", "github.com", endpoint]
+        if data is not None:
+            command += ["--method", "POST", "--input", "-"]
+        try:
+            process = subprocess.run(
+                command,
+                input=canonical_json(data) if data is not None else None,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=45,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise GitHubAccessError(
+                "GitHub API timed out; check the request/run ID before retrying a dispatch."
+            ) from exc
+        if process.returncode:
+            # gh API error messages can embed arguments; preserve a concise
+            # action/status only, and never print authenticated command output.
+            raise GitHubAccessError(
+                f"GitHub API access failed (gh exit {process.returncode}). Check gh auth status, repository Actions permissions and the network policy."
+            )
+        return json.loads(process.stdout) if process.stdout.strip() else None
+
+    def submit(self, request: dict[str, Any]) -> dict[str, Any]:
+        payload = canonical_json(request)
+        if len(payload) > 16384:
+            raise ValueError(
+                "Actions request JSON exceeds the 16 KiB classroom limit. Use a verified artifact handoff for larger inputs."
+            )
+        try:
+            workflow = self._api(
+                f"repos/{self.repository}/actions/workflows/calculation.yml"
+            )
+        except GitHubAccessError as exc:
+            raise GitHubAccessError(
+                "The calculation workflow is unavailable. Deploy the reviewed workflow on the default branch and verify repository Actions access before student submission."
+            ) from exc
+        if workflow.get("state") != "active":
+            raise GitHubAccessError(
+                "The calculation workflow is disabled; repository Actions settings must enable it before submission."
+            )
+        source = self._api(f"repos/{self.repository}/commits/{self.ref}")
+        source_sha = source.get("sha", "")
+        if not re.fullmatch("[0-9a-f]{40}", source_sha):
+            raise GitHubAccessError(
+                "GitHub did not provide a verifiable source commit."
+            )
+        request_id = str(UUID(str(request["request_id"])))
+        self.state_directory.mkdir(parents=True, exist_ok=True)
+        primary = self.state_directory / f"{request_id}.json"
+        if primary.exists():
+            raise GitHubAccessError(
+                "This request UUID already has a dispatch receipt. Inspect its recorded outcome before submitting another calculation."
+            )
+        inputs = {
+            "request_b64": base64.b64encode(payload).decode("ascii"),
+            "request_sha256": digest(request),
+            "request_id": str(request_id),
+            "expected_source_sha": source_sha,
+            "engine": "pyscf",
+        }
+        receipt = {
+            "schema_version": "cochem.torq.submission/1",
+            "request_id": str(request_id),
+            "request_sha256": digest(request),
+            "repository": self.repository,
+            "ref": self.ref,
+            "source_commit": source_sha,
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+            "status": "dispatch_requested",
+            "run_id": None,
+            "workflow_url": f"https://github.com/{self.repository}/actions/workflows/calculation.yml",
+        }
+        with primary.open("xb") as stream:
+            stream.write(canonical_json(receipt) + b"\n")
+        try:
+            self._api(
+                f"repos/{self.repository}/actions/workflows/calculation.yml/dispatches",
+                data={"ref": self.ref, "inputs": inputs},
+            )
+        except GitHubAccessError:
+            receipt["status"] = "dispatch_outcome_unknown_check_github_before_retry"
+            self._save_receipt(primary, receipt)
+            raise
+        receipt["status"] = "dispatched"
+        self._save_receipt(primary, receipt)
+        # Correlate by UUID-bearing workflow title, never by "most recent run".
+        for attempt in range(5):
+            try:
+                runs = self._api(
+                    f"repos/{self.repository}/actions/workflows/calculation.yml/runs?event=workflow_dispatch&per_page=30"
+                )
+            except GitHubAccessError:
+                receipt["status"] = "dispatched_run_lookup_unavailable"
+                break
+            matches = [
+                run
+                for run in runs.get("workflow_runs", [])
+                if str(request_id) in run.get("display_title", "")
+                and run.get("head_sha") == source_sha
+            ]
+            if len(matches) > 1:
+                raise GitHubAccessError(
+                    "Multiple runs match this request UUID; inspect the workflow and select the intended run explicitly."
+                )
+            if matches:
+                receipt.update(
+                    run_id=str(matches[0]["id"]), run_url=matches[0]["html_url"]
+                )
+                break
+            if attempt < 4:
+                time.sleep(1)
+        self._save_receipt(primary, receipt)
+        if receipt["run_id"]:
+            self._save_receipt(
+                self.state_directory / f"{receipt['run_id']}.json", receipt
+            )
+        return receipt
+
+    @staticmethod
+    def _save_receipt(path: Path, receipt: dict[str, Any]) -> None:
+        temporary = path.with_suffix(".json.pending")
+        with temporary.open("wb") as stream:
+            stream.write(canonical_json(receipt) + b"\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+
+    def status(self, run_id: str) -> dict[str, Any]:
+        if not run_id.isdigit():
+            raise ValueError("A GitHub Actions run ID must be numeric.")
+        run = self._api(f"repos/{self.repository}/actions/runs/{run_id}")
+        return {
+            "execution": "github_actions",
+            "repository": self.repository,
+            "run_id": run_id,
+            "status": run["status"],
+            "conclusion": run.get("conclusion"),
+            "source_commit": run["head_sha"],
+            "run_url": run["html_url"],
+            "scientific_status": "inspect_verified_result_bundle",
+            "display_title": run.get("display_title"),
+        }
+
+    def download(self, run_id: str, destination: Path) -> list[Path]:
+        run = self.status(run_id)
+        if run["status"] != "completed":
+            raise GitHubAccessError(
+                "The calculation workflow has not finished; results are not yet final."
+            )
+        target = destination.absolute() / f"run-{run_id}"
+        if target.exists():
+            raise FileExistsError(
+                "Downloaded runs are immutable; choose a new destination."
+            )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix=".torq-download-", dir=target.parent))
+        try:
+            process = subprocess.run(
+                [
+                    "gh",
+                    "run",
+                    "download",
+                    run_id,
+                    "--repo",
+                    self.repository,
+                    "--pattern",
+                    "torq-result-*",
+                    "--dir",
+                    str(staging),
+                ],
+                capture_output=True,
+                timeout=120,
+            )
+            if process.returncode:
+                raise GitHubAccessError(
+                    "GitHub result artifact download failed; it may be unavailable or expired."
+                )
+            roots = [
+                path.parent
+                for path in staging.rglob("manifest.json")
+                if read_json(path).get("schema_version") == "cochem.torq.shard/1"
+            ]
+            if not roots:
+                raise GitHubAccessError(
+                    "The workflow produced no sealed TORQ result shard."
+                )
+            receipt_path = self.state_directory / f"{run_id}.json"
+            receipt = read_json(receipt_path) if receipt_path.exists() else None
+            if receipt and (
+                receipt["repository"] != self.repository
+                or receipt["source_commit"] != run["source_commit"]
+            ):
+                raise GitHubAccessError(
+                    "Submission receipt and hosted run have different repository/source identities."
+                )
+            for root in roots:
+                manifest = verify_shard(
+                    root,
+                    expected_request_sha256=receipt["request_sha256"]
+                    if receipt
+                    else None,
+                )
+                declared = manifest["source_identity"].get("declared_workflow_commit")
+                if declared != run["source_commit"]:
+                    raise GitHubAccessError(
+                        "Artifact provenance does not match the actual Actions source commit."
+                    )
+                if manifest["request_id"] not in (run.get("display_title") or ""):
+                    raise GitHubAccessError(
+                        "Artifact request UUID does not match the hosted workflow title."
+                    )
+            staging.rename(target)
+            return [target / root.relative_to(staging) for root in roots]
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging)

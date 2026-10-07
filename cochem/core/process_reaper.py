@@ -15,12 +15,12 @@ import subprocess
 import sys
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 import psutil
 
-from src.cochem.orchestration.sqlite_queue import SQLiteTaskQueue
+from cochem.orchestration.sqlite_queue import LeaseLostError, SQLiteTaskQueue
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,8 @@ class ProcessMetadata:
     create_time: float
     task_id: Optional[str] = None
     status: str = "ACTIVE"
+    lease_token: Optional[str] = field(default=None, repr=False)
+    lease_generation: Optional[int] = None
 
 
 class ProcessTreeManager:
@@ -83,7 +85,6 @@ class ProcessTreeManager:
         if sys.platform == "win32":
             try:
                 import ctypes
-                from ctypes import wintypes
 
                 class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
                     _fields_ = [
@@ -138,6 +139,9 @@ class ProcessTreeManager:
         self,
         proc: Union[psutil.Process, int],
         task_id: Optional[str] = None,
+        *,
+        lease_token: Optional[str] = None,
+        lease_generation: Optional[int] = None,
     ) -> ProcessMetadata:
         """Register a child process for lifecycle tracking."""
         p = proc if isinstance(proc, psutil.Process) else psutil.Process(proc)
@@ -168,6 +172,8 @@ class ProcessTreeManager:
             ppid=ppid,
             create_time=ctime,
             task_id=task_id,
+            lease_token=lease_token,
+            lease_generation=lease_generation,
         )
         with self._lock:
             self._tracked[pid] = metadata
@@ -317,6 +323,8 @@ class ProcessTreeManager:
                         create_time=old_meta.create_time,
                         task_id=old_meta.task_id,
                         status="ORPHAN_LEAK",
+                        lease_token=old_meta.lease_token,
+                        lease_generation=old_meta.lease_generation,
                     )
             logger.error("Process subtree for PID %d could not be reaped: %s", pid, metrics["leaked_pids"])
             raise ProcessReapTimeoutError(
@@ -381,12 +389,20 @@ class ZombieReaperDaemon:
             if self.is_orphan(pid):
                 metrics = self.tree_manager.terminate_tree(pid)
                 terminated_pids.append(pid)
-                if self.queue is not None and task_id is not None:
-                    self.queue.fail_task(
-                        task_id,
-                        f"Process {pid} orphaned and terminated: CPU={metrics['cpu_time']:.2f}s, RAM={metrics['resident_memory_mb']:.1f}MB",
-                        can_retry=True,
-                    )
+                if self.queue is not None and task_id is not None and meta is not None:
+                    if meta.lease_token is None or meta.lease_generation is None:
+                        logger.warning("No original lease credentials for orphan task %s; defer to heartbeat expiration", task_id)
+                    else:
+                        try:
+                            self.queue.fail_task(
+                                task_id,
+                                f"Process {pid} orphaned and terminated: CPU={metrics['cpu_time']:.2f}s, RAM={metrics['resident_memory_mb']:.1f}MB",
+                                can_retry=True,
+                                lease_token=meta.lease_token,
+                                lease_generation=meta.lease_generation,
+                            )
+                        except LeaseLostError:
+                            logger.info("Orphan task %s no longer owns its lease; current attempt preserved", task_id)
 
         # 2. Reclaim expired task leases from SQLite queue
         if self.queue is not None:

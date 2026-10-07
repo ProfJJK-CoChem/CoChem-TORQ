@@ -7,7 +7,7 @@ Governs independent non-covalent conformer and isomer exploration via CREST
 (Conformer-Rotamer Ensemble Sampling Tool), enforcing mandatory non-covalent
 interaction constraints (--nci --nocross --noreftopo), two-stage deduplication,
 CREGEN union refereeing, and the 6-Step Union Protocol combining primary ORCA
-GOAT (0.93 [M] F1 baseline) with independent CREST search (0.74-0.80 [M] F1 baseline).
+GOAT with independent CREST search; benchmark performance requires a verified dataset and protocol.
 
 Authoritative Standards & Directives:
 - Method Matrix v4 Section 9B.1: The verdict on GOAT vs CREST and union merging
@@ -27,32 +27,25 @@ from __future__ import annotations
 import datetime
 import enum
 import functools
-import hashlib
-import json
 import logging
-import math
 import os
-import platform
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
-import time
 import uuid
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Final, Literal, Optional, Tuple, Union
+from typing import Any, Final, Literal, Optional, Union
 
 import h5py
 from mendeleev import element as mendeleev_element
 import numpy as np
 import scipy.constants as const
 from scipy.spatial.distance import cdist
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from cochem_base.environment import BinaryRegistry
-from cochem_base.exceptions import BinaryNotFoundError
+from Libraries.cochem_isotopes import isotope_mass
 
 # Configure module-level logging
 logger = logging.getLogger("CoChem-TORQ.CREST")
@@ -106,19 +99,8 @@ ROTATIONAL_PREFACTOR_CM1: Final[float] = PLANCK_CONSTANT_H / (
 
 @functools.lru_cache(maxsize=256)
 def get_dynamic_atomic_mass(symbol: str) -> float:
-    """Dynamically retrieves standard atomic weight (amu) via mendeleev.
-
-    Strictly prohibits hardcoded mass constants under Mendeleev Mandate.
-    """
-    clean_sym = symbol.strip().rstrip(":").capitalize()
-    el = mendeleev_element(clean_sym)
-    if el.atomic_weight is not None:
-        return float(el.atomic_weight)
-    if el.mass is not None:
-        return float(el.mass)
-    raise ValueError(
-        f"Could not dynamically retrieve atomic mass for element symbol '{symbol}'."
-    )
+    """Resolve the selected isotope mass, using natural abundance only when available."""
+    return isotope_mass(symbol.strip().rstrip(":"))
 
 
 @functools.lru_cache(maxsize=256)
@@ -133,7 +115,7 @@ def get_dynamic_isotopic_mass(
     for iso in el.isotopes:
         if iso.mass_number == mass_number:
             return float(iso.mass)
-    return get_dynamic_atomic_mass(symbol)
+    raise ValueError(f"Isotopic mass unavailable for {mass_number}{symbol}.")
 
 
 @functools.lru_cache(maxsize=256)
@@ -145,7 +127,7 @@ def get_dynamic_covalent_radius(symbol: str) -> float:
         return float(el.covalent_radius_pyykko) / 100.0
     if el.covalent_radius is not None:
         return float(el.covalent_radius) / 100.0
-    return 1.40
+    raise ValueError(f"Covalent radius unavailable for {symbol!r}.")
 
 
 @functools.lru_cache(maxsize=256)
@@ -155,7 +137,7 @@ def get_dynamic_vdw_radius(symbol: str) -> float:
     el = mendeleev_element(clean_sym)
     if el.vdw_radius is not None:
         return float(el.vdw_radius) / 100.0
-    return 2.00
+    raise ValueError(f"Van der Waals radius unavailable for {symbol!r}.")
 
 
 # =============================================================================
@@ -380,32 +362,32 @@ class ConformerRecord(BaseModel):
     energy_hartree: Optional[float] = Field(
         default=None, description="Absolute electronic energy in Hartree (Eh)."
     )
-    energy_kcal_rel: float = Field(
-        default=0.0,
+    energy_kcal_rel: Optional[float] = Field(
+        default=None,
         description="Relative electronic energy in kcal/mol relative to ensemble minimum.",
     )
-    rotational_constants_mhz: tuple[float, float, float] = Field(
-        default=(0.0, 0.0, 0.0),
+    rotational_constants_mhz: Optional[tuple[Optional[float], Optional[float], Optional[float]]] = Field(
+        default=None,
         description="Principal rotational constants (A, B, C) in MHz.",
     )
-    rotational_constants_ghz: tuple[float, float, float] = Field(
-        default=(0.0, 0.0, 0.0),
+    rotational_constants_ghz: Optional[tuple[Optional[float], Optional[float], Optional[float]]] = Field(
+        default=None,
         description="Principal rotational constants (A, B, C) in GHz.",
     )
-    inertial_defect_u_a2: float = Field(
-        default=0.0,
+    inertial_defect_u_a2: Optional[float] = Field(
+        default=None,
         description="Inertial defect Delta = Ic - Ia - Ib in u * Angstrom^2.",
     )
-    planar_moments_u_a2: tuple[float, float, float] = Field(
-        default=(0.0, 0.0, 0.0),
+    planar_moments_u_a2: Optional[tuple[Optional[float], Optional[float], Optional[float]]] = Field(
+        default=None,
         description="Planar moments of inertia (P_aa, P_bb, P_cc) in u * Angstrom^2.",
     )
-    ray_asymmetry_kappa: float = Field(
-        default=0.0,
+    ray_asymmetry_kappa: Optional[float] = Field(
+        default=None,
         description="Ray's asymmetry parameter kappa = (2B - A - C) / (A - C).",
     )
     origin_engine: str = Field(
-        default="CREST",
+        default="IMPORTED",
         description="Originating generator engine ('GOAT', 'CREST', 'SEEDED', 'UNION').",
     )
     seed_id: Optional[str] = Field(
@@ -417,7 +399,7 @@ class ConformerRecord(BaseModel):
         description="True if non-covalent complex dissociated beyond physical vdW bounds.",
     )
     provenance_tag: str = Field(
-        default="[M]",
+        default="[D]",
         description="Method Matrix provenance tag: [M] Measured, [D] Derived, [E] Estimated.",
     )
     metadata: dict[str, Any] = Field(
@@ -438,8 +420,8 @@ class EnsembleContainer(BaseModel):
     temperature_k: float = Field(
         default=298.15, description="Thermodynamic temperature in Kelvin."
     )
-    s_conf_cal_mol_k: float = Field(
-        default=0.0,
+    s_conf_cal_mol_k: Optional[float] = Field(
+        default=None,
         description="Conformational entropy S_conf in cal / (mol * K).",
     )
     boltzmann_weights: list[float] = Field(
@@ -492,28 +474,28 @@ class UnionAuditReport(BaseModel):
         ...,
         description="Conformers surviving Stage B spectroscopic deduplication (Delta B/B <= 0.1%).",
     )
-    goat_f1_baseline: float = Field(
-        default=0.93,
-        description="Measured GOAT average F1 benchmark baseline ([M] racer benchmark).",
+    goat_f1_baseline: Optional[float] = Field(
+        default=None,
+        description="External benchmark F1, populated only with verified benchmark provenance.",
     )
-    crest_f1_baseline: float = Field(
-        default=0.77,
-        description="Measured CREST average F1 benchmark baseline (0.74-0.80 [M] racer benchmark).",
+    crest_f1_baseline: Optional[float] = Field(
+        default=None,
+        description="External benchmark F1, populated only with verified benchmark provenance.",
     )
-    union_coverage_ratio: float = Field(
-        default=1.0,
+    union_coverage_ratio: Optional[float] = Field(
+        default=None,
         description="Fractional coverage of union over single-engine explorations.",
     )
-    s_conf_goat_cal_mol_k: float = Field(
-        default=0.0,
+    s_conf_goat_cal_mol_k: Optional[float] = Field(
+        default=None,
         description="Conformational entropy from GOAT ensemble in cal/(mol*K).",
     )
-    s_conf_crest_cal_mol_k: float = Field(
-        default=0.0,
+    s_conf_crest_cal_mol_k: Optional[float] = Field(
+        default=None,
         description="Conformational entropy from CREST ensemble in cal/(mol*K).",
     )
-    s_conf_union_cal_mol_k: float = Field(
-        default=0.0,
+    s_conf_union_cal_mol_k: Optional[float] = Field(
+        default=None,
         description="Conformational entropy of refereed union in cal/(mol*K).",
     )
     completeness_disclaimer: str = Field(
@@ -588,21 +570,24 @@ def compute_moments_and_constants(
 
     # Diagonalize: principal moments I_a <= I_b <= I_c
     eigvals, eigvecs = np.linalg.eigh(inertia_tensor)
-    eigvals = np.sort(np.maximum(eigvals, 1e-12))  # clamp small numerical zeroes
+    eigvals = np.sort(eigvals)
+    if np.any(eigvals < -1e-8):
+        raise ValueError("Inertia tensor has invalid negative principal moments.")
+    eigvals[np.abs(eigvals) < 1e-8] = 0.0
     i_a, i_b, i_c = float(eigvals[0]), float(eigvals[1]), float(eigvals[2])
 
     # Rotational constants: B = prefactor / I
-    a_mhz = ROTATIONAL_PREFACTOR_MHZ / i_a if i_a > 1e-6 else 0.0
-    b_mhz = ROTATIONAL_PREFACTOR_MHZ / i_b if i_b > 1e-6 else 0.0
-    c_mhz = ROTATIONAL_PREFACTOR_MHZ / i_c if i_c > 1e-6 else 0.0
+    a_mhz = ROTATIONAL_PREFACTOR_MHZ / i_a if i_a > 1e-6 else None
+    b_mhz = ROTATIONAL_PREFACTOR_MHZ / i_b if i_b > 1e-6 else None
+    c_mhz = ROTATIONAL_PREFACTOR_MHZ / i_c if i_c > 1e-6 else None
 
-    a_ghz = a_mhz / 1000.0
-    b_ghz = b_mhz / 1000.0
-    c_ghz = c_mhz / 1000.0
+    a_ghz = a_mhz / 1000.0 if a_mhz is not None else None
+    b_ghz = b_mhz / 1000.0 if b_mhz is not None else None
+    c_ghz = c_mhz / 1000.0 if c_mhz is not None else None
 
-    a_cm1 = ROTATIONAL_PREFACTOR_CM1 / i_a if i_a > 1e-6 else 0.0
-    b_cm1 = ROTATIONAL_PREFACTOR_CM1 / i_b if i_b > 1e-6 else 0.0
-    c_cm1 = ROTATIONAL_PREFACTOR_CM1 / i_c if i_c > 1e-6 else 0.0
+    a_cm1 = ROTATIONAL_PREFACTOR_CM1 / i_a if i_a > 1e-6 else None
+    b_cm1 = ROTATIONAL_PREFACTOR_CM1 / i_b if i_b > 1e-6 else None
+    c_cm1 = ROTATIONAL_PREFACTOR_CM1 / i_c if i_c > 1e-6 else None
 
     # Planar moments: P_aa = 0.5*(I_b + I_c - I_a), etc.
     p_aa = 0.5 * (i_b + i_c - i_a)
@@ -613,10 +598,10 @@ def compute_moments_and_constants(
     delta_inertial = i_c - i_a - i_b
 
     # Ray's asymmetry parameter: kappa = (2B - A - C) / (A - C)
-    if abs(a_mhz - c_mhz) > 1e-6:
+    if all(v is not None for v in (a_mhz, b_mhz, c_mhz)) and abs(a_mhz - c_mhz) > 1e-6:
         kappa = (2.0 * b_mhz - a_mhz - c_mhz) / (a_mhz - c_mhz)
     else:
-        kappa = 0.0
+        kappa = None
 
     return {
         "inertia_tensor_u_a2": inertia_tensor,
@@ -739,9 +724,11 @@ def calculate_conformational_entropy(
     S_conf = -R * sum(p_i * ln(p_i)) per standard statistical mechanics.
     """
     if not energies_kcal:
-        return 0.0, []
+        raise ValueError("Conformational entropy requires a nonempty energy ensemble.")
 
     e_arr = np.asarray(energies_kcal, dtype=np.float64)
+    if not np.isfinite(e_arr).all() or not np.isfinite(temperature_k) or temperature_k <= 0:
+        raise ValueError("Conformational entropy requires finite energies and positive temperature.")
     e_rel = e_arr - np.min(e_arr)
 
     beta = 1.0 / (BOLTZMANN_CONSTANT_K_CAL_MOL * temperature_k)
@@ -749,7 +736,7 @@ def calculate_conformational_entropy(
     q_partition = np.sum(weights_raw)
 
     if q_partition <= 0.0 or np.isnan(q_partition):
-        probs = np.full(len(energies_kcal), 1.0 / len(energies_kcal), dtype=np.float64)
+        raise ValueError("Boltzmann partition function is invalid; no uniform distribution is substituted.")
     else:
         probs = weights_raw / q_partition
 
@@ -767,7 +754,7 @@ def calculate_conformational_entropy(
 # =============================================================================
 
 def parse_xyz_string(
-    content: str, default_origin: str = "CREST", seed_id: Optional[str] = None
+    content: str, default_origin: str = "IMPORTED", seed_id: Optional[str] = None
 ) -> list[ConformerRecord]:
     """Parses a single or multi-structure XYZ string into a list of ConformerRecords."""
     lines = content.strip().splitlines()
@@ -814,17 +801,16 @@ def parse_xyz_string(
             coords_arr = np.array(coordinates, dtype=np.float64)
             # Parse energy from comment if present
             energy_hartree: Optional[float] = None
-            energy_match = re.search(
-                r"([-+]?\d+\.\d+(?:[eE][-+]?\d+)?)", comment
-            )
+            # Accept a bare CREST Hartree comment or an explicitly labelled
+            # Hartree value. Unrelated numbers in titles are not energies.
+            number = r"[-+]?\d+(?:\.\d*)?(?:[EeDd][-+]?\d+)?"
+            energy_match = re.fullmatch(rf"\s*({number})\s*", comment)
+            if energy_match is None:
+                energy_match = re.search(rf"(?:^|\s)E\s*=\s*({number})\s*(?:Eh|Hartree)\b", comment, re.IGNORECASE)
             if energy_match:
-                try:
-                    val = float(energy_match.group(1))
-                    # Distinguish between Hartree (< 0 typically) vs kcal
-                    if val < -0.1:
-                        energy_hartree = val
-                except ValueError:
-                    pass
+                energy_hartree = float(energy_match.group(1).replace("D", "E").replace("d", "e"))
+                if not np.isfinite(energy_hartree):
+                    raise ValueError("XYZ energy must be finite.")
 
             phys_data = compute_moments_and_constants(symbols, coords_arr)
             is_dissoc = check_complex_dissociation(symbols, coords_arr)
@@ -834,7 +820,7 @@ def parse_xyz_string(
                 symbols=symbols,
                 coordinates=coordinates,
                 energy_hartree=energy_hartree,
-                energy_kcal_rel=0.0,
+                energy_kcal_rel=None,
                 rotational_constants_mhz=phys_data["rotational_constants_mhz"],
                 rotational_constants_ghz=phys_data["rotational_constants_ghz"],
                 inertial_defect_u_a2=phys_data["inertial_defect_u_a2"],
@@ -843,8 +829,8 @@ def parse_xyz_string(
                 origin_engine=default_origin,
                 seed_id=seed_id,
                 is_dissociated=is_dissoc,
-                provenance_tag="[M]",
-                metadata={"comment": comment},
+                provenance_tag="[D]",
+                metadata={"comment": comment, "energy_status": "imported" if energy_hartree is not None else "unavailable"},
             )
             records.append(record)
             record_count += 1
@@ -866,7 +852,7 @@ def parse_xyz_string(
 
 def parse_xyz_file(
     file_path: Union[str, Path],
-    default_origin: str = "CREST",
+    default_origin: str = "IMPORTED",
     seed_id: Optional[str] = None,
 ) -> list[ConformerRecord]:
     """Reads and parses an XYZ file."""
@@ -882,16 +868,18 @@ def write_xyz_string(records: Sequence[ConformerRecord]) -> str:
     out_lines: list[str] = []
     for r in records:
         n_atoms = len(r.symbols)
-        e_str = (
-            f"E = {r.energy_hartree:.8f} Eh"
-            if r.energy_hartree is not None
-            else f"dE = {r.energy_kcal_rel:.4f} kcal/mol"
-        )
-        a, b, c = r.rotational_constants_mhz
-        comment = (
-            f"{e_str} | Origin: {r.origin_engine} | A={a:.2f} B={b:.2f} C={c:.2f} MHz "
-            f"| Delta={r.inertial_defect_u_a2:.4f} uA2"
-        )
+        if r.energy_hartree is not None:
+            e_str = f"E = {r.energy_hartree:.12g} Eh"
+        elif r.energy_kcal_rel is not None:
+            e_str = f"dE = {r.energy_kcal_rel:.12g} kcal/mol"
+        else:
+            e_str = "energy unavailable"
+        comment = f"{e_str} | Origin: {r.origin_engine}"
+        if r.rotational_constants_mhz is not None and all(v is not None for v in r.rotational_constants_mhz):
+            a, b, c = r.rotational_constants_mhz
+            comment += f" | A={a:.8g} B={b:.8g} C={c:.8g} MHz"
+        if r.inertial_defect_u_a2 is not None:
+            comment += f" | Delta={r.inertial_defect_u_a2:.8g} uA2"
         out_lines.append(str(n_atoms))
         out_lines.append(comment)
         for sym, pos in zip(r.symbols, r.coordinates):
@@ -972,14 +960,16 @@ class CrestRunner:
             raise FileNotFoundError(f"Input seed XYZ not found: {src_path}")
 
         run_id = f"crest_{uuid.uuid4().hex[:8]}"
-        exec_dir = work_dir or (self.scratch_base / run_id)
+        exec_dir = (Path(work_dir) if work_dir is not None else self.scratch_base) / run_id
         exec_dir.mkdir(parents=True, exist_ok=True)
 
         CoChemPathManager.assert_air_gap(exec_dir)
         local_input = exec_dir / "input.xyz"
         shutil.copy2(src_path, local_input)
 
-        crest_executable = BinaryRegistry.resolve(self.config.crest_bin)
+        crest_executable = shutil.which(self.config.crest_bin)
+        if crest_executable is None:
+            raise FileNotFoundError(f"Requested CREST executable unavailable: {self.config.crest_bin}")
 
         cmd = self.build_command_line(local_input.name)
         cmd[0] = str(crest_executable)
@@ -1035,6 +1025,8 @@ class CrestRunner:
                     else r.energy_hartree * HARTREE_TO_KCAL_PER_MOL
                     for r in records
                 ]
+                if any(e is None for e in e_vals):
+                    raise CrestExecutionError("CREST ensemble has missing energies; thermodynamic characterization is unavailable.")
                 s_conf, weights = calculate_conformational_entropy(e_vals)
                 return EnsembleContainer(
                     name=f"CREST_Ensemble_{seed_id or src_path.stem}",
@@ -1055,7 +1047,7 @@ class CrestRunner:
 # =============================================================================
 
 class CregenReferee:
-    """Ensemble-neutral referee executing CREGEN deduplication across the union pool.
+    """Python ensemble deduplication; this class does not execute the CREGEN binary.
 
     Complies with Method Matrix v4 §9B.1, §9B.3 Step 4 and Step 5.
     """
@@ -1079,6 +1071,12 @@ class CregenReferee:
         """
         if not conformers:
             return []
+
+        for conf in conformers:
+            if conf.energy_kcal_rel is None or not np.isfinite(conf.energy_kcal_rel):
+                raise ValueError("Conformer energy unavailable; energy-based refereeing cannot proceed.")
+            if conf.rotational_constants_mhz is None or any(v is None or not np.isfinite(v) for v in conf.rotational_constants_mhz):
+                raise ValueError("Rotational constants unavailable; refereeing cannot proceed.")
 
         # Step 1: Energy sorting and Ewin window filtering
         sorted_confs = sorted(conformers, key=lambda c: c.energy_kcal_rel)
@@ -1184,7 +1182,7 @@ class UnionConformerReferee:
     """Master Orchestrator executing the 6-Step Union Protocol (Method Matrix §9B.3).
 
     Step 0: Multi-seed hand enumeration / distinct binding sites.
-    Step 1: Primary MLFF-driven GOAT conformer enumeration (0.93 [M] F1 baseline).
+    Step 1: Import a completed primary GOAT conformer enumeration.
     Step 2: GOAT GFN2-xTB unbiased verification.
     Step 3: Independent CREST NCI cross-check (--nci --nocross --noreftopo).
     Step 4: Union creation, single-level re-evaluation, and CREGEN refereeing.
@@ -1210,11 +1208,16 @@ class UnionConformerReferee:
         goat_ensemble_xyz: Optional[Union[str, Path]] = None,
         system_name: str = "vdW_Complex",
         hdf5_out_path: Optional[Union[str, Path]] = None,
+        goat_energy_model: Optional[str] = None,
     ) -> tuple[EnsembleContainer, UnionAuditReport]:
         """Executes the complete 6-Step Union Protocol and generates FAIR-compliant
 
         HDF5 outputs and an immutable UnionAuditReport.
         """
+        if goat_energy_model != self.crest_runner.config.gfn_level:
+            raise ValueError("GOAT energy-model provenance must explicitly match the CREST gfn_level before comparing ensemble energies.")
+        if goat_ensemble_xyz is None or not Path(goat_ensemble_xyz).is_file():
+            raise FileNotFoundError("A completed GOAT ensemble is required; seed geometries are not GOAT results.")
         logger.info(
             f"[UNION-PROTOCOL] Initiating 6-Step Union Protocol for '{system_name}'..."
         )
@@ -1239,7 +1242,7 @@ class UnionConformerReferee:
                     symbols=list(syms),
                     coordinates=np.asarray(coords).tolist(),
                     energy_hartree=None,
-                    energy_kcal_rel=0.0,
+                    energy_kcal_rel=None,
                     rotational_constants_mhz=phys["rotational_constants_mhz"],
                     rotational_constants_ghz=phys["rotational_constants_ghz"],
                     inertial_defect_u_a2=phys["inertial_defect_u_a2"],
@@ -1277,16 +1280,6 @@ class UnionConformerReferee:
             logger.info(
                 f"[UNION-PROTOCOL] Step 1-2: Ingested {len(goat_records)} conformers from primary GOAT ensemble."
             )
-        else:
-            # Generate baseline GOAT candidates from seeds with GFN2-xTB perturbation
-            for sf in seed_files:
-                parsed = parse_xyz_file(
-                    sf, default_origin="GOAT", seed_id=sf.stem
-                )
-                goat_records.extend(parsed)
-            logger.info(
-                f"[UNION-PROTOCOL] Step 1-2: Initialized {len(goat_records)} primary GOAT conformers from seed manifold."
-            )
 
         # Step 3: Independent CREST NCI Cross-Check on All Seeds
         crest_records: list[ConformerRecord] = []
@@ -1297,12 +1290,9 @@ class UnionConformerReferee:
                 )
                 crest_records.extend(res_ensemble.conformers)
             except Exception as exc:
-                logger.warning(
-                    f"[UNION-PROTOCOL] CREST run failed on {sf.name} ({exc}). Using seed geometry fallback."
-                )
-                crest_records.extend(
-                    parse_xyz_file(sf, default_origin="CREST", seed_id=sf.stem)
-                )
+                raise CrestExecutionError(
+                    f"Independent CREST search failed for {sf.name}; seeds were retained as inputs and no CREST result was created: {exc}"
+                ) from exc
 
         logger.info(
             f"[UNION-PROTOCOL] Step 3 Complete: CREST independent search yielded {len(crest_records)} raw conformers."
@@ -1310,6 +1300,10 @@ class UnionConformerReferee:
 
         # Step 4: Union Creation & Stage A CREGEN Refereeing
         raw_union_pool = list(goat_records) + list(crest_records)
+        if not goat_records or not crest_records or any(r.energy_hartree is None for r in raw_union_pool):
+            raise ValueError("Union requires successful GOAT and CREST ensembles with calculated energies.")
+        union_minimum = min(r.energy_hartree for r in raw_union_pool)
+        raw_union_pool = [r.model_copy(update={"energy_kcal_rel": (r.energy_hartree - union_minimum) * HARTREE_TO_KCAL_PER_MOL}) for r in raw_union_pool]
         survivors_stage_a = self.cregen_referee.referee_ensemble(
             raw_union_pool, is_spectroscopic_stage=False
         )
@@ -1386,8 +1380,8 @@ class UnionConformerReferee:
             n_shared_intersection=shared_count,
             n_survivors_stage_a=len(survivors_stage_a),
             n_survivors_stage_b=len(survivors_stage_b),
-            goat_f1_baseline=0.93,
-            crest_f1_baseline=0.77,
+            goat_f1_baseline=None,
+            crest_f1_baseline=None,
             union_coverage_ratio=union_coverage,
             s_conf_goat_cal_mol_k=s_goat,
             s_conf_crest_cal_mol_k=s_crest,
@@ -1436,9 +1430,10 @@ def save_ensemble_to_hdf5(
         f.attrs["system_name"] = report.system_name
         f.attrs["creation_timestamp"] = report.timestamp
         f.attrs["provenance_tag"] = report.provenance_tag
-        f.attrs["goat_f1_baseline"] = report.goat_f1_baseline
-        f.attrs["crest_f1_baseline"] = report.crest_f1_baseline
-        f.attrs["s_conf_union_cal_mol_k"] = report.s_conf_union_cal_mol_k
+        for key in ("goat_f1_baseline", "crest_f1_baseline", "s_conf_union_cal_mol_k"):
+            value = getattr(report, key)
+            if value is not None:
+                f.attrs[key] = value
         f.attrs["completeness_disclaimer"] = report.completeness_disclaimer
 
         # Audit Report Group
@@ -1456,25 +1451,20 @@ def save_ensemble_to_hdf5(
             conf_grp = confs_grp.create_group(f"conformer_{idx:04d}")
             conf_grp.attrs["index"] = conf.index
             conf_grp.attrs["origin_engine"] = conf.origin_engine
-            conf_grp.attrs["energy_kcal_rel"] = conf.energy_kcal_rel
+            if conf.energy_kcal_rel is not None:
+                conf_grp.attrs["energy_kcal_rel"] = conf.energy_kcal_rel
             if conf.energy_hartree is not None:
                 conf_grp.attrs["energy_hartree"] = conf.energy_hartree
-            conf_grp.attrs["inertial_defect_u_a2"] = conf.inertial_defect_u_a2
-            conf_grp.attrs["ray_asymmetry_kappa"] = conf.ray_asymmetry_kappa
+            for key in ("inertial_defect_u_a2", "ray_asymmetry_kappa"):
+                value = getattr(conf, key)
+                if value is not None:
+                    conf_grp.attrs[key] = value
 
-            # Rotational Constants
-            conf_grp.create_dataset(
-                "rotational_constants_mhz",
-                data=np.array(conf.rotational_constants_mhz, dtype=np.float64),
-            )
-            conf_grp.create_dataset(
-                "rotational_constants_ghz",
-                data=np.array(conf.rotational_constants_ghz, dtype=np.float64),
-            )
-            conf_grp.create_dataset(
-                "planar_moments_u_a2",
-                data=np.array(conf.planar_moments_u_a2, dtype=np.float64),
-            )
+            for key in ("rotational_constants_mhz", "rotational_constants_ghz", "planar_moments_u_a2"):
+                value = getattr(conf, key)
+                if value is not None:
+                    conf_grp.create_dataset(key, data=np.asarray(value, dtype=np.float64))
+                    conf_grp.create_dataset(key + "_available", data=np.asarray([v is not None for v in value], dtype=bool))
 
             # Atomic symbols & coordinates
             dt_str = h5py.string_dtype(encoding="utf-8")

@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from src.cochem.hpc.models import MpiClusterExecutionConfig, MpiProcessSupervisorError
+from cochem.hpc.models import MpiClusterExecutionConfig, MpiProcessSupervisorError
 
 logger = logging.getLogger(__name__)
 

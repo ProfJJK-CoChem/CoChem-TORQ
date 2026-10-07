@@ -1,0 +1,21 @@
+{
+  "schema_version": "cochem.module-distribution/1",
+  "modules": {
+    "base": {
+      "repository": "ProfJJK-CoChem/CoChem-BASE",
+      "revision": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+      "distribution": "CoChem-BASE",
+      "adapter": null,
+      "adapter_requirements": [],
+      "operations": []
+    },
+    "topos": {
+      "repository": "ProfJJK-CoChem/CoChem-TOPOS",
+      "revision": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+      "distribution": "cochem-topos",
+      "adapter": "topos_geometry",
+      "adapter_requirements": ["ase==3.29.0", "networkx==3.7", "filelock==4.0.12"],
+      "operations": ["geometry_analysis"]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "python": "3.12.14",
+  "wheel": "/tmp/torq-integrity-wheels/cochem_torq-0.1.0-py3-none-any.whl",
+  "isolated_environment": "/tmp/torq-wheel-check",
+  "installed_imports_outside_checkout": 10,
+  "cli_help": "passed",
+  "dependency_consistency": "passed",
+  "core_profile_tests": {
+    "passed": 100,
+    "moved_to_cpu_ml_job": 3
+  },
+  "cpu_ml_persistence_tests": {
+    "passed": 3,
+    "other_tests_deselected": 17
+  },
+  "export_tests": {
+    "focused_integrity_passed": 26,
+    "legacy_updated_passed": 20
+  },
+  "python310_dependency_resolution": "passed; execution deferred to CI",
+  "devcontainer_build": "passed",
+  "devcontainer_runtime": "vscode user, owned virtualenv, locked core install, editable dev/QCSchema/Jupyter install, pip check, CLI help, Jupyter imports passed",
+  "ci_workflow": "YAML parsed; workflows saved, not executed on GitHub",
+  "external_spcat_integration": "not executed: no SPCAT binary installed",
+  "core_lock": "ci_tools/requirements-core-py312.txt; exact versions and upstream SHA256 hashes",
+  "scope": "Software integrity and packaging verification; not a scientific accuracy validation or deployment approval",
+  "additional_core_profile_tests": {
+    "passed": 52,
+    "files": [
+      "test_element_integrity.py",
+      "test_spcat_integrity.py",
+      "test_async_runner_integrity.py",
+      "test_model_selection_integrity.py",
+      "test_wkb_integrity.py"
+    ]
+  },
+  "devcontainer_widget_extensions": "anywidget and traitlets installed and imported in fresh container",
+  "setup_document": "docs/development/environment_validation.md",
+  "final_wheel_sha256": "a7e89dd3262e83248f8558ebb5bb56135099e19b90269ed2bc2e17cde466d1df",
+  "final_wheel_includes": "final frozen numerical/element/runner repairs"
+}

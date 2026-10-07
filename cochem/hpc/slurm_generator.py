@@ -9,7 +9,7 @@ import re
 from pathlib import PurePosixPath
 from typing import Any, Dict, List, Optional
 
-from src.cochem.hpc.models import SlurmDryRunResult, SlurmJobDirectiveSpec
+from cochem.hpc.models import SlurmDryRunResult, SlurmJobDirectiveSpec
 
 
 class SlurmDryRunGenerator:

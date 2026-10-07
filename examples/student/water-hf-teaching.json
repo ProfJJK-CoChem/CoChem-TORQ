@@ -1,0 +1,55 @@
+{
+  "molecule": {
+    "symbols": [
+      "O",
+      "H",
+      "H"
+    ],
+    "geometry_bohr": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.4172945944308366,
+        0.0,
+        1.0393493692492803
+      ],
+      [
+        -1.4172945944308366,
+        0.0,
+        1.0393493692492803
+      ]
+    ],
+    "charge": 0,
+    "multiplicity": 1,
+    "atom_ids": [
+      "atom-1",
+      "atom-2",
+      "atom-3"
+    ],
+    "isotopes": [
+      null,
+      null,
+      null
+    ]
+  },
+  "recipe": "hf-sto-3g-education",
+  "products": [
+    "geometry",
+    "harmonic",
+    "equilibrium_constants"
+  ],
+  "resources": {
+    "cores": 2,
+    "memory_mb": 2048,
+    "wall_seconds": 600
+  },
+  "source_provenance": {
+    "producer": "explicit_import",
+    "source_format": "xyz",
+    "input_text_sha256": "54b4455b0fcbfacfedd769e9f7bc1cf640f9673fe63631abaeb7d4acc9b2824d",
+    "geometry_status": "input"
+  }
+}

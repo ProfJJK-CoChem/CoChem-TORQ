@@ -1,15 +1,10 @@
-"""
-CoChem-TORQ: Test Suite for Visual & Event Telemetry Streamer
-Phase 9 (Stages 5.5 - 6.0) Validation Suite
------------------------------------------------------------------------------
-Validates:
-1. stream_webhook_events with real local HTTP server, backoff retries,
-   and circuit-breaker fallback spooling to telemetry_spool.jsonl.
-2. generate_plotly_3d_carousels with 2D regular grid decimation,
-   stationary point preservation, and DVR wavefunction probability states.
-3. export_crash_animation capturing multi-frame crash_animation.xyz
-   and crash_diagnostic.json during Steric Shatter Soft-Quench aborts.
-4. Filesystem Air-Gap compliance writing to dynamic scratch/artifact dirs.
+"""Real transport/file/render checks and explicitly mathematical analytic models.
+
+The periodic and Lennard-Jones examples are defined mathematical test potentials,
+not quantum-chemistry outputs, experimental observations, optimized molecules or
+method-qualification evidence. LJ energies/gradients are converted explicitly
+from kcal/mol and Å to hartree and hartree/bohr for the diagnostic API. Local HTTP
+checks execute actual servers, requests, failure responses and filesystem writes.
 """
 
 from __future__ import annotations
@@ -26,6 +21,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from scipy.constants import Avogadro, physical_constants
 
 from Libraries.cochem_torq_telemetry import (
     TelemetryCircuitBreaker,
@@ -37,7 +33,7 @@ from Libraries.cochem_torq_telemetry import (
 )
 
 # ============================================================================
-# Physical Helper: Ephemeral Local HTTP Server for Real Webhook Delivery
+# Transport helper: ephemeral local HTTP server
 # ============================================================================
 
 
@@ -89,9 +85,9 @@ def get_free_port() -> int:
 
 @pytest.fixture
 def local_webhook_server() -> Iterator[tuple[HTTPServer, str]]:
-    """Starts a real physical HTTP server on localhost."""
-    port = get_free_port()
-    server = HTTPServer(("127.0.0.1", port), WebhookRecordingHandler)
+    """Start an actual HTTP server on localhost; no calculation is executed."""
+    server = HTTPServer(("127.0.0.1", 0), WebhookRecordingHandler)
+    port = server.server_address[1]
     server.received_requests = []  # type: ignore[attr-defined]
     server.fail_count_target = 0  # type: ignore[attr-defined]
 
@@ -115,16 +111,16 @@ def local_webhook_server() -> Iterator[tuple[HTTPServer, str]]:
 def test_stream_webhook_events_real_delivery(
     local_webhook_server: tuple[HTTPServer, str], tmp_path: Path
 ) -> None:
-    """Validates real physical HTTP POST delivery to an active webhook endpoint."""
+    """Validate actual HTTP POST delivery without a scientific calculation claim."""
     server, webhook_url = local_webhook_server
     scratch_dir = tmp_path / "scratch"
 
     test_payload = {
-        "event_type": "job_completed",
-        "job_id": "TORQ_JOB_2026_08_001",
-        "node_id": "hpc_worker_node_07",
-        "status": "COMPLETED",
-        "data": {"wall_time_sec": 42.5, "optimized_energy_hartree": -154.29841},
+        "event_type": "transport_check",
+        "job_id": "LOCAL_HTTP_TRANSPORT_CHECK",
+        "node_id": "localhost",
+        "status": "TRANSPORT_ONLY",
+        "data": {"calculation_executed": False},
     }
 
     result = stream_webhook_events(
@@ -139,7 +135,12 @@ def test_stream_webhook_events_real_delivery(
     assert result["status_code"] == 200
     assert result["spooled"] is False
     assert len(server.received_requests) == 1  # type: ignore[attr-defined]
-    assert server.received_requests[0]["payload"]["job_id"] == "TORQ_JOB_2026_08_001"  # type: ignore[attr-defined]
+    received = server.received_requests[0]["payload"]  # type: ignore[attr-defined]
+    assert {key: received[key] for key in test_payload} == test_payload
+    assert received["error_trace"] is None
+    from datetime import datetime
+
+    assert datetime.fromisoformat(received["timestamp"]).tzinfo is not None
 
 
 def test_stream_webhook_events_exponential_backoff_recovery(
@@ -151,11 +152,11 @@ def test_stream_webhook_events_exponential_backoff_recovery(
     scratch_dir = tmp_path / "scratch"
 
     test_payload = {
-        "event_type": "soft_quench_collision",
-        "job_id": "TORQ_JOB_SQ_09",
-        "node_id": "gpu_node_01",
-        "status": "ALERT",
-        "data": {"collision_distance_angstrom": 0.58},
+        "event_type": "transport_retry_check",
+        "job_id": "LOCAL_HTTP_RETRY_CHECK",
+        "node_id": "localhost",
+        "status": "TRANSPORT_ONLY",
+        "data": {"calculation_executed": False, "requested_http_failures": 2},
     }
 
     result = stream_webhook_events(
@@ -179,11 +180,11 @@ def test_stream_webhook_events_blackout_spooling(tmp_path: Path) -> None:
     scratch_dir = tmp_path / "scratch"
 
     test_payload = {
-        "event_type": "oom_backoff",
-        "job_id": "TORQ_JOB_OOM_003",
-        "node_id": "cpu_node_12",
-        "status": "ALERT",
-        "data": {"memory_rss_gb": 64.2, "backoff_scale": 0.5},
+        "event_type": "transport_connection_failure_check",
+        "job_id": "LOCAL_HTTP_CONNECTION_FAILURE_CHECK",
+        "node_id": "localhost",
+        "status": "TRANSPORT_ONLY",
+        "data": {"calculation_executed": False},
     }
 
     result = stream_webhook_events(
@@ -205,7 +206,7 @@ def test_stream_webhook_events_blackout_spooling(tmp_path: Path) -> None:
 
     assert len(lines) >= 1
     logged_event = lines[-1]
-    assert logged_event["payload"]["job_id"] == "TORQ_JOB_OOM_003"
+    assert logged_event["payload"]["job_id"] == test_payload["job_id"]
     assert logged_event["delivery_status"] == "SPOOLED"
 
 
@@ -247,7 +248,7 @@ def test_stream_webhook_events_numpy_types(
 
 def test_decimate_2d_grid_and_stationary_points() -> None:
     """Validates 2D grid decimation preserving stationary points."""
-    # Create a dense 500x500 (250,000 nodes) 2D PES grid
+    # Sample a declared analytic periodic potential; no molecular engine data.
     n1, n2 = 500, 500
     phi1 = np.linspace(-180.0, 180.0, n1)
     phi2 = np.linspace(-180.0, 180.0, n2)
@@ -255,7 +256,7 @@ def test_decimate_2d_grid_and_stationary_points() -> None:
 
     # Analytical potential:
     # V(phi1, phi2) = 1500*(1-cos(phi1)) + 800*(1-cos(2*phi2)) + 400*cos(phi1+phi2)
-    # Global minimum at (0, 0) where V = 400 cm-1
+    # Global lower bound -400 occurs at (0, ±pi); (0,0) is another local minimum.
     rad1 = np.radians(p1_mesh)
     rad2 = np.radians(p2_mesh)
     pes_grid = (
@@ -289,9 +290,9 @@ def test_find_stationary_points_with_nans() -> None:
     phi1 = np.linspace(-180.0, 180.0, n1)
     phi2 = np.linspace(-180.0, 180.0, n2)
     pes_grid = np.full((n1, n2), 1000.0)
-    # True minimum at (25, 25)
+    # Deliberately constructed array minimum for masked-data algorithm checking.
     pes_grid[25, 25] = 50.0
-    # Add NaN region (steric crash zone)
+    # NaNs explicitly mark unavailable array entries; no collision is inferred.
     pes_grid[0:5, 0:5] = np.nan
 
     pts = find_stationary_points_2d(phi1, phi2, pes_grid)
@@ -321,7 +322,7 @@ def test_generate_plotly_3d_carousels_standalone_html(tmp_path: Path) -> None:
         filename="test_pes_3d.html",
         max_nodes=4000,
         colorscale="Viridis",
-        title="1,2-Ethanediol 2D Torsional PES",
+        title="Analytic periodic test potential (no molecular calculation)",
     )
 
     assert html_path.exists()
@@ -333,73 +334,58 @@ def test_generate_plotly_3d_carousels_standalone_html(tmp_path: Path) -> None:
     assert "<html>" in html_content.lower()
     assert "<body>" in html_content.lower()
     assert "plotly" in html_content.lower()
-    assert "1,2-Ethanediol 2D Torsional PES" in html_content
+    assert "Analytic periodic test potential (no molecular calculation)" in html_content
 
     # File size must be lightweight (< 3.5 MB)
     file_size_mb = html_path.stat().st_size / (1024 * 1024)
     assert file_size_mb < 3.5
 
 
-def test_generate_plotly_3d_carousels_with_dvr_wavefunctions(tmp_path: Path) -> None:
-    """Validates Plotly 3D carousel with multi-state DVR probability wavefunctions."""
+def test_generate_plotly_3d_carousels_with_analytic_free_rotor_densities(
+    tmp_path: Path,
+) -> None:
+    """Render exact mathematical periodic free-rotor densities, not DVR output."""
     artifact_dir = tmp_path / "artifacts"
-
     n = 100
-    phi1 = np.linspace(-180.0, 180.0, n)
-    phi2 = np.linspace(-180.0, 180.0, n)
-    p1_mesh, p2_mesh = np.meshgrid(phi1, phi2, indexing="ij")
-    pes_grid = 1000.0 * (1.0 - np.cos(np.radians(p1_mesh))) + 500.0 * (
-        1.0 - np.cos(np.radians(2 * p2_mesh))
-    )
-
-    # Create 3 DVR wavefunctions: ground state v=0 and excited states v=1, v=2
-    wf_0 = np.exp(-((p1_mesh / 40.0) ** 2 + (p2_mesh / 40.0) ** 2))
-    wf_0 /= np.sum(wf_0)
-
-    wf_1 = (p1_mesh / 40.0) * np.exp(-((p1_mesh / 40.0) ** 2 + (p2_mesh / 40.0) ** 2))
-    wf_1 = (wf_1**2) / np.sum(wf_1**2)
-
-    wf_2 = (p2_mesh / 40.0) * np.exp(-((p1_mesh / 40.0) ** 2 + (p2_mesh / 40.0) ** 2))
-    wf_2 = (wf_2**2) / np.sum(wf_2**2)
-
-    dvr_wavefunctions = [wf_0, wf_1, wf_2]
-
+    phi1 = np.linspace(-180.0, 180.0, n, endpoint=False)
+    phi2 = phi1.copy()
+    angle1, angle2 = np.meshgrid(np.radians(phi1), np.radians(phi2), indexing="ij")
+    # H = -d²/dphi1²-d²/dphi2² on a periodic torus; potential identically zero.
+    # The constant, cos(phi1), and cos(phi2) are exact eigenfunctions, including
+    # legitimate real linear combinations within the degenerate excited space.
+    cell_area = (2 * np.pi / n) ** 2
+    probabilities = []
+    for eigenfunction in (np.ones_like(angle1), np.cos(angle1), np.cos(angle2)):
+        density = eigenfunction**2
+        density /= density.sum() * cell_area
+        assert density.sum() * cell_area == pytest.approx(1.0, abs=1e-12)
+        probabilities.append(density)
     html_path = generate_plotly_3d_carousels(
-        pes_tensor=pes_grid,
-        dvr_wavefunctions=dvr_wavefunctions,
+        pes_tensor=np.zeros((n, n)),
+        dvr_wavefunctions=probabilities,
         phi1_grid=phi1,
         phi2_grid=phi2,
         artifact_dir=artifact_dir,
-        filename="test_pes_dvr_carousel.html",
+        filename="analytic_free_rotor_densities.html",
         max_nodes=2500,
+        title="Analytic free-rotor densities: mathematical rendering check",
     )
-
-    assert html_path.exists()
-    html_content = html_path.read_text(encoding="utf-8")
-    assert "DVR State v=0" in html_content
-    assert "DVR State v=1" in html_content
-    assert "DVR State v=2" in html_content
+    html_content = html_path.read_text()
+    for index in range(3):
+        assert f"Supplied density {index}" in html_content
+    assert "DVR State" not in html_content
 
 
-def test_generate_plotly_3d_carousels_dict_missing_coords(tmp_path: Path) -> None:
-    """Validates dict with only 'pes' key automatically generates default grids."""
-    artifact_dir = tmp_path / "artifacts"
-    phi = np.linspace(-180, 180, 30)
-    p1_mesh, p2_mesh = np.meshgrid(phi, phi, indexing="ij")
-    pes_grid = (
-        250.0
-        + 10.0 * (1.0 - np.cos(np.radians(p1_mesh)))
-        + 10.0 * (1.0 - np.cos(np.radians(p2_mesh)))
-    )
-
-    html_path = generate_plotly_3d_carousels(
-        pes_tensor={"pes": pes_grid},
-        artifact_dir=artifact_dir,
-        filename="pes_dict_minimal.html",
-    )
-
-    assert html_path.exists()
-    assert html_path.is_file()
+def test_generate_plotly_3d_carousels_rejects_missing_coords(tmp_path: Path) -> None:
+    """An array does not establish unprovided physical angular coordinates."""
+    phi = np.linspace(-180.0, 180.0, 30)
+    a, b = np.meshgrid(phi, phi, indexing="ij")
+    potential = 10 * (1 - np.cos(np.radians(a))) + 10 * (1 - np.cos(np.radians(b)))
+    with pytest.raises(ValueError, match="Actual angle grids"):
+        generate_plotly_3d_carousels(
+            pes_tensor={"pes": potential}, artifact_dir=tmp_path
+        )
+    assert not list(tmp_path.glob("*.html"))
 
 
 # ============================================================================
@@ -407,112 +393,81 @@ def test_generate_plotly_3d_carousels_dict_missing_coords(tmp_path: Path) -> Non
 # ============================================================================
 
 
-def test_export_crash_animation_steric_collision(tmp_path: Path) -> None:
-    """Validates multi-frame XYZ crash animation and JSON diagnostic generation."""
-    artifact_dir = tmp_path / "artifacts"
-    scratch_dir = tmp_path / "scratch"
+KCAL_MOL_TO_HARTREE = 4184.0 / (Avogadro * physical_constants["Hartree energy"][0])
+ANGSTROM_PER_BOHR = physical_constants["Bohr radius"][0] / 1e-10
 
-    # Define a 6-atom molecule (e.g. ethane-like) undergoing steric shatter collision
-    symbols = ["C", "C", "H", "H", "H", "H"]
-    num_atoms = len(symbols)
-    num_frames = 12
 
-    # Frame 0: Stable geometry
-    base_coords = np.array(
-        [
-            [0.0, 0.0, 0.0],  # C1
-            [1.54, 0.0, 0.0],  # C2
-            [-0.5, 1.0, 0.0],  # H3
-            [-0.5, -0.5, 0.86],  # H4
-            [2.04, 1.0, 0.0],  # H5
-            [2.04, -0.5, -0.86],  # H6
-        ],
-        dtype=np.float64,
+def _analytic_lj_pair(coordinates_angstrom: np.ndarray) -> tuple[float, np.ndarray]:
+    """Defined mathematical LJ pair model; no fitted atomistic parameter claim.
+
+    sigma=1.1 Å and epsilon=0.1 kcal/mol are explicit model-definition inputs.
+    The energy origin is the standard V(r→infinity)=0; no quantum energy offset.
+    """
+    sigma_angstrom, epsilon_kcal_mol = 1.1, 0.1
+    delta = coordinates_angstrom[0] - coordinates_angstrom[1]
+    radius = float(np.linalg.norm(delta))
+    if radius <= 0:
+        raise ValueError("The mathematical LJ potential is singular at r=0.")
+    ratio6 = (sigma_angstrom / radius) ** 6
+    energy_kcal_mol = 4 * epsilon_kcal_mol * (ratio6**2 - ratio6)
+    derivative_kcal_mol_angstrom = (
+        24 * epsilon_kcal_mol * (ratio6 - 2 * ratio6**2) / radius
     )
+    first = derivative_kcal_mol_angstrom * delta / radius
+    gradient = np.asarray([first, -first]) * KCAL_MOL_TO_HARTREE * ANGSTROM_PER_BOHR
+    return energy_kcal_mol * KCAL_MOL_TO_HARTREE, gradient
 
-    # Generate physical trajectory with H3 (idx 2) and H5 (idx 4) colliding
-    frame_coords_list: list[np.ndarray] = []
-    energies: list[float] = []
-    gradients: list[np.ndarray] = []
 
-    sigma_lj = 1.1  # Angstrom
-    eps_lj = 0.1  # kcal/mol
+def test_analytic_lj_units_and_gradient_sign():
+    """Independent finite differences check the analytic mathematical derivative."""
+    geometry = np.asarray([[0.0, 0.0, 0.0], [1.3, 0.2, 0.0]])
+    _, gradient = _analytic_lj_pair(geometry)
+    step_angstrom = 1e-6
+    for atom in range(2):
+        for axis in range(3):
+            plus, minus = geometry.copy(), geometry.copy()
+            plus[atom, axis] += step_angstrom
+            minus[atom, axis] -= step_angstrom
+            numerical = (_analytic_lj_pair(plus)[0] - _analytic_lj_pair(minus)[0]) / (
+                2 * step_angstrom
+            )
+            assert gradient[atom, axis] == pytest.approx(
+                numerical * ANGSTROM_PER_BOHR, abs=1e-10
+            )
+    np.testing.assert_allclose(gradient.sum(axis=0), 0.0, atol=1e-15)
 
-    for f_idx in range(num_frames):
-        coords = base_coords.copy()
-        # Compress H3 and H5 along interaction vector for steric collision
-        compression = float(f_idx) * 0.20
-        coords[2, 0] += compression * 0.5  # H3 moves toward center
-        coords[4, 0] -= compression * 0.6  # H5 moves toward center
-        coords[4, 1] -= compression * 0.05  # slight y-deflection
 
-        frame_coords_list.append(coords)
-
-        # Compute physical Lennard-Jones potential energy and analytical gradients
-        e_frame = -79.8  # baseline Hartree
-        grad_frame = np.empty((num_atoms, 3), dtype=np.float64)
-        grad_frame.fill(0.0)
-
-        for i in range(num_atoms):
-            for j in range(num_atoms):
-                if i == j:
-                    continue
-                r_vec = coords[i] - coords[j]
-                r_dist = float(np.linalg.norm(r_vec))
-                if r_dist > 1e-4:
-                    s_r = sigma_lj / r_dist
-                    # Analytical LJ gradient
-                    force_mag = (
-                        24.0 * eps_lj * (2.0 * (s_r**12) - (s_r**6)) / (r_dist**2)
-                    )
-                    grad_frame[i] += force_mag * r_vec
-                    if i < j:
-                        e_frame += 4.0 * eps_lj * ((s_r**12) - (s_r**6))
-
-        energies.append(float(e_frame))
-        gradients.append(grad_frame)
-
-    trajectory = np.array(frame_coords_list, dtype=np.float64)
-
+def test_export_analytic_lj_collision_trajectory(tmp_path: Path) -> None:
+    """Real file export of a defined mathematical model, never engine evidence."""
+    frames = np.asarray(
+        [[[0.0, 0.0, 0.0], [radius, 0.0, 0.0]] for radius in np.linspace(2.0, 0.3, 12)]
+    )
+    pairs = [_analytic_lj_pair(frame) for frame in frames]
+    energies = [item[0] for item in pairs]
+    gradients = [item[1] for item in pairs]
     result_paths = export_crash_animation(
-        trajectory_array=trajectory,
-        error_node_id="rotor_node_55",
-        symbols=symbols,
+        trajectory_array=frames,
+        error_node_id="analytic_lj_pair",
+        symbols=["H", "H"],
         energies=energies,
         gradients=gradients,
-        artifact_dir=artifact_dir,
-        scratch_dir=scratch_dir,
-        abort_reason="Steric Shatter Soft-Quench Abort: Interatomic distance < 0.5 A",
+        artifact_dir=tmp_path / "artifacts",
+        scratch_dir=tmp_path / "scratch",
+        abort_reason="Analytic mathematical LJ pair diagnostic; no molecular/quantum calculation or optimization",
     )
-
-    xyz_path = result_paths["xyz_path"]
-    diag_path = result_paths["diagnostic_path"]
-
-    assert xyz_path.exists()
-    assert diag_path.exists()
-
-    # Verify XYZ structure
-    xyz_lines = xyz_path.read_text(encoding="utf-8").strip().split("\n")
-    # Each frame has num_atoms + 2 lines
-    expected_lines = num_frames * (num_atoms + 2)
-    assert len(xyz_lines) == expected_lines
-    assert xyz_lines[0].strip() == str(num_atoms)
-    assert "rotor_node_55" in xyz_lines[1]
-
-    # Verify Diagnostic JSON
-    with open(diag_path, encoding="utf-8") as diag_file:
-        diag_data = json.load(diag_file)
-
-    assert diag_data["error_node_id"] == "rotor_node_55"
-    assert diag_data["num_frames"] == 12
-    assert diag_data["num_atoms"] == 6
-    assert diag_data["symbols"] == symbols
-    assert diag_data["min_interatomic_distance"] < 0.5
-    assert diag_data["colliding_pair"] == [2, 4] or diag_data["colliding_pair"] == [
-        4,
-        2,
-    ]
-    assert "Steric Shatter" in diag_data["abort_reason"]
+    xyz = result_paths["xyz_path"].read_text().splitlines()
+    assert len(xyz) == 12 * (2 + 2)
+    assert "analytic_lj_pair" in xyz[1]
+    diagnostic = json.loads(result_paths["diagnostic_path"].read_text())
+    assert diagnostic["num_frames"] == 12 and diagnostic["num_atoms"] == 2
+    assert diagnostic["symbols"] == ["H", "H"]
+    assert diagnostic["min_interatomic_distance"] == pytest.approx(0.3)
+    assert diagnostic["colliding_pair"] == [0, 1]
+    assert diagnostic["initial_energy_hartree"] == pytest.approx(energies[0])
+    assert diagnostic["final_energy_hartree"] == pytest.approx(energies[-1])
+    assert "mathematical LJ" in diagnostic["abort_reason"]
+    # Full coordinate precision survives the actual exported XYZ artifact.
+    assert float(xyz[-1].split()[1]) == frames[-1, 1, 0]
 
 
 # ============================================================================
@@ -552,6 +507,8 @@ def test_airgap_compliance_no_repo_pollution(tmp_path: Path) -> None:
     )
     generate_plotly_3d_carousels(
         pes_tensor=pes,
+        phi1_grid=phi,
+        phi2_grid=phi,
         artifact_dir=artifact_dir,
         max_nodes=100,
     )
@@ -691,8 +648,7 @@ def test_export_crash_animation_dict_and_single_frame(tmp_path: Path) -> None:
     traj_dict = {
         "coordinates": coords,
         "symbols": ["O", "H"],
-        "energies": [-75.123456],
-        "gradients": [np.array([[10.0, 0.0, 0.0], [-10.0, 0.0, 0.0]])],
+        # No energy/gradient was evaluated for this coordinate-format test.
     }
 
     result = export_crash_animation(
@@ -700,7 +656,7 @@ def test_export_crash_animation_dict_and_single_frame(tmp_path: Path) -> None:
         error_node_id="single_frame_node",
         artifact_dir=artifact_dir,
         scratch_dir=scratch_dir,
-        abort_reason="Single frame singularity collision",
+        abort_reason="Coordinate-format mathematical check; no physical calculation",
     )
 
     xyz_path = result["xyz_path"]
@@ -717,3 +673,27 @@ def test_export_crash_animation_dict_and_single_frame(tmp_path: Path) -> None:
     assert diag["num_atoms"] == 2
     assert diag["min_interatomic_distance"] == 0.2
     assert diag["colliding_pair"] == [0, 1] or diag["colliding_pair"] == [1, 0]
+
+
+@pytest.mark.parametrize(
+    "bad_density",
+    [
+        np.ones((4, 4)),
+        -np.ones((10, 10)),
+        np.full((10, 10), np.nan),
+        np.zeros((10, 10)),
+    ],
+)
+def test_render_rejects_invalid_density_without_resize_or_sign_repair(
+    tmp_path: Path, bad_density
+):
+    phi = np.linspace(-180.0, 180.0, 10)
+    with pytest.raises(ValueError, match="Supplied probability density"):
+        generate_plotly_3d_carousels(
+            np.zeros((10, 10)),
+            dvr_wavefunctions=[bad_density],
+            phi1_grid=phi,
+            phi2_grid=phi,
+            artifact_dir=tmp_path,
+        )
+    assert not list(tmp_path.glob("*.html"))

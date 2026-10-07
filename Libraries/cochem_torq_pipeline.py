@@ -1,7 +1,6 @@
 """
 CoChem-TORQ: End-to-End Orchestration Pipeline
-Stage 5: Multi-tier Torsional Workflow Execution
-Compliant with Method Matrix v4 (§4.4, §8A, §8B, Anti-Spoofing Directives).
+Refine supplied geometries and preserve explicitly typed spectroscopy results.
 """
 
 from __future__ import annotations
@@ -12,6 +11,8 @@ import logging
 import os
 import re
 import sys
+import tempfile
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -43,6 +44,10 @@ def normalize_and_validate_payload(
     """
     if not isinstance(geometry_payload, dict) or not geometry_payload:
         raise ValueError("[MISSING DATA] Pipeline requires a non-empty geometry payload dict.")
+
+    for field in ("units", "coordinate_units", "coordinates_units"):
+        if field in geometry_payload and geometry_payload[field] not in ("angstrom", "angstroms", "Angstrom", "Å"):
+            raise ValueError(f"[INVALID_PAYLOAD] {field} must explicitly be angstrom; unsupported units cannot be relabeled.")
 
     # 1. Resolve atomic symbols alias
     raw_symbols = None
@@ -91,6 +96,9 @@ def normalize_and_validate_payload(
         raise ValueError(
             f"[INVALID_PAYLOAD] Length of symbols ({len(raw_symbols)}) does not match coordinates count ({n_atoms})."
         )
+
+    if not np.all(np.isfinite(coords)):
+        raise ValueError("[INVALID_PAYLOAD] Coordinates must all be finite.")
 
     # 4. Atomic and isotopic symbol validation via Mendeleev library
     validated_symbols: list[str] = []
@@ -208,9 +216,8 @@ def deduplicate_conformer_union(
 
 class TorqPipeline:
     """
-    Orchestrates the multi-stage CoChem-TORQ execution pipeline:
-    Topology -> Machine Learning Fast Filtering -> Conformer Search ->
-    Quantum Engine Optimization -> SPCAT Spectral Synthesis -> Deliverable Export.
+    Refines a supplied geometry with explicit engine dispatch, then exports a
+    typed spectroscopy report with independent availability for every stage.
     """
 
     def __init__(self, config: TorqRunParams) -> None:
@@ -234,377 +241,151 @@ class TorqPipeline:
         logger.info(f"Transitioned pipeline state to: {self.state}")
 
     def run(self, geometry_payload: dict[str, Any]) -> dict[str, Any]:
-        """
-        Executes all pipeline stages conforming to Method Matrix v4 (§4.4, §8A, §8B, §9B, §10).
+        """Refine a supplied geometry and report each spectroscopy stage honestly.
 
-        :param geometry_payload: Input empirical structural payload.
-        :return: Execution summary dictionary containing processed payload, intermediate results,
-                 and deliverable exports.
-        :raises ValueError: When invoked with missing or malformed geometric payloads.
+        ``requested_product`` defaults to ``catalog``. A supported earlier product
+        can be requested explicitly; unavailable later stages remain in the report.
+        Discovery and ML filtering require independent validated workflows and are
+        not silently applied to a supplied structure.
         """
         try:
             symbols, coordinates = normalize_and_validate_payload(geometry_payload)
-            charge = int(geometry_payload.get("charge", 0))
-            multiplicity = int(geometry_payload.get("multiplicity", geometry_payload.get("spin", 1)))
+            requested_product = geometry_payload.get("requested_product", "catalog")
+            if requested_product not in ("equilibrium_constants", "harmonic_analysis", "ground_state_constants", "catalog"):
+                raise ValueError(f"Unsupported requested spectroscopy product: {requested_product}")
+            profile = geometry_payload.get("workflow_profile", "refine_geometry")
+            if profile != "refine_geometry":
+                raise NotImplementedError(f"Workflow profile {profile!r} has no validated pipeline adapter.")
+            engine = self.config.engine.strip().upper()
+            tier = self.config.tier.upper().replace("-", "")
+            if engine != "ORCA" or "CFOUR" in self.config.method.upper() or tier.startswith(("T3C", "T4C", "CFOUR")):
+                raise NotImplementedError(
+                    f"Requested engine/tier {self.config.engine}/{self.config.tier} is not implemented by this pipeline; "
+                    "the ORCA adapter cannot execute a different engine's job."
+                )
+            if self.config.bsse_correction:
+                raise NotImplementedError(
+                    "This pipeline does not implement a CP-corrected optimization or discrete fragment CP calculations; "
+                    "the requested BSSE correction cannot be silently omitted."
+                )
+            charge = geometry_payload.get("charge", 0)
+            multiplicity = geometry_payload.get("multiplicity", geometry_payload.get("spin", 1))
+            if type(charge) is not int or type(multiplicity) is not int or multiplicity < 1:
+                raise ValueError("Charge and multiplicity must be integers; multiplicity must be positive.")
+            from Libraries.cochem_torq_topology import TorqTopology, get_atomic_number
+            electrons = sum(get_atomic_number(symbol) for symbol in symbols) - charge
+            if electrons < 0 or multiplicity - 1 > electrons or (electrons - multiplicity + 1) % 2:
+                raise ValueError("Charge, atom identities and multiplicity imply an inconsistent electron count.")
 
-            # ---------------------------------------------------------------------
-            # Stage 1: Structural Topology & Covalent Graph Construction
-            # ---------------------------------------------------------------------
+            from Libraries.cochem_torq_engine import (
+                ExecutionContext, detect_complex_and_monomers,
+                route_cascade_rules, opi_persistent_threading,
+            )
+            from Libraries.cochem_torq_spectroscopy import build_spectroscopy_report
+
             self._transition_state("S_TOPOLOGY")
-            from Libraries.cochem_torq_topology import TorqTopology
-            from Libraries.cochem_torq_engine import detect_complex_and_monomers
-
             is_complex, components = detect_complex_and_monomers(symbols, coordinates)
             topology = TorqTopology(symbols=symbols, coordinates=coordinates, is_complex=is_complex)
-
-            # ---------------------------------------------------------------------
-            # Stage 2: Machine Learning Fast Filtering & Pre-relaxation
-            # ---------------------------------------------------------------------
-            self._transition_state("S_MLFF_FILTER")
-            from Libraries.cochem_torq_mace import evaluate_physical_potential
-
-            mlff_energy_ev, mlff_forces, mlff_converged = evaluate_physical_potential(
-                symbols=symbols,
-                coordinates=coordinates
-            )
-
-            # ---------------------------------------------------------------------
-            # Stage 3: Conformer & Binding-Site Isomer Search (GOAT + CREST Union)
-            # ---------------------------------------------------------------------
-            self._transition_state("S_CONFORMER_SEARCH")
-            from Libraries.cochem_torq_goat import (
-                ConformerRecord,
-                compute_moments_and_constants,
-                deduplicate_stage_b_spectroscopic,
-                GoatRunner
-            )
-            from Libraries.cochem_torq_crest import CrestRunner
-            from cochem_base.environment import PathRegistry
-
-            (
-                (A_mhz, B_mhz, C_mhz),
-                (A_ghz, B_ghz, C_ghz),
-                delta,
-                planar,
-                kappa,
-            ) = compute_moments_and_constants(symbols, coordinates)
-
-            import scipy.constants
-            hartree_in_ev = scipy.constants.physical_constants["Hartree energy in eV"][0]
-            initial_hartree = float(mlff_energy_ev / hartree_in_ev) if mlff_energy_ev else 0.0
-            
-            # NVIDIA MPS health verification and device isolation
-            mps_healthy = verify_nvidia_mps_health()
-            if mps_healthy:
-                logger.info("NVIDIA MPS daemon verified healthy for conformer screening.")
-            else:
-                logger.info("NVIDIA MPS daemon inactive or not detected; sandboxing device execution.")
-            initial_conformer = ConformerRecord(
-                index=0,
-                symbols=symbols,
-                coordinates=coordinates.tolist(),
-                energy_hartree=initial_hartree,
-                energy_kcal_rel=0.0,
-                rotational_constants_mhz=(A_mhz, B_mhz, C_mhz),
-                rotational_constants_ghz=(A_ghz, B_ghz, C_ghz),
-                inertial_defect_u_a2=delta,
-                planar_moments_u_a2=planar,
-                ray_asymmetry_kappa=kappa,
-                origin_engine="TORQ-PIPELINE",
-                seed_id="seed_00"
-            )
-
-            # Write seed structure to scratch directory for GOAT / CREST
-            scratch_dir = PathRegistry.create_scratch_dir("conformer_search")
-            seed_xyz_path = scratch_dir / "seed.xyz"
-            with open(seed_xyz_path, "w", encoding="utf-8") as f:
-                f.write(f"{len(symbols)}\nSeed structure\n")
-                for s, pos in zip(symbols, coordinates):
-                    f.write(f"{s:<3} {pos[0]:14.8f} {pos[1]:14.8f} {pos[2]:14.8f}\n")
-
-            conformer_pool: list[dict[str, Any]] = [
-                {
-                    "symbols": symbols,
-                    "coordinates": coordinates.tolist(),
-                    "energy_hartree": initial_hartree,
-                    "rotational_constants_mhz": (A_mhz, B_mhz, C_mhz),
-                    "origin": "TORQ-INITIAL",
-                }
-            ]
-
-            # 1. Execute GOAT exploration
-            try:
-                goat_records = GoatRunner().run_goat_on_seed(seed_xyz=seed_xyz_path, scratch_dir=scratch_dir)
-                for gr in goat_records:
-                    conformer_pool.append({
-                        "symbols": gr.symbols,
-                        "coordinates": gr.coordinates,
-                        "energy_hartree": gr.energy_hartree,
-                        "rotational_constants_mhz": gr.rotational_constants_mhz,
-                        "origin": "GOAT",
-                    })
-            except Exception as e:
-                logger.info(f"GOAT conformer exploration omitted or failed: {e}")
-
-            # 2. Execute CREST search
-            try:
-                crest_container = CrestRunner().run_crest(
-                    input_xyz=seed_xyz_path,
-                    work_dir=scratch_dir / "crest",
-                    flags="--nci --nocross --noreftopo"
-                )
-                for cr in crest_container.records:
-                    conformer_pool.append({
-                        "symbols": cr.symbols,
-                        "coordinates": cr.coordinates,
-                        "energy_hartree": cr.energy_hartree,
-                        "rotational_constants_mhz": cr.rotational_constants_mhz,
-                        "origin": "CREST",
-                    })
-            except Exception as e:
-                logger.info(f"CREST conformer search omitted or failed: {e}")
-
-            # 3. Deduplicate GOAT + CREST conformer union
-            deduped_union = deduplicate_conformer_union(
-                conformer_pool,
-                delta_b_rel_threshold=0.005,
-                rmsd_threshold=0.15
-            )
-
-            conformer_survivors: list[ConformerRecord] = []
-            for idx, c in enumerate(deduped_union):
-                c_coords = np.asarray(c["coordinates"], dtype=np.float64)
-                c_syms = c.get("symbols", symbols)
-                rot_c = c.get("rotational_constants_mhz", (A_mhz, B_mhz, C_mhz))
-                conformer_survivors.append(
-                    ConformerRecord(
-                        index=idx,
-                        symbols=c_syms,
-                        coordinates=c_coords.tolist(),
-                        energy_hartree=c.get("energy_hartree", 0.0),
-                        energy_kcal_rel=0.0,
-                        rotational_constants_mhz=rot_c,
-                        rotational_constants_ghz=tuple(x / 1000.0 for x in rot_c),
-                        inertial_defect_u_a2=delta,
-                        planar_moments_u_a2=planar,
-                        ray_asymmetry_kappa=kappa,
-                        origin_engine=c.get("origin", "UNION"),
-                        seed_id=f"seed_{idx:02d}"
-                    )
-                )
-
-            if not conformer_survivors:
-                conformer_survivors = [initial_conformer]
-
-            # Promote top conformer geometry for Stage 4 optimization
-            if conformer_survivors:
-                coordinates = np.asarray(conformer_survivors[0].coordinates, dtype=np.float64)
-
-            # ---------------------------------------------------------------------
-            # Stage 4: Quantum Engine Optimization & Dynamic Wavefunction Chaining
-            # ---------------------------------------------------------------------
-            self._transition_state("S_QUANTUM_OPT")
-            tier_upper = (self.config.tier or "").upper().strip()
-            method_upper = (self.config.method or "").upper().strip()
-            is_cfour = (
-                tier_upper in ["T3C", "T4C", "T3-C", "T4-C", "T3C-3D", "T4C-1MO", "CFOUR_VPT2", "CFOUR"]
-                or "CFOUR" in method_upper
-            )
-            if is_cfour:
-                from Libraries.cochem_torq_cfour_bridge import TorqCfourExecutor
-                cfour_executor = TorqCfourExecutor()
-                _ = cfour_executor.resolve_binary()
-            from Libraries.cochem_torq_engine import (
-                ExecutionContext,
-                route_cascade_rules,
-                opi_persistent_threading
-            )
-
+            input_coordinates = coordinates.copy()
             context = ExecutionContext()
+            resources = geometry_payload.get("resources", {})
+            if resources:
+                for name in ("num_cores", "max_memory_mb"):
+                    value = resources.get(name)
+                    if value is not None:
+                        if type(value) is not int or value <= 0:
+                            raise ValueError(f"{name} must be a positive integer.")
+                        setattr(context, name, min(value, getattr(context, name)))
+                if resources.get("scratch_dir"):
+                    context.custom_scratch_dir = Path(resources["scratch_dir"])
 
-            # Forward all user configuration parameters and overrides
-            counterpoise_flag = bool(
-                self.config.bsse_correction and self.config.bsse_correction.lower() in ["counterpoise", "cp"]
-            )
-
-            resolved_method = self.config.method
-            keyword_list = list(self.config.keywords) if self.config.keywords else []
-
+            self._transition_state("S_QUANTUM_OPT")
+            keyword_list = list(self.config.keywords)
             if self.config.dispersion:
-                disp_tag = self.config.dispersion.strip()
-                if disp_tag.upper() not in resolved_method.upper() and disp_tag.upper() not in [k.upper() for k in keyword_list]:
-                    keyword_list.append(disp_tag)
-            elif is_complex:
-                m_upper = resolved_method.upper()
-                is_dft = any(func in m_upper for func in ["B3LYP", "PBE", "SCAN", "M06", "W97", "OLYP", "OPBE", "DFT", "R2SCAN"])
-                has_dispersion = any(d in m_upper or any(d in k.upper() for k in keyword_list) for d in ["D3", "D4", "-V", "VV10", "3C", "-3C"])
-                if is_dft and not has_dispersion:
-                    keyword_list.append("D4")
-
+                dispersion = self.config.dispersion.strip()
+                if dispersion.upper() not in self.config.method.upper() and dispersion.upper() not in [k.upper() for k in keyword_list]:
+                    keyword_list.append(dispersion)
             extra_parts: list[str] = []
-            extracted_inhess: str = "XTB2"
-            for kw in keyword_list:
-                clean_kw = kw.strip()
-                if "inhess" in clean_kw.lower():
-                    m_hess = re.search(r"inhess\s+([A-Za-z0-9_]+)", clean_kw, re.IGNORECASE)
-                    if m_hess:
-                        extracted_inhess = m_hess.group(1)
-                    continue
-                if clean_kw.startswith("!") or clean_kw.startswith("%"):
-                    extra_parts.append(clean_kw)
+            initial_hessian = "Lindh"
+            for keyword in keyword_list:
+                clean = keyword.strip()
+                if "inhess" in clean.lower():
+                    match = re.fullmatch(r"InHess\s+([A-Za-z0-9_]+)", clean, re.IGNORECASE)
+                    if match is None:
+                        raise ValueError(f"Unsupported Hessian keyword syntax: {clean!r}")
+                    initial_hessian = match.group(1)
                 else:
-                    extra_parts.append(f"! {clean_kw}")
-
+                    extra_parts.append(clean if clean.startswith(("!", "%")) else f"! {clean}")
             if self.config.anharmonicity:
-                anharm = self.config.anharmonicity.strip()
-                if anharm.startswith("!") or anharm.startswith("%"):
-                    extra_parts.append(anharm)
-                else:
-                    extra_parts.append(f"! {anharm}")
-
-            extra_opts = "\n".join(extra_parts)
-
-            dispatch_payload = route_cascade_rules(
-                point_coords=coordinates,
-                context=context,
-                symbols=symbols,
-                charge=charge,
-                multiplicity=multiplicity,
-                method=resolved_method,
-                basis_set=self.config.basis_set,
-                is_complex=is_complex,
-                initial_hessian=extracted_inhess,
-                counterpoise=counterpoise_flag,
-                extra_options=extra_opts
+                # Engine output for this request can be retained, but the typed
+                # VPT2 stage remains unavailable until a validated parser exists.
+                option = self.config.anharmonicity.strip()
+                extra_parts.append(option if option.startswith(("!", "%")) else f"! {option}")
+            dispatch = route_cascade_rules(
+                point_coords=coordinates, context=context, symbols=symbols,
+                charge=charge, multiplicity=multiplicity, method=self.config.method,
+                basis_set=self.config.basis_set, is_complex=is_complex,
+                initial_hessian=initial_hessian,
+                counterpoise=False,
+                extra_options="\n".join(extra_parts),
             )
-
             if self.config.cabs_mappings:
-                dispatch_payload.metadata["cabs_mappings"] = self.config.cabs_mappings
-
-            engine_results = list(
-                opi_persistent_threading(input_payload=dispatch_payload, context=context, n_steps=1)
+                raise NotImplementedError("CABS mappings are not compiled by the current ORCA pipeline adapter.")
+            engine_results = list(opi_persistent_threading(input_payload=dispatch, context=context, n_steps=1))
+            if len(engine_results) != 1:
+                raise RuntimeError("A single requested engine calculation did not return exactly one result.")
+            engine_result = engine_results[0]
+            self._transition_state("S_SPECTROSCOPY_VALIDATION")
+            report = build_spectroscopy_report(
+                engine_result, symbols, engine="ORCA", method=dispatch.method, basis_set=dispatch.basis_set,
             )
-            last_engine_result = engine_results[-1] if engine_results else None
-            opt_coordinates = (
-                last_engine_result.coordinates
-                if last_engine_result is not None and last_engine_result.coordinates is not None
-                else coordinates
-            )
-
-            # ---------------------------------------------------------------------
-            # Stage 5: SPCAT / SPFIT Spectral Bridge Synthesis
-            # ---------------------------------------------------------------------
-            self._transition_state("S_SPECTRAL_SYNTHESIS")
-            from Libraries.cochem_spcat_bridge import (
-                apply_symmetry_divisors,
-                calculate_rotational_constants_from_geometry,
-                build_complete_spcat_payload
-            )
-
-            sym_result = apply_symmetry_divisors(opt_coordinates, symbols)
-            rot_constants = calculate_rotational_constants_from_geometry(opt_coordinates, symbols)
-
-            dipoles = {"a": 0.0, "b": 0.0, "c": 0.0}
-            if (
-                last_engine_result is not None
-                and last_engine_result.dipole_moment
-                and len(last_engine_result.dipole_moment) >= 3
-            ):
-                dipoles = {
-                    "a": float(abs(last_engine_result.dipole_moment[0])),
-                    "b": float(abs(last_engine_result.dipole_moment[1])),
-                    "c": float(abs(last_engine_result.dipole_moment[2])),
-                }
-
-            stiff_freqs = None
-            if last_engine_result is not None and last_engine_result.frequencies:
-                valid_f = [float(f) for f in last_engine_result.frequencies if float(f) >= 50.0]
-                if valid_f:
-                    stiff_freqs = valid_f
-
-            if not stiff_freqs:
-                stiff_freqs = [500.0, 1000.0, 1500.0] if len(symbols) >= 3 else [1000.0]
-
-            spcat_payload = build_complete_spcat_payload(
-                molecule_name="torq_spec",
-                geometry=opt_coordinates,
-                symbols=symbols,
-                rotational_constants_mhz=rot_constants,
-                dipoles_debye=dipoles,
-                harmonic_frequencies_cm1=stiff_freqs,
-                temperatures=[298.15],
-                use_nuclear_spin=False,
-                output_dir=None
-            )
-
-            # ---------------------------------------------------------------------
-            # Stage 6: Cryptographic Deliverable Export
-            # ---------------------------------------------------------------------
+            report_data = report.model_dump(mode="json")
+            status = "success" if report.product_available(requested_product) else "partial"
+            geometry_stage = report.equilibrium_geometry
+            optimized = geometry_stage.status == "available"
+            final_coordinates = np.asarray(geometry_stage.value.coordinates_angstrom) if optimized else input_coordinates
+            constants = report.equilibrium_constants.value
+            rotational_constants = ({"A": constants.A_mhz, "B": constants.B_mhz, "C": constants.C_mhz}
+                                    if constants is not None else None)
             self._transition_state("S_EXPORT")
-            from Libraries.cochem_torq_export import TorqExporter, canonical_json_dumps
-
+            export_metadata = {
+                "tier": self.config.tier, "requested_product": requested_product,
+                "method": dispatch.method, "basis_set": dispatch.basis_set,
+                "engine": "ORCA", "charge": charge, "multiplicity": multiplicity,
+                "symbols": symbols, "coordinates": final_coordinates.tolist(),
+                "geometry_role": "optimized" if optimized else "input",
+                "rotational_constants_label": "Be" if constants else None,
+                "rotational_constants": rotational_constants, "status": status,
+                "spectroscopy": report_data, "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
             export_dir = context.get_scratch_dir() / "exports"
             export_dir.mkdir(parents=True, exist_ok=True)
-            exporter = TorqExporter(export_dir=str(export_dir))
-
-            export_metadata = {
-                "tier": self.config.tier,
-                "method": self.config.method,
-                "basis_set": self.config.basis_set,
-                "charge": charge,
-                "multiplicity": multiplicity,
-                "state": self.state,
-                "symbols": symbols,
-                "coordinates": opt_coordinates.tolist(),
-                "rotational_constants": rot_constants,
-                "point_group": sym_result.point_group,
-                "sigma": sym_result.sigma,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-            manifest_file = export_dir / "pipeline_export_manifest.json"
-            manifest_file.write_text(canonical_json_dumps(export_metadata), encoding="utf-8")
-
-            # ---------------------------------------------------------------------
-            # Stage Completion
-            # ---------------------------------------------------------------------
-            self._transition_state("S_COMPLETE")
-            logger.info(f"Pipeline execution completed successfully in state: {self.state}")
-
+            (export_dir / "pipeline_export_manifest.json").write_text(
+                json.dumps(export_metadata, indent=2, allow_nan=False), encoding="utf-8")
+            self._transition_state("S_COMPLETE" if status == "success" else "S_PARTIAL")
             return {
-                "status": "success",
-                "processed_payload": geometry_payload,
-                "state_history": self.state_history,
+                "status": status, "requested_product": requested_product,
+                "processed_payload": geometry_payload, "state_history": self.state_history,
                 "normalized_geometry": {
-                    "symbols": symbols,
-                    "coordinates": opt_coordinates.tolist(),
-                    "charge": charge,
-                    "multiplicity": multiplicity,
-                    "is_complex": is_complex,
+                    "symbols": symbols, "coordinates": final_coordinates.tolist(),
+                    "input_coordinates": input_coordinates.tolist(),
+                    "geometry_role": "optimized" if optimized else "input",
+                    "charge": charge, "multiplicity": multiplicity, "is_complex": is_complex,
                     "topology_nodes": topology.graph.number_of_nodes(),
                     "topology_edges": topology.graph.number_of_edges(),
                 },
-                "mlff_results": {
-                    "energy_ev": mlff_energy_ev,
-                    "forces": mlff_forces.tolist(),
-                    "converged": mlff_converged,
-                },
-                "conformer_results": {
-                    "survivors_count": len(conformer_survivors),
-                    "rotational_constants_mhz": [A_mhz, B_mhz, C_mhz],
-                },
+                "mlff_results": {"status": "not_requested"},
+                "conformer_results": {"status": "not_requested", "profile": "refine_geometry"},
                 "engine_results": engine_results,
                 "spectral_results": {
-                    "point_group": sym_result.point_group,
-                    "sigma": sym_result.sigma,
-                    "rotational_constants_mhz": rot_constants,
-                    "var_content": spcat_payload.var_content,
-                    "sha256_var": spcat_payload.sha256_var,
+                    "status": status, "rotational_constants_label": "Be" if constants else None,
+                    "rotational_constants_mhz": rotational_constants, "stages": report_data,
                 },
                 "export_metadata": export_metadata,
             }
-        except Exception as e:
+        except Exception as exc:
             self._transition_state("S_FAILED")
-            logger.error(f"Pipeline execution failed in state '{self.state}': {e}")
+            logger.error("Pipeline execution failed: %s", exc)
             raise
 
     def run_active_learning_pes_sampling(
@@ -679,6 +460,8 @@ def parse_cli_args(args_list: Optional[list[str]] = None) -> TorqPipelineCliArgs
 
 def execute_cli_pipeline(cli_args: TorqPipelineCliArgs) -> dict[str, Any]:
     """Executes the complete TorqPipeline using validated CLI arguments and enforces Tripartite Air-Gaps."""
+    if cli_args.device.lower() != "cpu":
+        raise NotImplementedError("The CLI ORCA adapter has no validated GPU/device execution contract.")
     if not cli_args.input_geometry.exists():
         raise FileNotFoundError(f"Input geometry file not found: {cli_args.input_geometry}")
 
@@ -694,86 +477,96 @@ def execute_cli_pipeline(cli_args: TorqPipelineCliArgs) -> dict[str, Any]:
     cli_args.scratch_dir.mkdir(parents=True, exist_ok=True)
     cli_args.output_directory.mkdir(parents=True, exist_ok=True)
 
-    # Ingest .xyz geometry
-    lines = [l.strip() for l in cli_args.input_geometry.read_text(encoding="utf-8").splitlines() if l.strip()]
+    # XYZ line 2 is a comment and may be blank. Do not filter it out.
+    lines = cli_args.input_geometry.read_text(encoding="utf-8").splitlines()
     if len(lines) < 3:
         raise ValueError(f"Malformed XYZ file: {cli_args.input_geometry}")
-
     try:
         n_atoms = int(lines[0])
-    except ValueError:
-        raise ValueError(f"First line of XYZ must be integer atom count: {lines[0]}")
-
-    symbols = []
-    coords = []
-    for line in lines[2: 2 + n_atoms]:
+    except ValueError as exc:
+        raise ValueError("First line of XYZ must be an integer atom count.") from exc
+    if n_atoms <= 0 or len(lines) < n_atoms + 2 or any(line.strip() for line in lines[n_atoms + 2:]):
+        raise ValueError("XYZ atom count must exactly match one nonempty geometry.")
+    symbols, coords = [], []
+    for line in lines[2:n_atoms + 2]:
         parts = line.split()
-        if len(parts) >= 4:
-            symbols.append(parts[0])
-            coords.append([float(parts[1]), float(parts[2]), float(parts[3])])
-
-    if not symbols:
-        raise ValueError("No valid atomic coordinates parsed from input geometry.")
-
-    # Configure theory parameters
-    theory_str = cli_args.theory_level
-    if "/" in theory_str:
-        method_part, basis_part = theory_str.split("/", 1)
-    else:
-        method_part, basis_part = theory_str, "def2-SVP"
-
-    disp = "D4" if "D4" in method_part else "D3BJ" if "D3" in method_part else None
-    method = method_part.split("-")[0]
-
+        if len(parts) != 4:
+            raise ValueError("Each XYZ atom row must contain a symbol and three coordinates.")
+        symbols.append(parts[0])
+        coords.append([float(value) for value in parts[1:]])
+    symbols, coordinate_array = normalize_and_validate_payload({"symbols": symbols, "coordinates": coords})
+    if "/" not in cli_args.theory_level:
+        raise ValueError("Specify the complete method/basis pair; a basis is never supplied silently.")
+    method, basis = (part.strip() for part in cli_args.theory_level.split("/", 1))
+    if not method or not basis:
+        raise ValueError("Method and basis must both be specified.")
+    products = {"full": "catalog", "equilibrium": "equilibrium_constants", "harmonic": "harmonic_analysis"}
+    if cli_args.mode not in products:
+        raise ValueError(f"Unsupported CLI mode: {cli_args.mode}; choose full, equilibrium or harmonic.")
     run_params = TorqRunParams(
-        tier="T1",
-        wall_time_tier="T1-30min",
-        engine="ORCA",
-        method=method,
-        basis_set=basis_part,
-        dispersion=disp,
-        keywords=["Opt", "TightOpt", "InHess Lindh"],
+        tier="T1", wall_time_tier="T1-30min", engine="ORCA", method=method, basis_set=basis,
+        keywords=["Opt", "TightOpt", "InHess Lindh"] + (["Freq"] if cli_args.mode != "equilibrium" else []),
     )
-
     pipeline = TorqPipeline(config=run_params)
     payload = {
-        "symbols": symbols,
-        "coordinates": np.array(coords, dtype=np.float64).tolist(),
+        "symbols": symbols, "coordinates": coordinate_array.tolist(),
+        "requested_product": products[cli_args.mode],
+        "resources": {"num_cores": cli_args.cpus_per_task, "max_memory_mb": cli_args.memory_mb,
+                      "scratch_dir": str(cli_args.scratch_dir)},
     }
-
     try:
         results = pipeline.run(payload)
     except Exception as exc:
-        logger.warning(f"Full quantum pipeline run encountered exception ({exc}). Emitting empirical observables.")
+        logger.error("Quantum pipeline failed: %s", exc)
         results = {
-            "status": "partial",
-            "theory_level": cli_args.theory_level,
-            "cpus_allocated": cli_args.cpus_per_task,
-            "memory_allocated_mb": cli_args.memory_mb,
-            "symbols": symbols,
-            "initial_coordinates": coords,
-            "error": str(exc),
+            "status": "blocked" if isinstance(exc, (NotImplementedError, FileNotFoundError)) else "failed",
+            "theory_level": cli_args.theory_level, "symbols": symbols,
+            "initial_coordinates": coords, "error": str(exc), "error_type": type(exc).__name__,
+            "state_history": pipeline.state_history,
         }
+    # A unique artifact name prevents a failed rerun from appearing to produce
+    # an earlier run's optimized geometry in the same output directory.
+    normalized = results.get("normalized_geometry", {})
+    optimized = normalized.get("geometry_role") == "optimized"
+    role = "optimized" if optimized else "input"
+    structure_path = cli_args.output_directory / f"{role}_structure_{uuid.uuid4().hex}.xyz"
+    structure_coordinates = normalized["coordinates"] if optimized else coords
+    comment = (f"Optimization converged: {cli_args.theory_level}; spectroscopy status={results['status']}"
+               if optimized else f"Input geometry; no converged optimization exported; status={results['status']}")
+    with structure_path.open("w", encoding="utf-8") as handle:
+        handle.write(f"{len(symbols)}\n{comment}\n")
+        for symbol, position in zip(symbols, structure_coordinates):
+            handle.write(f"{symbol:<3} {position[0]:14.8f} {position[1]:14.8f} {position[2]:14.8f}\n")
+    results["structure_artifact"] = {"path": str(structure_path), "geometry_role": role}
 
-    # Write output deliverables to Ring 3 persistent artifacts
+    def serialize(value: Any) -> Any:
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        if isinstance(value, Path):
+            return str(value)
+        if isinstance(value, bytes):
+            return {"sha256": hashlib.sha256(value).hexdigest(), "size_bytes": len(value)}
+        if hasattr(value, "model_dump"):
+            return value.model_dump()
+        raise TypeError(f"Unsupported result value type: {type(value).__name__}")
+
     results_path = cli_args.output_directory / "pipeline_results.json"
-    results_path.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
-
-    final_xyz = cli_args.output_directory / "final_structure.xyz"
-    final_coords = results.get("normalized_geometry", {}).get("coordinates", coords)
-    with open(final_xyz, "w", encoding="utf-8") as f:
-        f.write(f"{len(symbols)}\nOptimized by CoChem-TORQ ({cli_args.theory_level})\n")
-        for s, pos in zip(symbols, final_coords):
-            f.write(f"{s:<3} {pos[0]:14.8f} {pos[1]:14.8f} {pos[2]:14.8f}\n")
-
-    logger.info(f"Pipeline outputs successfully written to {cli_args.output_directory}")
+    results_path.write_text(json.dumps(results, indent=2, default=serialize, allow_nan=False), encoding="utf-8")
+    logger.info("Pipeline status=%s; results written to %s", results["status"], results_path)
     return results
+
+
+def pipeline_exit_code(status: str) -> int:
+    """SRS §14.1: complete=0, invalid=2, blocked=3, partial=4, failed=5, cancelled=130."""
+    return {"success": 0, "invalid": 2, "blocked": 3, "partial": 4,
+            "rejected": 4, "failed": 5, "cancelled": 130}.get(status.lower(), 5)
 
 
 if __name__ == "__main__":
     try:
         cli_args = parse_cli_args()
-        execute_cli_pipeline(cli_args)
+        results = execute_cli_pipeline(cli_args)
+        sys.exit(pipeline_exit_code(results["status"]))
     except Exception as e:
         logger.error(f"Pipeline execution failed: {e}")
-        sys.exit(1)
+        sys.exit(2 if isinstance(e, ValueError) else 3 if isinstance(e, (NotImplementedError, FileNotFoundError)) else 5)

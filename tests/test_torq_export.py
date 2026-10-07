@@ -4,7 +4,8 @@ Phase 9 (Stages 5.5 - 6.0) Validation Suite
 -----------------------------------------------------------------------------------
 Validates:
 1. Kraitchman coordinates with real physical moments of inertia,
-   singularity damping, ZPVE defect clamping, and piecewise Costain bounds.
+   rejection of singular inversion, unavailable imaginary coordinates and
+   empirical bounds.
 2. OOM-proof PGOPHER XML skeleton generation inspecting Parquet metadata.
 3. Provenance lock manifest generation under RFC 8785 Canonical JSON.
 4. Deterministic .tar.zst payload bundling with normalized POSIX metadata.
@@ -23,18 +24,17 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-from mendeleev import element
 import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 import scipy.linalg as sla
 import zstandard as zstd
+from mendeleev import element
 
 from Libraries.cochem_torq_alignment import enforce_ciaaw_masses
 from Libraries.cochem_torq_export import (
     CoChemIntegrityError,
-    KraitchmanSingularityWarning,
     KraitchmanZPVEWarning,
     PESStore,
     TorqExporter,
@@ -139,8 +139,8 @@ def test_kraitchman_real_asymmetric_top() -> None:
     assert math.isclose(result["reduced_mass"], expected_mu, rel_tol=1e-9)
 
 
-def test_kraitchman_singularity_guard_damping() -> None:
-    """Validates near-symmetric top damping guard (|Ia - Ib| < 1e-4)."""
+def test_kraitchman_singular_inversion_rejected() -> None:
+    """Rejects underdetermined near-symmetric inversion rather than damping data."""
     i_a = 15.00000
     i_b = 15.00005
     i_c = 30.00000
@@ -149,11 +149,10 @@ def test_kraitchman_singularity_guard_damping() -> None:
     sub_moments = {"Ia": i_a + 0.1, "Ib": i_b + 0.1, "Ic": i_c + 0.05}
 
     from mendeleev import element
-    with pytest.warns(
-        KraitchmanSingularityWarning, match="Singularity near-symmetric denominator"
-    ):
+
+    with pytest.raises(ValueError, match="near-symmetric denominator"):
         delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
-        result = calculate_kraitchman_coords(
+        calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
             parent_mass=float(element("Sc").atomic_weight),
@@ -161,21 +160,16 @@ def test_kraitchman_singularity_guard_damping() -> None:
             singularity_threshold=1e-4,
         )
 
-    assert not math.isnan(result["coords"]["a"])
-    assert not math.isnan(result["coords"]["b"])
-    assert not math.isnan(result["coords"]["c"])
-    assert result["coords"]["a"] >= 0.0
 
-
-def test_kraitchman_zpve_defect_clamping() -> None:
-    """Validates that negative radicands (R_g < 0) are clamped to 0.0000."""
+def test_kraitchman_imaginary_coordinate_unavailable() -> None:
+    """Negative radicands remain evidence; no real coordinate is invented."""
     i_a, i_b, i_c = 10.0, 25.0, 30.0
     parent_moments = (i_a, i_b, i_c)
     sub_moments = (i_a + 1.5, i_b + 0.1, i_c + 0.1)
 
     with pytest.warns(
         KraitchmanZPVEWarning,
-        match="ZPVE defect produced imaginary substitution coordinate",
+        match="Imaginary substitution coordinate",
     ):
         delta_m_c = float(element("C").isotopes[1].mass - element("C").isotopes[0].mass)
         result = calculate_kraitchman_coords(
@@ -185,11 +179,11 @@ def test_kraitchman_zpve_defect_clamping() -> None:
             delta_m=delta_m_c,
         )
 
-    assert result["coords"]["a"] == 0.0
+    assert result["coords"]["a"] is None
     assert result["radicands"]["a"] < 0.0
 
-    expected_error = math.sqrt(abs(result["radicands"]["a"]))
-    assert math.isclose(result["costain_errors"]["a"], expected_error, rel_tol=1e-6)
+    assert result["costain_errors"]["a"] is None
+    assert result["quality_flags"]["a"] == "imaginary_coordinate"
 
 
 def test_kraitchman_piecewise_costain_bounds() -> None:
@@ -454,24 +448,10 @@ def test_torq_exporter_and_pes_store(tmp_path: Path) -> None:
     assert metadata["compression_method"] == "Zstandard"
 
     qcschema_path = str(tmp_path / "qcschema.json")
-    orca_result = {
-        "geometry": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        "symbols": ["O", "H"],
-        "molecular_charge": 0,
-        "molecular_multiplicity": 1,
-        "driver": "energy",
-        "method": "B3LYP",
-        "basis": "def2-TZVP",
-        "return_energy": -75.123456,
-    }
-    res_path = export_qcschema(orca_result, qcschema_path)
-    assert Path(res_path).exists()
-
-    with open(res_path, encoding="utf-8") as f:
-        schema = json.load(f)
-    assert schema["schema_name"] == "qcschema_output"
-    assert schema["properties"]["return_energy"] == -75.123456
-    assert "hash" in schema["molecule"]["provenance"]
+    # An unqualified dictionary cannot establish a successful engine result.
+    with pytest.raises(ValueError, match="Complete AtomicResult"):
+        export_qcschema({"geometry": [], "return_energy": None}, qcschema_path)
+    assert not Path(qcschema_path).exists()
 
 
 # ============================================================================
@@ -615,8 +595,7 @@ def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
     top = root.find(".//AsymmetricTop")
     assert top is not None
     params = {
-        p.attrib["Name"]: float(p.attrib["Value"])
-        for p in top.findall("Parameter")
+        p.attrib["Name"]: float(p.attrib["Value"]) for p in top.findall("Parameter")
     }
     assert math.isclose(params["A"], 835840.2, rel_tol=1e-5)
     assert math.isclose(params["mu_a"], 2.0, rel_tol=1e-5)
@@ -687,17 +666,14 @@ def test_kraitchman_exact_zero_denominator_guard() -> None:
     sub_moments = (20.5, 20.5, 40.8)
 
     delta_m_h = float(element("H").isotopes[1].mass - element("H").isotopes[0].mass)
-    with pytest.warns(KraitchmanSingularityWarning):
-        res = calculate_kraitchman_coords(
+    with pytest.raises(ValueError, match="near-symmetric denominator"):
+        calculate_kraitchman_coords(
             parent_moments=parent_moments,
             substituted_moments=sub_moments,
             parent_mass=float(element("V").atomic_weight),
             delta_m=delta_m_h,
             singularity_threshold=1e-4,
         )
-    assert not math.isnan(res["coords"]["a"])
-    assert not math.isnan(res["coords"]["b"])
-    assert not math.isnan(res["coords"]["c"])
 
 
 def test_pgopher_dict_overrides_and_missing_manifest(tmp_path: Path) -> None:
@@ -740,13 +716,15 @@ def test_torq_exporter_scribe_and_corrupt_verify(tmp_path: Path) -> None:
 
 
 def test_lock_provenance_with_kraitchman_and_nested_dirs(tmp_path: Path) -> None:
-    """Validates lock_provenance_payload with kraitchman_coords and nested directory tarball."""
+    """Validate provenance with coordinates and a nested directory tarball."""
     payload_dir = tmp_path / "full_complex_payload"
     payload_dir.mkdir()
     sub_dir = payload_dir / "nested_models"
     sub_dir.mkdir()
 
-    (sub_dir / "geom.xyz").write_text("3\nH2O\nO 0 0 0\nH 0 0 1\nH 0 1 0\n", encoding="utf-8")
+    (sub_dir / "geom.xyz").write_text(
+        "3\nH2O\nO 0 0 0\nH 0 0 1\nH 0 1 0\n", encoding="utf-8"
+    )
     (payload_dir / "spec.var").write_text("VAR TEST", encoding="utf-8")
 
     kc = {
@@ -770,6 +748,3 @@ def test_lock_provenance_with_kraitchman_and_nested_dirs(tmp_path: Path) -> None
     )
     assert Path(archive).exists()
     assert verify_payload_integrity(archive) is True
-
-
-

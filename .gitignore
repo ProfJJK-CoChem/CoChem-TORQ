@@ -41,6 +41,10 @@ core.*
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+build/
+dist/
+*.egg-info/
+.venv/
 
 # Exception: Allow strictly bounded synthetic .xyz files exclusively for unit tests
 !tests/**/*.xyz

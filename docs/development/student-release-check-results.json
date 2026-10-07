@@ -1,0 +1,139 @@
+{
+  "schema_version": "cochem.student-release-evidence/1",
+  "recorded_at": "2026-10-07T22:32:44.804160+00:00",
+  "source_base_commit": "d7a4739a5f7d6f22ed659b32eeb4706bef16225e",
+  "scope": "Local actual execution; selections overlap and are not summed. Neither complete historical-suite acceptance nor high-accuracy identification qualification.",
+  "python_version": "3.12.14",
+  "lanes": {
+    "prior_integrity_regression": {
+      "tests": 240,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/integrity-final.xml",
+      "raw_report_sha256": "a656afee62adc89441fa6792dcd9dee349115c9719447966215817c970f74f94"
+    },
+    "supported_export_vault": {
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/legacy-supported-final.xml",
+      "raw_report_sha256": "7432b765dadc0ca1403e6f0054425895d1b2183d425a622d233f4a9fbaaf860c"
+    },
+    "expanded_scientific_integrity": {
+      "tests": 133,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/scientific-expanded-final.xml",
+      "raw_report_sha256": "a7ba6dd1ef8fe8adfb9000b1ea9ce7d811c224afe48ae1570d1124f93cca9d82"
+    },
+    "genuine_student_execution": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/student-execution-final.xml",
+      "raw_report_sha256": "5e2ecd214fc06fd9f6b89d6e9cec961eadaf19ef7d719a57d134fad062507102"
+    },
+    "semantic_student_contracts": {
+      "tests": 20,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/student-semantic-final.xml",
+      "raw_report_sha256": "c8575cfdd5e900392a699acd35452cf0a1366b869522a956a694a479632759dd"
+    },
+    "settled_telemetry_models": {
+      "tests": 61,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/telemetry-migration-integrity.xml",
+      "raw_report_sha256": "18a77c6cc30b0df24d895a22dd89c55089a4f9012d97396cbaedf79d5e584f68"
+    },
+    "native_preparation_integrity": {
+      "tests": 33,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/workspace/torq-review/native-preparation-final.xml",
+      "raw_report_sha256": "a7deb1ce0959b7214b3371abc87538e697a82d3a74f8fb3861b670e865972114"
+    },
+    "mobile_authentication_integrity": {
+      "tests": 57,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "raw_report_path": "/tmp/cochem_exec_student_release/mobile-auth-integrity.xml",
+      "raw_report_sha256": "6b472987274f07cfde474be1c8f78b8ca65d35e9cda7011026f76fe8caa47d86"
+    },
+    "settled_legacy_migration": {
+      "tests": 144,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "raw_report_path": "/tmp/cochem_exec_pyscf_suite/final-legacy-scientific-migration.xml",
+      "raw_report_sha256": "eb1e8ced313ab0a73bdca15de51830a5961a2556957fced591bb685f30f3061c",
+      "skip_scope": "Three optional ONNX checks are unavailable; no scientific profile is qualified by these skips."
+    }
+  },
+  "packaging": {
+    "wheel_build": "passed",
+    "isolated_installed_wheel_imports": 13,
+    "installed_cli_help": "passed",
+    "core_dependency_check": "passed"
+  },
+  "cloud_setup": {
+    "complete_install_script": "passed",
+    "combined_pinned_dependencies_consistent": true,
+    "student_contract_checks_at_setup": 35,
+    "pinned_base_topos_installation": "passed",
+    "actual_authenticated_jupyter_health": "passed",
+    "configuration_draft_saved": true,
+    "configuration_published": false,
+    "fresh_task_restoration_verified": false
+  },
+  "scientific_accuracy_established": false,
+  "identification_ready": false,
+  "full_srs_accepted": false,
+  "hosted_ci": {
+    "performed": false,
+    "status": "pending_first_push"
+  },
+  "live_codespace_started": false,
+  "remaining_acceptance": "scientific_acceptance_gaps.md",
+  "additional_process_gate_checks": {
+    "spcat_unqualified_legacy_script": 3,
+    "scope": "Explicit algebraic inputs and actual filesystem rejection; no engine qualification."
+  },
+  "test_api_inventory": {
+    "environment_configuration_calls": 2,
+    "explicit_runtime_replacement_findings": 0,
+    "files_examined": 81,
+    "files_with_findings_or_configuration": [
+      {
+        "environment_configuration_calls": [
+          {
+            "line": 239,
+            "name": "monkeypatch.setenv"
+          },
+          {
+            "line": 430,
+            "name": "monkeypatch.setenv"
+          }
+        ],
+        "findings": [],
+        "path": "tests/test_cochem_system_config.py"
+      }
+    ],
+    "schema": "cochem.scientific-test-api-inventory/1",
+    "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety."
+  },
+  "historical_collection_snapshot": {
+    "collected": 1190,
+    "collection_errors": 2,
+    "error_scope": "BASE-owned imports in tests/test_chain.py and tests/torq/test_counterpoise_frozen_monomer.py; BASE remains isolated. Not a full-suite execution/pass."
+  }
+}

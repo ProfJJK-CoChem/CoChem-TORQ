@@ -1,3 +1,5 @@
+> **Historical source — reviewed and superseded for TORQ implementation.** Use the [implementation SRS](CoChem-TORQ_Implementation_SRS.md), [method implementation contract](Method_Matrix_Implementation_Contract.md) and [decision register](review/Decisions_and_Risks.md). The original content below is preserved for traceability; unsupported claims and conflicting instructions are not normative. Source-line references in the reviews refer to commit `d7a4739a5f7d6f22ed659b32eeb4706bef16225e`, before this banner.
+
 # CoChem-TORQ: Comprehensive Architecture & Software Requirements Specification
 
 

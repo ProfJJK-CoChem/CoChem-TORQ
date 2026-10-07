@@ -16,6 +16,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import socketserver
 import sqlite3
 import sys
@@ -25,10 +26,14 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
-logger = logging.getLogger(__name__)
+from cochem.mobile.payload_serializer import (
+    get_hmac_secret,
+    strict_json_loads,
+    validate_job_id,
+    validate_xyz_structure_dynamic,
+)
 
-DEFAULT_HMAC_ENV_VAR: str = "COCHEM_HMAC_SECRET"
-DEFAULT_HMAC_SECRET_FALLBACK: str = "cochem_airgap_secret_key_v1_secure_default"
+logger = logging.getLogger(__name__)
 
 
 def get_resolved_coch_src() -> Path:
@@ -43,25 +48,30 @@ def get_resolved_coch_src() -> Path:
     return cwd.resolve()
 
 
-def is_path_in_source_dir(target_path: Union[Path, str], src_dir: Optional[Path] = None) -> bool:
+def is_path_in_source_dir(
+    target_path: Union[Path, str], src_dir: Optional[Path] = None
+) -> bool:
     """Check whether a target path resolves inside the protected source directory."""
     source_root = (src_dir or get_resolved_coch_src()).resolve()
     try:
         resolved = Path(target_path).resolve()
         return resolved == source_root or source_root in resolved.parents
-    except Exception:
-        return False
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ValueError("Cannot resolve the destination path safely.") from exc
 
 
 def verify_hmac_signature(body_bytes: bytes, signature: str, secret_key: str) -> bool:
     """Verify HMAC-SHA256 signature using constant-time comparison."""
-    if not signature or not signature.strip():
+    secret = get_hmac_secret(secret_key)
+    if not isinstance(signature, str) or not signature.strip():
         return False
-    expected = hmac.new(secret_key.encode("utf-8"), body_bytes, hashlib.sha256).hexdigest()
+    expected = hmac.new(secret.encode("utf-8"), body_bytes, hashlib.sha256).hexdigest()
     # Support both raw hex and sha256=prefix
     clean_sig = signature.strip()
     if clean_sig.startswith("sha256="):
         clean_sig = clean_sig[7:]
+    if re.fullmatch(r"[0-9a-fA-F]{64}", clean_sig) is None:
+        return False
     return hmac.compare_digest(expected.lower(), clean_sig.lower())
 
 
@@ -76,7 +86,10 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         """Suppress default stderr logging for clean test stdout/stderr capture."""
         logger.debug(
-            "%s - - [%s] %s", self.address_string(), self.log_date_time_string(), format % args
+            "%s - - [%s] %s",
+            self.address_string(),
+            self.log_date_time_string(),
+            format % args,
         )
 
     def _send_json_response(self, status_code: int, payload: Dict[str, Any]) -> None:
@@ -108,7 +121,11 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
         if not content_length_header:
             self._send_json_response(
                 411,
-                {"status": "ERROR", "error": "Length Required", "tier": "TIER_1_REJECTED"},
+                {
+                    "status": "ERROR",
+                    "error": "Length Required",
+                    "tier": "TIER_1_REJECTED",
+                },
             )
             return
 
@@ -125,7 +142,19 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if content_length < 0:
+            self._send_json_response(
+                400,
+                {"status": "ERROR", "error": "Invalid Content-Length header", "tier": "TIER_1_REJECTED"},
+            )
+            return
         body_bytes = self.rfile.read(content_length)
+        if len(body_bytes) != content_length:
+            self._send_json_response(
+                400,
+                {"status": "ERROR", "error": "Incomplete request body", "tier": "TIER_1_REJECTED"},
+            )
+            return
 
         # -------------------------------------------------------------
         # Air-Gap Tier 1: Authenticated POST & HMAC-SHA256 Verification
@@ -137,11 +166,21 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
             or ""
         )
 
-        secret = getattr(
-            self,
-            "server_secret_key",
-            os.environ.get(DEFAULT_HMAC_ENV_VAR, DEFAULT_HMAC_SECRET_FALLBACK),
-        )
+        try:
+            configured_key = getattr(self, "server_secret_key", None)
+            if configured_key is None:
+                raise ValueError("Receiver authentication is not configured.")
+            secret = get_hmac_secret(configured_key)
+        except ValueError:
+            self._send_json_response(
+                503,
+                {
+                    "status": "ERROR",
+                    "error": "Receiver authentication is not configured.",
+                    "tier": "TIER_1_REJECTED",
+                },
+            )
+            return
         if not verify_hmac_signature(body_bytes, sig_header, secret):
             self._send_json_response(
                 401,
@@ -154,9 +193,12 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            payload_dict = json.loads(body_bytes.decode("utf-8"))
+            payload_dict = strict_json_loads(body_bytes.decode("utf-8"))
             if not isinstance(payload_dict, dict):
                 raise ValueError("JSON payload must be a root object.")
+            job_id = validate_job_id(payload_dict.get("job_id", uuid.uuid4().hex))
+            if "molecule_xyz" in payload_dict:
+                validate_xyz_structure_dynamic(payload_dict["molecule_xyz"])
         except Exception as exc:
             self._send_json_response(
                 422,
@@ -171,8 +213,8 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
         # -------------------------------------------------------------
         # Air-Gap Tier 2: Destination Isolation (Reject writes to $COCH_SRC)
         # -------------------------------------------------------------
-        src_dir = getattr(self, "server_src_dir", get_resolved_coch_src())
-        scratch_dir = getattr(self, "server_scratch_dir", Path.cwd() / "scratch")
+        src_dir = self.server_src_dir
+        scratch_dir = self.server_scratch_dir
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
         # Inspect payload for any explicit attempt to direct writes to $COCH_SRC
@@ -183,12 +225,17 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
             "output_dir",
             "write_path",
             "file_path",
+            "output_artifact_dir",
         )
         for key in suspicious_keys:
             if key in payload_dict and isinstance(payload_dict[key], str):
                 dest_candidate = payload_dict[key].strip()
                 if dest_candidate:
-                    if is_path_in_source_dir(dest_candidate, src_dir):
+                    try:
+                        protected = is_path_in_source_dir(dest_candidate, src_dir)
+                    except ValueError:
+                        protected = True
+                    if protected:
                         self._send_json_response(
                             403,
                             {
@@ -200,14 +247,16 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
                         )
                         return
 
-        job_id = str(payload_dict.get("job_id") or uuid.uuid4().hex)
-        scratch_file = scratch_dir / f"payload_{job_id}_{uuid.uuid4().hex[:8]}.json"
-        scratch_file.write_text(json.dumps(payload_dict, indent=2), encoding="utf-8")
+        # Files use fresh receiver-generated names. Persist the exact authenticated
+        # bytes so the ledger signature continues to verify the stored artifact.
+        scratch_file = scratch_dir / f"payload_{uuid.uuid4().hex}.json"
+        with scratch_file.open("xb") as output:
+            output.write(body_bytes)
 
         # -------------------------------------------------------------
         # Air-Gap Tier 3: SQLite WAL Ledger Transaction
         # -------------------------------------------------------------
-        db_path = getattr(self, "server_db_path", Path("airgap_transactions.db"))
+        db_path = self.server_db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         timestamp_utc = datetime.now(timezone.utc).isoformat()
@@ -292,23 +341,28 @@ def make_airgap_receiver_server(
     secret_key: Optional[str] = None,
 ) -> Tuple[ThreadedHTTPServer, int]:
     """Factory creating configured AirGapReceiver server bound to ephemeral/static port."""
+    # Reject missing/empty keys before creating directories or binding a socket.
+    resolved_secret = get_hmac_secret(secret_key)
     resolved_scratch = Path(scratch_dir or (Path.cwd() / "scratch")).resolve()
     resolved_src = Path(src_dir or get_resolved_coch_src()).resolve()
     resolved_db = Path(db_path or (Path.cwd() / "airgap_transactions.db")).resolve()
-    resolved_secret: str = str(
-        secret_key or os.environ.get(DEFAULT_HMAC_ENV_VAR, DEFAULT_HMAC_SECRET_FALLBACK)
-    )
-
+    if is_path_in_source_dir(resolved_scratch, resolved_src) or is_path_in_source_dir(
+        resolved_db, resolved_src
+    ):
+        raise ValueError("Receiver scratch and ledger paths must be outside the protected source directory.")
     resolved_scratch.mkdir(parents=True, exist_ok=True)
     resolved_db.parent.mkdir(parents=True, exist_ok=True)
 
-    # Bind request handler attributes
-    AirGapReceiverHTTPRequestHandler.server_scratch_dir = resolved_scratch
-    AirGapReceiverHTTPRequestHandler.server_src_dir = resolved_src
-    AirGapReceiverHTTPRequestHandler.server_db_path = resolved_db
-    AirGapReceiverHTTPRequestHandler.server_secret_key = resolved_secret
+    # Each actual server gets its own handler configuration. Mutating global
+    # handler attributes would silently replace an existing receiver's key and
+    # storage roots when a second receiver starts in the same process.
+    class ConfiguredReceiverHandler(AirGapReceiverHTTPRequestHandler):
+        server_scratch_dir = resolved_scratch
+        server_src_dir = resolved_src
+        server_db_path = resolved_db
+        server_secret_key = resolved_secret
 
-    server = ThreadedHTTPServer((host, port), AirGapReceiverHTTPRequestHandler)
+    server = ThreadedHTTPServer((host, port), ConfiguredReceiverHandler)
     assigned_port = server.server_address[1]
     return server, assigned_port
 
@@ -319,15 +373,27 @@ def main() -> None:
         description="CoChem Mobile Tripartite Air-Gap Webhook Receiver Daemon"
     )
     parser.add_argument(
-        "--host", default="127.0.0.1", help="Binding host interface (default: 127.0.0.1)"
+        "--host",
+        default="127.0.0.1",
+        help="Binding host interface (default: 127.0.0.1)",
     )
     parser.add_argument(
         "--port", type=int, default=0, help="Binding port (0 for dynamic/ephemeral)"
     )
-    parser.add_argument("--scratch-dir", default=None, help="Designated isolated scratch directory")
-    parser.add_argument("--src-dir", default=None, help="Protected source directory ($COCH_SRC)")
-    parser.add_argument("--db-path", default=None, help="Path to SQLite WAL transactions database")
-    parser.add_argument("--secret", default=None, help="HMAC-SHA256 secret key")
+    parser.add_argument(
+        "--scratch-dir", default=None, help="Designated isolated scratch directory"
+    )
+    parser.add_argument(
+        "--src-dir", default=None, help="Protected source directory ($COCH_SRC)"
+    )
+    parser.add_argument(
+        "--db-path", default=None, help="Path to SQLite WAL transactions database"
+    )
+    parser.add_argument(
+        "--secret",
+        default=None,
+        help="Explicit authentication key; otherwise require COCHEM_HMAC_SECRET",
+    )
 
     args = parser.parse_args()
 

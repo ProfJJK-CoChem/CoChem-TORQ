@@ -1,0 +1,42 @@
+{
+  "extracted_parser_missing_data": {
+    "energy": 0.0,
+    "gradient": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "converged": true
+  },
+  "extracted_parser_engrad_present": {
+    "energy": 0.0,
+    "gradient": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "converged": true
+  },
+  "queue_stale_completion": {
+    "first_worker": 101,
+    "second_worker": 102,
+    "state": "COMPLETED",
+    "result": {
+      "worker": "stale_worker_a"
+    }
+  }
+}

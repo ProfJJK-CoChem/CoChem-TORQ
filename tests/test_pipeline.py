@@ -85,82 +85,48 @@ def test_normalize_and_validate_payload_validation_errors() -> None:
 
 
 def test_pipeline_execution_state_transitions(valid_config: TorqRunParams) -> None:
-    """
-    Verifies that calling the pipeline with a physical geometry payload progresses
-    through all required state transitions to completion.
-    """
+    """Rejected/unsupported input cannot advance through invented science stages."""
     pipeline = TorqPipeline(valid_config)
-
-    # Attempting to run without payload should raise ValueError and set state to S_FAILED
-    with pytest.raises(ValueError, match=r"\[MISSING DATA\]"):
+    with pytest.raises(ValueError):
         pipeline.run({})
     assert pipeline.state == "S_FAILED"
-
-    fresh_pipeline = TorqPipeline(valid_config)
+    rejected = TorqPipeline(valid_config.model_copy(update={"engine": "CFOUR"}))
     payload = {
-        "atoms": ["C", "H", "H", "H", "H"],
-        "coords": [
-            [0.0, 0.0, 0.0],
-            [1.0, 1.0, 1.0],
-            [-1.0, -1.0, 1.0],
-            [1.0, -1.0, -1.0],
-            [-1.0, 1.0, -1.0],
-        ],
-    }
-    result = fresh_pipeline.run(payload)
-
-    assert result["status"] == "success"
-    assert result["processed_payload"] == payload
-    assert fresh_pipeline.state == "S_COMPLETE"
-
-    expected_history = [
-        "S_0",
-        "S_TOPOLOGY",
-        "S_MLFF_FILTER",
-        "S_CONFORMER_SEARCH",
-        "S_QUANTUM_OPT",
-        "S_SPECTRAL_SYNTHESIS",
-        "S_EXPORT",
-        "S_COMPLETE",
-    ]
-    assert fresh_pipeline.state_history == expected_history
-    assert "mlff_results" in result
-    assert "conformer_results" in result
-    assert "spectral_results" in result
-    assert "export_metadata" in result
-
-
-def test_pipeline_config_overrides_forwarding() -> None:
-    """Verifies that TorqRunParams user configuration overrides are forwarded without dropping."""
-    custom_config = TorqRunParams(
-        tier="t3",
-        wall_time_tier="normal",
-        engine="orca",
-        method="wB97X-D4",
-        basis_set="def2-TZVP",
-        keywords=["Opt", "TightSCF"],
-        dispersion="D4",
-        anharmonicity="VPT2",
-        cabs_mappings={"def2-TZVP": "def2-TZVP-CABS"},
-    )
-    pipeline = TorqPipeline(custom_config)
-    payload = {
-        "atoms": ["O", "H", "H"],
-        "coords": [
-            [0.0, 0.0, 0.0],
-            [0.0, 0.757, 0.586],
-            [0.0, -0.757, 0.586],
-        ],
+        "symbols": ["H", "H"],
+        "coordinates": [[0, 0, 0], [0, 0, 0.74]],
         "charge": 0,
         "multiplicity": 1,
     }
-    result = pipeline.run(payload)
-    assert result["status"] == "success"
-    assert pipeline.state == "S_COMPLETE"
-    assert result["export_metadata"]["method"] == "wB97X-D4"
-    assert result["export_metadata"]["tier"] == "t3"
-    assert result["export_metadata"]["charge"] == 0
-    assert result["export_metadata"]["multiplicity"] == 1
+    with pytest.raises(NotImplementedError, match="not implemented"):
+        rejected.run(payload)
+    assert rejected.state == "S_FAILED"
+    assert "S_QUANTUM_OPT" not in rejected.state_history
+    assert "S_SPECTRAL_SYNTHESIS" not in rejected.state_history
+
+
+def test_pipeline_config_overrides_forwarding() -> None:
+    """An explicitly requested unsupported engine is retained and rejected."""
+    config = TorqRunParams(
+        tier="T1",
+        wall_time_tier="normal",
+        engine="CFOUR",
+        method="CCSD(T)",
+        basis_set="cc-pVDZ",
+        keywords=["Opt"],
+    )
+    pipeline = TorqPipeline(config)
+    payload = {
+        "symbols": ["H", "H"],
+        "coordinates": [[0, 0, 0], [0, 0, 0.74]],
+        "charge": 0,
+        "multiplicity": 1,
+    }
+    with pytest.raises(NotImplementedError, match="CFOUR"):
+        pipeline.run(payload)
+    assert pipeline.config.engine == "CFOUR"
+    assert pipeline.config.method == "CCSD(T)"
+    assert pipeline.config.basis_set == "cc-pVDZ"
+    assert pipeline.state == "S_FAILED"
 
 
 def test_normalize_and_validate_payload_isotopic_symbols() -> None:
@@ -183,5 +149,3 @@ def test_normalize_and_validate_payload_isotopic_symbols() -> None:
         normalize_and_validate_payload(
             {"symbols": ["9999C"], "coords": [[0.0, 0.0, 0.0]]}
         )
-
-

@@ -1,4 +1,4 @@
-"""Dynamic Mendeleev monoisotopic mass retrieval with unstable element fallback.
+"""Dynamic Mendeleev monoisotopic mass retrieval with explicit isotope selection.
 
 Method Matrix v4 Provenance Tags: [M] Mandated, [D] Derived, [E] Empirical.
 Strict Zero-Mock Mandate v3: Hardcoded mass dictionaries are strictly forbidden.
@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import functools
 from typing import List, Sequence
+from numbers import Real
 from mendeleev import element
+from Libraries.cochem_isotopes import isotope_mass
 import torch
 
 
 @functools.lru_cache(maxsize=128)
-def get_monoisotopic_mass(atomic_number: int) -> float:
-    """Dynamically query monoisotopic mass using mendeleev with unstable element fallback. [M]
+def get_monoisotopic_mass(atomic_number: int, isotope_number: int | None = None) -> float:
+    """Dynamically query monoisotopic mass using mendeleev with explicit isotope selection. [M]
     
     Parameters
     ----------
@@ -27,25 +29,22 @@ def get_monoisotopic_mass(atomic_number: int) -> float:
     float
         Monoisotopic mass in unified atomic mass units (u).
     """
+    if not isinstance(atomic_number, Real) or int(atomic_number) != atomic_number:
+        raise ValueError("Atomic number must be an integer.")
+    atomic_number = int(atomic_number)
     if atomic_number == 0:
         return 0.0  # Ghost atom [M]
     if atomic_number < 0 or atomic_number > 118:
         raise ValueError(f"Atomic number Z={atomic_number} outside valid chemical range [0, 118].")
 
     el = element(atomic_number)
-    stable_isotopes = [
-        iso for iso in el.isotopes if iso.abundance is not None and iso.abundance > 0.0
-    ]
-    if stable_isotopes:
-        return float(max(stable_isotopes, key=lambda iso: iso.abundance).mass)
-
-    # Fallback for elements without stable isotopes (e.g. Tc Z=43, Pm Z=61) [D]
-    return float(max(el.isotopes, key=lambda iso: (iso.half_life or 0.0, iso.mass_number)).mass)
+    symbol = f"{isotope_number}{el.symbol}" if isotope_number is not None else el.symbol
+    return isotope_mass(symbol)
 
 
 def get_monoisotopic_masses(atomic_numbers: Sequence[int]) -> List[float]:
     """Dynamically query monoisotopic masses for a sequence of atomic numbers. [M]"""
-    return [get_monoisotopic_mass(int(z)) for z in atomic_numbers]
+    return [get_monoisotopic_mass(z) for z in atomic_numbers]
 
 
 def get_monoisotopic_masses_tensor(
@@ -61,21 +60,14 @@ def get_monoisotopic_masses_tensor(
 @functools.lru_cache(maxsize=128)
 def resolve_ciaaw_monoisotopic_mass(atomic_number: int) -> float:
     """Dynamically resolve the CIAAW monoisotopic mass for the most abundant isotope. [M]"""
-    if atomic_number == 0:
-        return 0.0
-    elem = element(int(atomic_number))
-    if not elem.isotopes:
-        return float(elem.mass)
-    # Filter by highest natural abundance (or stable isotope record)
-    abundant_iso = max(elem.isotopes, key=lambda iso: iso.abundance or 0.0)
-    return float(abundant_iso.mass if abundant_iso.mass is not None else elem.mass)
+    return get_monoisotopic_mass(atomic_number)
 
 
 def get_atomic_masses(
     atomic_numbers: torch.Tensor,
     device: torch.device | str = "cpu",
 ) -> torch.Tensor:
-    """Retrieve CIAAW standard atomic weights in unified atomic mass units (u). [M]
+    """Retrieve most-abundant-isotope masses in unified atomic mass units (u). [M]
 
     Parameters
     ----------
@@ -92,8 +84,7 @@ def get_atomic_masses(
     """
     masses = []
     for z in atomic_numbers.view(-1).tolist():
-        elem = element(int(z))
-        masses.append(float(elem.mass))
+        masses.append(get_monoisotopic_mass(z))
     return torch.tensor(masses, dtype=torch.float64, device=device).unsqueeze(-1)
 
 

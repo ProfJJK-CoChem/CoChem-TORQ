@@ -1,5 +1,5 @@
 {
-    "name": "CoChem-TORQ",
+    "name": "CoChem-TORQ student interface with BASE and TOPOS",
     "build": {
         "dockerfile": "Dockerfile",
         "context": ".."
@@ -15,7 +15,7 @@
                 "charliermarsh.ruff"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "/opt/torq-venv/bin/python",
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": [
                     "tests"
@@ -23,6 +23,22 @@
             }
         }
     },
-    "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
+    "postCreateCommand": "python scripts/student_setup.py setup",
+    "postStartCommand": "python scripts/student_setup.py start --port 8888",
+    "forwardPorts": [8888],
+    "portsAttributes": {
+        "8888": {
+            "label": "CoChem-TORQ student interface",
+            "onAutoForward": "openBrowser",
+            "protocol": "http"
+        }
+    },
+    "containerEnv": {
+        "COCHEM_DISABLE_SANDBOX_CHECK": "1",
+        "COCHEM_ARTIFACT_DIR": "/home/vscode/CoChem_Artifacts",
+        "COCHEM_MODULE_ROOT": "/home/vscode/CoChem_Artifacts/Modules",
+        "COCHEM_MODULE_MANIFEST": "/workspaces/CoChem-TORQ/ci_tools/ecosystem-modules.json",
+        "COCHEM_CALCULATION_ENVIRONMENT": "github-actions"
+    },
     "remoteUser": "vscode"
 }

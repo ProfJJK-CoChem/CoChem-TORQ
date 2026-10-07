@@ -1,13 +1,8 @@
-"""
-CoChem-TORQ 0.0.11
-Stage 5.0: The Hardware-Accelerated Physics Engine (JAX DVR)
------------------------------------------------------------
-Implements exact 1D and 2D Discrete Variable Representation (DVR) solvers
-using Google JAX with XLA Just-In-Time (JIT) compilation. Replaces inaccurate
-Rigid-Rotor Harmonic-Oscillator (RRHO) approximations for Large Amplitude
-Motions (LAMs) with exact quantum mechanical nuclear Schrödinger solutions.
+"""Finite-grid 1D/2D reduced nuclear-motion models using JAX eigensolvers.
 
-Compliant with Method Matrix v4 (§4.4, §8C, Table 2) and Phase 7 specifications.
+These solve the supplied discretized model. Grid convergence, molecular kinetic
+operators, couplings and physical applicability require separate validation;
+finite-grid results are not exact molecular nuclear-motion solutions.
 """
 
 from __future__ import annotations
@@ -15,12 +10,11 @@ from __future__ import annotations
 import logging
 import math
 import os
-import re
 from pathlib import Path
+from numbers import Real
 from typing import Any
 
 import numpy as np
-from mendeleev import element
 
 ARTIFACTS_DIR = os.environ.get(
     "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
@@ -37,7 +31,7 @@ PLANCK_CONSTANT_JS = 6.62607015e-34  # Exact h (J s)
 BOLTZMANN_CONSTANT_JK = 1.380649e-23  # Exact kB (J/K)
 SPEED_OF_LIGHT_CMS = 29979245800.0  # Exact c (cm/s)
 HBAR_JS = PLANCK_CONSTANT_JS / (2.0 * math.pi)
-ATOMIC_MASS_CONSTANT_KG = 1.66053906892e-27  # Exact kg (1 u) (CODATA 2022)
+ATOMIC_MASS_CONSTANT_KG = 1.66053906892e-27  # Measured kg/u (CODATA 2022)
 
 # Conversion factor hbar^2 / (2 * m_u) in cm^-1 * Angstrom^2 * amu:
 # Calculated dynamically from exact CODATA 2022 definitions
@@ -47,58 +41,9 @@ HBAR_SQ_OVER_2M_U_CM1_A2 = PLANCK_CONSTANT_JS / (
 
 
 def get_atomic_mass(symbol: str) -> float:
-    """
-    Dynamically retrieves exact mono-isotopic mass for an element or isotope
-    using the mendeleev library.
-
-    Supports symbols like 'H', 'D', 'T', '12C', '13C', '16O', '18O', '35Cl', etc.
-    """
-    clean_sym = symbol.strip()
-    if clean_sym == "D":
-        clean_sym = "2H"
-    elif clean_sym == "T":
-        clean_sym = "3H"
-
-    match_prefix = re.match(r"^(\d+)([a-zA-Z]+)$", clean_sym)
-    match_postfix = re.match(r"^([a-zA-Z]+)(\d+)$", clean_sym)
-
-    elem_str = clean_sym
-    mass_num = None
-
-    if match_prefix:
-        mass_num = int(match_prefix.group(1))
-        elem_str = match_prefix.group(2)
-    elif match_postfix:
-        elem_str = match_postfix.group(1)
-        mass_num = int(match_postfix.group(2))
-
-    elem_str = elem_str.capitalize()
-
-    try:
-        elem = element(elem_str)
-        if mass_num is not None:
-            for iso in elem.isotopes:
-                if iso.mass_number == mass_num and iso.mass is not None:
-                    return float(iso.mass)
-            logger.warning(
-                f"Isotope {mass_num} for element {elem_str} not found in mendeleev. "
-                "Defaulting to most abundant."
-            )
-
-        valid_isotopes = [
-            iso
-            for iso in elem.isotopes
-            if iso.abundance is not None and iso.mass is not None
-        ]
-        if valid_isotopes:
-            most_abundant = max(valid_isotopes, key=lambda x: x.abundance or 0.0)
-            return float(most_abundant.mass)
-        return float(elem.atomic_weight or elem.mass or 1.0)
-    except Exception as e:
-        logger.error(f"Error querying mendeleev for '{symbol}': {e}")
-        raise ValueError(
-            f"Symbol '{symbol}' not found in mendeleev database: {e}"
-        ) from e
+    """Resolve the requested tabulated isotope without substituting another mass."""
+    from Libraries.cochem_isotopes import isotope_mass
+    return isotope_mass(symbol)
 
 
 # Try importing JAX and configuring float64 precision
@@ -241,160 +186,100 @@ def _construct_1d_kinetic_matrix(
     return t_matrix
 
 
+def _real_finite_array(value: Any, label: str) -> np.ndarray:
+    raw = np.asarray(value)
+    if np.iscomplexobj(raw):
+        raise ValueError(f"{label} must be real; imaginary components cannot be discarded")
+    array = np.asarray(value, dtype=np.float64)
+    if not np.isfinite(array).all():
+        raise ValueError(f"{label} must be finite")
+    return array
+
+
+def _validated_grid(grid: Any, count: int, periodic: bool) -> float:
+    if grid is None:
+        raise ValueError("Explicit coordinate grid required for a scalar kinetic operator")
+    points = _real_finite_array(grid, "Coordinate grid")
+    if points.shape != (count,) or count < 2:
+        raise ValueError("Each coordinate grid must match the PES axis and contain at least two points")
+    spacing = float(points[1] - points[0])
+    if spacing <= 0 or not np.allclose(np.diff(points), spacing, rtol=1e-10, atol=1e-12):
+        raise ValueError("Sinc DVR requires a strictly increasing uniform grid")
+    if periodic and not math.isclose(count * spacing, 2 * math.pi, rel_tol=1e-10, abs_tol=1e-12):
+        raise ValueError("Periodic angular grid must span 2*pi radians without a duplicated endpoint")
+    return spacing
+
+
+def _kinetic_prefactor(operator: Any, periodic: bool) -> float:
+    if isinstance(operator, str):
+        if periodic:
+            raise ValueError("An isotope mass does not define angular inertia; provide B in cm^-1")
+        value = get_atomic_mass(operator)
+    elif isinstance(operator, Real) and not isinstance(operator, (bool, np.bool_)):
+        value = float(operator)
+    else:
+        raise ValueError("Provide an explicit positive finite mass (u) or angular B (cm^-1)")
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("Mass or angular B must be finite and strictly positive")
+    return value if periodic else HBAR_SQ_OVER_2M_U_CM1_A2 / value
+
+
 def build_dvr_hamiltonian(
     pes_spline_array: list[float] | np.ndarray | Any,
-    kinetic_operator: (
-        float | str | tuple[float | str, float | str] | np.ndarray | Any
-    ) = 1.0,
+    kinetic_operator: Any = None,
     grid_points: list[float] | np.ndarray | tuple[Any, ...] | None = None,
     dimensions: int = 1,
     periodic: bool = False,
 ) -> Any:
-    """
-    Constructs the discretized quantum mechanical Hamiltonian matrix (H = T + V).
+    """Build H=T+V in cm^-1 for a declared reduced-coordinate model.
 
-    :param pes_spline_array: 1D or 2D potential energy values (cm^-1 or hartree).
-    :param kinetic_operator: Rotational constant B, reduced mass/symbol, or matrix.
-    :param grid_points: 1D coordinate array or tuple of (grid_x, grid_y) for 2D.
-    :param dimensions: Coordinate dimensionality (1 or 2).
-    :param periodic: If True, uses periodic sinc-DVR for angular torsions.
-    :return: Discretized Hamiltonian matrix as a JAX float64 array.
+    Potential energies must be supplied in cm^-1. For nonperiodic Cartesian
+    sinc grids, coordinates are Angstrom and scalar operators are masses in u.
+    For periodic angular grids, coordinates are radians on [q0,q0+2*pi), and
+    scalar operators are positive B constants in cm^-1. Both dimensions use
+    the same unit convention. A full finite real symmetric kinetic matrix is
+    also accepted directly in cm^-1. No mass, spacing or B is inferred.
     """
     if not JAX_AVAILABLE:
-        raise CoChemPrecisionError("JAX is required for build_dvr_hamiltonian.")
-
-    enforce_jax_precision()
-    pes = np.asarray(pes_spline_array, dtype=np.float64)
-
+        raise CoChemPrecisionError("JAX is required for build_dvr_hamiltonian")
+    if dimensions not in (1, 2):
+        raise ValueError("Supported dimensions are 1 and 2")
+    if kinetic_operator is None:
+        raise ValueError("An explicit kinetic operator is required")
+    pes = _real_finite_array(pes_spline_array, "Potential energies")
     if dimensions == 1:
-        n_pts = len(pes)
-        if n_pts == 0:
-            raise ValueError("Potential energy array cannot be empty.")
-
-        if grid_points is not None:
-            pts = np.asarray(grid_points, dtype=np.float64)
-            if len(pts) != n_pts:
-                raise ValueError(
-                    f"Grid points length ({len(pts)}) does not match PES ({n_pts})."
-                )
-            delta_x = float(pts[1] - pts[0]) if n_pts > 1 else 1.0
-            if n_pts > 2 and not np.allclose(
-                np.diff(pts), delta_x, rtol=1e-5, atol=1e-8
-            ):
-                logger.warning("Non-uniform grid spacing detected for sinc-DVR.")
-        else:
-            delta_x = 2.0 * np.pi / n_pts if periodic else 1.0
-
-        if isinstance(kinetic_operator, str):
-            mass = get_atomic_mass(kinetic_operator)
-            kinetic_factor = HBAR_SQ_OVER_2M_U_CM1_A2 / mass if mass > 0 else 1.0
-            t_mat = _construct_1d_kinetic_matrix(
-                n_pts, delta_x, kinetic_factor, periodic=periodic
-            )
-        elif isinstance(kinetic_operator, int | float):
-            if periodic:
-                # Rotational constant B (cm^-1) for periodic rotor
-                b_const = float(kinetic_operator)
-                t_mat = _construct_1d_kinetic_matrix(
-                    n_pts, delta_x, b_const, periodic=True
-                )
-            else:
-                # Mass-based kinetic factor in cm^-1: hbar^2 / (2 * m)
-                mass = float(kinetic_operator)
-                kinetic_factor = HBAR_SQ_OVER_2M_U_CM1_A2 / mass if mass > 0 else 1.0
-                t_mat = _construct_1d_kinetic_matrix(
-                    n_pts, delta_x, kinetic_factor, periodic=False
-                )
-        else:
-            t_mat = np.asarray(kinetic_operator, dtype=np.float64)
-            if t_mat.shape != (n_pts, n_pts):
-                raise ValueError(
-                    f"Kinetic matrix shape {t_mat.shape} must match ({n_pts}, {n_pts})."
-                )
-
-        v_mat = np.diag(pes)
-        h_mat = t_mat + v_mat
-        return jnp.array(h_mat, dtype=jnp.float64)
-
-    elif dimensions == 2:
-        if pes.ndim == 2:
-            nx, ny = pes.shape
-            v_flat = pes.flatten()
-        elif pes.ndim == 1:
-            if (
-                grid_points is None
-                or not isinstance(grid_points, tuple)
-                or len(grid_points) != 2
-            ):
-                raise ValueError(
-                    "2D DVR with 1D PES array requires grid_points=(grid_x, grid_y)."
-                )
-            nx = len(grid_points[0])
-            ny = len(grid_points[1])
-            if len(pes) != nx * ny:
-                raise ValueError(
-                    f"1D PES length ({len(pes)}) does not match 2D grid ({nx}x{ny})."
-                )
-            v_flat = pes
-        else:
-            raise ValueError(f"Invalid PES array shape for 2D DVR: {pes.shape}")
-
-        if (
-            grid_points is not None
-            and isinstance(grid_points, tuple)
-            and len(grid_points) == 2
-        ):
-            gx, gy = np.asarray(grid_points[0]), np.asarray(grid_points[1])
-            dx = float(gx[1] - gx[0]) if len(gx) > 1 else 1.0
-            dy = float(gy[1] - gy[0]) if len(gy) > 1 else 1.0
-        else:
-            dx = 2.0 * np.pi / nx if periodic else 1.0
-            dy = 2.0 * np.pi / ny if periodic else 1.0
-
-        if isinstance(kinetic_operator, tuple) and len(kinetic_operator) == 2:
-            op_x, op_y = kinetic_operator[0], kinetic_operator[1]
-            if isinstance(op_x, str):
-                mx = get_atomic_mass(op_x)
-                bx = HBAR_SQ_OVER_2M_U_CM1_A2 / mx if mx > 0 else 1.0
-            else:
-                bx = float(op_x)
-
-            if isinstance(op_y, str):
-                my = get_atomic_mass(op_y)
-                by = HBAR_SQ_OVER_2M_U_CM1_A2 / my if my > 0 else 1.0
-            else:
-                by = float(op_y)
-
-            tx = _construct_1d_kinetic_matrix(nx, dx, bx, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, by, periodic=periodic)
-        elif isinstance(kinetic_operator, str):
-            m = get_atomic_mass(kinetic_operator)
-            b = HBAR_SQ_OVER_2M_U_CM1_A2 / m if m > 0 else 1.0
-            tx = _construct_1d_kinetic_matrix(nx, dx, b, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, b, periodic=periodic)
-        elif isinstance(kinetic_operator, int | float):
-            b = float(kinetic_operator)
-            tx = _construct_1d_kinetic_matrix(nx, dx, b, periodic=periodic)
-            ty = _construct_1d_kinetic_matrix(ny, dy, b, periodic=periodic)
-        else:
-            raise ValueError(
-                "Kinetic operator for 2D DVR must be a tuple (Bx, By), "
-                "scalar, or element symbol."
-            )
-
-        # 2D Kinetic operator via Kronecker product: T_2D = Tx (x) I_y + I_x (x) Ty
-        ix = np.eye(nx, dtype=np.float64)
-        iy = np.eye(ny, dtype=np.float64)
-        t_2d = np.kron(tx, iy) + np.kron(ix, ty)
-
-        v_2d = np.diag(v_flat)
-        h_2d = t_2d + v_2d
-        return jnp.array(h_2d, dtype=jnp.float64)
-
+        if pes.ndim != 1 or pes.size < 2:
+            raise ValueError("1D potential must be a vector of at least two points")
+        shape = (len(pes),)
+    elif pes.ndim == 2 and min(pes.shape) >= 2:
+        shape = pes.shape
+    elif pes.ndim == 1 and isinstance(grid_points, tuple) and len(grid_points) == 2:
+        shape = (len(grid_points[0]), len(grid_points[1]))
+        if min(shape) < 2 or pes.size != shape[0] * shape[1]:
+            raise ValueError("Flattened 2D PES size must match both coordinate grids")
     else:
-        raise ValueError(
-            f"Unsupported dimensionality {dimensions}. Supported dimensions: 1 or 2."
-        )
+        raise ValueError("2D potential requires a two-dimensional array or explicit matching grid pair")
+    flat = pes.ravel()
+    scalar = isinstance(kinetic_operator, (str, Real))
+    pair = isinstance(kinetic_operator, tuple) and len(kinetic_operator) == 2
+    if not scalar and not pair:
+        kinetic = _real_finite_array(kinetic_operator, "Kinetic matrix")
+        if kinetic.shape != (len(flat), len(flat)) or not np.allclose(kinetic, kinetic.T, rtol=1e-12, atol=1e-12):
+            raise ValueError("Kinetic matrix must be symmetric and match the full PES dimension")
+    elif dimensions == 1:
+        spacing = _validated_grid(grid_points, shape[0], periodic)
+        kinetic = _construct_1d_kinetic_matrix(shape[0], spacing, _kinetic_prefactor(kinetic_operator, periodic), periodic)
+    else:
+        if not isinstance(grid_points, tuple) or len(grid_points) != 2:
+            raise ValueError("2D scalar kinetics require an explicit (grid_x, grid_y) tuple")
+        spacings = [_validated_grid(grid, count, periodic) for grid, count in zip(grid_points, shape)]
+        operators = kinetic_operator if pair else (kinetic_operator, kinetic_operator)
+        factors = [_kinetic_prefactor(operator, periodic) for operator in operators]
+        tx = _construct_1d_kinetic_matrix(shape[0], spacings[0], factors[0], periodic)
+        ty = _construct_1d_kinetic_matrix(shape[1], spacings[1], factors[1], periodic)
+        kinetic = np.kron(tx, np.eye(shape[1])) + np.kron(np.eye(shape[0]), ty)
+    enforce_jax_precision()
+    return jnp.asarray(kinetic + np.diag(flat), dtype=jnp.float64)
 
 
 if JAX_AVAILABLE:
@@ -419,13 +304,17 @@ def jit_eigen_solver(
     if not JAX_AVAILABLE:
         raise CoChemPrecisionError("JAX is required for jit_eigen_solver.")
 
+    raw = np.asarray(hamiltonian_matrix)
+    dtype = np.complex128 if np.iscomplexobj(raw) else np.float64
+    h = np.asarray(raw, dtype=dtype)
+    if (h.ndim != 2 or h.shape[0] != h.shape[1] or h.shape[0] == 0
+            or not np.isfinite(h).all() or not np.allclose(h, h.conj().T, rtol=1e-12, atol=1e-12)):
+        raise DVRConvergenceError("Hamiltonian must be finite and Hermitian; no symmetrization repair is performed")
     enforce_jax_precision()
-    h_jax = jnp.asarray(hamiltonian_matrix, dtype=jnp.float64)
-
-    # Symmetrize matrix to prevent tiny numerical asymmetry artifacts
-    h_sym = 0.5 * (h_jax + h_jax.T)
-
-    evals, evecs = _jit_eigh_core(h_sym)
+    # Eigensolvers may treat sub-tolerance roundoff through their standard
+    # Hermitian algorithms; no changed physical matrix is constructed here.
+    h_jax = jnp.asarray(h, dtype=jnp.complex128 if np.iscomplexobj(h) else jnp.float64)
+    evals, evecs = _jit_eigh_core(h_jax)
     return evals, evecs
 
 
@@ -435,103 +324,48 @@ def nan_tensor_watchdog(
     wavefunctions: np.ndarray | Any | None = None,
     alpha_regularization: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Intercepts divergent eigenvalues, NaNs, Infs, or ill-conditioned DVR matrices.
+    """Validate a spectrum; recompute only from the unchanged finite Hamiltonian.
 
-    Applies Tikhonov Regularization (H_reg = H + alpha * I) to stabilize ill-conditioned
-    Hamiltonian matrices and restore positive-definite stability.
-
-    :param eigenvalues: Array of eigenvalues to check for NaNs/Infs (optional).
-    :param hamiltonian: Input Hamiltonian matrix to regularize if corrupted.
-    :param wavefunctions: Wavefunctions corresponding to eigenvalues (optional).
-    :param alpha_regularization: Damping coefficient for Tikhonov regularization.
-    :return: Tuple of validated, finite (eigenvalues, wavefunctions).
-    :raises ValueError: If neither eigenvalues nor hamiltonian are provided.
-    :raises DVRConvergenceError: If regularization fails to resolve NaNs.
+    ``alpha_regularization`` is retained for call compatibility and never applied.
+    Replacing matrix entries or shifting a physical Hamiltonian is not recovery.
     """
     if eigenvalues is None and hamiltonian is None:
-        raise ValueError(
-            "At least one of eigenvalues or hamiltonian must be provided "
-            "to nan_tensor_watchdog."
-        )
-
-    has_nan_evals = eigenvalues is not None and (
-        np.isnan(np.asarray(eigenvalues)).any()
-        or np.isinf(np.asarray(eigenvalues)).any()
-    )
-
-    has_nan_h = hamiltonian is not None and (
-        np.isnan(np.asarray(hamiltonian)).any()
-        or np.isinf(np.asarray(hamiltonian)).any()
-    )
-
-    if not has_nan_evals and not has_nan_h:
-        if eigenvalues is not None:
-            evals_np = np.asarray(eigenvalues, dtype=np.float64)
-            if len(evals_np) > 1 and (evals_np[1] - evals_np[0]) < -1e-12:
-                logger.warning(
-                    f"Non-physical inverted eigenvalue spectrum detected "
-                    f"(E1={evals_np[1]:.4f} < E0={evals_np[0]:.4f})."
-                )
-            evecs_np = (
-                np.asarray(wavefunctions, dtype=np.float64)
-                if wavefunctions is not None
-                else np.empty((0, 0))
-            )
-            return evals_np, evecs_np
-        elif hamiltonian is not None:
-            h_clean = np.asarray(hamiltonian, dtype=np.float64)
-            h_sym = 0.5 * (h_clean + h_clean.T)
-            evals_np, evecs_np = np.linalg.eigh(h_sym)
-            return evals_np, evecs_np
-
-    logger.warning(
-        f"NaN/Inf tensor divergence detected! Intercepting crash and applying "
-        f"Tikhonov Regularization (lambda = {alpha_regularization:.2e})."
-    )
-
-    if hamiltonian is None:
-        raise DVRConvergenceError(
-            "NaN/Inf detected in eigenvalues, but Hamiltonian matrix was "
-            "not provided for regularization."
-        )
-
-    h_cleaned = np.asarray(hamiltonian, copy=True, dtype=np.float64)
-    nan_mask = np.isnan(h_cleaned) | np.isinf(h_cleaned)
-    h_cleaned[nan_mask] = 0.0
-
-    # Symmetrize
-    h_cleaned = 0.5 * (h_cleaned + h_cleaned.T)
-
-    # Apply Tikhonov Regularization: H_reg = H + alpha * I
-    n = h_cleaned.shape[0]
-    h_reg = h_cleaned + alpha_regularization * np.eye(n, dtype=np.float64)
-
-    # Diagonalize regularized matrix
-    if JAX_AVAILABLE:
-        try:
-            evals_jax, evecs_jax = jit_eigen_solver(h_reg)
-            evals_np = np.asarray(evals_jax, dtype=np.float64)
-            evecs_np = np.asarray(evecs_jax, dtype=np.float64)
-        except Exception as e:
-            logger.warning(
-                f"JAX diagonalization failed during recovery ({e}); "
-                "using NumPy fallback."
-            )
-            evals_np, evecs_np = np.linalg.eigh(h_reg)
+        raise ValueError("Provide eigenvalues or a Hamiltonian")
+    h = None if hamiltonian is None else np.asarray(hamiltonian, dtype=np.complex128 if np.iscomplexobj(hamiltonian) else np.float64)
+    if h is not None:
+        if h.ndim != 2 or h.shape[0] != h.shape[1] or h.shape[0] == 0:
+            raise DVRConvergenceError("Hamiltonian must be a nonempty square matrix")
+        if not np.isfinite(h).all() or not np.allclose(h, h.conj().T, rtol=1e-12, atol=1e-12):
+            raise DVRConvergenceError("Nonfinite or non-Hermitian Hamiltonian; no values repaired")
+    if eigenvalues is not None and np.iscomplexobj(eigenvalues):
+        raise DVRConvergenceError("Hermitian eigenvalues must be real")
+    e = None if eigenvalues is None else np.asarray(eigenvalues, dtype=float)
+    if e is None or not np.isfinite(e).all():
+        if h is None:
+            raise DVRConvergenceError("Invalid eigenvalues without a finite Hamiltonian")
+        e, vectors = np.linalg.eigh(h)
     else:
-        evals_np, evecs_np = np.linalg.eigh(h_reg)
-
-    if np.isnan(evals_np).any() or np.isinf(evals_np).any():
-        raise DVRConvergenceError(
-            "DVR matrix remains unsolvable and divergent after Tikhonov Regularization."
-        )
-
-    logger.info(
-        f"Successfully recovered finite DVR eigenvalue spectrum via "
-        f"Tikhonov Regularization. Ground state: {evals_np[0]:.6f} cm^-1."
-    )
-    return evals_np, evecs_np
+        vectors = np.asarray(wavefunctions, dtype=np.complex128 if np.iscomplexobj(wavefunctions) else np.float64) if wavefunctions is not None else np.empty((0, 0))
+        if h is not None and wavefunctions is None:
+            reference_values, vectors = np.linalg.eigh(h)
+            if e.shape != reference_values.shape or not np.allclose(e, reference_values, rtol=1e-9, atol=1e-9):
+                raise DVRConvergenceError("Eigenvalues do not solve the supplied Hamiltonian")
+    if e.ndim != 1 or not e.size or not np.isfinite(e).all() or np.any(np.diff(e) < -1e-12):
+        raise DVRConvergenceError("Spectrum must be finite, nonempty, and ordered")
+    if vectors.size and not np.isfinite(vectors).all():
+        raise DVRConvergenceError("Nonfinite wavefunctions")
+    if vectors.size and (vectors.ndim != 2 or vectors.shape[1] != len(e)
+            or not np.allclose(vectors.conj().T @ vectors, np.eye(len(e)), rtol=1e-9, atol=1e-9)):
+        raise DVRConvergenceError("Eigenvectors must be an orthonormal basis")
+    if wavefunctions is not None and (vectors.ndim != 2 or vectors.shape[1] != len(e)
+                                     or vectors.shape[0] < len(e)):
+        raise DVRConvergenceError("Eigenvector/eigenvalue dimensions disagree")
+    if h is not None:
+        if vectors.shape != h.shape or e.shape != (h.shape[0],):
+            raise DVRConvergenceError("Eigenvector/eigenvalue dimensions disagree")
+        if not np.allclose(h @ vectors, vectors * e, rtol=1e-9, atol=1e-9):
+            raise DVRConvergenceError("Eigenpairs do not solve the supplied Hamiltonian")
+    return e, vectors
 
 
 def localized_vpt2_coupling(
@@ -542,15 +376,15 @@ def localized_vpt2_coupling(
     temperature_k: float = 298.15,
 ) -> dict[str, Any]:
     """
-    Merges exact internal rotor energies with VPT2 outputs for orthogonal stiff modes.
+    Combines a supplied reduced DVR spectrum with stiff-mode VPT2 zero-point corrections.
 
     Drops harmonic modes corresponding to Large Amplitude Motions (LAM) to avoid
-    thermodynamic double-counting, coupling stiff modes with the exact DVR manifold.
+    thermodynamic double-counting. DVR/stiff-mode coupling is neglected, and thermal stiff-mode sums remain harmonic.
 
-    :param dvr_energies: Array of exact DVR eigenvalues in cm^-1.
+    :param dvr_energies: Supplied finite-grid DVR eigenvalues in cm^-1.
     :param vpt2_matrix: Anharmonic X_ij matrix in cm^-1.
     :param harmonic_frequencies: List of all harmonic frequencies in cm^-1.
-    :param lam_mode_indices: Indices of normal modes to drop (omega < 50 cm^-1 default).
+    :param lam_mode_indices: Explicit indices of normal modes replaced by the DVR model.
     :param temperature_k: Temperature in Kelvin for partition function evaluation.
     :return: Dictionary with decoupled stiff frequencies and partition functions.
     """
@@ -559,11 +393,19 @@ def localized_vpt2_coupling(
     harm_freqs = np.asarray(harmonic_frequencies, dtype=np.float64)
     n_modes = len(harm_freqs)
 
-    # Determine which modes to drop as LAM
+    if dvr_e.ndim != 1 or not dvr_e.size or not np.isfinite(dvr_e).all():
+        raise ValueError("A nonempty finite DVR spectrum is required")
+    if harm_freqs.ndim != 1 or not np.isfinite(harm_freqs).all():
+        raise ValueError("Harmonic frequencies must be a finite vector")
+    if vpt2_x.shape != (n_modes, n_modes) or not np.isfinite(vpt2_x).all():
+        raise ValueError("The full finite anharmonic matrix is required")
     if lam_mode_indices is None:
-        dropped_modes = [i for i, freq in enumerate(harm_freqs) if freq < 50.0]
-    else:
-        dropped_modes = list(lam_mode_indices)
+        raise ValueError("LAM mode selection must be explicit; frequency alone is insufficient")
+    dropped_modes = list(lam_mode_indices)
+    if len(set(dropped_modes)) != len(dropped_modes) or any(type(i) is not int or i < 0 or i >= n_modes for i in dropped_modes):
+        raise ValueError("Invalid or duplicate LAM mode indices")
+    if not math.isfinite(temperature_k) or temperature_k <= 0:
+        raise ValueError("Thermal partition evaluation requires finite T > 0")
 
     stiff_mode_indices = [i for i in range(n_modes) if i not in dropped_modes]
     stiff_frequencies = harm_freqs[stiff_mode_indices]
@@ -574,27 +416,15 @@ def localized_vpt2_coupling(
         "stiff orthogonal modes."
     )
 
-    if temperature_k <= 0.0:
-        return {
-            "dropped_lam_modes": dropped_modes,
-            "stiff_harmonic_frequencies": stiff_frequencies.tolist(),
-            "q_dvr_rot": 1.0,
-            "q_stiff_vib": 1.0,
-            "q_coupled_total": 1.0,
-            "dvr_ground_state_energy_cm1": float(dvr_e[0]) if len(dvr_e) > 0 else 0.0,
-            "stiff_zpe_cm1": 0.0,
-            "coupled_ground_state_energy_cm1": float(dvr_e[0])
-            if len(dvr_e) > 0
-            else 0.0,
-            "temperature_k": float(temperature_k),
-        }
+    if np.any(stiff_frequencies <= 0):
+        raise ValueError("Stiff-mode frequencies must be positive; no frequency floor applied")
 
-    # Exact DVR torsional partition function Q_dvr
+    # Truncated supplied DVR torsional partition sum Q_dvr
     # Q_dvr = sum_n exp(- (E_n - E_0) / (kB * T))
     hc_cm = PLANCK_CONSTANT_JS * SPEED_OF_LIGHT_CMS  # Joules per cm^-1
     kt_j = BOLTZMANN_CONSTANT_JK * temperature_k
 
-    e0 = dvr_e[0] if len(dvr_e) > 0 else 0.0
+    e0 = dvr_e[0]
     relative_dvr_e = dvr_e - e0
 
     q_dvr = 0.0
@@ -608,25 +438,20 @@ def localized_vpt2_coupling(
     # Q_stiff = prod_i [ 1 / (1 - exp(- h c nu_i / (kB T))) ]
     q_stiff = 1.0
     for nu in stiff_frequencies:
-        nu_clamped = max(float(nu), 10.0)
-        e_vib_j = nu_clamped * hc_cm
+        e_vib_j = float(nu) * hc_cm
         exp_arg = -e_vib_j / kt_j
         if exp_arg < -700.0:
             mode_q = 1.0
         else:
-            denom = 1.0 - math.exp(exp_arg)
-            mode_q = 1.0 / denom if abs(denom) > 1e-12 else 1.0
+            denom = -math.expm1(exp_arg)
+            mode_q = 1.0 / denom
         q_stiff *= mode_q
 
     q_coupled_total = q_dvr * q_stiff
 
     # Compute anharmonic zero-point energy of stiff modes using upper triangular sum:
     # E_anh_ZPE = 0.25 * sum_{i <= j} X_{ij}
-    stiff_x = (
-        vpt2_x[np.ix_(stiff_mode_indices, stiff_mode_indices)]
-        if vpt2_x.ndim == 2 and vpt2_x.shape[0] == n_modes
-        else np.zeros((len(stiff_frequencies), len(stiff_frequencies)))
-    )
+    stiff_x = vpt2_x[np.ix_(stiff_mode_indices, stiff_mode_indices)]
     harmonic_zpe = 0.5 * float(np.sum(stiff_frequencies))
     anharmonic_zpe_correction = 0.25 * float(np.sum(np.triu(stiff_x)))
     total_stiff_zpe = harmonic_zpe + anharmonic_zpe_correction
@@ -634,6 +459,9 @@ def localized_vpt2_coupling(
     coupled_ground_state_energy = float(e0 + total_stiff_zpe)
 
     return {
+        "model": "separable_DVR_plus_stiff_VPT2_ZPE_harmonic_thermal_sum",
+        "couplings_between_DVR_and_stiff_modes": "neglected",
+        "dvr_partition_scope": "supplied finite spectrum; tail convergence unverified",
         "dropped_lam_modes": dropped_modes,
         "stiff_harmonic_frequencies": stiff_frequencies.tolist(),
         "q_dvr_rot": float(q_dvr),
@@ -668,7 +496,7 @@ class JaxDVRBuilder:
         self,
         grid_points: list[float] | np.ndarray,
         energies_cm1: list[float] | np.ndarray,
-        rotational_constant_cm1: float = 1.0,
+        rotational_constant_cm1: float | None = None,
         periodic: bool = True,
     ) -> dict[str, Any]:
         """
@@ -680,6 +508,8 @@ class JaxDVRBuilder:
         :param periodic: Use periodic boundary conditions (Meyer-Colbert-Miller).
         :return: Dictionary with eigenvalues, wavefunctions, and ground state.
         """
+        if not periodic:
+            raise ValueError("This rotor API requires periodic angles; use an explicit kinetic matrix for other boundary conditions")
         h_matrix = build_dvr_hamiltonian(
             pes_spline_array=energies_cm1,
             kinetic_operator=rotational_constant_cm1,
@@ -698,7 +528,7 @@ class JaxDVRBuilder:
         )
 
         tunneling = (
-            float(evals_clean[1] - evals_clean[0]) if len(evals_clean) > 1 else 0.0
+            float(evals_clean[1] - evals_clean[0]) if len(evals_clean) > 1 else None
         )
 
         return {
@@ -706,7 +536,10 @@ class JaxDVRBuilder:
             "eigenvalues": evals_clean,
             "wavefunctions": evecs_clean,
             "ground_state_energy_cm1": float(evals_clean[0]),
-            "tunneling_splitting_cm1": tunneling,
+            "lowest_level_gap_cm1": tunneling,
+            "tunneling_splitting_cm1": None,
+            "tunneling_assignment_status": "unavailable; symmetry/localization assignment required",
+            "model": "finite_grid_reduced_1D_rotor",
             "num_points": len(evals_clean),
         }
 
@@ -715,7 +548,7 @@ class JaxDVRBuilder:
         grid_points_x: list[float] | np.ndarray,
         grid_points_y: list[float] | np.ndarray,
         pes_2d_cm1: np.ndarray,
-        rotational_constants_cm1: tuple[float, float] = (1.0, 1.0),
+        rotational_constants_cm1: tuple[float, float] | None = None,
         periodic: bool = True,
     ) -> dict[str, Any]:
         """
@@ -728,6 +561,8 @@ class JaxDVRBuilder:
         :param periodic: Use periodic boundary conditions.
         :return: Dictionary with 2D eigenvalues, wavefunctions, and ground state.
         """
+        if not periodic:
+            raise ValueError("This rotor API requires periodic angles; use an explicit kinetic matrix for other boundary conditions")
         h_2d = build_dvr_hamiltonian(
             pes_spline_array=pes_2d_cm1,
             kinetic_operator=rotational_constants_cm1,
@@ -749,4 +584,5 @@ class JaxDVRBuilder:
             "wavefunctions": evecs_clean,
             "ground_state_energy_cm1": float(evals_clean[0]),
             "num_states": len(evals_clean),
+            "model": "finite_grid_reduced_2D_rotor",
         }

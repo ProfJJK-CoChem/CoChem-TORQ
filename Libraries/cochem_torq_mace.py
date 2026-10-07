@@ -6,7 +6,7 @@ potential energy surface screening, adaptive grid density refinement across
 transition state barriers, and topographic extrema extraction per Method
 Matrix v4 (§4.4, §8A, §8B, §9B, §16.1, Table 2).
 Includes strict TolMaxG 1e-5 convergence guards, Float32 noise floors, genuine
-physics fallbacks (GFN2-xTB / PySCF / empirical covalent radii bounds), ONNX
+explicit calculator selection and unavailable-result errors, ONNX
 CPU thread-pool routing, and numerical derivative-driven angular density tightening.
 """
 
@@ -86,7 +86,9 @@ def get_covalent_radius(symbol: str) -> float:
             return float(rad_pm) / 100.0
     except Exception:
         pass
-    return COVALENT_RADII.get(symbol, 1.0)
+    if symbol in COVALENT_RADII:
+        return COVALENT_RADII[symbol]
+    raise ValueError(f"Covalent radius unavailable for {symbol!r}.")
 
 
 def partition_molecular_graph(
@@ -139,120 +141,46 @@ def evaluate_physical_potential(
     coordinates: np.ndarray | Sequence[Sequence[float]],
     use_pyscf: bool = False,
 ) -> tuple[float, np.ndarray, bool]:
-    """Evaluates potential energy (in eV) and atomic forces (in eV/Å) using real physical fallbacks.
+    """Evaluate explicitly requested RHF/STO-3G; never substitute an invented potential.
 
-    Uses graph partitioning based on dynamic Pyykkö covalent radii:
-    - Intra-fragment bonded pairs: Covalent Morse stretching potential.
-    - Inter-fragment and non-bonded pairs: Buffered Lennard-Jones 12-6 dispersion and Coulomb.
-    Method Matrix Reference: Method Matrix v4 §4.4, §9A.1, and §9B.4 [M].
+    This limited, closed-shell reference calculation is not MACE or high-level
+    electronic structure. Calling without an explicit engine selection fails.
     """
+    if not use_pyscf:
+        raise RuntimeError(
+            "No potential calculator selected; an empirical replacement is not a scientific result."
+        )
     coords_arr = np.asarray(coordinates, dtype=np.float64)
-    n_atoms = len(symbols)
+    if (
+        not symbols
+        or coords_arr.shape != (len(symbols), 3)
+        or not np.isfinite(coords_arr).all()
+    ):
+        raise ValueError("A nonempty finite molecular geometry is required.")
+    try:
+        from pyscf import gto, scf
 
-    if n_atoms == 0 or coords_arr.size == 0:
-        return 0.0, np.full((0, 3), 0.0, dtype=np.float64), True
-
-    # 1. Optional PySCF fallback if explicitly enabled
-    if use_pyscf:
-        try:
-            from pyscf import gto, scf  # type: ignore[import-not-found,import-untyped]
-
-            mol = gto.Mole()
-            mol.atom = [[symbols[k], coords_arr[k]] for k in range(n_atoms)]
-            mol.basis = "sto-3g"
-            mol.verbose = 0
-            mol.build()
-            mf = scf.RHF(mol)
-            e_hartree = float(mf.kernel())
-            energy_ev = e_hartree * HARTREE_TO_EV
-            grad = mf.nuc_grad_method().kernel()
-            forces = -np.array(grad, dtype=np.float64) * (HARTREE_TO_EV / BOHR_TO_ANGSTROM)
-            converged = bool(getattr(mf, "converged", True))
-            return energy_ev, forces, converged
-        except Exception:
-            logger.debug("PySCF evaluation unavailable; falling back to graph-partitioned potential.")
-
-    # 2. Graph-partitioned physical potential
-    fragments, adj_matrix = partition_molecular_graph(symbols, coords_arr)
-    frag_id = {}
-    for fid, comp in enumerate(fragments):
-        for idx in comp:
-            frag_id[idx] = fid
-
-    cov_radii = [get_covalent_radius(s) for s in symbols]
-    energy_ev = 0.0
-    forces = np.zeros_like(coords_arr, dtype=np.float64)
-
-    # Standard partial charges for electrostatics
-    charges = []
-    for s in symbols:
-        sym_cap = s.capitalize()
-        if sym_cap == "O":
-            charges.append(-0.4)
-        elif sym_cap == "H":
-            charges.append(0.2)
-        elif sym_cap == "N":
-            charges.append(-0.3)
-        elif sym_cap == "C":
-            charges.append(0.0)
-        else:
-            charges.append(0.0)
-
-    for i in range(n_atoms):
-        for j in range(i + 1, n_atoms):
-            diff = coords_arr[i] - coords_arr[j]
-            d = float(np.linalg.norm(diff))
-            if d < 1e-6:
-                d = 1e-6
-                diff = np.array([1e-6, 0.0, 0.0])
-            u = diff / d
-
-            same_frag = (frag_id[i] == frag_id[j])
-            is_bonded = adj_matrix[i, j]
-
-            if same_frag and is_bonded:
-                # Intra-fragment bonded pair: Covalent Morse potential
-                r0 = cov_radii[i] + cov_radii[j]
-                d_e = 4.5  # eV
-                alpha = 1.8  # 1/Å
-                exp_term = math.exp(-alpha * (d - r0))
-                v_bond = d_e * ((1.0 - exp_term) ** 2)
-                energy_ev += v_bond
-
-                # dV/dr
-                dv_dr = 2.0 * d_e * alpha * (1.0 - exp_term) * exp_term
-                f_vec = -dv_dr * u
-                forces[i] += f_vec
-                forces[j] -= f_vec
-            else:
-                # Inter-fragment or non-bonded pair: Buffered Lennard-Jones 12-6 + Coulomb
-                # vdW contact parameter
-                r_vdw_i = cov_radii[i] + 0.8
-                r_vdw_j = cov_radii[j] + 0.8
-                r_eq_vdw = r_vdw_i + r_vdw_j
-                sigma = r_eq_vdw * 0.890898718  # 2^(-1/6)
-                eps = 0.02  # eV
-
-                sr6 = (sigma / d) ** 6
-                sr12 = sr6 ** 2
-                v_lj = 4.0 * eps * (sr12 - sr6)
-
-                # Coulomb with damping
-                q_prod = charges[i] * charges[j]
-                v_coul = (14.3996 * q_prod) / d
-
-                energy_ev += (v_lj + v_coul)
-
-                # Analytical force: -dV/dr
-                f_lj_mag = (24.0 * eps / d) * (2.0 * sr12 - sr6)
-                f_coul_mag = (14.3996 * q_prod) / (d ** 2)
-                f_mag = f_lj_mag + f_coul_mag
-
-                f_vec = f_mag * u
-                forces[i] += f_vec
-                forces[j] -= f_vec
-
-    return energy_ev, forces, True
+        mol = gto.M(
+            atom=[[s, r] for s, r in zip(symbols, coords_arr)],
+            basis="sto-3g",
+            verbose=0,
+        )
+        mf = scf.RHF(mol)
+        energy_ev = float(mf.kernel()) * HARTREE_TO_EV
+        if not mf.converged:
+            raise RuntimeError("RHF/STO-3G did not converge.")
+        forces = (
+            -np.asarray(mf.nuc_grad_method().kernel())
+            * HARTREE_TO_EV
+            / BOHR_TO_ANGSTROM
+        )
+        if not np.isfinite(energy_ev) or not np.isfinite(forces).all():
+            raise RuntimeError("RHF/STO-3G returned non-finite results.")
+        return energy_ev, forces, True
+    except Exception as exc:
+        raise RuntimeError(
+            f"Requested RHF/STO-3G calculation unavailable or failed: {exc}"
+        ) from exc
 
 
 def interpolate_coordinates(
@@ -329,97 +257,44 @@ def compute_pes_derivatives(
     """
     theta = np.asarray(angles, dtype=np.float64)
     energy = np.asarray(energies, dtype=np.float64)
-    n = len(theta)
-
-    if n == 0:
-        return np.array([], dtype=np.float64), np.array([], dtype=np.float64)
-    if n == 1:
-        return np.full(1, 0.0, dtype=np.float64), np.full(1, 0.0, dtype=np.float64)
-    if n == 2:
-        d_theta = theta[1] - theta[0]
-        grad_val = (energy[1] - energy[0]) / (d_theta if abs(d_theta) > 1e-12 else 1.0)
-        return (
-            np.array([grad_val, grad_val], dtype=np.float64),
-            np.full(2, 0.0, dtype=np.float64),
+    if (
+        theta.ndim != 1
+        or energy.shape != theta.shape
+        or not np.isfinite(theta).all()
+        or not np.isfinite(energy).all()
+    ):
+        raise ValueError(
+            "PES derivatives require aligned finite one-dimensional angles and energies."
         )
-
-    gradients = np.full(n, 0.0, dtype=np.float64)
-    curvatures = np.full(n, 0.0, dtype=np.float64)
-
-    is_periodic = periodic or (abs(abs(theta[-1] - theta[0]) - 360.0) < 1e-3)
-
-    for i in range(n):
-        if i == 0:
-            if is_periodic:
-                h1 = theta[0] - (theta[-1] - 360.0)
-                h2 = theta[1] - theta[0]
-                e_prev = energy[-1]
-                e_curr = energy[0]
-                e_next = energy[1]
-            else:
-                h1 = theta[1] - theta[0]
-                h2 = theta[2] - theta[1]
-                denom_fwd = h1 * (h1 + h2)
-                if abs(h1) > 1e-12 and abs(denom_fwd) > 1e-12 and abs(h2) > 1e-12:
-                    gradients[0] = (
-                        -energy[0] * (2.0 * h1 + h2) / denom_fwd
-                        + energy[1] * (h1 + h2) / (h1 * h2)
-                        - energy[2] * h1 / (h2 * (h1 + h2))
-                    )
-                else:
-                    gradients[0] = (energy[1] - energy[0]) / (
-                        h1 if abs(h1) > 1e-12 else 1.0
-                    )
-
-                s1 = (energy[1] - energy[0]) / (h1 if abs(h1) > 1e-12 else 1.0)
-                s2 = (energy[2] - energy[1]) / (h2 if abs(h2) > 1e-12 else 1.0)
-                curvatures[0] = 2.0 * (s2 - s1) / max(1e-12, h1 + h2)
-                continue
-
-        elif i == n - 1:
-            if is_periodic:
-                h1 = theta[-1] - theta[-2]
-                h2 = (theta[0] + 360.0) - theta[-1]
-                e_prev = energy[-2]
-                e_curr = energy[-1]
-                e_next = energy[0]
-            else:
-                h1 = theta[-1] - theta[-2]
-                h2 = theta[-2] - theta[-3]
-                denom_bwd = h1 * (h1 + h2)
-                if abs(h1) > 1e-12 and abs(denom_bwd) > 1e-12 and abs(h2) > 1e-12:
-                    gradients[-1] = (
-                        energy[-1] * (2.0 * h1 + h2) / denom_bwd
-                        - energy[-2] * (h1 + h2) / (h1 * h2)
-                        + energy[-3] * h1 / (h2 * (h1 + h2))
-                    )
-                else:
-                    gradients[-1] = (energy[-1] - energy[-2]) / (
-                        h1 if abs(h1) > 1e-12 else 1.0
-                    )
-
-                s1 = (energy[-1] - energy[-2]) / (h1 if abs(h1) > 1e-12 else 1.0)
-                s2 = (energy[-2] - energy[-3]) / (h2 if abs(h2) > 1e-12 else 1.0)
-                curvatures[-1] = 2.0 * (s1 - s2) / max(1e-12, h1 + h2)
-                continue
-        else:
-            h1 = theta[i] - theta[i - 1]
-            h2 = theta[i + 1] - theta[i]
-            e_prev = energy[i - 1]
-            e_curr = energy[i]
-            e_next = energy[i + 1]
-
-        denom = h1 * h2 * (h1 + h2)
-        if abs(denom) > 1e-12:
-            num = h1**2 * (e_next - e_curr) + h2**2 * (e_curr - e_prev)
-            gradients[i] = num / denom
-            s1 = (e_curr - e_prev) / (h1 if abs(h1) > 1e-12 else 1.0)
-            s2 = (e_next - e_curr) / (h2 if abs(h2) > 1e-12 else 1.0)
-            curvatures[i] = 2.0 * (s2 - s1) / (h1 + h2)
-        else:
-            gradients[i] = 0.0
-            curvatures[i] = 0.0
-
+    if len(theta) < 3:
+        raise ValueError(
+            "At least three distinct samples are required to estimate PES curvature."
+        )
+    if np.any(np.diff(theta) <= 1e-12):
+        raise ValueError("PES angles must be strictly increasing and distinct.")
+    if not periodic:
+        gradients = np.gradient(energy, theta, edge_order=2)
+        curvatures = np.gradient(gradients, theta, edge_order=2)
+        return gradients, curvatures
+    span = theta[-1] - theta[0]
+    if span >= 360.0:
+        if not np.isclose(span, 360.0) or not np.isclose(
+            energy[-1], energy[0], atol=1e-10, rtol=1e-10
+        ):
+            raise ValueError(
+                "Periodic PES endpoints must span at most 360 degrees and duplicate energies must agree."
+            )
+        gradients, curvatures = compute_pes_derivatives(
+            theta[:-1], energy[:-1], periodic=True
+        )
+        return np.append(gradients, gradients[0]), np.append(curvatures, curvatures[0])
+    x = np.concatenate(([theta[-1] - 360.0], theta, [theta[0] + 360.0]))
+    e = np.concatenate(([energy[-1]], energy, [energy[0]]))
+    h1, h2 = theta - x[:-2], x[2:] - theta
+    gradients = (h1**2 * (e[2:] - energy) + h2**2 * (energy - e[:-2])) / (
+        h1 * h2 * (h1 + h2)
+    )
+    curvatures = 2 * ((e[2:] - energy) / h2 - (energy - e[:-2]) / h1) / (h1 + h2)
     return gradients, curvatures
 
 
@@ -571,8 +446,10 @@ def generate_adaptive_grid(
         evaluated_points.append(pt_copy)
 
     def get_angle(item: dict[str, Any]) -> float:
-        angles_seq = item.get("dihedral_angles", [0.0])
-        return float(angles_seq[0]) if angles_seq else 0.0
+        angles_seq = item.get("dihedral_angles")
+        if not angles_seq or not np.isfinite(angles_seq[0]):
+            raise ValueError("A finite dihedral angle is required for PES refinement.")
+        return float(angles_seq[0])
 
     evaluated_points.sort(key=get_angle)
 
@@ -630,11 +507,7 @@ def generate_adaptive_grid(
             reason = (
                 "transition_state_barrier"
                 if is_ts_barrier
-                else (
-                    "high_gradient_slope"
-                    if is_high_slope
-                    else "angular_resolution"
-                )
+                else ("high_gradient_slope" if is_high_slope else "angular_resolution")
             )
 
             for k in range(1, n_sub):
@@ -775,66 +648,32 @@ class TorqMACETriage:
             self.grid_points = []
 
     def _init_calculator(self) -> Any:
-        """Initialize MACE, AIMNet2, ONNX, or physical potential calculators."""
-        # 1. Attempt ONNX-based model if specified
-        if self.model_name.endswith(".onnx") or "onnx" in self.model_name.lower():
-            try:
-                self.onnx_config = onnx_cpu_fallback()
-                logger.info(
-                    f"Configured ONNX CPU fallback: {self.onnx_config.get('provider')}."
-                )
-            except Exception as exc:
-                logger.warning(f"ONNX initialization encountered issue: {exc}.")
-
-        # 2. Attempt MACE-OFF24m (enforce FP64 to prevent Float32 noise
-        # floor per §8A.5 & §10.7)
-        if "mace" in self.model_name.lower():
-            try:
-                from mace.calculators import (
-                    mace_off,  # type: ignore[import-not-found,import-untyped]
-                )
-
-                calc = mace_off(
-                    model=self.model_name,
-                    device=self.device,
-                    default_dtype="float64",
-                )
-                logger.info(
-                    f"Initialized MACE-OFF24m ({self.model_name}) on "
-                    f"{self.device} (dtype=float64)."
-                )
-                return calc
-            except (ImportError, RuntimeError, ValueError) as exc:
-                logger.info(
-                    f"MACE-OFF24m unavailable ({exc}). Using physical fallback."
-                )
-
-        # 3. Attempt AIMNet2
-        elif "aimnet" in self.model_name.lower():
-            try:
-                from aimnet2calc import (
-                    AIMNet2ASE,  # type: ignore[import-not-found,import-untyped]
-                )
-
-                calc = AIMNet2ASE(model=self.model_name)
-                logger.info(f"Initialized AIMNet2 ({self.model_name}) calculator.")
-                return calc
-            except (ImportError, RuntimeError, ValueError) as exc:
-                logger.info(
-                    f"AIMNet2 unavailable ({exc}). Using physical fallback."
-                )
-
-        # 4. Attempt ASE EMT
+        """Initialize only the requested calculator; unavailable engines fail explicitly."""
+        model = self.model_name.lower()
         try:
-            from ase.calculators.emt import (
-                EMT,  # type: ignore[import-not-found,import-untyped]
-            )
+            if "mace" in model:
+                from mace.calculators import mace_off
 
-            return EMT()
-        except (ImportError, RuntimeError, ValueError) as exc:
-            logger.debug(f"ASE EMT unavailable ({exc}). Using physical fallback.")
+                return mace_off(
+                    model=self.model_name, device=self.device, default_dtype="float64"
+                )
+            if "aimnet" in model:
+                from aimnet2calc import AIMNet2ASE
 
-        return None
+                return AIMNet2ASE(model=self.model_name)
+            if model == "emt":
+                from ase.calculators.emt import EMT
+
+                return EMT()
+            if model.endswith(".onnx") or "onnx" in model:
+                raise RuntimeError(
+                    "ONNX model-to-ASE energy/force adapter is not implemented."
+                )
+            raise ValueError(f"Unsupported calculator {self.model_name!r}.")
+        except Exception as exc:
+            raise RuntimeError(
+                f"Requested calculator {self.model_name!r} is unavailable: {exc}"
+            ) from exc
 
     def onnx_cpu_fallback(
         self,
@@ -861,6 +700,12 @@ class TorqMACETriage:
         """
         coords_arr = np.asarray(coordinates, dtype=np.float64)
 
+        if (
+            coords_arr.shape != (len(self.symbols), 3)
+            or not self.symbols
+            or not np.isfinite(coords_arr).all()
+        ):
+            raise ValueError("A nonempty finite molecular geometry is required.")
         if self.calculator is not None:
             try:
                 from ase import Atoms  # type: ignore[import-not-found,import-untyped]
@@ -869,6 +714,12 @@ class TorqMACETriage:
                 atoms.calc = self.calculator
                 energy_ev = float(atoms.get_potential_energy())
                 forces = np.array(atoms.get_forces(), dtype=np.float64)
+                if (
+                    forces.shape != coords_arr.shape
+                    or not np.isfinite(energy_ev)
+                    or not np.isfinite(forces).all()
+                ):
+                    raise ValueError("Calculator returned invalid energy or forces.")
                 max_force_ev_ang = (
                     float(np.max(np.linalg.norm(forces, axis=1)))
                     if len(forces) > 0
@@ -880,11 +731,13 @@ class TorqMACETriage:
                 converged = max_force_eh_bohr <= self.scf_tolerance_guard
                 return energy_ev, forces, converged
             except Exception as exc:
-                logger.debug(
-                    f"Calculator evaluation failed: {exc}. Using physical fallback."
-                )
+                raise RuntimeError(
+                    f"Requested calculator {self.model_name!r} failed: {exc}"
+                ) from exc
 
-        return evaluate_physical_potential(self.symbols, coords_arr)
+        raise RuntimeError(
+            "No calculator is configured; energy and forces are unavailable."
+        )
 
     def evaluate_grid(
         self, max_steps: int = 20, fmax: float = 0.05
@@ -953,8 +806,7 @@ class TorqMACETriage:
         self, energy_window_kcal_mol: float = 10.0
     ) -> list[dict[str, Any]]:
         """
-        Extract potential energy surface extrema from triage_results within window.
-        Enforces Method Matrix G4 retention window.
+        Annotate suggested extrema without removing candidates (advisory ML only).
         """
         triage_data = getattr(self, "triage_results", [])
         if not triage_data:
@@ -964,7 +816,7 @@ class TorqMACETriage:
         if n_pts == 1:
             return list(triage_data)
 
-        energies = [float(p.get("relative_energy_kcal_mol", 0.0)) for p in triage_data]
+        energies = [float(p["relative_energy_kcal_mol"]) for p in triage_data]
         extrema_indices: set[int] = set()
 
         # Global extrema
@@ -1002,14 +854,24 @@ class TorqMACETriage:
         extrema = [
             triage_data[idx]
             for idx in sorted_indices
-            if float(triage_data[idx].get("relative_energy_kcal_mol", 0.0))
+            if float(triage_data[idx]["relative_energy_kcal_mol"])
             <= energy_window_kcal_mol
         ]
 
         if not extrema and sorted_indices:
             extrema = [triage_data[min_idx]]
 
-        return extrema
+        # Advisory ML policy: annotate priorities while retaining every input.
+        priority_ids = {id(point) for point in extrema}
+        return [
+            dict(
+                point,
+                is_extremum=id(point) in priority_ids,
+                advisory_only=True,
+                eligible_for_pruning=False,
+            )
+            for point in triage_data
+        ]
 
     def audit_rank_inversion(
         self,
@@ -1038,45 +900,58 @@ class TorqMACETriage:
             )
 
         mlff_energies = np.array(
-            [float(p.get("relative_energy_kcal_mol", 0.0)) for p in triage_data],
+            [float(p["relative_energy_kcal_mol"]) for p in triage_data],
             dtype=np.float64,
         )
         ref_energies = np.asarray(reference_energies_kcal_mol, dtype=np.float64)
         ref_rel = ref_energies - np.min(ref_energies)
 
-        # Compute Spearman rank correlation
+        if len(mlff_energies) < 3:
+            raise ValueError(
+                "Rank diagnostics require at least three observed paired energies."
+            )
+        if not np.isfinite(mlff_energies).all() or not np.isfinite(ref_energies).all():
+            raise ValueError("Rank diagnostics require finite observed energies.")
+        if np.ptp(mlff_energies) == 0 or np.ptp(ref_energies) == 0:
+            raise ValueError(
+                "Spearman correlation is undefined for a constant energy series."
+            )
+        if not np.isfinite(spearman_threshold) or not -1 <= spearman_threshold <= 1:
+            raise ValueError("Spearman threshold must be finite and within [-1,1].")
+        if not np.isfinite(retention_window_kcal_mol) or retention_window_kcal_mol <= 0:
+            raise ValueError("A finite positive retention window is required.")
         try:
-            from scipy.stats import spearmanr
-
-            res = spearmanr(mlff_energies, ref_rel)
-            rho = float(res.statistic if hasattr(res, "statistic") else res[0])
-            pval = float(res.pvalue if hasattr(res, "pvalue") else res[1])
-        except Exception:
-            order_m = mlff_energies.argsort()
-            order_r = ref_rel.argsort()
-            ranks_m = np.empty_like(order_m, dtype=np.float64)
-            ranks_r = np.empty_like(order_r, dtype=np.float64)
-            ranks_m[order_m] = np.arange(len(order_m), dtype=np.float64)
-            ranks_r[order_r] = np.arange(len(order_r), dtype=np.float64)
-            cov = np.cov(ranks_m, ranks_r)
-            std_prod = np.std(ranks_m) * np.std(ranks_r)
-            rho = float(cov[0, 1] / std_prod) if std_prod > 1e-12 else 1.0
-            pval = 0.0
-
-        # Rank displacements
-        ranks_mlff = np.argsort(np.argsort(mlff_energies))
-        ranks_ref = np.argsort(np.argsort(ref_rel))
-        rank_displacements = np.abs(ranks_mlff - ranks_ref)
-        max_rank_disp = (
-            int(np.max(rank_displacements)) if len(rank_displacements) > 0 else 0
-        )
+            from scipy.stats import rankdata, spearmanr
+        except ImportError as exc:
+            raise RuntimeError(
+                "SciPy rank statistics are unavailable; no statistical result was computed."
+            ) from exc
+        result = spearmanr(mlff_energies, ref_rel)
+        rho, pval = float(result.statistic), float(result.pvalue)
+        if (
+            not np.isfinite(rho)
+            or not np.isfinite(pval)
+            or not -1 <= rho <= 1
+            or not 0 <= pval <= 1
+        ):
+            raise ValueError(
+                "SciPy returned an undefined Spearman statistic or p-value."
+            )
+        # Average ranks treat ties consistently with the actual Spearman statistic.
+        rank_displacements = np.abs(rankdata(mlff_energies) - rankdata(ref_rel))
+        max_rank_disp = float(np.max(rank_displacements))
 
         # Verify G4 retention window
         retained_mask_mlff = mlff_energies <= retention_window_kcal_mol
         retained_mask_ref = ref_rel <= retention_window_kcal_mol
         omitted_in_window = bool(np.any((~retained_mask_mlff) & retained_mask_ref))
 
-        cull_eligible = bool((rho >= spearman_threshold) and (not omitted_in_window))
+        diagnostic_passed = bool(
+            (rho >= spearman_threshold) and (not omitted_in_window)
+        )
+        cull_eligible = (
+            False  # Approved advisory policy: diagnostics never authorize pruning.
+        )
 
         report = {
             "spearman_rho": round(rho, 6),
@@ -1089,7 +964,14 @@ class TorqMACETriage:
             "num_retained_ref": int(np.sum(retained_mask_ref)),
             "omitted_in_window": omitted_in_window,
             "cull_eligible": cull_eligible,
-            "g4_status": "PASSED" if cull_eligible else "REJECTED_RANK_INVERSION",
+            "g4_status": "DIAGNOSTIC_PASSED_ADVISORY_ONLY"
+            if diagnostic_passed
+            else "REJECTED_RANK_INVERSION",
+            "diagnostic_passed": diagnostic_passed,
+            "advisory_only": True,
+            "eligible_for_pruning": False,
+            "statistical_method": "scipy.stats.spearmanr, asymptotic p-value",
+            "qualification": "Rank diagnostics alone do not establish search completeness or transferable accuracy.",
         }
         logger.info(
             f"Method Matrix G4 rank audit: rho={rho:.4f} "

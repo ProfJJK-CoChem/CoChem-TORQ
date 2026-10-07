@@ -10,15 +10,17 @@ import collections
 import math
 import torch.multiprocessing as mp
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence
 
-import numpy as np
 import torch
 
-from Libraries.cochem_torq_inference_errors import CalibrationSizeError
 from Libraries.cochem_torq_inference_schemas import ConformalInterval, ConformalPredictorConfig
-from cochem_base.exceptions import ConformalCalibrationError
-from cochem_base.schemas import ConformalCalibrationConfig
+class ConformalCalibrationError(ValueError):
+    """TORQ calibration data do not support the requested interval."""
+
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message)
+        self.details = details or {}
 
 
 @dataclass
@@ -34,30 +36,27 @@ class CalibrationSample:
 
 
 class ConformalPredictor:
-    """Inductive Conformal Prediction wrapper providing distribution-free finite-sample guarantees. [M]"""
+    """Experimental split-conformal calculations.
+
+    Coverage requires exchangeable independent calibration units and a matching
+    prediction domain. Pooled atom scores do not establish independent units;
+    TORQ has not validated coverage for these molecular force intervals.
+    """
 
     def __init__(
         self,
-        config: Optional[Union[ConformalCalibrationConfig, ConformalPredictorConfig]] = None,
+        config: Optional[ConformalPredictorConfig] = None,
     ) -> None:
-        if isinstance(config, ConformalCalibrationConfig):
-            self.calib_config = config
-            self.alpha = config.significance_level
-            self.apply_bonferroni = (config.hypothesis_scope == "atomwise_bonferroni")
-            self.min_calibration_observations = config.min_calibration_observations
-            self.eps_e = 1e-4
-            self.eps_f = 1e-4
-            self.strict = True
-        else:
-            cfg = config or ConformalPredictorConfig()
-            self.config = cfg
-            self.calib_config = None
-            self.alpha = cfg.alpha
-            self.eps_e = cfg.regularization_energy
-            self.eps_f = cfg.regularization_force
-            self.strict = cfg.strict_calibration_size
-            self.apply_bonferroni = cfg.apply_bonferroni
-            self.min_calibration_observations = 20
+        if config is not None and not isinstance(config, ConformalPredictorConfig):
+            raise TypeError("Use TORQ ConformalPredictorConfig; foreign BASE schemas require an explicit adapter.")
+        cfg = config or ConformalPredictorConfig()
+        self.config = cfg
+        self.alpha = cfg.alpha
+        self.eps_e = cfg.regularization_energy
+        self.eps_f = cfg.regularization_force
+        self.strict = cfg.strict_calibration_size
+        self.apply_bonferroni = cfg.apply_bonferroni
+        self.min_calibration_observations = 20
 
         self.q_hat_energy: float = float("inf")
         self.q_hat_force: float = float("inf")
@@ -110,7 +109,7 @@ class ConformalPredictor:
         if p_energy <= n_samples:
             self.q_hat_energy = energy_scores[p_energy - 1]
         else:
-            self.q_hat_energy = energy_scores[-1] if energy_scores else float("inf")
+            self.q_hat_energy = float("inf")
 
         # 2. Rotationally Invariant Per-Atom Force Non-Conformity Scores
         force_scores: List[float] = []
@@ -144,14 +143,14 @@ class ConformalPredictor:
         if p_force <= n_force_scores:
             self.q_hat_force = force_scores[p_force - 1]
         else:
-            self.q_hat_force = force_scores[-1]
+            self.q_hat_force = float("inf")
 
         self.is_calibrated = True
 
     def predict_interval(
         self,
-        predicted_energy: float,
-        sigma_energy: float,
+        predicted_energy: Optional[float],
+        sigma_energy: Optional[float],
         predicted_forces: torch.Tensor,
         sigma_forces: torch.Tensor,
     ) -> ConformalInterval:
@@ -163,8 +162,14 @@ class ConformalPredictor:
         if not self.is_calibrated:
             raise RuntimeError("ConformalPredictor must be calibrated before generating prediction intervals.")
 
-        # Energy Interval
-        if math.isinf(self.q_hat_energy):
+        # A force-only request carries no energy value or interval.
+        if (predicted_energy is None) != (sigma_energy is None):
+            raise ValueError("Energy and energy uncertainty must both be supplied or both unavailable.")
+        if predicted_energy is None:
+            e_lower = e_upper = None
+        elif not math.isfinite(predicted_energy) or not math.isfinite(sigma_energy) or sigma_energy < 0:
+            raise ValueError("Energy must be finite and uncertainty finite/nonnegative.")
+        elif math.isinf(self.q_hat_energy):
             e_lower = float("-inf")
             e_upper = float("inf")
         else:
@@ -204,8 +209,8 @@ class ConformalPredictor:
     ) -> ConformalInterval:
         """Evaluate distribution-free conformal prediction intervals on force vectors. [D]"""
         return self.predict_interval(
-            predicted_energy=0.0,
-            sigma_energy=0.0,
+            predicted_energy=None,
+            sigma_energy=None,
             predicted_forces=predicted_forces,
             sigma_forces=sigma_forces,
         )

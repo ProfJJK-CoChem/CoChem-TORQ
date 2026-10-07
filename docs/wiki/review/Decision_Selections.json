@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-10-07",
+  "date_timezone": "America/Chicago",
+  "status": "all_24_questions_answered",
+  "scope": "Explicit user design selections, not evidence of implementation or scientific validation and not a request to launch external calculations.",
+  "selections": [
+    {
+      "id": "D01",
+      "option_number_in_question_guide": 3,
+      "selection": "Develop exact open-source revDSD",
+      "status": "accepted"
+    },
+    {
+      "id": "D02",
+      "option_number_in_question_guide": 1,
+      "selection": "Staged engine coverage",
+      "status": "accepted"
+    },
+    {
+      "id": "D03",
+      "option_number_in_question_guide": 1,
+      "selection": "Advisory ML acceleration first",
+      "status": "accepted"
+    },
+    {
+      "id": "D04",
+      "option_number_in_question_guide": 1,
+      "selection": "Separate explicit geometry and counterpoise recipes",
+      "status": "accepted"
+    },
+    {
+      "id": "D05",
+      "option_number_in_question_guide": 1,
+      "selection": "Semirigid VPT2 before separately validated LAM",
+      "status": "accepted"
+    },
+    {
+      "id": "D06",
+      "option_number_in_question_guide": 1,
+      "selection": "Diagnostics and scientific escalation",
+      "status": "accepted"
+    },
+    {
+      "id": "D07",
+      "option_number_in_question_guide": 1,
+      "selection": "Optional separately named electronic analyses",
+      "status": "accepted"
+    },
+    {
+      "id": "D08",
+      "option_number_in_question_guide": 1,
+      "selection": "One BASE contract plus a standalone local adapter",
+      "status": "accepted"
+    },
+    {
+      "id": "D09",
+      "option_number_in_question_guide": 1,
+      "selection": "Linux CPU first, then named GPU/Slurm profiles",
+      "status": "accepted"
+    },
+    {
+      "id": "D10",
+      "option_number_in_question_guide": 1,
+      "selection": "Bounded preregistered benchmark and observable targets",
+      "status": "accepted"
+    },
+    {
+      "id": "D11",
+      "option_number_in_question_guide": 1,
+      "selection": "Layered real tests with mandatory real-engine release gates",
+      "status": "accepted"
+    },
+    {
+      "id": "D12",
+      "option_number_in_question_guide": 1,
+      "selection": "Rotational core with explicit sibling-module handoffs",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-01",
+      "option_number_in_question_guide": 1,
+      "selection": "Typed native parsers",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-02",
+      "option_number_in_question_guide": 3,
+      "selection": "Explicit additional calculation for a missing property",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-03",
+      "option_number_in_question_guide": 1,
+      "selection": "Native final geometry and convergence evidence",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-04",
+      "option_number_in_question_guide": 1,
+      "selection": "Distinct exit codes plus typed manifest",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-05",
+      "option_number_in_question_guide": 1,
+      "selection": "Explicit qualified engine adapters",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-06",
+      "option_number_in_question_guide": 1,
+      "selection": "Explicit workflow profiles and immutable recorded task DAG",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-07",
+      "option_number_in_question_guide": 1,
+      "selection": "Local SQLite coordinator behind the shared contract",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-08",
+      "option_number_in_question_guide": 1,
+      "selection": "Fixed molecular identity and atom count per dataset",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-09",
+      "option_number_in_question_guide": 2,
+      "selection": "Independent immutable worker shards plus a merger",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-10",
+      "option_number_in_question_guide": 3,
+      "selection": "Separate versioned engine environments",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-11",
+      "option_number_in_question_guide": 2,
+      "selection": "Qualified per-engine images",
+      "status": "accepted"
+    },
+    {
+      "id": "ARCH-12",
+      "option_number_in_question_guide": 1,
+      "selection": "Validated QCSchema AtomicResult plus TORQ spectroscopy bundle",
+      "status": "accepted"
+    }
+  ],
+  "constraints": [
+    "Preserve valid earlier spectroscopy stages when later stages fail.",
+    "Additional property tasks use existing approved plan/budget where applicable; no mandatory per-calculation confirmation.",
+    "Changed physical models require explicit provenance and applicable scientific review.",
+    "Worker shards/merger and separate qualified engine images remain implementation/qualification targets; existing core installation evidence does not certify them.",
+    "No fabricated scientific values, mocked engine acceptance, or silent method substitution."
+  ]
+}

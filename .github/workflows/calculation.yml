@@ -1,0 +1,98 @@
+name: TORQ student calculation
+run-name: TORQ ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_b64:
+        description: Strict base64 of an explicit cochem.torq.request/1 UTF-8 JSON object (at most 16 KiB decoded)
+        type: string
+        required: true
+      request_sha256:
+        description: Lowercase SHA-256 of the exact decoded JSON bytes
+        type: string
+        required: true
+      request_id:
+        description: UUID matching request_id inside the JSON
+        type: string
+        required: true
+      expected_source_sha:
+        description: Immutable 40-character source commit approved by the submitting interface
+        type: string
+        required: true
+      engine:
+        description: Public qualified engine profile; licensed/site engines require a separate workflow
+        type: choice
+        options: [pyscf]
+        default: pyscf
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: torq-calculation-${{ github.repository }}-${{ inputs.request_id }}
+  cancel-in-progress: false
+
+jobs:
+  calculation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      TORQ_REQUEST_B64: ${{ inputs.request_b64 }}
+      TORQ_REQUEST_SHA256: ${{ inputs.request_sha256 }}
+      TORQ_REQUEST_ID: ${{ inputs.request_id }}
+      TORQ_ENGINE: ${{ inputs.engine }}
+      TORQ_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Validate request transport before provisioning compute
+        run: python ci_tools/actions_request.py --output "$RUNNER_TEMP/torq-input/request.json"
+      - name: Build the independently isolated calculation image
+        run: |
+          docker build --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} .
+          mkdir -p "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
+          sudo chown "1000:$(id -g)" "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
+          chmod 775 "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
+          docker image inspect torq-pyscf:${GITHUB_SHA} --format '{{.Id}}' > "$RUNNER_TEMP/torq-evidence/image-id.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/torq-evidence/source-commit.txt"
+      - name: Require genuine engine and native derivative qualification
+        run: |
+          image_id="$(cat "$RUNNER_TEMP/torq-evidence/image-id.txt")"
+          timeout --signal=TERM --kill-after=15s 180s docker run --rm --name torq-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-evidence,dst=/evidence" \
+            --entrypoint python torq-pyscf:${GITHUB_SHA} \
+            /opt/torq-source/ci_tools/qualify_pyscf_image.py \
+            --output /evidence/qualification --image-identity "$image_id" --source-commit "$GITHUB_SHA"
+      - name: Execute the exact request and retain immutable result shards
+        run: |
+          timeout --signal=TERM --kill-after=15s 660s docker run --rm --name torq-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-input,dst=/input,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/torq-results,dst=/results" \
+            --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
+            --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-evidence/image-id.txt")" \
+            torq-pyscf:${GITHUB_SHA} execute --request /input/request.json \
+            --output-dir /results/result --request-id "$TORQ_REQUEST_ID" --expected-sha256 "$TORQ_REQUEST_SHA256"
+      - name: Reap any interrupted container owned by this attempt
+        if: always()
+        run: |
+          docker rm --force torq-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} 2>/dev/null || true
+      - name: Retain results and scientific execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: torq-result-${{ inputs.request_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/torq-results/
+            ${{ runner.temp }}/torq-evidence/
+            ${{ runner.temp }}/torq-input/*.transport.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: false

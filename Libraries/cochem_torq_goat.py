@@ -9,7 +9,7 @@ force fields (AIMNet2 / MACE-OMOL / UMA) or GFN2-xTB / r2SCAN-3c electronic stru
 
 Authoritative Standards & Directives:
 - Method Matrix v4 Section 9B.1: The verdict on GOAT vs CREST and union merging
-  (GOAT is primary engine with average F1 = 0.93 [M] benchmark baseline vs CREST 0.74-0.80)
+  (performance requires an independently specified benchmark and observed result)
 - Method Matrix v4 Section 9B.2: Conformer search comparison table and basin-hopping lineage
 - Method Matrix v4 Section 9B.3: The 6-Step Union Protocol (Steps 0, 1, 2, and 6)
 - Method Matrix v4 Section 9B.4: MLFF-driven GOAT recipe (ExtOpt, AIMNet2 float32 noise floor,
@@ -23,49 +23,49 @@ Authoritative Standards & Directives:
 
 from __future__ import annotations
 
+import concurrent.futures
 import datetime
 import enum
 import functools
 import hashlib
-import json
 import logging
 import math
 import os
-import platform
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 import uuid
 from collections.abc import Sequence
-import concurrent.futures
 from pathlib import Path
-from typing import Any, Final, Literal, Optional, Tuple, Union
+from typing import Any, Final, Optional, Tuple, Union
 
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
 
 import h5py
-from mendeleev import element as mendeleev_element
 import numpy as np
 import scipy.constants as const
+from mendeleev import element as mendeleev_element
+from pydantic import BaseModel, ConfigDict, Field
 from scipy.spatial.distance import cdist
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 try:
     from cochem_base.schemas import MultiSeedGoatConfig
 except ImportError:
+
     class MultiSeedGoatConfig(BaseModel):
         model_config = ConfigDict(frozen=True, extra="forbid")
         seed_structures: list[str] = Field(min_length=1)
         max_concurrent_seeds: int = Field(default=4, ge=1)
         rmsd_threshold_angstrom: float = Field(default=0.15, gt=0.0)
         energy_window_kcal_mol: float = Field(default=6.0, gt=0.0)
+
 
 try:
     from scripts.oet_client import PhysicalOETFallbackCalculator
@@ -125,27 +125,17 @@ ROTATIONAL_PREFACTOR_CM1: Final[float] = PLANCK_CONSTANT_H / (
 # 2. Dynamic Atomic Mass and Radii Integration (Mendeleev Mandate)
 # =============================================================================
 
+
 @functools.lru_cache(maxsize=256)
 def get_dynamic_atomic_mass(symbol: str) -> float:
-    """Dynamically retrieves standard atomic weight (amu) via mendeleev.
+    """Resolve the selected isotope mass; abundance-weighted weights are not rotors."""
+    from Libraries.cochem_isotopes import isotope_mass
 
-    Strictly prohibits hardcoded mass constants under Mendeleev Mandate.
-    """
-    clean_sym = symbol.strip().rstrip(":").capitalize()
-    el = mendeleev_element(clean_sym)
-    if el.atomic_weight is not None:
-        return float(el.atomic_weight)
-    if el.mass is not None:
-        return float(el.mass)
-    raise ValueError(
-        f"Could not dynamically retrieve atomic mass for element symbol '{symbol}'."
-    )
+    return isotope_mass(symbol.strip().rstrip(":"))
 
 
 @functools.lru_cache(maxsize=256)
-def get_dynamic_isotopic_mass(
-    symbol: str, mass_number: Optional[int] = None
-) -> float:
+def get_dynamic_isotopic_mass(symbol: str, mass_number: Optional[int] = None) -> float:
     """Dynamically retrieves isotopic mass via mendeleev."""
     clean_sym = symbol.strip().rstrip(":").capitalize()
     el = mendeleev_element(clean_sym)
@@ -184,6 +174,7 @@ def get_dynamic_vdw_radius(symbol: str) -> float:
 # =============================================================================
 # 3. Tripartite Filesystem Air-Gap Architecture & Custom Exceptions
 # =============================================================================
+
 
 class AirGapViolationError(RuntimeError):
     """Raised when an execution writes to Ring 1 static repository space."""
@@ -276,13 +267,16 @@ class CoChemPathManager:
 # 4. Enums, Pydantic v2 Models & Data Structures
 # =============================================================================
 
+
 class GoatMode(str, enum.Enum):
     """ORCA GOAT algorithmic operation variants per Method Matrix v4 §9B.4."""
 
     GOAT = "GOAT"  # Standard conformer search with bond topology constraint
     GOAT_EXPLORE = "GOAT-EXPLORE"  # Drops topology constraint; right variant for binding-site isomerism
     GOAT_ENTROPY = "GOAT-ENTROPY"  # Stops when conformational entropy converges (< 0.1 cal/(mol*K))
-    GOAT_REACT = "GOAT-REACT"  # Reactive exploration with MAXTOPODIFF 8 and AUTOWALL true
+    GOAT_REACT = (
+        "GOAT-REACT"  # Reactive exploration with MAXTOPODIFF 8 and AUTOWALL true
+    )
     GOAT_DIVERSITY = "GOAT-DIVERSITY"  # Energy-blind diversity sampling
     GOAT_COARSE = "GOAT-COARSE"  # Treats fragments as rigid bodies (>10x speedup)
 
@@ -297,9 +291,8 @@ class GoatExtOptDriver(str, enum.Enum):
     GXTB = "gxtb"  # g-xTB GPU semi-empirical Hamiltonian
     MOPAC = "mopac"  # MOPAC PM7 semi-empirical
     PYSCF = "pyscf"  # PySCF quantum electronic structure bridge
-    PHYSICAL = "physical"  # Analytical physical molecular mechanics fallback
+    PHYSICAL = "physical"  # Historical unqualified route; execution is rejected
     CUSTOM = "custom"  # Custom user-defined external wrapper
-
 
 
 class GoatConfig(BaseModel):
@@ -403,9 +396,9 @@ class GoatConfig(BaseModel):
         description="Maximum execution timeout in seconds for single GOAT run.",
         ge=10,
     )
-    f1_baseline: float = Field(
-        default=0.93,
-        description="Measured GOAT average F1 benchmark baseline ([M] racer benchmark).",
+    f1_baseline: None = Field(
+        default=None,
+        description="Unavailable: benchmark F1 is not a calculator setting; it requires independently verified benchmark evidence.",
     )
     extra_keywords: list[str] = Field(
         default_factory=list,
@@ -419,7 +412,9 @@ GoatRunnerConfig = GoatConfig
 class ConformerRecord(BaseModel):
     """Data container for an individual molecular conformer/isomer candidate."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, extra="allow", allow_inf_nan=False
+    )
 
     index: int = Field(..., description="Unique conformer index in the ensemble.")
     symbols: list[str] = Field(
@@ -431,28 +426,32 @@ class ConformerRecord(BaseModel):
     energy_hartree: Optional[float] = Field(
         default=None, description="Absolute electronic energy in Hartree (Eh)."
     )
-    energy_kcal_rel: float = Field(
-        default=0.0,
+    energy_kcal_rel: Optional[float] = Field(
+        default=None,
         description="Relative electronic energy in kcal/mol relative to ensemble minimum.",
     )
-    rotational_constants_mhz: tuple[float, float, float] = Field(
-        default=(0.0, 0.0, 0.0),
-        description="Principal rotational constants (A, B, C) in MHz.",
+    rotational_constants_mhz: Optional[
+        tuple[Optional[float], Optional[float], Optional[float]]
+    ] = Field(
+        default=None,
+        description="Principal constants in MHz; undefined atom/linear axes are unavailable.",
     )
-    rotational_constants_ghz: tuple[float, float, float] = Field(
-        default=(0.0, 0.0, 0.0),
-        description="Principal rotational constants (A, B, C) in GHz.",
+    rotational_constants_ghz: Optional[
+        tuple[Optional[float], Optional[float], Optional[float]]
+    ] = Field(
+        default=None,
+        description="Principal constants in GHz; undefined atom/linear axes are unavailable.",
     )
-    inertial_defect_u_a2: float = Field(
-        default=0.0,
+    inertial_defect_u_a2: Optional[float] = Field(
+        default=None,
         description="Inertial defect Delta = Ic - Ia - Ib in u * Angstrom^2.",
     )
-    planar_moments_u_a2: tuple[float, float, float] = Field(
-        default=(0.0, 0.0, 0.0),
+    planar_moments_u_a2: Optional[tuple[float, float, float]] = Field(
+        default=None,
         description="Planar moments of inertia (P_aa, P_bb, P_cc) in u * Angstrom^2.",
     )
-    ray_asymmetry_kappa: float = Field(
-        default=0.0,
+    ray_asymmetry_kappa: Optional[float] = Field(
+        default=None,
         description="Ray's asymmetry parameter kappa = (2B - A - C) / (A - C).",
     )
     origin_engine: str = Field(
@@ -489,8 +488,8 @@ class EnsembleContainer(BaseModel):
     temperature_k: float = Field(
         default=298.15, description="Thermodynamic temperature in Kelvin."
     )
-    s_conf_cal_mol_k: float = Field(
-        default=0.0,
+    s_conf_cal_mol_k: Optional[float] = Field(
+        default=None,
         description="Conformational entropy S_conf in cal / (mol * K).",
     )
     boltzmann_weights: list[float] = Field(
@@ -524,14 +523,16 @@ class GoatAuditReport(BaseModel):
         ..., description="Number of conformers surviving Stage A broad deduplication."
     )
     n_goat_dedup_stage_b: int = Field(
-        ..., description="Number of conformers surviving Stage B spectroscopic deduplication."
+        ...,
+        description="Number of conformers surviving Stage B spectroscopic deduplication.",
     )
-    goat_f1_baseline: float = Field(
-        default=0.93,
+    goat_f1_baseline: Optional[float] = Field(
+        default=None,
         description="Measured GOAT average F1 benchmark baseline ([M] racer benchmark).",
     )
-    s_conf_cal_mol_k: float = Field(
-        ..., description="Conformational entropy from GOAT ensemble in cal/(mol*K)."
+    s_conf_cal_mol_k: Optional[float] = Field(
+        default=None,
+        description="Conformational entropy from GOAT ensemble in cal/(mol*K).",
     )
     wall_time_seconds: float = Field(
         default=0.0, description="Total execution wall clock time in seconds."
@@ -548,6 +549,7 @@ class GoatAuditReport(BaseModel):
 # =============================================================================
 # 5. Coordinate Parsing, XYZ I/O, & Interatomic Physics
 # =============================================================================
+
 
 def parse_xyz_string(
     xyz_content: str,
@@ -624,7 +626,7 @@ def parse_xyz_string(
                 symbols=symbols,
                 coordinates=coords_list,
                 energy_hartree=energy_hartree,
-                energy_kcal_rel=0.0,
+                energy_kcal_rel=None,
                 rotational_constants_mhz=(A_mhz, B_mhz, C_mhz),
                 rotational_constants_ghz=(A_ghz, B_ghz, C_ghz),
                 inertial_defect_u_a2=delta,
@@ -670,11 +672,12 @@ def write_xyz_string(records: Sequence[ConformerRecord]) -> str:
     blocks: list[str] = []
     for r in records:
         n_atoms = len(r.symbols)
-        e_str = (
-            f"energy={r.energy_hartree:.10f} rel_kcal={r.energy_kcal_rel:.4f}"
-            if r.energy_hartree is not None
-            else f"rel_kcal={r.energy_kcal_rel:.4f}"
-        )
+        energy_fields = []
+        if r.energy_hartree is not None:
+            energy_fields.append(f"energy={r.energy_hartree:.10f}")
+        if r.energy_kcal_rel is not None:
+            energy_fields.append(f"rel_kcal={r.energy_kcal_rel:.4f}")
+        e_str = " ".join(energy_fields) if energy_fields else "energy=unavailable"
         origin_str = f"origin={r.origin_engine}"
         seed_str = f"seed={r.seed_id}" if r.seed_id else ""
         comment = f"Conformer {r.index} | {e_str} | {origin_str} | {seed_str}".strip()
@@ -699,6 +702,7 @@ def write_xyz_file(
 # =============================================================================
 # 6. Spectroscopic Physics & Rigid Rotor Analysis
 # =============================================================================
+
 
 def compute_center_of_mass(symbols: Sequence[str], coords: np.ndarray) -> np.ndarray:
     """Computes center of mass in Angstroms using dynamic Mendeleev masses."""
@@ -737,62 +741,50 @@ def compute_inertia_tensor(symbols: Sequence[str], coords: np.ndarray) -> np.nda
 def compute_moments_and_constants(
     symbols: Sequence[str], coords: np.ndarray
 ) -> tuple[
-    tuple[float, float, float],
-    tuple[float, float, float],
+    tuple[Optional[float], Optional[float], Optional[float]],
+    tuple[Optional[float], Optional[float], Optional[float]],
     float,
     tuple[float, float, float],
-    float,
+    Optional[float],
 ]:
-    """Calculates principal moments, rotational constants, inertial defect, and planar moments.
+    """Compute isotope-specific rigid-rotor quantities from Angstrom input.
 
-    Returns:
-        - (A_MHz, B_MHz, C_MHz)
-        - (A_GHz, B_GHz, C_GHz)
-        - Inertial defect Delta = Ic - Ia - Ib (u * A^2)
-        - Planar moments (P_aa, P_bb, P_cc) in u * A^2
-        - Ray's asymmetry parameter kappa = (2B - A - C) / (A - C)
+    Geometry alone establishes neither an equilibrium structure nor B0. An atom
+    has no rotational constants; a linear rotor has no finite A. Ray's kappa is
+    undefined for atoms, linear rotors and spherical tops, and remains absent.
     """
-    if len(symbols) < 2 or coords.shape[0] < 2:
-        return (
-            (0.0, 0.0, 0.0),
-            (0.0, 0.0, 0.0),
-            0.0,
-            (0.0, 0.0, 0.0),
-            0.0,
+    from cochem_torq.spectroscopy.harmonic import equilibrium_rotor
+
+    coordinates = np.asarray(coords, dtype=np.float64)
+    if (
+        not symbols
+        or coordinates.shape != (len(symbols), 3)
+        or not np.isfinite(coordinates).all()
+    ):
+        raise ValueError(
+            "Rigid-rotor input requires a nonempty finite geometry matching its symbols."
         )
-
-    tensor = compute_inertia_tensor(symbols, coords)
-    evals, _ = np.linalg.eigh(tensor)
-    evals = np.sort(np.maximum(evals, 1e-12))
-    Ia, Ib, Ic = float(evals[0]), float(evals[1]), float(evals[2])
-
-    A_mhz = ROTATIONAL_PREFACTOR_MHZ / Ia
-    B_mhz = ROTATIONAL_PREFACTOR_MHZ / Ib
-    C_mhz = ROTATIONAL_PREFACTOR_MHZ / Ic
-
-    A_ghz = A_mhz / 1000.0
-    B_ghz = B_mhz / 1000.0
-    C_ghz = C_mhz / 1000.0
-
-    delta = Ic - Ia - Ib
-
-    P_aa = 0.5 * (-Ia + Ib + Ic)
-    P_bb = 0.5 * (Ia - Ib + Ic)
-    P_cc = 0.5 * (Ia + Ib - Ic)
-
-    denom = A_mhz - C_mhz
-    if abs(denom) > 1e-6:
-        kappa = (2.0 * B_mhz - A_mhz - C_mhz) / denom
-    else:
-        kappa = 0.0
-
-    return (
-        (A_mhz, B_mhz, C_mhz),
-        (A_ghz, B_ghz, C_ghz),
-        delta,
-        (P_aa, P_bb, P_cc),
-        kappa,
+    masses = np.asarray(
+        [get_dynamic_atomic_mass(symbol) for symbol in symbols], dtype=np.float64
     )
+    bohr_angstrom = const.physical_constants["Bohr radius"][0] / ANGSTROM_METERS
+    rotor = equilibrium_rotor(coordinates / bohr_angstrom, masses)
+    moments = rotor.principal_moments_u_bohr2 * bohr_angstrom**2
+    ia, ib, ic = map(float, moments)
+    constants = rotor.constants_mhz
+    ghz = tuple(None if value is None else value / 1000 for value in constants)
+    delta = ic - ia - ib
+    planar = (0.5 * (-ia + ib + ic), 0.5 * (ia - ib + ic), 0.5 * (ia + ib - ic))
+    a, b, c = constants
+    kappa = None
+    if (
+        a is not None
+        and b is not None
+        and c is not None
+        and not np.isclose(a, c, rtol=1e-12, atol=0)
+    ):
+        kappa = float((2 * b - a - c) / (a - c))
+    return constants, ghz, delta, planar, kappa
 
 
 def kabsch_align(P: np.ndarray, Q: np.ndarray) -> np.ndarray:
@@ -847,7 +839,11 @@ def compute_rmsd(
         syms_P = [str(s) for s in symbols] if symbols is not None else None
         syms_Q = [str(s) for s in symbols2]
     elif symbols is not None:
-        if isinstance(symbols, tuple) and len(symbols) == 2 and isinstance(symbols[0], (list, tuple)):
+        if (
+            isinstance(symbols, tuple)
+            and len(symbols) == 2
+            and isinstance(symbols[0], (list, tuple))
+        ):
             syms_P = [str(s) for s in symbols[0]]
             syms_Q = [str(s) for s in symbols[1]]
         elif len(symbols) == n_atoms:
@@ -856,7 +852,12 @@ def compute_rmsd(
 
     # Partition indices by chemical element equivalence classes
     element_pairs: list[tuple[list[int], list[int]]] = []
-    if syms_P is not None and syms_Q is not None and len(syms_P) == n_atoms and len(syms_Q) == n_atoms:
+    if (
+        syms_P is not None
+        and syms_Q is not None
+        and len(syms_P) == n_atoms
+        and len(syms_Q) == n_atoms
+    ):
         unique_elems = set(syms_P).union(set(syms_Q))
         valid_partition = True
         for elem in unique_elems:
@@ -904,8 +905,8 @@ def compute_rmsd(
 
 
 def check_rotational_equivalence(
-    rot1: Sequence[float],
-    rot2: Sequence[float],
+    rot1: Sequence[Optional[float]],
+    rot2: Sequence[Optional[float]],
     threshold_rel: float = 0.002,
     defect1: Optional[float] = None,
     defect2: Optional[float] = None,
@@ -928,6 +929,14 @@ def check_rotational_equivalence(
     if len(rot1) < 3 or len(rot2) < 3:
         return False
 
+    if any(value is None for value in (*rot1[:3], *rot2[:3])):
+        return (
+            False  # Missing axes cannot authorize deletion in this three-axis screen.
+        )
+    if not np.isfinite([*rot1[:3], *rot2[:3]]).all() or any(
+        value <= 0 for value in (*rot1[:3], *rot2[:3])
+    ):
+        return False
     rel_diffs = []
     for c1, c2 in zip(rot1[:3], rot2[:3]):
         max_val = max(abs(float(c1)), abs(float(c2)))
@@ -946,7 +955,12 @@ def check_rotational_equivalence(
         if abs(float(defect1) - float(defect2)) > defect_threshold:
             return False
 
-    if planar1 is not None and planar2 is not None and len(planar1) >= 3 and len(planar2) >= 3:
+    if (
+        planar1 is not None
+        and planar2 is not None
+        and len(planar1) >= 3
+        and len(planar2) >= 3
+    ):
         for p1, p2 in zip(planar1[:3], planar2[:3]):
             if (p1 < 0.1 and p2 >= 0.5) or (p2 < 0.1 and p1 >= 0.5):
                 return False
@@ -966,41 +980,77 @@ def deduplicate_conformers(
     if not conformers:
         return []
 
-    def get_energy(c: Any) -> float:
-        if isinstance(c, dict):
-            for k in ("energy_hartree", "energy", "energy_kcal_rel"):
-                if k in c and c[k] is not None:
-                    return float(c[k])
-            return 0.0
-        return getattr(c, "energy_kcal_rel", 0.0)
+    def comparable_energy_delta_kcal(first: Any, second: Any) -> Optional[float]:
+        def value(record, key):
+            return (
+                record.get(key)
+                if isinstance(record, dict)
+                else getattr(record, key, None)
+            )
 
-    def extract_props(c: Any) -> tuple[list[str], np.ndarray, tuple[float, float, float], float, tuple[float, float, float]]:
-        if isinstance(c, dict):
-            syms = list(c.get("symbols", []))
-            coords = np.asarray(c.get("coordinates", []), dtype=np.float64)
-            rot = c.get("rotational_constants_mhz")
-            defect = c.get("inertial_defect_u_a2")
-            planar = c.get("planar_moments")
-            if rot is None or defect is None or planar is None:
-                (rot_mhz, _, calc_defect, calc_planar, _) = compute_moments_and_constants(syms, coords)
-                rot = rot or rot_mhz
-                defect = defect if defect is not None else calc_defect
-                planar = planar or calc_planar
-            return syms, coords, tuple(rot[:3]), float(defect), tuple(planar[:3])
-        else:
-            syms = list(c.symbols)
-            coords = np.asarray(c.coordinates, dtype=np.float64)
-            rot = tuple(c.rotational_constants_mhz[:3]) if c.rotational_constants_mhz else (0.0, 0.0, 0.0)
-            defect = float(c.inertial_defect_u_a2) if hasattr(c, "inertial_defect_u_a2") else 0.0
-            planar = tuple(c.planar_moments[:3]) if hasattr(c, "planar_moments") and c.planar_moments else (0.0, 0.0, 0.0)
-            if rot == (0.0, 0.0, 0.0):
-                (rot_mhz, _, calc_defect, calc_planar, _) = compute_moments_and_constants(syms, coords)
-                rot = rot_mhz
-                defect = calc_defect
-                planar = calc_planar
-            return syms, coords, rot, defect, planar
+        # A declared common comparison group must establish method/state and,
+        # for relative energies, a shared reference. Unknown units are rejected.
+        first_meta, second_meta = (
+            value(first, "metadata") or {},
+            value(second, "metadata") or {},
+        )
+        group = first_meta.get("energy_comparison_id")
+        if group is None or group != second_meta.get("energy_comparison_id"):
+            return None
+        for key, factor in (
+            ("energy_hartree", HARTREE_TO_KCAL_PER_MOL),
+            ("energy_kcal_rel", 1.0),
+        ):
+            left, right = value(first, key), value(second, key)
+            if left is not None and right is not None:
+                if not math.isfinite(left) or not math.isfinite(right):
+                    raise ValueError("Conformer comparison energies must be finite.")
+                return abs(left - right) * factor
+        return None
 
-    sorted_confs = sorted(conformers, key=get_energy)
+    def extract_props(
+        c: Any,
+    ) -> tuple[
+        list[str],
+        np.ndarray,
+        tuple[float, float, float],
+        float,
+        tuple[float, float, float],
+    ]:
+        def value(key):
+            return c.get(key) if isinstance(c, dict) else getattr(c, key, None)
+
+        syms = value("symbols")
+        raw_coords = value("coordinates")
+        if syms is None or raw_coords is None:
+            raise ValueError(
+                "Conformer deduplication requires symbols and coordinates."
+            )
+        syms = list(syms)
+        coords = np.asarray(raw_coords, dtype=np.float64)
+        if not syms or coords.shape != (len(syms), 3) or not np.isfinite(coords).all():
+            raise ValueError(
+                "Conformer geometry must be finite with one coordinate row per atom."
+            )
+        rot, defect, planar = (
+            value("rotational_constants_mhz"),
+            value("inertial_defect_u_a2"),
+            value("planar_moments_u_a2"),
+        )
+        if planar is None:
+            planar = value("planar_moments")
+        if rot is None or defect is None or planar is None:
+            derived_rot, _, derived_defect, derived_planar, _ = (
+                compute_moments_and_constants(syms, coords)
+            )
+            rot = derived_rot if rot is None else rot
+            defect = derived_defect if defect is None else defect
+            planar = derived_planar if planar is None else planar
+        return syms, coords, tuple(rot[:3]), float(defect), tuple(planar[:3])
+
+    sorted_confs = list(
+        conformers
+    )  # Unknown/mixed energy scales cannot rank candidates.
     accepted: list[Any] = []
 
     for cand in sorted_confs:
@@ -1011,8 +1061,8 @@ def deduplicate_conformers(
             a_syms, a_coords, a_rot, a_defect, a_planar = extract_props(acc)
 
             if ethr_kcal is not None:
-                dE = abs(get_energy(cand) - get_energy(acc))
-                if dE > ethr_kcal:
+                dE = comparable_energy_delta_kcal(cand, acc)
+                if dE is None or dE > ethr_kcal:
                     continue
 
             is_rot_cand = check_rotational_equivalence(
@@ -1038,7 +1088,6 @@ def deduplicate_conformers(
     return accepted
 
 
-
 def check_complex_dissociation(
     symbols: Sequence[str], coords: np.ndarray, threshold_factor: float = 2.4
 ) -> bool:
@@ -1054,9 +1103,7 @@ def check_complex_dissociation(
     cov_radii = np.array(
         [get_dynamic_covalent_radius(s) for s in symbols], dtype=np.float64
     )
-    vdw_radii = np.array(
-        [get_dynamic_vdw_radius(s) for s in symbols], dtype=np.float64
-    )
+    vdw_radii = np.array([get_dynamic_vdw_radius(s) for s in symbols], dtype=np.float64)
 
     dist_mat = cdist(coords, coords)
     adj = np.full((n_atoms, n_atoms), False, dtype=bool)
@@ -1127,6 +1174,7 @@ def calculate_conformational_entropy(
 # 7. ORCA Input Generator & ExtOpt Contract Handler
 # =============================================================================
 
+
 def generate_orca_goat_input(
     config: GoatConfig,
     xyz_filename: str,
@@ -1173,9 +1221,7 @@ def generate_orca_goat_input(
         f"{Path.home()}/bin/oet-{config.driver.value}/oet_client"
     )
     ext_params = (
-        f"-b {config.server_host}:{config.server_port}"
-        if config.server_mode
-        else ""
+        f"-b {config.server_host}:{config.server_port}" if config.server_mode else ""
     )
 
     method_block = ""
@@ -1202,7 +1248,9 @@ end"""
         coord_lines = []
         for sym, x, y, z in custom_coords:
             coord_lines.append(f"{sym:>2} {x:14.8f} {y:14.8f} {z:14.8f}")
-        structure_block = f"* xyz {charge} {multiplicity}\n" + "\n".join(coord_lines) + "\n*"
+        structure_block = (
+            f"* xyz {charge} {multiplicity}\n" + "\n".join(coord_lines) + "\n*"
+        )
     else:
         structure_block = f"* xyzfile {charge} {multiplicity} {xyz_filename}"
 
@@ -1221,7 +1269,9 @@ class ExtOptContract:
     """Normative ORCA ExtOpt file interface per Method Matrix Section 10."""
 
     @staticmethod
-    def read_extinp(extinp_path: Union[str, Path]) -> tuple[str, int, int, int, int, Optional[str]]:
+    def read_extinp(
+        extinp_path: Union[str, Path],
+    ) -> tuple[str, int, int, int, int, Optional[str]]:
         """Parses <basename>_EXT.extinp.tmp.
 
         Returns:
@@ -1278,7 +1328,9 @@ class ExtOptContract:
         Path(engrad_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     @staticmethod
-    def convert_ase_forces_to_orca_gradient(forces_ev_per_ang: np.ndarray) -> np.ndarray:
+    def convert_ase_forces_to_orca_gradient(
+        forces_ev_per_ang: np.ndarray,
+    ) -> np.ndarray:
         """Converts ASE forces (eV/Angstrom) to ORCA gradient (Eh/bohr).
 
         MANDATORY SIGN FLIP: g = -F per Method Matrix §10.3.
@@ -1297,6 +1349,7 @@ class ExtOptContract:
 # 9. Two-Stage Deduplication Engine (Stage A Broad & Stage B Spectroscopic)
 # =============================================================================
 
+
 def deduplicate_stage_a(
     records: Sequence[ConformerRecord],
     rmsd_thr: float = 0.125,
@@ -1310,7 +1363,9 @@ def deduplicate_stage_a(
     if not records:
         return []
 
-    sorted_records = sorted(records, key=lambda r: r.energy_kcal_rel)
+    sorted_records = list(
+        records
+    )  # Preserve order when energy comparability is not established.
     survivors: list[ConformerRecord] = []
 
     for cand in sorted_records:
@@ -1321,6 +1376,8 @@ def deduplicate_stage_a(
             surv_c = np.array(surv.coordinates, dtype=np.float64)
 
             # Energy check
+            if cand.energy_kcal_rel is None or surv.energy_kcal_rel is None:
+                continue  # Missing energy is not zero and cannot justify deletion.
             dE = abs(cand.energy_kcal_rel - surv.energy_kcal_rel)
             if dE > ethr_kcal:
                 continue
@@ -1328,6 +1385,14 @@ def deduplicate_stage_a(
             # Tri-constant (A, B, C) rotational screening [M]
             cand_rot = cand.rotational_constants_mhz
             surv_rot = surv.rotational_constants_mhz
+            if (
+                cand_rot is None
+                or surv_rot is None
+                or any(value is None for value in (*cand_rot, *surv_rot))
+                or cand.inertial_defect_u_a2 is None
+                or surv.inertial_defect_u_a2 is None
+            ):
+                continue
             is_rot_distinct = False
             for c_val, s_val in zip(cand_rot, surv_rot):
                 if s_val > 1e-4:
@@ -1368,7 +1433,9 @@ def deduplicate_stage_b_spectroscopic(
     if not records:
         return []
 
-    sorted_records = sorted(records, key=lambda r: r.energy_kcal_rel)
+    sorted_records = list(
+        records
+    )  # Preserve order when energy comparability is not established.
     survivors: list[ConformerRecord] = []
 
     for cand in sorted_records:
@@ -1378,6 +1445,8 @@ def deduplicate_stage_b_spectroscopic(
         for surv in survivors:
             surv_c = np.array(surv.coordinates, dtype=np.float64)
 
+            if cand.energy_kcal_rel is None or surv.energy_kcal_rel is None:
+                continue  # Missing energy is not zero and cannot justify deletion.
             dE = abs(cand.energy_kcal_rel - surv.energy_kcal_rel)
             if dE > ethr_kcal:
                 continue
@@ -1385,6 +1454,14 @@ def deduplicate_stage_b_spectroscopic(
             # Tri-constant (A, B, C) rotational screening [M]
             cand_rot = cand.rotational_constants_mhz
             surv_rot = surv.rotational_constants_mhz
+            if (
+                cand_rot is None
+                or surv_rot is None
+                or any(value is None for value in (*cand_rot, *surv_rot))
+                or cand.inertial_defect_u_a2 is None
+                or surv.inertial_defect_u_a2 is None
+            ):
+                continue
             is_rot_distinct = False
             for c_val, s_val in zip(cand_rot, surv_rot):
                 if s_val > 1e-4:
@@ -1414,6 +1491,7 @@ def deduplicate_stage_b_spectroscopic(
 # 10. High-Performance HDF5 Storage & QCSchema Serialization
 # =============================================================================
 
+
 def save_ensemble_to_hdf5(
     ensemble: EnsembleContainer,
     h5_path: Union[str, Path],
@@ -1432,30 +1510,66 @@ def save_ensemble_to_hdf5(
     else:
         symbols_list = ensemble.conformers[0].symbols
         n_atoms = len(symbols_list)
-        coords_arr = np.array([c.coordinates for c in ensemble.conformers], dtype=np.float64)
+        coords_arr = np.array(
+            [c.coordinates for c in ensemble.conformers], dtype=np.float64
+        )
 
     energies_hartree = np.array(
-        [c.energy_hartree if c.energy_hartree is not None else np.nan for c in ensemble.conformers],
+        [
+            c.energy_hartree if c.energy_hartree is not None else np.nan
+            for c in ensemble.conformers
+        ],
         dtype=np.float64,
     )
-    energies_kcal = np.array([c.energy_kcal_rel for c in ensemble.conformers], dtype=np.float64)
-    rot_mhz = np.array([c.rotational_constants_mhz for c in ensemble.conformers], dtype=np.float64)
-    rot_ghz = np.array([c.rotational_constants_ghz for c in ensemble.conformers], dtype=np.float64)
-    inertial_defects = np.array([c.inertial_defect_u_a2 for c in ensemble.conformers], dtype=np.float64)
-    planar_moments = np.array([c.planar_moments_u_a2 for c in ensemble.conformers], dtype=np.float64)
-    kappas = np.array([c.ray_asymmetry_kappa for c in ensemble.conformers], dtype=np.float64)
+    energies_kcal = np.array(
+        [c.energy_kcal_rel for c in ensemble.conformers], dtype=np.float64
+    )
+    rot_mhz = np.array(
+        [
+            c.rotational_constants_mhz
+            if c.rotational_constants_mhz is not None
+            else [np.nan] * 3
+            for c in ensemble.conformers
+        ],
+        dtype=np.float64,
+    ).reshape(n_confs, 3)
+    rot_ghz = np.array(
+        [
+            c.rotational_constants_ghz
+            if c.rotational_constants_ghz is not None
+            else [np.nan] * 3
+            for c in ensemble.conformers
+        ],
+        dtype=np.float64,
+    ).reshape(n_confs, 3)
+    inertial_defects = np.array(
+        [c.inertial_defect_u_a2 for c in ensemble.conformers], dtype=np.float64
+    )
+    planar_moments = np.array(
+        [
+            c.planar_moments_u_a2 if c.planar_moments_u_a2 is not None else [np.nan] * 3
+            for c in ensemble.conformers
+        ],
+        dtype=np.float64,
+    ).reshape(n_confs, 3)
+    kappas = np.array(
+        [c.ray_asymmetry_kappa for c in ensemble.conformers], dtype=np.float64
+    )
     origins = [c.origin_engine.encode("utf-8") for c in ensemble.conformers]
     seeds = [(c.seed_id or "NONE").encode("utf-8") for c in ensemble.conformers]
 
     with h5py.File(path, "w") as f:
         f.attrs["ensemble_name"] = ensemble.name
         f.attrs["temperature_k"] = ensemble.temperature_k
-        f.attrs["s_conf_cal_mol_k"] = ensemble.s_conf_cal_mol_k
+        if ensemble.s_conf_cal_mol_k is not None:
+            f.attrs["s_conf_cal_mol_k"] = ensemble.s_conf_cal_mol_k
+        f.attrs["missing_physical_values"] = (
+            "NaN means unavailable, never a numerical zero"
+        )
         f.attrs["n_conformers"] = n_confs
         f.attrs["n_atoms"] = n_atoms
         f.attrs["created_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         f.attrs["provenance_tag"] = ensemble.provenance_tag
-        f.attrs["f1_baseline"] = 0.93
 
         if extra_metadata:
             for k, v in extra_metadata.items():
@@ -1469,12 +1583,24 @@ def save_ensemble_to_hdf5(
 
         g_conf = f.create_group("conformers")
         g_conf.create_dataset("coordinates", data=coords_arr, compression="gzip")
-        g_conf.create_dataset("energies_hartree", data=energies_hartree, compression="gzip")
-        g_conf.create_dataset("energies_kcal_rel", data=energies_kcal, compression="gzip")
-        g_conf.create_dataset("rotational_constants_mhz", data=rot_mhz, compression="gzip")
-        g_conf.create_dataset("rotational_constants_ghz", data=rot_ghz, compression="gzip")
-        g_conf.create_dataset("inertial_defect_u_a2", data=inertial_defects, compression="gzip")
-        g_conf.create_dataset("planar_moments_u_a2", data=planar_moments, compression="gzip")
+        g_conf.create_dataset(
+            "energies_hartree", data=energies_hartree, compression="gzip"
+        )
+        g_conf.create_dataset(
+            "energies_kcal_rel", data=energies_kcal, compression="gzip"
+        )
+        g_conf.create_dataset(
+            "rotational_constants_mhz", data=rot_mhz, compression="gzip"
+        )
+        g_conf.create_dataset(
+            "rotational_constants_ghz", data=rot_ghz, compression="gzip"
+        )
+        g_conf.create_dataset(
+            "inertial_defect_u_a2", data=inertial_defects, compression="gzip"
+        )
+        g_conf.create_dataset(
+            "planar_moments_u_a2", data=planar_moments, compression="gzip"
+        )
         g_conf.create_dataset("ray_asymmetry_kappa", data=kappas, compression="gzip")
         g_conf.create_dataset("origin_engine", data=origins)
         g_conf.create_dataset("seed_id", data=seeds)
@@ -1490,6 +1616,7 @@ def save_ensemble_to_hdf5(
 # =============================================================================
 # 11. ORCA GOAT Runner & Orchestration Pipeline
 # =============================================================================
+
 
 class GoatRunner:
     """Orchestrates ORCA GOAT conformer enumeration."""
@@ -1509,7 +1636,9 @@ class GoatRunner:
             raise FileNotFoundError(f"Seed XYZ file not found: {seed_path}")
 
         run_id = f"goat_{uuid.uuid4().hex[:8]}"
-        base_scratch = Path(scratch_dir) if scratch_dir else CoChemPathManager.get_scratch_dir()
+        base_scratch = (
+            Path(scratch_dir) if scratch_dir else CoChemPathManager.get_scratch_dir()
+        )
         work_dir = base_scratch / run_id
         work_dir.mkdir(parents=True, exist_ok=True)
         CoChemPathManager.assert_air_gap(work_dir)
@@ -1517,12 +1646,11 @@ class GoatRunner:
         s_id = seed_id or seed_path.stem
 
         # Parse seed
-        initial_records = parse_xyz_file(seed_path, default_origin="SEEDED", seed_id=s_id)
+        initial_records = parse_xyz_file(
+            seed_path, default_origin="SEEDED", seed_id=s_id
+        )
         if not initial_records:
             raise ValueError(f"Could not parse atomic structure from seed: {seed_path}")
-
-        symbols = initial_records[0].symbols
-        seed_coords = np.array(initial_records[0].coordinates, dtype=np.float64)
 
         # Copy seed to work dir
         local_seed_xyz = work_dir / "seed.xyz"
@@ -1537,10 +1665,12 @@ class GoatRunner:
             )
 
         # Check for ORCA binary
-        orca_bin = shutil.which(self.config.orca_bin) or shutil.which("orca")
+        orca_bin = shutil.which(self.config.orca_bin)
 
         if orca_bin is not None:
-            logger.info(f"Executing ORCA GOAT ({self.config.mode.value}) using binary: {orca_bin}")
+            logger.info(
+                f"Executing ORCA GOAT ({self.config.mode.value}) using binary: {orca_bin}"
+            )
             inp_content = generate_orca_goat_input(self.config, "seed.xyz")
             inp_file = work_dir / "goat.inp"
             inp_file.write_text(inp_content, encoding="utf-8")
@@ -1582,92 +1712,42 @@ class GoatRunner:
                         break
 
                 if found_ensemble:
-                    records = parse_xyz_file(found_ensemble, default_origin="GOAT", seed_id=s_id)
+                    records = parse_xyz_file(
+                        found_ensemble, default_origin="GOAT", seed_id=s_id
+                    )
                     logger.info(
                         f"ORCA GOAT discovered {len(records)} conformers in {elapsed:.1f}s from {found_ensemble.name}."
                     )
                     return records
 
             except subprocess.TimeoutExpired as e:
-                logger.error(f"ORCA GOAT calculation timed out after {self.config.timeout_seconds}s.")
+                logger.error(
+                    f"ORCA GOAT calculation timed out after {self.config.timeout_seconds}s."
+                )
                 raise GoatTimeoutError(f"ORCA GOAT timed out: {e}") from e
             except Exception as e:
-                logger.error(f"ORCA GOAT subprocess execution failed ({e}). Simulated fallback is prohibited under zero-stub policy.")
-                raise GoatExecutionError(f"Genuine ORCA/AIMNet2 execution failed: {e}") from e
+                logger.error(
+                    f"ORCA GOAT subprocess execution failed ({e}). Simulated fallback is prohibited under zero-stub policy."
+                )
+                raise GoatExecutionError(
+                    f"Genuine ORCA/AIMNet2 execution failed: {e}"
+                ) from e
 
         raise GoatExecutionError("ORCA GOAT failed to produce valid ensemble output.")
 
-    def _run_physical_seed_conformer_search(
-        self,
-        initial_records: list[ConformerRecord],
-        work_dir: Path,
-        seed_id: str,
-    ) -> list[ConformerRecord]:
-        """Generates authentic conformers via Newtonian physical potential relaxation (Zero-Mock compliant)."""
-        symbols = initial_records[0].symbols
-        seed_coords = np.array(initial_records[0].coordinates, dtype=np.float64)
-
-        if PhysicalOETFallbackCalculator is None:
-            raise GoatExecutionError("PhysicalOETFallbackCalculator not available for physical conformer search.")
-
-        calc = PhysicalOETFallbackCalculator()
-        discovered_records: list[ConformerRecord] = []
-
-        # Perturbation variations to explore conformer basin (Step 0 & 1)
-        perturbations = [
-            (seed_coords * 0.0),
-            np.array([[0.1 * math.sin(i * 1.3), 0.1 * math.cos(i * 1.7), 0.05 * (-1)**i] for i in range(len(symbols))]),
-            np.array([[0.15 * math.cos(i * 2.1), -0.1 * math.sin(i * 0.9), 0.1 * (-1)**(i+1)] for i in range(len(symbols))]),
-            np.array([[-0.1 * math.sin(i * 0.7), 0.15 * math.cos(i * 1.1), -0.15 * (i % 2)] for i in range(len(symbols))]),
-        ]
-
-        step_size = 0.05
-        for p_idx, pert in enumerate(perturbations):
-            coords = seed_coords + pert
-            # Relax geometry via physical force gradient
-            for _ in range(40):
-                e_val, forces_list = calc.calculate(symbols, coords)
-                forces = np.array(forces_list, dtype=np.float64).reshape(-1, 3)
-                grad = -forces
-                gnorm = np.linalg.norm(grad)
-                if gnorm < 1e-4:
-                    break
-                coords -= step_size * np.clip(grad, -0.2, 0.2)
-
-            final_e, _ = calc.calculate(symbols, coords)
-            (
-                (A_mhz, B_mhz, C_mhz),
-                (A_ghz, B_ghz, C_ghz),
-                delta,
-                planar,
-                kappa,
-            ) = compute_moments_and_constants(symbols, coords)
-
-            rec = ConformerRecord(
-                index=len(discovered_records),
-                symbols=symbols,
-                coordinates=coords.tolist(),
-                energy_hartree=float(final_e),
-                energy_kcal_rel=0.0,
-                rotational_constants_mhz=(A_mhz, B_mhz, C_mhz),
-                rotational_constants_ghz=(A_ghz, B_ghz, C_ghz),
-                inertial_defect_u_a2=delta,
-                planar_moments_u_a2=planar,
-                ray_asymmetry_kappa=kappa,
-                origin_engine="PHYSICAL",
-                seed_id=seed_id,
-                provenance_tag="[E]",
-            )
-            discovered_records.append(rec)
-
-        # Write output file
-        out_ensemble = work_dir / "seed.finalensemble.xyz"
-        write_xyz_file(out_ensemble, discovered_records)
-        return discovered_records
+    def _run_physical_seed_conformer_search(self, initial_records, work_dir, seed_id):
+        """Reject the historical guessed-potential route; preserve supplied seeds."""
+        raise GoatExecutionError(
+            "The historical physical seed calculator is scientifically unqualified. "
+            "Select an explicitly configured actual GOAT/model engine; no replacement "
+            "conformer, energy, geometry or rotational result was generated."
+        )
 
     def run_multi_seed_goat(
         self,
-        seed_paths: Optional[Union[Sequence[Union[str, Path]], MultiSeedGoatConfig]] = None,
+        seed_paths: Optional[
+            Union[Sequence[Union[str, Path]], MultiSeedGoatConfig]
+        ] = None,
         system_name: str = "Complex",
         scratch_dir: Optional[Union[str, Path]] = None,
         artifacts_dir: Optional[Union[str, Path]] = None,
@@ -1683,13 +1763,19 @@ class GoatRunner:
         # Handle config vs seed_paths
         if isinstance(seed_paths, MultiSeedGoatConfig):
             multi_config = seed_paths
-            actual_seed_paths = [Path(s).resolve() for s in multi_config.seed_structures]
+            actual_seed_paths = [
+                Path(s).resolve() for s in multi_config.seed_structures
+            ]
         elif config is not None and seed_paths is None:
             multi_config = config
-            actual_seed_paths = [Path(s).resolve() for s in multi_config.seed_structures]
+            actual_seed_paths = [
+                Path(s).resolve() for s in multi_config.seed_structures
+            ]
         elif isinstance(config, MultiSeedGoatConfig):
             multi_config = config
-            paths_to_use = seed_paths if seed_paths is not None else multi_config.seed_structures
+            paths_to_use = (
+                seed_paths if seed_paths is not None else multi_config.seed_structures
+            )
             actual_seed_paths = [Path(s).resolve() for s in paths_to_use]
         elif seed_paths is not None:
             actual_seed_paths = [Path(s).resolve() for s in seed_paths]
@@ -1697,13 +1783,21 @@ class GoatRunner:
                 seed_structures=[str(p) for p in actual_seed_paths]
             )
         else:
-            raise ValueError("Either seed_paths or MultiSeedGoatConfig must be provided.")
+            raise ValueError(
+                "Either seed_paths or MultiSeedGoatConfig must be provided."
+            )
 
-        base_scratch = Path(scratch_dir) if scratch_dir else CoChemPathManager.get_scratch_dir()
+        base_scratch = (
+            Path(scratch_dir) if scratch_dir else CoChemPathManager.get_scratch_dir()
+        )
         base_scratch.mkdir(parents=True, exist_ok=True)
         CoChemPathManager.assert_air_gap(base_scratch)
 
-        art_dir = Path(artifacts_dir) if artifacts_dir else CoChemPathManager.get_artifacts_dir()
+        art_dir = (
+            Path(artifacts_dir)
+            if artifacts_dir
+            else CoChemPathManager.get_artifacts_dir()
+        )
         art_dir.mkdir(parents=True, exist_ok=True)
         CoChemPathManager.assert_air_gap(art_dir)
 
@@ -1734,7 +1828,8 @@ class GoatRunner:
         # Check for Parsl DataFlowKernel
         has_parsl = False
         try:
-            import parsl
+            import parsl  # noqa: F401 -- verifies the optional runtime is installed
+
             dfk = parsl.dfk()
             if dfk is not None and dfk.executors:
                 has_parsl = True
@@ -1742,7 +1837,9 @@ class GoatRunner:
             has_parsl = False
 
         if has_parsl and _parsl_run_single_seed_app is not None:
-            logger.info(f"Dispatching {len(tasks)} seed exploration tasks via Parsl DataFlowKernel.")
+            logger.info(
+                f"Dispatching {len(tasks)} seed exploration tasks via Parsl DataFlowKernel."
+            )
             futures = []
             for p, s_sandbox, s_id in tasks:
                 fut = _parsl_run_single_seed_app(
@@ -1761,7 +1858,9 @@ class GoatRunner:
                 f"Dispatching {len(tasks)} seed exploration tasks via concurrent ThreadPoolExecutor "
                 f"(max_concurrent={multi_config.max_concurrent_seeds})."
             )
-            with concurrent.futures.ThreadPoolExecutor(max_workers=multi_config.max_concurrent_seeds) as executor:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=multi_config.max_concurrent_seeds
+            ) as executor:
                 future_map = {
                     executor.submit(
                         self.run_goat_on_seed,
@@ -1776,23 +1875,37 @@ class GoatRunner:
                     all_raw_records.extend(confs)
 
         if not all_raw_records:
-            raise GoatExecutionError("ORCA GOAT failed to produce any conformers across seeds.")
+            raise GoatExecutionError(
+                "ORCA GOAT failed to produce any conformers across seeds."
+            )
 
-        # Deduplication & Filtering (Method Matrix §9B.3 Step 1-2 & Suggestion #68)
-        # 1. Energy window filtering (<= energy_window_kcal_mol, default 6.0 kcal/mol)
-        min_e_hartree = min(c.energy_hartree for c in all_raw_records)
-        for c in all_raw_records:
-            c.energy_kcal_rel = float((c.energy_hartree - min_e_hartree) * HARTREE_TO_KCAL_PER_MOL)
-
-        window_confs = [
-            c for c in all_raw_records
-            if c.energy_kcal_rel <= multi_config.energy_window_kcal_mol
+        # D03: model energy windows are advisory; retain all generated candidates.
+        known_energies = [
+            c.energy_hartree for c in all_raw_records if c.energy_hartree is not None
         ]
-        if not window_confs:
-            window_confs = [min(all_raw_records, key=lambda c: c.energy_hartree)]
+        if known_energies:
+            min_e_hartree = min(known_energies)
+            for candidate in all_raw_records:
+                if candidate.energy_hartree is not None:
+                    candidate.energy_kcal_rel = float(
+                        (candidate.energy_hartree - min_e_hartree)
+                        * HARTREE_TO_KCAL_PER_MOL
+                    )
+        window_confs = list(all_raw_records)
+        for candidate in window_confs:
+            candidate.metadata["energy_window_advisory_only"] = True
+            candidate.metadata["energy_window_kcal_mol"] = (
+                multi_config.energy_window_kcal_mol
+            )
 
-        # 2. Sort by relative energy ascending
-        window_confs.sort(key=lambda c: c.energy_kcal_rel)
+        # Preserve every observed candidate before producing any representative
+        # set. Approximate RMSD grouping is not an irreversible scientific cull.
+        raw_candidates_path = (
+            art_dir / f"{system_name}_raw_candidates_{uuid.uuid4().hex}.jsonl"
+        )
+        with raw_candidates_path.open("x", encoding="utf-8") as raw_archive:
+            for candidate in all_raw_records:
+                raw_archive.write(candidate.model_dump_json() + "\n")
 
         # 3. Pairwise RMSD deduplication (delta_RMSD >= rmsd_threshold_angstrom, default 0.15 A)
         unique_confs: list[ConformerRecord] = []
@@ -1811,9 +1924,12 @@ class GoatRunner:
 
         # Thermodynamic conformational entropy S_conf
         e_rels = [c.energy_kcal_rel for c in unique_confs]
-        s_conf, weights = calculate_conformational_entropy(
-            e_rels, temperature_k=self.config.conftemp_k
-        )
+        if any(energy is None for energy in e_rels):
+            s_conf, weights = None, []
+        else:
+            s_conf, weights = calculate_conformational_entropy(
+                e_rels, temperature_k=self.config.conftemp_k
+            )
 
         ensemble = EnsembleContainer(
             name=f"{system_name}_GOAT_Ensemble",
@@ -1832,11 +1948,13 @@ class GoatRunner:
             n_goat_raw=len(all_raw_records),
             n_goat_dedup_stage_a=len(window_confs),
             n_goat_dedup_stage_b=len(unique_confs),
-            goat_f1_baseline=0.93,
+            goat_f1_baseline=None,
             s_conf_cal_mol_k=s_conf,
             wall_time_seconds=elapsed,
             provenance_tag="[M]",
         )
+
+        ensemble.raw_candidates_archive = str(raw_candidates_path)
 
         # Persistent outputs in Ring 3 artifacts (Method Matrix §9B.3 Step 6 & Suggestion #68)
         conformers_xyz = art_dir / "conformers.xyz"
@@ -1846,7 +1964,11 @@ class GoatRunner:
         xyz_path = art_dir / f"{system_name}_goat_ensemble.xyz"
         report_path = art_dir / f"{system_name}_goat_audit_report.json"
 
-        save_ensemble_to_hdf5(ensemble, h5_path)
+        save_ensemble_to_hdf5(
+            ensemble,
+            h5_path,
+            extra_metadata={"raw_candidates_archive": str(raw_candidates_path)},
+        )
         write_xyz_file(xyz_path, unique_confs)
         report_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
 
@@ -1871,8 +1993,9 @@ def _explore_single_seed_serialized(
 
 
 try:
-    import parsl
+    import parsl  # noqa: F401 -- verifies the optional runtime is installed
     from parsl.app.app import python_app
+
     _parsl_run_single_seed_app = python_app(_explore_single_seed_serialized)
 except Exception:
     _parsl_run_single_seed_app = None
@@ -1881,6 +2004,7 @@ except Exception:
 # =============================================================================
 # 12. Phase 3 Pipeline Entry Point Function
 # =============================================================================
+
 
 def execute_goat_conformer_pipeline(
     seed_geometries: Sequence[Union[str, Path, tuple[list[str], np.ndarray]]],
@@ -1895,7 +2019,9 @@ def execute_goat_conformer_pipeline(
     runs ORCA GOAT conformer enumeration, performs two-stage deduplication, and emits
     curated ensembles and audit diagnostics per Method Matrix §9B.1-9B.4.
     """
-    actual_scratch = Path(scratch_dir) if scratch_dir else CoChemPathManager.get_scratch_dir()
+    actual_scratch = (
+        Path(scratch_dir) if scratch_dir else CoChemPathManager.get_scratch_dir()
+    )
     actual_scratch.mkdir(parents=True, exist_ok=True)
     CoChemPathManager.assert_air_gap(actual_scratch)
 
@@ -1911,10 +2037,10 @@ def execute_goat_conformer_pipeline(
                 symbols=list(syms),
                 coordinates=coords_arr.tolist(),
                 origin_engine="SEEDED",
-                seed_id=f"seed_{idx+1:02d}",
+                seed_id=f"seed_{idx + 1:02d}",
                 provenance_tag="[M]",
             )
-            s_file = actual_scratch / f"seed_{idx+1:02d}.xyz"
+            s_file = actual_scratch / f"seed_{idx + 1:02d}.xyz"
             write_xyz_file(s_file, [s_rec])
             seed_files.append(s_file)
 

@@ -75,9 +75,7 @@ class TestLockMetadataAndPaths:
         lock_str_path = get_lock_path(str_path)
         assert lock_str_path == Path(str_path + ".lock")
 
-    def test_lock_metadata_serialization_roundtrip(
-        self, tmp_path: Path
-    ) -> None:
+    def test_lock_metadata_serialization_roundtrip(self, tmp_path: Path) -> None:
         """Verify Pydantic v2 serialization, JSON writing, and deserialization."""
         meta = LockMetadata(
             pid=os.getpid(),
@@ -112,9 +110,7 @@ class TestLockMetadataAndPaths:
     def test_read_lock_metadata_corrupted_json(self, tmp_path: Path) -> None:
         """Verify reading invalid JSON returns None without unhandled exceptions."""
         bad_json = tmp_path / "bad.lock"
-        bad_json.write_text(
-            '{"pid": 1234, "hostname": "broken...', encoding="utf-8"
-        )
+        bad_json.write_text('{"pid": 1234, "hostname": "broken...', encoding="utf-8")
         assert read_lock_metadata(bad_json) is None
 
     def test_read_lock_metadata_schema_mismatch(self, tmp_path: Path) -> None:
@@ -130,11 +126,10 @@ class TestLockMetadataAndPaths:
         assert read_lock_metadata(non_dict) is None
 
 
-
-
 # ============================================================================
 # 2. Process Validation & Zombie Detection Tests (Physical Zero-Mock)
 # ============================================================================
+
 
 class TestZombieDetection:
     def test_detect_no_lock(self, tmp_path):
@@ -146,17 +141,17 @@ class TestZombieDetection:
     def test_detect_active_local_pid(self, tmp_path):
         db_path = tmp_path / "quantum.h5"
         lock_path = get_lock_path(db_path)
-        
+
         # Use our own PID which is guaranteed to be alive
         meta = LockMetadata(
             pid=os.getpid(),
             hostname=socket.gethostname(),
             slurm_job_id=None,
             created_at=time.time(),
-            session_id=str(uuid.uuid4())
+            session_id=str(uuid.uuid4()),
         )
         lock_path.write_text(meta.model_dump_json(), encoding="utf-8")
-        
+
         is_zombie, detected = detect_zombie_pids(db_path)
         assert is_zombie is False
         assert detected is not None
@@ -165,8 +160,11 @@ class TestZombieDetection:
         db_path = tmp_path / "quantum.h5"
         lock_path = get_lock_path(db_path)
 
-        # Create a real process and forcefully terminate it to simulate a crash
-        proc = subprocess.Popen([sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"])
+        # Terminate a real blocked process; no scientific engine is represented
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import sys; sys.stdin.buffer.read()"],
+            stdin=subprocess.PIPE,
+        )
         dead_pid = proc.pid
         proc.kill()
         proc.wait()
@@ -176,7 +174,7 @@ class TestZombieDetection:
             hostname=socket.gethostname(),
             slurm_job_id=None,
             created_at=time.time(),
-            session_id=str(uuid.uuid4())
+            session_id=str(uuid.uuid4()),
         )
         lock_path.write_text(meta.model_dump_json(), encoding="utf-8")
 
@@ -185,9 +183,11 @@ class TestZombieDetection:
         assert detected is not None
         assert "does not exist" in detected["zombie_reason"].lower()
 
+
 # ============================================================================
 # 3. Live SWMR Recovery Validation (Physical Zero-Mock)
 # ============================================================================
+
 
 class TestLiveSWMRRecovery:
     def test_heal_swmr_database_dead_process(self, tmp_path):
@@ -195,7 +195,7 @@ class TestLiveSWMRRecovery:
         # Write physically authentic HDF5 file using SWMR
         with h5py.File(db_path, "w", libver="latest") as f:
             f.swmr_mode = True
-            grp = f.create_group("quantum_states")
+            grp = f.create_group("empirical_emt_derivatives")
             # Genuine physical block: authentic 9x9 Hessian state from water EMT
             import numpy as np
             from ase.build import molecule
@@ -203,32 +203,38 @@ class TestLiveSWMRRecovery:
             from ase.vibrations import Vibrations
             import tempfile
             from pathlib import Path
-            atoms = molecule('H2O')
+
+            atoms = molecule("H2O")
             atoms.calc = EMT()
             with tempfile.TemporaryDirectory() as td:
-                vib = Vibrations(atoms, name=str(Path(td) / 'vib'))
+                vib = Vibrations(atoms, name=str(Path(td) / "vib"))
                 vib.run()
                 hessian = vib.get_vibrations().get_hessian_2d()
-            dset = grp.create_dataset("wavefunction", data=hessian)
-            f.attrs["physical_meaning"] = "quantum_wavefunction"
-            
+            dset = grp.create_dataset("cartesian_hessian_ev_angstrom2", data=hessian)
+            f.attrs["physical_meaning"] = (
+                "explicitly requested ASE EMT Cartesian Hessian; no wavefunction"
+            )
+
         lock_path = get_lock_path(db_path)
-        
-        # Create a real process and forcefully terminate it to simulate a crash
-        proc = subprocess.Popen([sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"])
+
+        # Terminate a real blocked process; no scientific engine is represented
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import sys; sys.stdin.buffer.read()"],
+            stdin=subprocess.PIPE,
+        )
         dead_pid = proc.pid
         proc.kill()
         proc.wait()
-        
+
         meta = LockMetadata(
             pid=dead_pid,
             hostname=socket.gethostname(),
             slurm_job_id=None,
             created_at=time.time(),
-            session_id=str(uuid.uuid4())
+            session_id=str(uuid.uuid4()),
         )
         lock_path.write_text(meta.model_dump_json(), encoding="utf-8")
-        
+
         # This should succeed since process is physically dead
         assert heal_swmr_database(db_path) is True
         assert not lock_path.exists()

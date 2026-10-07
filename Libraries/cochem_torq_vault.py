@@ -20,7 +20,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Final, Optional, Union, cast
+from typing import Any, Final, Optional, Union
 
 import h5py
 import numpy as np
@@ -113,15 +113,9 @@ class _DynamicMendeleevAtomicNumbersMap(Mapping):
 
         # Strip isotope mass numbers, e.g. "13C" -> "C", "18O" -> "O"
         m = re.match(r"^\d*([A-Za-z]+)$", sym)
-        cleaned = m.group(1).capitalize() if m else "".join([c for c in sym if c.isalpha()]).capitalize()
-
-        if _mendeleev_element is not None and cleaned:
-            try:
-                el = _mendeleev_element(cleaned)
-                if getattr(el, "atomic_number", None) is not None:
-                    return int(el.atomic_number)
-            except Exception:
-                pass
+        if m is None:
+            raise KeyError(key)
+        cleaned = m.group(1).capitalize()
 
         if cleaned.upper() in self._STATIC_FALLBACK:
             return self._STATIC_FALLBACK[cleaned.upper()]
@@ -154,75 +148,14 @@ class _DynamicMendeleevMassMap(Mapping):
     """Dynamic isotopic and atomic mass mapping backed by Mendeleev library per Mendeleev Mandate."""
 
     def __getitem__(self, key: str) -> float:
-        if not key or not isinstance(key, str):
+        """Resolve the requested isotope through the shared, cached mass service."""
+        from Libraries.cochem_isotopes import isotope_mass
+        if not isinstance(key, str):
             raise KeyError(key)
-        sym = str(key).strip()
-        if not sym:
-            raise KeyError(key)
-
-        # Hydrogen isotopes
-        if sym.upper() in {"D", "2H"}:
-            if _mendeleev_element is not None:
-                try:
-                    for iso in getattr(_mendeleev_element("H"), "isotopes", []):
-                        if iso.mass_number == 2 and iso.mass is not None:
-                            return float(iso.mass)
-                except Exception:
-                    pass
-            return 2.01410177812
-
-        if sym.upper() in {"T", "3H"}:
-            if _mendeleev_element is not None:
-                try:
-                    for iso in getattr(_mendeleev_element("H"), "isotopes", []):
-                        if iso.mass_number == 3 and iso.mass is not None:
-                            return float(iso.mass)
-                except Exception:
-                    pass
-            return 3.01604928132
-
-        # Specific isotope notation like "13C", "35Cl", "14N", "16O"
-        m = re.match(r"^(\d+)([A-Za-z]+)$", sym)
-        if m:
-            mass_num = int(m.group(1))
-            el_sym = m.group(2).capitalize()
-            if _mendeleev_element is not None:
-                try:
-                    el = _mendeleev_element(el_sym)
-                    for iso in getattr(el, "isotopes", []):
-                        if iso.mass_number == mass_num and iso.mass is not None:
-                            return float(iso.mass)
-                    if el.mass is not None:
-                        return float(el.mass)
-                except Exception:
-                    pass
-
-        cleaned = "".join([c for c in sym if c.isalpha()]).capitalize()
-        if cleaned:
-            if _mendeleev_element is not None:
-                try:
-                    el = _mendeleev_element(cleaned)
-                    # For standard elements, return most abundant mono-isotopic mass if available
-                    if getattr(el, "isotopes", None):
-                        abundances = [
-                            (getattr(iso, "abundance", 0.0) or 0.0, float(iso.mass))
-                            for iso in el.isotopes
-                            if iso.mass is not None
-                        ]
-                        if abundances:
-                            abundances.sort(key=lambda x: x[0], reverse=True)
-                            return abundances[0][1]
-                    if el.mass is not None:
-                        return float(el.mass)
-                except Exception:
-                    pass
-
-        if _mendeleev_element is not None and cleaned:
-            el = _mendeleev_element(cleaned)
-            if el is not None and el.mass is not None:
-                return float(el.mass)
-
-        raise KeyError(key)
+        try:
+            return isotope_mass(key)
+        except ValueError as exc:
+            raise KeyError(key) from exc
 
     def get(self, key: str, default: Any = None) -> Any:
         try:
@@ -257,13 +190,13 @@ CIAAW_ISOTOPIC_MASSES: Final[Mapping[str, float]] = _DynamicMendeleevMassMap()
 def get_atomic_mass(symbol: str) -> float:
     """Dynamically retrieves the exact mono-isotopic mass in amu for an element or isotope."""
     sym = str(symbol).strip()
-    return float(CIAAW_ISOTOPIC_MASSES.get(sym, 12.0))
+    return float(CIAAW_ISOTOPIC_MASSES[sym])
 
 
 def get_atomic_number(symbol: str) -> int:
     """Dynamically retrieves the atomic number Z for an element symbol."""
     sym = str(symbol).strip()
-    return int(ATOMIC_NUMBERS.get(sym, 6))
+    return int(ATOMIC_NUMBERS[sym])
 
 
 # =============================================================================
@@ -318,20 +251,29 @@ def standardize_geometry_dataframe(
             f"Coordinate shape mismatch: expected ({n_atoms}, 3), got {coords_arr.shape}"
         )
 
+    if not np.isfinite(coords_arr).all():
+        raise ValueError("Coordinates must be finite.")
+    if masses is not None and (len(masses) != n_atoms or not np.isfinite(masses).all() or np.any(np.asarray(masses) <= 0)):
+        raise ValueError("Provided masses must match atom count and be finite and positive.")
+    if atomic_numbers is not None and (len(atomic_numbers) != n_atoms or any(int(z) != z or not 1 <= z <= 118 for z in atomic_numbers)):
+        raise ValueError("Provided atomic numbers must match atom count and be valid integers.")
     computed_masses: list[float] = []
     computed_atomic_nums: list[int] = []
 
     for i, sym in enumerate(symbols):
         sym_str = str(sym).strip()
+        expected_number = get_atomic_number(sym_str)
+        if atomic_numbers is not None and int(atomic_numbers[i]) != expected_number:
+            raise ValueError(f"Atomic number does not match symbol {sym_str!r}.")
         if masses is not None and i < len(masses):
             computed_masses.append(float(masses[i]))
         else:
-            computed_masses.append(float(CIAAW_ISOTOPIC_MASSES.get(sym_str, 12.0)))
+            computed_masses.append(float(CIAAW_ISOTOPIC_MASSES[sym_str]))
 
         if atomic_numbers is not None and i < len(atomic_numbers):
             computed_atomic_nums.append(int(atomic_numbers[i]))
         else:
-            computed_atomic_nums.append(int(ATOMIC_NUMBERS.get(sym_str, 6)))
+            computed_atomic_nums.append(int(ATOMIC_NUMBERS[sym_str]))
 
     df = pd.DataFrame(
         {
@@ -526,8 +468,8 @@ def parse_external_xyz(
         min_distance_angstrom=min_distance_angstrom,
     )
 
-    masses = [float(CIAAW_ISOTOPIC_MASSES.get(s, 12.0)) for s in symbols]
-    atomic_numbers = [int(ATOMIC_NUMBERS.get(s, 6)) for s in symbols]
+    masses = [float(CIAAW_ISOTOPIC_MASSES[s]) for s in symbols]
+    atomic_numbers = [int(ATOMIC_NUMBERS[s]) for s in symbols]
 
     df = standardize_geometry_dataframe(
         symbols=symbols,
@@ -733,8 +675,8 @@ def parse_external_mol(
         min_distance_angstrom=min_distance_angstrom,
     )
 
-    masses = [float(CIAAW_ISOTOPIC_MASSES.get(s, 12.0)) for s in symbols]
-    atomic_numbers = [int(ATOMIC_NUMBERS.get(s, 6)) for s in symbols]
+    masses = [float(CIAAW_ISOTOPIC_MASSES[s]) for s in symbols]
+    atomic_numbers = [int(ATOMIC_NUMBERS[s]) for s in symbols]
 
     df = standardize_geometry_dataframe(
         symbols=symbols,
@@ -823,9 +765,9 @@ def fetch_topos_matrices(
                     message=f"No conformers or datasets found in HDF5 archive: {target}",
                     error_code=ProvenanceErrorCode.MISSING_DATA,
                 )
-            selected_key = (
-                conformer_id if (conformer_id and conformer_id in fp) else conf_keys[0]
-            )
+            if conformer_id is not None and conformer_id not in fp:
+                raise MissingDataError(message=f"Requested conformer {conformer_id!r} is absent.", error_code=ProvenanceErrorCode.MISSING_DATA)
+            selected_key = conformer_id if conformer_id is not None else conf_keys[0]
             conf_node = fp[selected_key]
         else:
             conf_keys = list(conformers_group.keys())
@@ -834,11 +776,9 @@ def fetch_topos_matrices(
                     message=f"Empty conformers group in HDF5 archive: {target}",
                     error_code=ProvenanceErrorCode.MISSING_DATA,
                 )
-            selected_key = (
-                conformer_id
-                if (conformer_id and conformer_id in conformers_group)
-                else conf_keys[0]
-            )
+            if conformer_id is not None and conformer_id not in conformers_group:
+                raise MissingDataError(message=f"Requested conformer {conformer_id!r} is absent.", error_code=ProvenanceErrorCode.MISSING_DATA)
+            selected_key = conformer_id if conformer_id is not None else conf_keys[0]
             conf_node = conformers_group[selected_key]
 
         coords = np.array(conf_node["coordinates"], dtype=np.float64)
@@ -848,21 +788,23 @@ def fetch_topos_matrices(
             for s in raw_symbols
         ]
         energy = (
-            float(conf_node.attrs.get("energy_hartree", 0.0))
+            float(conf_node.attrs["energy_hartree"])
             if "energy_hartree" in conf_node.attrs
-            else (float(conf_node["energy"][()]) if "energy" in conf_node else 0.0)
+            else (float(conf_node["energy"][()]) if "energy" in conf_node else None)
         )
+        if energy is not None and not np.isfinite(energy):
+            raise ValueError("Stored energy is non-finite.")
         gbw_path = str(conf_node.attrs.get("gbw_path", ""))
 
-    masses = [float(CIAAW_ISOTOPIC_MASSES.get(s.strip(), 12.0)) for s in symbols]
-    atomic_numbers = [int(ATOMIC_NUMBERS.get(s.strip(), 6)) for s in symbols]
+    masses = [float(CIAAW_ISOTOPIC_MASSES[s.strip()]) for s in symbols]
+    atomic_numbers = [int(ATOMIC_NUMBERS[s.strip()]) for s in symbols]
 
     df = standardize_geometry_dataframe(
         symbols=symbols,
         coordinates=coords,
         masses=masses,
         atomic_numbers=atomic_numbers,
-        provenance_tag="[M]",
+        provenance_tag="[D]",
     )
     arrow_table = standardize_geometry_arrow(df)
 
@@ -873,10 +815,12 @@ def fetch_topos_matrices(
         "masses": np.array(masses, dtype=np.float64),
         "atomic_numbers": np.array(atomic_numbers, dtype=np.int32),
         "energy_hartree": energy,
+        "energy_status": "unavailable" if energy is None else "imported",
         "gbw_path": gbw_path,
+        "wavefunction_status": "present_unvalidated" if gbw_path and Path(gbw_path).is_file() else "unavailable",
         "dataframe": df,
         "arrow_table": arrow_table,
-        "provenance": "[M]",
+        "provenance": "[D]",
     }
 
 
@@ -906,28 +850,27 @@ def poll_isomer_wavefunctions(
             if not isinstance(node, (h5py.Group, dict)):
                 continue
 
-            coords = (
-                np.array(node["coordinates"], dtype=np.float64)
-                if "coordinates" in node
-                else np.empty((0, 3))
-            )
-            raw_syms = node["symbols"] if "symbols" in node else []
+            if "coordinates" not in node or "symbols" not in node:
+                raise MissingDataError(message=f"Conformer {key!r} has no complete geometry.", error_code=ProvenanceErrorCode.MISSING_DATA)
+            coords = np.array(node["coordinates"], dtype=np.float64)
+            raw_syms = node["symbols"]
             symbols = [
                 s.decode("utf-8") if isinstance(s, bytes) else str(s)
                 for s in raw_syms
             ]
             energy = (
-                float(node.attrs.get("energy_hartree", 0.0))
+                float(node.attrs["energy_hartree"])
                 if "energy_hartree" in node.attrs
-                else (float(node["energy"][()]) if "energy" in node else 0.0)
+                else (float(node["energy"][()]) if "energy" in node else None)
             )
+            if energy is not None and not np.isfinite(energy):
+                raise ValueError(f"Stored energy for {key!r} is non-finite.")
+            standardize_geometry_dataframe(symbols, coords)
             gbw_path = str(node.attrs.get("gbw_path", ""))
 
             gbw_exists = bool(gbw_path and Path(gbw_path).exists())
             if require_gbw and not gbw_exists:
-                logger.warning(
-                    "Conformer '%s' wavefunction file missing: %s", key, gbw_path
-                )
+                raise MissingDataError(message=f"Conformer {key!r} required wavefunction is missing: {gbw_path}", error_code=ProvenanceErrorCode.MISSING_DATA)
 
             isomers.append(
                 {
@@ -935,9 +878,11 @@ def poll_isomer_wavefunctions(
                     "symbols": symbols,
                     "coordinates": coords,
                     "energy_hartree": energy,
+                    "energy_status": "unavailable" if energy is None else "imported",
                     "gbw_path": gbw_path,
                     "gbw_exists": gbw_exists,
-                    "provenance": "[M]",
+                    "wavefunction_status": "present_unvalidated" if gbw_exists else "unavailable",
+                    "provenance": "[D]",
                 }
             )
 

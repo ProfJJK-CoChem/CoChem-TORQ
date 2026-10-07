@@ -1,8 +1,17 @@
+"""Actual calculator availability, declared EMT computation, and statistical mathematics.
+
+EMT here is requested explicitly as a computational example. It is not MACE,
+AIMNet2, a quantum surrogate qualification, or a student accuracy profile. The
+ONNX identity graph tests runtime serialization only, never molecular physics.
+"""
+
 import json
 import logging
+from importlib.util import find_spec
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from Libraries.cochem_torq_mace import (
     FLOAT32_NOISE_FLOOR_EH,
@@ -20,7 +29,7 @@ from Libraries.cochem_torq_mace import (
 logger = logging.getLogger(__name__)
 
 
-def generate_minimal_onnx_model_bytes() -> bytes:
+def generate_identity_onnx_model_bytes() -> bytes:
     """
     Constructs a minimal valid ONNX ModelProto byte buffer directly
     via protobuf encoding for verifying ONNX CPU execution provider sessions.
@@ -90,13 +99,12 @@ def test_mace_triage_init(tmp_path: Path) -> None:
     }
     grid_file.write_text(json.dumps(grid_data), encoding="utf-8")
 
-    triage = TorqMACETriage(grid_filepath=str(grid_file), model_name="MACE-OFF24m")
-    assert triage.symbols == ["H", "H"]
-    assert len(triage.grid_points) == 2
-    assert triage.batch_size in (16, 512)
-    assert triage.model_name == "MACE-OFF24m"
-    assert triage.scf_tolerance_guard == 1e-5
-    assert triage.device in ["cpu", "cuda"]
+    if find_spec("mace") is not None:
+        pytest.skip(
+            "A pinned, independently verified MACE weight artifact is required before this legacy positive path can be qualified."
+        )
+    with pytest.raises(RuntimeError, match="Requested calculator.*unavailable"):
+        TorqMACETriage(grid_filepath=str(grid_file), model_name="MACE-OFF24m")
 
 
 def test_aimnet2_triage_init(tmp_path: Path) -> None:
@@ -112,33 +120,47 @@ def test_aimnet2_triage_init(tmp_path: Path) -> None:
     }
     grid_file.write_text(json.dumps(grid_data), encoding="utf-8")
 
-    triage = TorqMACETriage(grid_filepath=str(grid_file), model_name="AIMNet2")
-    assert triage.model_name == "AIMNet2"
-    assert triage.scf_tolerance_guard == 1e-5
+    if find_spec("aimnet2calc") is not None:
+        pytest.skip(
+            "A pinned, independently verified AIMNet2 weight artifact is required before this legacy positive path can be qualified."
+        )
+    with pytest.raises(RuntimeError, match="Requested calculator.*unavailable"):
+        TorqMACETriage(grid_filepath=str(grid_file), model_name="AIMNet2")
 
 
-def test_extract_topographic_extrema() -> None:
-    triage = TorqMACETriage.__new__(TorqMACETriage)
-    triage.triage_results = [
-        {
-            "dihedral_angles": [0],
-            "status": "converged",
-            "relative_energy_kcal_mol": 0.0,
-        },
-        {
-            "dihedral_angles": [30],
-            "status": "converged",
-            "relative_energy_kcal_mol": 5.2,
-        },
-        {
-            "dihedral_angles": [60],
-            "status": "converged",
-            "relative_energy_kcal_mol": 1.1,
-        },
+def _actual_emt_triage(tmp_path: Path) -> TorqMACETriage:
+    """Select the genuine ASE empirical EMT calculator, retaining its own identity."""
+    pytest.importorskip("ase")
+    source = tmp_path / "declared-emt-inputs.json"
+    source.write_text(
+        json.dumps(
+            {
+                "symbols": ["H", "H"],
+                "grid_points": [
+                    {
+                        "dihedral_angles": [index * 30.0],
+                        "coordinates": [[0, 0, 0], [0, 0, distance]],
+                    }
+                    for index, distance in enumerate((0.74, 1.2, 0.8, 1.0))
+                ],
+            }
+        )
+    )
+    return TorqMACETriage(grid_filepath=str(source), model_name="EMT")
+
+
+def test_extract_topographic_extrema(tmp_path: Path) -> None:
+    triage = _actual_emt_triage(tmp_path)
+    observed = triage.evaluate_grid()
+    suggestions = triage.extract_topographic_extrema()
+    assert len(suggestions) == len(observed)
+    assert all(
+        item["advisory_only"] and not item["eligible_for_pruning"]
+        for item in suggestions
+    )
+    assert [item["raw_energy_ev"] for item in suggestions] == [
+        item["raw_energy_ev"] for item in observed
     ]
-    extrema = triage.extract_topographic_extrema()
-    assert len(extrema) >= 1
-    assert any(p["relative_energy_kcal_mol"] == 0.0 for p in extrema)
 
 
 def test_compute_pes_derivatives_uniform() -> None:
@@ -158,20 +180,10 @@ def test_compute_pes_derivatives_uniform() -> None:
 
 
 def test_compute_pes_derivatives_edge_cases() -> None:
-    # Empty inputs
-    g_empty, c_empty = compute_pes_derivatives([], [])
-    assert len(g_empty) == 0
-    assert len(c_empty) == 0
-
-    # Single point
-    g_one, c_one = compute_pes_derivatives([45.0], [2.5])
-    assert len(g_one) == 1
-    assert g_one[0] == 0.0
-
-    # Two points
-    g_two, c_two = compute_pes_derivatives([0.0, 10.0], [0.0, 2.0])
-    assert len(g_two) == 2
-    assert abs(g_two[0] - 0.2) < 1e-5
+    # Missing or insufficient samples cannot establish a curvature or zero force.
+    for angles, energies in (([], []), ([45.0], [2.5]), ([0.0, 10.0], [0.0, 2.0])):
+        with pytest.raises(ValueError, match="At least three"):
+            compute_pes_derivatives(angles, energies)
 
 
 def test_interpolate_coordinates_linear() -> None:
@@ -213,12 +225,26 @@ def test_interpolate_coordinates_rodrigues_rotation() -> None:
 
 def test_evaluate_physical_potential() -> None:
     symbols = ["H", "H"]
-    coords = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]]
-    energy_ev, forces, converged = evaluate_physical_potential(symbols, coords)
-    assert isinstance(energy_ev, float)
-    assert isinstance(forces, np.ndarray)
+    coordinates = [[0, 0, 0], [0, 0, 0.74]]
+    with pytest.raises(RuntimeError, match="No potential calculator selected"):
+        evaluate_physical_potential(symbols, coordinates)
+    pytest.importorskip("pyscf")
+    from pyscf import lib
+
+    previous = lib.num_threads()
+    try:
+        lib.num_threads(1)
+        energy, forces, converged = evaluate_physical_potential(
+            symbols, coordinates, use_pyscf=True
+        )
+    finally:
+        lib.num_threads(previous)
+    assert np.isfinite(energy) and np.isfinite(forces).all()
     assert forces.shape == (2, 3)
     assert converged is True
+    assert (
+        np.linalg.norm(forces[0]) > 0
+    )  # The declared input is not assumed stationary.
 
 
 def test_generate_adaptive_grid_standalone() -> None:
@@ -238,24 +264,19 @@ def test_generate_adaptive_grid_standalone() -> None:
         },
     ]
 
-    refined_grid = generate_adaptive_grid(
-        grid_points=grid_points,
-        symbols=symbols,
-        slope_threshold=0.01,
-        max_angular_step=45.0,
-        min_angular_step=5.0,
-        refinement_subdivisions=2,
-    )
-
-    assert len(refined_grid) > len(grid_points)
-    angles = [float(p["dihedral_angles"][0]) for p in refined_grid]
-    assert angles == sorted(angles)
-    assert all("gradient_kcal_mol_deg" in p for p in refined_grid)
-    assert all("curvature_kcal_mol_deg2" in p for p in refined_grid)
-    assert all("is_ts_candidate" in p for p in refined_grid)
+    with pytest.raises(RuntimeError, match="No potential calculator selected"):
+        generate_adaptive_grid(
+            grid_points=grid_points,
+            symbols=symbols,
+            slope_threshold=0.01,
+            max_angular_step=45.0,
+            min_angular_step=5.0,
+            refinement_subdivisions=2,
+        )
 
 
 def test_onnx_cpu_fallback_configuration() -> None:
+    pytest.importorskip("onnxruntime")
     config = onnx_cpu_fallback()
     assert isinstance(config, dict)
     assert config["provider"] == "CPUExecutionProvider"
@@ -267,7 +288,8 @@ def test_onnx_cpu_fallback_configuration() -> None:
 
 
 def test_onnx_cpu_fallback_execution_with_bytes() -> None:
-    model_bytes = generate_minimal_onnx_model_bytes()
+    pytest.importorskip("onnxruntime")
+    model_bytes = generate_identity_onnx_model_bytes()
     session = onnx_cpu_fallback(model_path=model_bytes)
     assert session is not None
     assert "CPUExecutionProvider" in session.get_providers()
@@ -279,67 +301,22 @@ def test_onnx_cpu_fallback_execution_with_bytes() -> None:
 
 
 def test_torq_mace_triage_adaptive_workflow(tmp_path: Path) -> None:
-    grid_file = tmp_path / "torsion_scan.json"
-    grid_data = {
-        "symbols": ["C", "C", "H", "H"],
-        "grid_points": [
-            {
-                "dihedral_angles": [0.0],
-                "coordinates": [
-                    [0.0, 0.0, 0.0],
-                    [1.5, 0.0, 0.0],
-                    [-0.5, 0.9, 0.0],
-                    [2.0, 0.9, 0.0],
-                ],
-            },
-            {
-                "dihedral_angles": [90.0],
-                "coordinates": [
-                    [0.0, 0.0, 0.0],
-                    [1.5, 0.0, 0.0],
-                    [-0.5, 0.9, 0.0],
-                    [2.0, 0.0, 0.9],
-                ],
-            },
-            {
-                "dihedral_angles": [180.0],
-                "coordinates": [
-                    [0.0, 0.0, 0.0],
-                    [1.5, 0.0, 0.0],
-                    [-0.5, 0.9, 0.0],
-                    [2.0, -0.9, 0.0],
-                ],
-            },
-        ],
-    }
-    grid_file.write_text(json.dumps(grid_data), encoding="utf-8")
-
-    triage = TorqMACETriage(grid_filepath=str(grid_file), model_name="MACE-OFF24m")
-    initial_results = triage.evaluate_grid()
-    assert len(initial_results) == 3
-
-    # Generate adaptive grid
-    refined_results = triage.generate_adaptive_grid(
-        slope_threshold=0.01,
-        max_angular_step=60.0,
-        min_angular_step=10.0,
-        refinement_subdivisions=2,
-    )
-    assert len(refined_results) >= 4
-
-    # Full triage execution with adaptive refinement
-    summary = triage.run_triage(refine_adaptive=True)
-    assert summary["num_grid_points"] >= 4
-    assert "extrema" in summary
-    assert isinstance(summary["extrema"], list)
+    """No implicit learned potential or fallback is selected for a new workflow."""
+    source = tmp_path / "input.json"
+    source.write_text(json.dumps({"symbols": ["H", "H"], "grid_points": []}))
+    with pytest.raises(RuntimeError, match="ONNX.*not implemented"):
+        TorqMACETriage(grid_filepath=str(source), model_name="unqualified.onnx")
 
 
-def test_torq_mace_triage_onnx_method() -> None:
-    triage = TorqMACETriage.__new__(TorqMACETriage)
-    config = triage.onnx_cpu_fallback()
-    assert isinstance(config, dict)
-    assert config["provider"] == "CPUExecutionProvider"
-    assert triage.onnx_config == config
+def test_torq_mace_triage_onnx_method(tmp_path: Path) -> None:
+    pytest.importorskip("onnxruntime")
+    triage = _actual_emt_triage(tmp_path)
+    configuration = triage.onnx_cpu_fallback()
+    assert configuration["provider"] == "CPUExecutionProvider"
+    assert triage.onnx_config == configuration
+    assert (
+        triage.model_name == "EMT"
+    )  # Configuring a runtime does not select a different potential.
 
 
 def test_mendeleev_covalent_radius() -> None:
@@ -357,19 +334,33 @@ def test_float32_noise_floor_constants() -> None:
     assert FLOAT32_NOISE_FLOOR_KCAL_MOL > 0.0
 
 
-def test_guard_g4_rank_inversion_audit() -> None:
-    triage = TorqMACETriage.__new__(TorqMACETriage)
-    triage.triage_results = [
-        {"dihedral_angles": [0], "relative_energy_kcal_mol": 0.0},
-        {"dihedral_angles": [30], "relative_energy_kcal_mol": 1.5},
-        {"dihedral_angles": [60], "relative_energy_kcal_mol": 4.2},
-        {"dihedral_angles": [90], "relative_energy_kcal_mol": 8.0},
-    ]
-
-    # Highly correlated reference energies
-    ref_energies = [0.0, 1.4, 4.3, 8.1]
-    audit = triage.audit_rank_inversion(ref_energies, spearman_threshold=0.9)
-    assert audit["spearman_rho"] >= 0.95
-    assert audit["cull_eligible"] is True
-    assert audit["g4_status"] == "PASSED"
+def test_guard_g4_rank_inversion_audit(tmp_path: Path) -> None:
+    """Check actual SciPy arithmetic on observed values, not an independent benchmark."""
+    triage = _actual_emt_triage(tmp_path)
+    values = triage.evaluate_grid()
+    energies = [item["relative_energy_kcal_mol"] for item in values]
+    audit = triage.audit_rank_inversion(energies, spearman_threshold=0.9)
+    assert audit["spearman_rho"] == pytest.approx(1.0)
+    assert audit["cull_eligible"] is False
+    assert audit["advisory_only"] is True
+    assert audit["eligible_for_pruning"] is False
+    assert audit["g4_status"] == "DIAGNOSTIC_PASSED_ADVISORY_ONLY"
     assert audit["max_rank_displacement"] == 0
+    assert len(triage.triage_results) == len(values)
+
+
+def test_rank_statistics_reject_undefined_or_missing_evidence(tmp_path: Path) -> None:
+    triage = _actual_emt_triage(tmp_path)
+    triage.evaluate_grid()
+    with pytest.raises(ValueError, match="constant energy series"):
+        triage.audit_rank_inversion([1.0] * 4)
+    with pytest.raises(ValueError, match="finite observed energies"):
+        triage.audit_rank_inversion([0.0, 1.0, 2.0, np.nan])
+    with pytest.raises(ValueError, match="Mismatch"):
+        triage.audit_rank_inversion([0.0, 1.0])
+    triage.grid_points = triage.grid_points[:2]
+    observed = triage.evaluate_grid()
+    with pytest.raises(ValueError, match="at least three"):
+        triage.audit_rank_inversion(
+            [item["relative_energy_kcal_mol"] for item in observed]
+        )

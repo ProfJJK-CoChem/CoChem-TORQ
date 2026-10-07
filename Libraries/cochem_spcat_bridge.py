@@ -1,19 +1,11 @@
-"""Stage 5.1: Statistical Mechanics & Pickett SPCAT Bridge.
+"""Spectroscopy integrity checks and explicit statistical-mechanics helpers.
 
-Authoritative Module for CoChem-BASE / CoChem-TORQ (Phase 8 / Stage 5.1).
-Implements the mathematical statistical mechanics translation layer and rigid
-Fortran-77 ASCII parameter generators (.var and .int) for Pickett's SPCAT/SPFIT suite.
-
-Key Capabilities:
-1. Exact CODATA 2022 fundamental physical constants for all thermodynamic and rotational formulations.
-2. Low-frequency Large Amplitude Motion (LAM) trap (< 50 cm^-1) requiring Phase 7 DVR solvers.
-3. MolSym point-group symmetry resolver, rotational symmetry numbers (sigma),
-   and nuclear spin statistical weights (e.g. H2O ortho/para 3:1 ratio).
-4. Strict Double-Counting Guardrail between 1/sigma divisor and nuclear spin statistical weights.
-5. Vibrational partition coupling across temperature gradients with automatic LAM mode dropping.
-6. Double Precision Fortran overflow guard (|val| > 1e308) blocking corrupt VPT2 parameters.
-7. Rigid character alignment and 'D' exponent formatting for Pickett's ASCII files (.var / .int).
-8. Tripartite Filesystem Air-Gap compliance and SHA-256 cryptographic provenance manifests.
+Rigid-rotor partitions use the classical high-temperature approximation;
+harmonic partitions require identified positive vibrational modes. These are
+model calculations, not validated VPT2 or low-temperature line-list spectra.
+The historical native SPCAT writers and mixed-engine parser are blocked until
+their conventions have independent reference validation. Verified input decks
+can be executed with ``cochem_torq_spcat.PickettSPCATRunner``.
 """
 
 from __future__ import annotations
@@ -24,13 +16,14 @@ import logging
 import math
 import os
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+from scipy.constants import physical_constants
 
 try:
     import molsym  # type: ignore[import-untyped]
@@ -38,16 +31,6 @@ try:
     _MOLSYM_AVAILABLE = True
 except ImportError:
     _MOLSYM_AVAILABLE = False
-
-try:
-    from mendeleev import (
-        element as get_mendeleev_element,  # type: ignore[import-untyped]
-        isotope as get_mendeleev_isotope,  # type: ignore[import-untyped]
-    )
-
-    _MENDELEEV_AVAILABLE = True
-except ImportError:
-    _MENDELEEV_AVAILABLE = False
 
 try:
     from cochem_base.config_loader import (
@@ -102,13 +85,17 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# 1. Fundamental Physical Constants (CODATA 2022 Exact Recommended Values)
+# 1. Fundamental Physical Constants and Measured Conversion Factors
 # =============================================================================
 
 
 @dataclass(frozen=True)
 class CODATA2022:
-    """Exact fundamental physical constants from CODATA 2022 recommended values."""
+    """SI defining constants and measured CODATA conversion factors.
+
+    h, k_B, c and N_A are exact SI definitions; the atomic mass constant and
+    resulting rotational conversion factor have measurement uncertainty.
+    """
 
     # Planck constant (exact, SI definition 2019) [J * s]
     H: float = 6.62607015e-34
@@ -120,7 +107,7 @@ class CODATA2022:
     C_CM_S: float = 29979245800.0
     # Rotational constant factor C_rot = h / (8 * pi^2) in [MHz * u * Angstrom^2]
     # h / (8 * pi^2 * u * 1e-20) * 1e-6 MHz = 505379.008435
-    C_ROT: float = 505379.008435
+    C_ROT: float = H / (8 * math.pi**2 * physical_constants["atomic mass constant"][0] * 1e-20) * 1e-6
     # Avogadro constant (exact) [mol^-1]
     N_A: float = 6.02214076e23
     # Atomic mass constant [kg] (CODATA 2022 recommended value)
@@ -158,8 +145,8 @@ class SymmetryDivisorResult:
 
     point_group: str
     sigma: int
-    spin_statistical_weights: list[int]
-    spin_weight_ratio_str: str
+    spin_statistical_weights: list[int] | None
+    spin_weight_ratio_str: str | None
     effective_divisor: float
     guardrail_status: str
     equivalent_atom_groups: dict[str, list[int]] = field(default_factory=dict)
@@ -264,7 +251,9 @@ _POINT_GROUP_SIGMAS: dict[str, int] = {
 def _pg_to_sigma(pg: str) -> int:
     """Resolve rotational symmetry number sigma from Schoenflies point group string."""
     clean = pg.strip()
-    return _POINT_GROUP_SIGMAS.get(clean, 1)
+    if clean not in _POINT_GROUP_SIGMAS:
+        raise SPCATBridgeError(f"Unsupported point group {pg!r}; symmetry number unavailable.")
+    return _POINT_GROUP_SIGMAS[clean]
 
 
 # =============================================================================
@@ -302,9 +291,10 @@ def low_frequency_lam_trap(
 
     for raw_freq in harmonic_frequencies:
         freq = float(raw_freq)
-        # Skip pure zero / translational-rotational residual modes
-        if abs(freq) <= zero_mode_cutoff:
-            continue
+        if not math.isfinite(freq):
+            raise ValueError("Vibrational frequencies must be finite.")
+        if freq <= zero_mode_cutoff:
+            raise ValueError("Vibrational modes must be positive and identified independently of external zero modes.")
         if freq < threshold_cm1:
             flagged_lam_modes.append(freq)
         else:
@@ -344,60 +334,12 @@ low_frequency_trap = low_frequency_lam_trap
 # =============================================================================
 
 
-def _resolve_nuclear_spin_ratio(
-    point_group: str,
-    symbols: Sequence[str],
-    equivalent_groups: dict[str, list[int]],
-) -> tuple[list[int], str]:
-    """Derive nuclear spin statistical weights and ratio string from point group and equivalent atoms.
-
-    Args:
-        point_group: Schoenflies point group string (e.g. 'C2v', 'C3v', 'Cs', 'D2h').
-        symbols: List of element symbols.
-        equivalent_groups: Mapping of group label to atom indices.
-
-    Returns:
-        Tuple of (spin_statistical_weights_list, ratio_string e.g. '3 1').
-    """
-    pg_clean = point_group.strip()
-
-    # Determine spin of equivalent hydrogen/halogen atoms
-    h_indices: list[int] = [
-        i for i, sym in enumerate(symbols) if sym.strip() in ("H", "1H")
-    ]
-
-    if pg_clean in ("C2v", "C2", "C2h"):
-        # For H2O, CH2O, H2S, etc. with 2 equivalent protons:
-        # Ortho (symmetric, I_tot=1, wt=3) : Para (antisymmetric, I_tot=0, wt=1)
-        if len(h_indices) >= 2:
-            return [3, 1], "3 1"
-        return [1, 1], "1 1"
-
-    elif pg_clean in ("C3v", "C3", "D3h"):
-        # For NH3, CH3X (3 equivalent protons, I = 1/2):
-        # A1/A2 (ortho, I_tot=3/2, wt=4), E (para, I_tot=1/2, wt=2) -> ratio 4:2 = 2:1
-        if len(h_indices) >= 3:
-            return [4, 2], "2 1"
-        return [1, 1], "1 1"
-
-    elif pg_clean in ("D2h", "D2", "D2d"):
-        # For Ethylene (C2H4, 4 protons):
-        # 7 (B3u), 3 (Ag), 3 (B1g), 3 (B2u)
-        if len(h_indices) >= 4:
-            return [7, 3, 3, 3], "7 3 3 3"
-        return [3, 1], "3 1"
-
-    elif pg_clean in ("C1", "Cs", "Ci"):
-        # Asymmetric / planar with no non-trivial rotational symmetry (sigma = 1)
-        return [1], "1"
-
-    elif pg_clean in ("Td", "Oh", "Ih"):
-        if len(h_indices) >= 4:
-            return [5, 2, 3], "5 2 3"
-        return [1, 1, 1], "1 1 1"
-
-    # Default fallback
-    return [1], "1"
+def _resolve_nuclear_spin_ratio(point_group, symbols, equivalent_groups):
+    """State-resolved nuclear-spin weights need an isotope/permutation contract."""
+    raise SPCATBridgeError(
+        "Nuclear-spin weights cannot be inferred from proton counts and point group alone. "
+        "Supply a validated isotope- and symmetry-resolved statistical-weight model."
+    )
 
 
 def apply_symmetry_divisors(
@@ -406,30 +348,10 @@ def apply_symmetry_divisors(
     use_nuclear_spin: bool = False,
     enforce_guardrail: bool = True,
 ) -> SymmetryDivisorResult:
-    """Resolve molecular point group, rotational symmetry number (sigma), and nuclear spin weights.
+    """Resolve a classical symmetry divisor with MolSym or report unavailable.
 
-    Interfaces with MolSym to identify Schoenflies point group (e.g. C2v for H2O),
-    computes the rotational symmetry divisor sigma (e.g. sigma=2 for H2O), and assigns
-    the nuclear spin statistical weights ratio (e.g. '3 1' for H2O ortho/para).
-
-    Double-Counting Guardrail:
-    Enforces a strict selection rule: apply EITHER the exact nuclear spin statistical
-    weights OR the classical 1/sigma divisor to the partition function, but NEVER both
-    simultaneously. Applying both would artificially deflate the state density twice,
-    since exact nuclear spin weights already account for point-group symmetry.
-
-    Args:
-        geometry_array: Cartesian coordinates of atoms in Angstroms (shape N x 3 or flattened).
-        symbols: List of atom element symbols (e.g. ['O', 'H', 'H']).
-        use_nuclear_spin: If True, uses exact nuclear spin weights and sets effective_divisor=1.0.
-        enforce_guardrail: If True, validates and enforces the double-counting selection rule.
-
-    Returns:
-        SymmetryDivisorResult containing point group, sigma, spin weights, ratio string,
-        effective divisor, and guardrail status.
-
-    Raises:
-        SPCATBridgeError: If MolSym resolution or geometry parsing fails.
+    Coordinates are Angstroms. Nuclear-spin state weights require an independent
+    isotope/permutation treatment and remain unavailable in this adapter.
     """
     flat_coords: list[float] = []
     if isinstance(geometry_array, np.ndarray):
@@ -451,23 +373,30 @@ def apply_symmetry_divisors(
     coords_np = np.array(flat_coords).reshape(-1, 3)
     num_atoms = coords_np.shape[0]
 
+    if num_atoms == 0 or not np.isfinite(coords_np).all():
+        raise SPCATBridgeError("Symmetry requires a nonempty finite geometry.")
     if symbols is None:
-        symbols = ["X"] * num_atoms
+        raise SPCATBridgeError("Symmetry requires explicit atom and isotope identities.")
     elif len(symbols) != num_atoms:
         raise SPCATBridgeError(
             message=f"Symbols length ({len(symbols)}) does not match atom count ({num_atoms})",
             error_code=ProvenanceErrorCode.SPCAT_BRIDGE_ERROR,
         )
 
-    point_group = "C1"
-    sigma = 1
+    if any(not re.fullmatch(r"[A-Z][a-z]?", s) or s in {"D", "T"} for s in symbols):
+        raise SPCATBridgeError("Automatic isotope-resolved symmetry is not qualified in this adapter.")
+    if use_nuclear_spin:
+        raise SPCATBridgeError("Exact nuclear-spin weights require a validated state-resolved isotope/permutation model.")
+    point_group = None
+    sigma = None
     equivalent_groups: dict[str, list[int]] = {}
 
     if _MOLSYM_AVAILABLE:
         try:
             schema = {
                 "symbols": [str(s).strip() for s in symbols],
-                "geometry": flat_coords,
+                "geometry": (coords_np.reshape(-1) / (physical_constants["Bohr radius"][0] / 1e-10)).tolist(),
+                "masses": [get_atomic_mass(s) for s in symbols],
             }
             mol = molsym.Molecule.from_schema(schema)
             try:
@@ -489,27 +418,14 @@ def apply_symmetry_divisors(
                 logger.debug("MolSym find_SEAs non-fatal error: %s", sea_err)
 
         except Exception as err:
-            logger.warning(
-                "MolSym analysis encountered exception: %s. Falling back to geometric solver.",
-                err,
-            )
-            point_group, sigma = _fallback_point_group_solver(coords_np, symbols)
+            raise SPCATBridgeError(f"MolSym symmetry analysis failed: {err}") from err
     else:
         point_group, sigma = _fallback_point_group_solver(coords_np, symbols)
 
-    spin_weights, ratio_str = _resolve_nuclear_spin_ratio(
-        point_group, symbols, equivalent_groups
-    )
+    spin_weights, ratio_str = None, None
 
-    # Enforce Double-Counting Guardrail
-    if use_nuclear_spin:
-        effective_divisor = 1.0
-        guardrail_status = (
-            "GUARDRAIL_ENFORCED_EXACT_NUCLEAR_SPIN_APPLIED_SIGMA_BYPASSED"
-        )
-    else:
-        effective_divisor = float(sigma)
-        guardrail_status = "GUARDRAIL_ENFORCED_CLASSICAL_SIGMA_APPLIED"
+    effective_divisor = float(sigma)
+    guardrail_status = "CLASSICAL_SIGMA_APPLIED; NUCLEAR_SPIN_WEIGHTS_UNAVAILABLE"
 
     return SymmetryDivisorResult(
         point_group=point_group,
@@ -524,141 +440,31 @@ def apply_symmetry_divisors(
             "symbols": list(symbols),
             "use_nuclear_spin": bool(use_nuclear_spin),
             "enforce_guardrail": bool(enforce_guardrail),
+            "spin_weights_status": "unavailable: state-resolved model required",
+            "symmetry_source": "MolSym",
         },
     )
 
 
-def _fallback_point_group_solver(
-    coords: np.ndarray, symbols: Sequence[str]
-) -> tuple[str, int]:
-    """Fallback geometric symmetry analyzer when MolSym is unavailable or coordinates are approximate."""
-    num_atoms = coords.shape[0]
-    if num_atoms == 1:
-        return "Kh", 1
-    if num_atoms == 2:
-        return ("Dinfh", 2) if symbols[0] == symbols[1] else ("Cinfv", 1)
-
-    com = np.mean(coords, axis=0)
-    centered = coords - com
-
-    # Check for planar C2v geometry (e.g. H2O: 3 atoms, 2 identical)
-    if num_atoms == 3:
-        unique_syms = set(symbols)
-        if len(unique_syms) == 2:
-            sym_counts = {s: symbols.count(s) for s in unique_syms}
-            eq_sym = [s for s, c in sym_counts.items() if c == 2][0]
-            eq_indices = [i for i, s in enumerate(symbols) if s == eq_sym]
-            d1 = float(
-                np.sqrt(
-                    np.sum(
-                        (
-                            centered[eq_indices[0]]
-                            - centered[[i for i in range(3) if i not in eq_indices][0]]
-                        )
-                        ** 2
-                    )
-                )
-            )
-            d2 = float(
-                np.sqrt(
-                    np.sum(
-                        (
-                            centered[eq_indices[1]]
-                            - centered[[i for i in range(3) if i not in eq_indices][0]]
-                        )
-                        ** 2
-                    )
-                )
-            )
-            if abs(d1 - d2) < 1e-2:
-                return "C2v", 2
-
-    # Check for pyramidal C3v geometry (e.g. NH3: 4 atoms, 3 identical)
-    if num_atoms == 4:
-        unique_syms = set(symbols)
-        if len(unique_syms) == 2:
-            sym_counts = {s: symbols.count(s) for s in unique_syms}
-            eq_sym_list = [s for s, c in sym_counts.items() if c == 3]
-            if eq_sym_list:
-                eq_indices = [i for i, s in enumerate(symbols) if s == eq_sym_list[0]]
-                d1 = float(
-                    np.sqrt(
-                        np.sum((centered[eq_indices[0]] - centered[eq_indices[1]]) ** 2)
-                    )
-                )
-                d2 = float(
-                    np.sqrt(
-                        np.sum((centered[eq_indices[1]] - centered[eq_indices[2]]) ** 2)
-                    )
-                )
-                d3 = float(
-                    np.sqrt(
-                        np.sum((centered[eq_indices[2]] - centered[eq_indices[0]]) ** 2)
-                    )
-                )
-                if abs(d1 - d2) < 1e-2 and abs(d2 - d3) < 1e-2:
-                    return "C3v", 3
-
-    # Check for planar D2h geometry (e.g. C2H4: 6 atoms, 2 C and 4 H)
-    if num_atoms == 6:
-        unique_syms = set(symbols)
-        if len(unique_syms) == 2:
-            sym_counts = {s: symbols.count(s) for s in unique_syms}
-            if 2 in sym_counts.values() and 4 in sym_counts.values():
-                return "D2h", 4
-
-    return "Cs", 1
+def _fallback_point_group_solver(coords, symbols):
+    """Unqualified geometric point-group guesses are not scientific results."""
+    raise SPCATBridgeError("Symmetry determination unavailable: a validated point-group solver is required.")
 
 
 def get_atomic_mass(symbol: str) -> float:
-    """Dynamically retrieve IUPAC atomic or isotopic mass via Mendeleev library.
+    """Resolve an isotope mass; bare elements select the most abundant isotope.
 
-    Strictly enforces Mendeleev Library Mandate: zero hardcoded atomic masses.
-    Handles standard element symbols (e.g. 'C', 'H', 'O'), isotopes (e.g. '13C', '18O', '15N'),
-    and aliases ('D', '2H', 'T', '3H').
+    Standard atomic weights are mixtures and cannot define one isotopologue.
+    Elements without a natural-abundance default require an explicit isotope.
     """
-    clean_sym = symbol.strip()
-    if not clean_sym:
-        raise ValueError(f"Invalid element/isotope symbol: '{symbol}'")
-
-    if not _MENDELEEV_AVAILABLE:
-        raise RuntimeError(
-            "Mendeleev library is required for atomic mass retrieval but is not available in the runtime."
-        )
-
-    # Handle Deuterium and Tritium aliases
-    if clean_sym in ("D", "2H"):
-        return float(get_mendeleev_isotope("H", 2).mass)
-    if clean_sym in ("T", "3H"):
-        return float(get_mendeleev_isotope("H", 3).mass)
-
-    # Check for isotopic notation e.g. '13C', '18O', '15N'
-    match = re.match(r"^(\d+)([A-Za-z]+)$", clean_sym)
-    if match:
-        mass_num = int(match.group(1))
-        elem_sym = match.group(2)
-        try:
-            iso = get_mendeleev_isotope(elem_sym, mass_num)
-            return float(iso.mass)
-        except Exception as err:
-            raise ValueError(
-                f"Mendeleev failed to retrieve isotope mass for '{symbol}': {err}"
-            ) from err
-
-    elem_sym = "".join([c for c in clean_sym if c.isalpha()])
-    try:
-        elem = get_mendeleev_element(elem_sym)
-        return float(elem.mass)
-    except Exception as err:
-        raise ValueError(
-            f"Mendeleev failed to retrieve atomic mass for element '{symbol}': {err}"
-        ) from err
+    from Libraries.cochem_isotopes import isotope_mass
+    return isotope_mass(symbol)
 
 
 def calculate_rotational_constants_from_geometry(
     geometry: np.ndarray | Sequence[Sequence[float]] | Sequence[float],
     symbols: Sequence[str],
-) -> dict[str, float]:
+) -> dict[str, float | None]:
     """Calculate rotational constants A, B, C in MHz from Cartesian geometry and atomic symbols.
 
     Calculates center of mass, shifts coordinates to COM, constructs inertia tensor
@@ -682,6 +488,8 @@ def calculate_rotational_constants_from_geometry(
 
     coords = np.array(flat_coords, dtype=np.float64).reshape(-1, 3)
     num_atoms = coords.shape[0]
+    if num_atoms < 2 or not np.isfinite(coords).all():
+        raise ValueError("Rotational constants require at least two atoms with finite coordinates.")
     if len(symbols) != num_atoms:
         raise ValueError(
             f"Number of symbols ({len(symbols)}) does not match number of atoms ({num_atoms})"
@@ -723,9 +531,12 @@ def calculate_rotational_constants_from_geometry(
     ia, ib, ic = float(eigenvalues[0]), float(eigenvalues[1]), float(eigenvalues[2])
 
     c_rot = CONSTANTS.C_ROT
-    a_mhz = float(c_rot / ia) if ia > 1e-6 else 1e9
-    b_mhz = float(c_rot / ib) if ib > 1e-6 else 0.0
-    c_mhz = float(c_rot / ic) if ic > 1e-6 else 0.0
+    tolerance = max(ic, 1.0) * 1e-12
+    if ia < -tolerance or ib <= tolerance or ic <= tolerance:
+        raise ValueError("Geometry has singular or invalid rotational moments.")
+    a_mhz = float(c_rot / ia) if ia > tolerance else None
+    b_mhz = float(c_rot / ib)
+    c_mhz = float(c_rot / ic)
 
     return {
         "A": a_mhz,
@@ -750,7 +561,7 @@ def calculate_rotational_partition_function(
     sigma: float = 1.0,
     is_linear: bool = False,
 ) -> float:
-    """Calculate rotational partition function Q_rot(T) using exact CODATA 2022 constants.
+    """Calculate the classical high-temperature rigid-rotor approximation Q_rot(T).
 
     Formulations:
     - Asymmetric Top: Q_rot(T) = (sqrt(pi) / sigma) * (k_B * T / (h * 1e6))^(3/2) / sqrt(A * B * C)
@@ -767,19 +578,23 @@ def calculate_rotational_partition_function(
     Returns:
         Rotational partition function Q_rot(T) (dimensionless).
     """
-    if temp_k <= 0.0:
-        return 1.0
+    if not math.isfinite(temp_k) or temp_k <= 0:
+        raise ValueError("Temperature must be finite and positive.")
+    if not math.isfinite(sigma) or sigma < 1:
+        raise ValueError("An explicit valid rotational symmetry divisor is required.")
 
-    sigma_eff = max(1.0, float(sigma))
+    sigma_eff = float(sigma)
     kb_over_h_mhz = CONSTANTS.K_B / (CONSTANTS.H * 1e6)
 
     if is_linear:
-        b_eff = max(1e-12, float(b_mhz))
+        b_eff = float(b_mhz)
+        if not math.isfinite(b_eff) or b_eff <= 0:
+            raise ValueError("Linear-rotor B must be finite and positive.")
         return (kb_over_h_mhz * temp_k) / (sigma_eff * b_eff)
 
-    a_eff = max(1e-12, float(a_mhz))
-    b_eff = max(1e-12, float(b_mhz))
-    c_eff = max(1e-12, float(c_mhz))
+    if any(v is None or not math.isfinite(v) or v <= 0 for v in (a_mhz, b_mhz, c_mhz)):
+        raise ValueError("Asymmetric-rotor A/B/C must be finite and positive.")
+    a_eff, b_eff, c_eff = float(a_mhz), float(b_mhz), float(c_mhz)
 
     factor = (kb_over_h_mhz * temp_k) ** 1.5
     abc_sqrt = math.sqrt(a_eff * b_eff * c_eff)
@@ -804,8 +619,10 @@ def calculate_vibrational_partition_function(
     Returns:
         Vibrational partition function Q_vib(T) (dimensionless).
     """
-    if temp_k <= 0.0:
-        return 1.0
+    if not math.isfinite(temp_k) or temp_k <= 0:
+        raise ValueError("Temperature must be finite and positive.")
+    if frequencies_cm1 is None:
+        raise ValueError("Vibrational frequencies are unavailable.")
 
     excluded_set: list[float] = (
         [float(x) for x in exclude_frequencies] if exclude_frequencies else []
@@ -815,100 +632,77 @@ def calculate_vibrational_partition_function(
 
     for raw_f in frequencies_cm1:
         f = float(raw_f)
-        if f <= 0.0:
-            continue
-        if any(abs(f - excl) < 0.1 for excl in excluded_set):
+        if not math.isfinite(f) or f <= 0:
+            raise ValueError("Partition functions require finite positive vibrational modes, with external modes already identified and removed.")
+        matches = [i for i, excluded in enumerate(excluded_set) if abs(f - excluded) < 1e-8]
+        if matches:
+            excluded_set.pop(matches[0])
             continue
 
         x = (hc_over_kb * f) / temp_k
         if x > 500.0:
             factor = 1.0
         else:
-            exp_neg_x = math.exp(-x)
-            factor = 1.0 / (1.0 - exp_neg_x)
+            factor = 1.0 / -math.expm1(-x)
 
         q_vib *= factor
 
+    if excluded_set:
+        raise ValueError("A requested excluded mode was not present in the frequency list.")
+    if not math.isfinite(q_vib):
+        raise ValueError("Vibrational partition function overflowed.")
     return float(q_vib)
 
 
 def vibrational_partition_coupling(
-    q_rot_dvr: dict[float, float] | Sequence[float] | float | Callable[[float], float],
-    q_vib_orca: dict[float, float] | Sequence[float] | np.ndarray | float,
-    temp_array: Sequence[float],
-    lam_frequency: float | Sequence[float] | None = None,
-    all_frequencies: Sequence[float] | None = None,
+    q_rot_dvr, q_vib_orca, temp_array, lam_frequency=None, all_frequencies=None,
 ) -> dict[float, float]:
-    """Compute total coupled internal partition function Q_total(T) = Q_vib(T) * Q_rot(T).
+    """Multiply explicitly supplied partitions at each temperature.
 
-    When Phase 7 DVR rotational partition functions are coupled with ORCA harmonic
-    frequencies, any identified LAM frequency (nu_lam < 50 cm^-1) is explicitly
-    dropped from the Q_vib product to prevent thermodynamic double-counting.
-
-    Args:
-        q_rot_dvr: Precomputed DVR rotational partition function mapping {T: Q_rot},
-                   callable f(T), list matching temp_array, or scalar.
-        q_vib_orca: Precomputed Q_vib mapping {T: Q_vib}, list of harmonic frequencies (cm^-1),
-                    or scalar.
-        temp_array: Sequence of temperatures in Kelvin (e.g. [2.0, 10.0, 50.0, 298.15]).
-        lam_frequency: Specific LAM mode frequency (or sequence of frequencies) in cm^-1 to drop from Q_vib.
-        all_frequencies: Full set of normal mode harmonic frequencies (cm^-1).
-
-    Returns:
-        Dictionary mapping temperature T -> Q_total(T).
+    Sequence arguments contain partition values; frequencies must be named in
+    all_frequencies. This prevents guessing a quantity from its magnitude.
+    The caller is responsible for specifying nonoverlapping mode subspaces.
     """
-    results: dict[float, float] = {}
     temps = [float(t) for t in temp_array]
-
-    excluded: list[float] = []
-    if lam_frequency is not None:
-        if isinstance(lam_frequency, int | float):
-            excluded.append(float(lam_frequency))
+    if not temps or any(not math.isfinite(t) or t <= 0 for t in temps):
+        raise ValueError("Partition temperatures must be finite and positive.")
+    if lam_frequency is not None and all_frequencies is None:
+        raise ValueError("Dropping LAM modes requires explicit all_frequencies.")
+    excluded = [] if lam_frequency is None else (
+        [float(lam_frequency)] if np.isscalar(lam_frequency) else list(lam_frequency)
+    )
+    def value_at(values, idx, temperature, quantity):
+        if callable(values):
+            value = values(temperature)
+        elif isinstance(values, dict):
+            if temperature not in values:
+                raise ValueError(f"Missing {quantity} at {temperature} K.")
+            value = values[temperature]
+        elif isinstance(values, (list, tuple, np.ndarray)):
+            if len(values) != len(temps):
+                raise ValueError(f"{quantity} must have one value per temperature.")
+            value = values[idx]
+        elif isinstance(values, (int, float)):
+            value = values
         else:
-            excluded.extend([float(x) for x in lam_frequency])
-
-    is_freq_list = False
-    raw_freqs: list[float] = []
-    if all_frequencies is not None:
-        is_freq_list = True
-        raw_freqs = [float(x) for x in all_frequencies]
-    elif isinstance(q_vib_orca, list | tuple | np.ndarray):
-        arr = np.array(q_vib_orca, dtype=float)
-        if arr.ndim == 1 and arr.size > 0:
-            if excluded or len(arr) != len(temps) or all(float(x) >= 20.0 for x in arr):
-                is_freq_list = True
-                raw_freqs = [float(x) for x in arr]
-
-    for idx, t in enumerate(temps):
-        if callable(q_rot_dvr):
-            q_rot_val = float(q_rot_dvr(t))
-        elif isinstance(q_rot_dvr, dict):
-            q_rot_val = float(q_rot_dvr.get(t, 1.0))
-        elif isinstance(q_rot_dvr, list | tuple | np.ndarray):
-            q_rot_val = float(q_rot_dvr[idx]) if idx < len(q_rot_dvr) else 1.0
-        elif isinstance(q_rot_dvr, int | float):
-            q_rot_val = float(q_rot_dvr)
-        else:
-            q_rot_val = 1.0
-
-        if is_freq_list:
-            q_vib_val = calculate_vibrational_partition_function(
-                frequencies_cm1=raw_freqs,
-                temp_k=t,
-                exclude_frequencies=excluded,
-            )
-        elif isinstance(q_vib_orca, dict):
-            q_vib_val = float(q_vib_orca.get(t, 1.0))
-        elif isinstance(q_vib_orca, list | tuple | np.ndarray):
-            q_vib_val = float(q_vib_orca[idx]) if idx < len(q_vib_orca) else 1.0
-        elif isinstance(q_vib_orca, int | float):
-            q_vib_val = float(q_vib_orca)
-        else:
-            q_vib_val = 1.0
-
-        results[t] = float(q_rot_val * q_vib_val)
-
-    return results
+            raise ValueError(f"Missing or unsupported {quantity} values.")
+        value = float(value)
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{quantity} must be finite and positive.")
+        return value
+    result = {}
+    for idx, temperature in enumerate(temps):
+        qr = value_at(q_rot_dvr, idx, temperature, "rotational/DVR partition")
+        qv = (
+            calculate_vibrational_partition_function(all_frequencies, temperature, excluded)
+            if all_frequencies is not None else
+            value_at(q_vib_orca, idx, temperature, "vibrational partition")
+        )
+        total = qr * qv
+        if not math.isfinite(total):
+            raise ValueError("Combined partition function overflowed.")
+        result[temperature] = total
+    return result
 
 
 def compute_coupled_partition_functions(
@@ -922,6 +716,8 @@ def compute_coupled_partition_functions(
     is_dvr: bool = False,
 ) -> PartitionFunctionResult:
     """Compute complete coupled partition functions with metadata tracking."""
+    if is_dvr or lam_frequency is not None:
+        raise ValueError("This helper has no DVR spectrum input. Use explicit nonoverlapping partition values with vibrational_partition_coupling.")
     temps = [float(t) for t in temp_array]
     q_rot_dict: dict[float, float] = {}
     q_vib_dict: dict[float, float] = {}
@@ -957,6 +753,7 @@ def compute_coupled_partition_functions(
         dropped_lam_frequencies=excluded,
         stiff_frequencies=stiff,
         is_dvr_coupled=bool(is_dvr),
+        metadata={"rotational_model": "classical_high_temperature_rigid_rotor", "vibrational_model": "harmonic_ZPVE_referenced"},
     )
 
 
@@ -981,15 +778,19 @@ def fortran_overflow_guard(
     Args:
         tensor_dictionary: Dictionary, nested list, array, or scalar of parameters.
         max_limit: Hard double precision magnitude limit (default: 1e308).
-        clamp_on_overflow: If True, clamps value to +/- max_limit instead of raising.
+        clamp_on_overflow: Legacy argument; True is rejected because it changes results.
 
     Returns:
-        Validated (and optionally clamped) data structure.
+        Validated data structure with original numerical values preserved.
 
     Raises:
-        FortranOverflowError: If any value exceeds max_limit and clamp_on_overflow is False.
+        FortranOverflowError: If any value is nonfinite or exceeds max_limit.
     """
 
+    if clamp_on_overflow:
+        raise ValueError("Clamping invalid scientific parameters is prohibited; repair or recompute the source data.")
+    if not math.isfinite(max_limit) or max_limit <= 0:
+        raise ValueError("max_limit must be finite and positive.")
     def _inspect_and_guard(val: Any, path: str) -> Any:
         if isinstance(val, dict):
             return {
@@ -1004,7 +805,7 @@ def fortran_overflow_guard(
             try:
                 max_val = float(np.max(np.abs(val))) if val.size > 0 else 0.0
             except (TypeError, ValueError):
-                return val
+                raise ValueError(f"Parameter array {path!r} must be numeric.") from None
 
             if max_val > max_limit or math.isinf(max_val) or math.isnan(max_val):
                 msg = (
@@ -1012,8 +813,6 @@ def fortran_overflow_guard(
                     f"max magnitude {max_val} exceeds limit {max_limit:.1e}"
                 )
                 logger.critical("[FORTRAN_OVERFLOW] %s", msg)
-                if clamp_on_overflow:
-                    return np.clip(val, -max_limit, max_limit)
                 raise FortranOverflowError(
                     message=msg,
                     error_code=ProvenanceErrorCode.FORTRAN_OVERFLOW,
@@ -1032,10 +831,6 @@ def fortran_overflow_guard(
                     f"value {fval} exceeds hard limit {max_limit:.1e}"
                 )
                 logger.critical("[FORTRAN_OVERFLOW] %s", msg)
-                if clamp_on_overflow:
-                    return (
-                        math.copysign(max_limit, fval) if not math.isnan(fval) else 0.0
-                    )
                 raise FortranOverflowError(
                     message=msg,
                     error_code=ProvenanceErrorCode.FORTRAN_OVERFLOW,
@@ -1077,6 +872,7 @@ def format_fortran_double(
         Formatted Fortran Double Precision string.
     """
     fval = float(val)
+    fortran_overflow_guard(fval)
     if fval == 0.0:
         base = "0.000D+00" if compact else "0." + ("0" * precision) + "D+00"
         return base if compact else f"{base:>{width}}"
@@ -1112,7 +908,7 @@ def format_fortran_double(
 def fortran_double_precision_formatter(
     val_or_id: Any,
     val: float | None = None,
-    uncertainty: float = 0.0,
+    uncertainty: float | None = None,
     label: str = "",
     width: int = 22,
     precision: int = 15,
@@ -1146,11 +942,11 @@ def fortran_double_precision_formatter(
         for p_id, p_val in val_or_id.items():
             if isinstance(p_val, tuple | list):
                 p_v = float(p_val[0])
-                p_u = float(p_val[1]) if len(p_val) > 1 else 0.0
+                p_u = float(p_val[1]) if len(p_val) > 1 else None
                 p_lbl = str(p_val[2]) if len(p_val) > 2 else ""
             else:
                 p_v = float(p_val)
-                p_u = 0.0
+                p_u = None
                 p_lbl = ""
             line = fortran_double_precision_formatter(
                 val_or_id=p_id,
@@ -1165,6 +961,8 @@ def fortran_double_precision_formatter(
         return lines
 
     if val is not None:
+        if uncertainty is None or not math.isfinite(float(uncertainty)) or uncertainty < 0:
+            raise ValueError("Parameter uncertainty must be explicitly supplied, finite and nonnegative.")
         param_id_int = int(val_or_id)
         val_str = format_fortran_double(
             val, width=width, precision=precision, compact=compact
@@ -1180,187 +978,44 @@ def fortran_double_precision_formatter(
             float(val_or_id), width=width, precision=precision, compact=compact
         )
 
-    return str(val_or_id)
+    raise TypeError("Fortran parameters must be numeric or explicitly typed parameter records.")
 
 
 # =============================================================================
 # 8. Pickett SPCAT .var and .int ASCII Generation
 # =============================================================================
 
-PICKETT_PARAMETER_CODES: dict[str, int] = {
-    "B_C_AVG": 10000,
-    "B_MINUS_C": 30000,
-    "A_REDUCED": 20000,
-    "A": 20000,
-    "B": 10000,
-    "C": 30000,
-    "DJ": 200,
-    "DJK": 1100,
-    "DK": 2000,
-    "d1": 40100,
-    "d2": 41000,
-    "DELTA_J": 200,
-    "DELTA_JK": 1100,
-    "DELTA_K": 2000,
-    "delta_j": 40100,
-    "delta_k": 41000,
-}
-
+# Native parameter-code/reduction conventions remain unqualified. Absence must
+# not be represented by an invented or partially incorrect mapping.
+PICKETT_PARAMETER_CODES: dict[str, int] | None = None
 
 def generate_spcat_var(
-    molecule_name: str,
-    parameters: dict[str, Any],
-    title: str | None = None,
-    nopt: int = 0,
-    nwarn: int = 0,
-    erpar: float = 1.0,
-    wtfac: float = 1.0,
-    scale: float = 1.0,
-    maxit: int = 50,
-    filepath: str | Path | None = None,
+    molecule_name, parameters, title=None, nopt=0, nwarn=0, erpar=1.0,
+    wtfac=1.0, scale=1.0, maxit=50, filepath=None,
 ) -> str:
-    """Generate exact Pickett SPCAT .var ASCII parameter file content."""
-    guarded_params = fortran_overflow_guard(parameters)
+    """Reject the legacy unqualified Pickett parameter writer.
 
-    title_str = (
-        title if title else f"{molecule_name} Ground State - CoChem SPCAT Bridge"
+    Its parameter-ID/reduction mapping and fitted uncertainty conventions have
+    not passed a reference comparison. Generating native input is blocked until
+    those contracts are implemented and validated against an installed SPCAT.
+    """
+    raise NotImplementedError(
+        "Native SPCAT .var generation is unqualified. Use independently verified "
+        "input decks with Libraries.cochem_torq_spcat.PickettSPCATRunner."
     )
-
-    param_records: list[SPCATParameter] = []
-    for key, val in guarded_params.items():
-        if isinstance(val, tuple | list):
-            v = float(val[0])
-            u = float(val[1]) if len(val) > 1 else 1e-4
-            lbl = str(val[2]) if len(val) > 2 else str(key)
-        else:
-            v = float(val)
-            u = 1e-4
-            lbl = str(key)
-
-        if str(key).isdigit():
-            p_id = int(key)
-        elif key in PICKETT_PARAMETER_CODES:
-            p_id = PICKETT_PARAMETER_CODES[key]
-        else:
-            p_id = 10000
-
-        line_str = fortran_double_precision_formatter(
-            val_or_id=p_id,
-            val=v,
-            uncertainty=u,
-            label=lbl,
-            width=22,
-            precision=15,
-            compact=False,
-        )
-        param_records.append(SPCATParameter(p_id, v, u, lbl, str(line_str)))
-
-    npar = len(param_records)
-    nline = 100
-
-    erpar_str = format_fortran_double(erpar, width=22, precision=15)
-    wtfac_str = format_fortran_double(wtfac, width=22, precision=15)
-    scale_str = format_fortran_double(scale, width=22, precision=15)
-
-    control_line = f"{npar:>5}{nline:>5}{nopt:>5}{nwarn:>5}  {erpar_str}  {wtfac_str}  {scale_str}{maxit:>5}"
-
-    var_lines = [title_str, control_line]
-    for p in param_records:
-        var_lines.append(p.formatted_line)
-
-    content = "\n".join(var_lines) + "\n"
-
-    if filepath is not None:
-        target = Path(filepath).resolve()
-        validate_airgap_boundary(target)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        temp_file = target.with_suffix(
-            f".tmp_{os.getpid()}_{int(datetime.now().timestamp())}"
-        )
-        temp_file.write_text(content, encoding="utf-8")
-        temp_file.replace(target)
-
-    return content
 
 
 def generate_spcat_int(
-    molecule_name: str,
-    dipoles: dict[str, float] | Sequence[float],
-    temperatures: float | Sequence[float] = 298.15,
-    tag: int = 1,
-    ver: int = 1,
-    ibx: int = 0,
-    nq: int = 0,
-    rrot: float = 0.0,
-    tem: float = 0.0,
-    sthk: float = 0.0,
-    wtk: float = 0.0,
-    title: str | None = None,
-    filepath_template: str | Path | None = None,
+    molecule_name, dipoles, temperatures=298.15, tag=1, ver=1, ibx=0,
+    nq=0, rrot=0.0, tem=0.0, sthk=0.0, wtk=0.0, title=None,
+    filepath_template=None,
 ) -> dict[float, str]:
-    """Generate exact Pickett SPCAT .int ASCII intensity files for target temperatures."""
-    temps = (
-        [float(temperatures)]
-        if isinstance(temperatures, int | float)
-        else [float(t) for t in temperatures]
+    """Reject native intensity input until its partition/unit schema is qualified."""
+    raise NotImplementedError(
+        "Native SPCAT .int generation is unqualified: explicit partition values, "
+        "principal-axis dipoles and validated control-field conventions are required. "
+        "Use independently verified decks with PickettSPCATRunner."
     )
-
-    if isinstance(dipoles, dict):
-        mu_a = float(dipoles.get("mu_a", dipoles.get("a", dipoles.get("mua", 0.0))))
-        mu_b = float(dipoles.get("mu_b", dipoles.get("b", dipoles.get("mub", 0.0))))
-        mu_c = float(dipoles.get("mu_c", dipoles.get("c", dipoles.get("muc", 0.0))))
-    else:
-        d_list = [float(x) for x in dipoles]
-        mu_a = d_list[0] if len(d_list) > 0 else 0.0
-        mu_b = d_list[1] if len(d_list) > 1 else 0.0
-        mu_c = d_list[2] if len(d_list) > 2 else 0.0
-
-    fortran_overflow_guard({"mu_a": mu_a, "mu_b": mu_b, "mu_c": mu_c})
-
-    results: dict[float, str] = {}
-
-    for t in temps:
-        title_str = (
-            title
-            if title
-            else f"{molecule_name} Ground State - CoChem SPCAT Bridge (T={t:.2f}K)"
-        )
-
-        control_line = (
-            f"{tag:>3}{ver:>3}{ibx:>3}{nq:>3}"
-            f"  {rrot:>6.1f}  {tem:>6.1f}  {sthk:>6.1f}  {wtk:>6.1f}  {t:>8.2f}"
-        )
-
-        int_lines = [
-            title_str,
-            control_line,
-            f"  1  {mu_a:>12.6f}   / mua",
-            f"  2  {mu_b:>12.6f}   / mub",
-            f"  3  {mu_c:>12.6f}   / muc",
-        ]
-
-        content = "\n".join(int_lines) + "\n"
-        results[t] = content
-
-        if filepath_template is not None:
-            path_str = str(filepath_template).format(
-                T=f"{t:.1f}", temp=f"{t:.1f}", molecule=molecule_name
-            )
-            target = Path(path_str).resolve()
-            validate_airgap_boundary(target)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            temp_file = target.with_suffix(
-                f".tmp_{os.getpid()}_{int(datetime.now().timestamp())}"
-            )
-            temp_file.write_text(content, encoding="utf-8")
-            temp_file.replace(target)
-
-    return results
-
-
-# =============================================================================
-# 9. Tripartite Filesystem Air-Gap & Cryptographic Provenance Manifest
-# =============================================================================
 
 
 def validate_airgap_boundary(target_path: str | Path) -> Path:
@@ -1477,94 +1132,15 @@ def generate_spcat_provenance_manifest(
 
 
 def build_complete_spcat_payload(
-    molecule_name: str,
-    geometry: np.ndarray | Sequence[Sequence[float]],
-    symbols: Sequence[str],
-    rotational_constants_mhz: dict[str, float],
-    dipoles_debye: dict[str, float],
-    harmonic_frequencies_cm1: Sequence[float],
-    temperatures: Sequence[float] = (2.0, 10.0, 50.0, 298.15),
-    quartic_distortion: dict[str, float] | None = None,
-    lam_frequency: float | Sequence[float] | None = None,
-    use_nuclear_spin: bool = False,
-    output_dir: str | Path | None = None,
+    molecule_name, geometry, symbols, rotational_constants_mhz, dipoles_debye,
+    harmonic_frequencies_cm1, temperatures=(2.0, 10.0, 50.0, 298.15),
+    quartic_distortion=None, lam_frequency=None, use_nuclear_spin=False, output_dir=None,
 ) -> SPCATPayload:
-    """Build complete, fully validated, air-gapped SPCAT execution payload with provenance manifest."""
-    # Enforce low-frequency LAM trap if no explicit DVR LAM frequency was designated
-    if lam_frequency is None:
-        low_frequency_lam_trap(harmonic_frequencies_cm1)
-
-    sym_res = apply_symmetry_divisors(
-        geometry_array=geometry,
-        symbols=symbols,
-        use_nuclear_spin=use_nuclear_spin,
-    )
-
-    a = float(rotational_constants_mhz.get("A", 0.0))
-    b = float(rotational_constants_mhz.get("B", 0.0))
-    c = float(rotational_constants_mhz.get("C", 0.0))
-    part_res = compute_coupled_partition_functions(
-        a_mhz=a,
-        b_mhz=b,
-        c_mhz=c,
-        frequencies_cm1=harmonic_frequencies_cm1,
-        temp_array=temperatures,
-        sigma=sym_res.effective_divisor,
-        lam_frequency=lam_frequency,
-    )
-
-    combined_params: dict[str, Any] = {
-        "A": a,
-        "B": b,
-        "C": c,
-    }
-    if quartic_distortion:
-        combined_params.update(quartic_distortion)
-
-    var_path = Path(output_dir) / f"{molecule_name}.var" if output_dir else None
-    var_content = generate_spcat_var(
-        molecule_name=molecule_name,
-        parameters=combined_params,
-        filepath=var_path,
-    )
-
-    int_tpl = Path(output_dir) / f"{molecule_name}_{{T}}K.int" if output_dir else None
-    int_contents = generate_spcat_int(
-        molecule_name=molecule_name,
-        dipoles=dipoles_debye,
-        temperatures=temperatures,
-        filepath_template=int_tpl,
-    )
-
-    prov_path = (
-        Path(output_dir) / f"{molecule_name}_spcat_provenance.json"
-        if output_dir
-        else None
-    )
-    manifest = generate_spcat_provenance_manifest(
-        molecule_name=molecule_name,
-        var_content=var_content,
-        int_contents=int_contents,
-        symmetry_result=sym_res,
-        partition_results=part_res.q_total,
-        output_path=prov_path,
-    )
-
-    return SPCATPayload(
-        molecule_name=molecule_name,
-        var_content=var_content,
-        int_contents=int_contents,
-        provenance_manifest=manifest,
-        sha256_var=compute_sha256(var_content),
-        sha256_int={t: compute_sha256(c) for t, c in int_contents.items()},
-        var_filepath=str(var_path) if var_path else None,
-        int_filepaths={
-            t: str(Path(output_dir) / f"{molecule_name}_{t:.1f}K.int")
-            for t in temperatures
-        }
-        if output_dir
-        else {},
-        provenance_filepath=str(prov_path) if prov_path else None,
+    """Block unqualified native input generation before producing any files."""
+    raise NotImplementedError(
+        "Native SPCAT deck generation requires validated parameter, intensity, "
+        "partition and state conventions. Use independently verified .var/.int "
+        "decks with PickettSPCATRunner; no synthetic defaults are supplied."
     )
 
 
@@ -1580,9 +1156,9 @@ class ThreeTierRoutingResult:
     selected_tier: int
     primary_engine: str
     electronic_energy_hartree: float | None
-    harmonic_frequencies: list[float]
+    harmonic_frequencies: list[float] | None
     vpt2_x_matrix: np.ndarray | None
-    dipole_moments_debye: dict[str, float]
+    dipole_moments_debye: dict[str, float] | None
     is_mpqc_primary: bool
     is_analytic_vpt2_active: bool
     routing_metadata: dict[str, Any] = field(default_factory=dict)
@@ -1593,7 +1169,7 @@ class ThreeTierRoutingResult:
             "selected_tier": self.selected_tier,
             "primary_engine": self.primary_engine,
             "electronic_energy_hartree": self.electronic_energy_hartree,
-            "harmonic_frequencies": [float(f) for f in self.harmonic_frequencies],
+            "harmonic_frequencies": None if self.harmonic_frequencies is None else [float(f) for f in self.harmonic_frequencies],
             "vpt2_x_matrix": self.vpt2_x_matrix.tolist()
             if self.vpt2_x_matrix is not None
             else None,
@@ -1605,126 +1181,56 @@ class ThreeTierRoutingResult:
 
 
 def route_3tier_abinitio_payload(
-    mpqc_data: dict[str, Any] | None = None,
-    orca_data: dict[str, Any] | None = None,
-    cfour_data: dict[str, Any] | None = None,
-    require_analytic_vpt2: bool = False,
+    mpqc_data=None, orca_data=None, cfour_data=None, require_analytic_vpt2=False,
 ) -> ThreeTierRoutingResult:
-    """Enforces the authoritative 3-Tier Routing Protocol (MPQC Primary).
+    """Select supplied records while preserving absence and actual method metadata.
 
-    Protocol Hierarchy:
-    - Tier 1 (Primary Benchmark): MPQC (the Valeev Stack). Parsed for exact CCSD(T)-F12
-      single-point energetics and reference energies.
-    - Tier 2 (Primary Vibrational): ORCA. Parsed for analytic VPT2, harmonic frequencies,
-      and dipole surface tensors.
-    - Tier 3 (Legacy Alternate): CFOUR. Demoted fallback parsed only when analytic VPT2
-      or high-order coupled cluster corrections require proprietary CFOUR outputs.
-
-    Args:
-        mpqc_data: Parsed dictionary from MPQC (CCSD(T)-F12 calculations).
-        orca_data: Parsed dictionary from ORCA (VPT2 / force fields).
-        cfour_data: Parsed dictionary from CFOUR (Legacy / fallback).
-        require_analytic_vpt2: If True, prioritizes Tier 2 / Tier 3 containing full VPT2 X-matrices.
-
-    Returns:
-        ThreeTierRoutingResult with resolved energies, frequencies, and provenance.
+    A matrix alone does not establish analytic VPT2. Analytic provenance must be
+    explicit in the supplied record. This function does not run an engine.
     """
-    # Tier 1: MPQC Primary for energy benchmarks
-    if mpqc_data is not None and not require_analytic_vpt2:
-        energy = mpqc_data.get(
-            "energy_hartree", mpqc_data.get("ccsd_t_f12_energy", None)
-        )
-        freqs = mpqc_data.get("frequencies", [])
-        dipoles = mpqc_data.get("dipoles", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0})
-        x_mat = mpqc_data.get("x_matrix", None)
+    candidates = [(1, "MPQC", mpqc_data), (2, "ORCA", orca_data), (3, "CFOUR", cfour_data)]
+    for tier, engine, data in candidates:
+        if data is None:
+            continue
+        if not isinstance(data, dict) or not data:
+            raise ValueError(f"{engine} result is empty or malformed.")
+        energy = data.get("energy_hartree", data.get("electronic_energy", data.get("eccsd_t", data.get("ccsd_t_f12_energy"))))
+        frequencies = data.get("frequencies", data.get("harmonic_frequencies"))
+        dipoles = data.get("dipoles", data.get("dipole_moments"))
+        matrix = data.get("x_matrix", data.get("anharmonic_x_matrix"))
+        if energy is not None and not math.isfinite(float(energy)):
+            raise ValueError("Electronic energy must be finite when provided.")
+        if frequencies is not None:
+            frequencies = [float(f) for f in frequencies]
+            if not np.isfinite(frequencies).all():
+                raise ValueError("Frequencies must be finite when provided.")
+        if dipoles is not None:
+            if data.get("dipole_coordinate_frame") != "principal_axes" or data.get("dipole_units") != "debye":
+                raise ValueError("Spectroscopic dipoles require explicit principal-axis/debye provenance.")
+            if not isinstance(dipoles, dict) or not any(set(keys) <= set(dipoles) for keys in [("a", "b", "c"), ("mu_a", "mu_b", "mu_c")]):
+                raise ValueError("Dipole vector must contain all three explicitly provided components.")
+            if not all(math.isfinite(float(value)) for value in dipoles.values()):
+                raise ValueError("Dipole components must be finite.")
+        if matrix is not None:
+            matrix = np.asarray(matrix, dtype=float)
+            if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1] or matrix.size == 0 or not np.isfinite(matrix).all():
+                raise ValueError("VPT2 matrix must be a nonempty finite square matrix.")
+            if not np.allclose(matrix, matrix.T, rtol=1e-10, atol=1e-12):
+                raise ValueError("VPT2 matrix must be symmetric in its stated mode convention.")
+        analytic = matrix is not None and data.get("vpt2_derivative_kind") == "analytic"
+        if require_analytic_vpt2 and not analytic:
+            continue
+        if all(value is None for value in (energy, frequencies, dipoles, matrix)):
+            raise ValueError(f"{engine} record contains no scientific observables.")
         return ThreeTierRoutingResult(
-            selected_tier=1,
-            primary_engine="MPQC",
+            selected_tier=tier, primary_engine=engine,
             electronic_energy_hartree=float(energy) if energy is not None else None,
-            harmonic_frequencies=[float(f) for f in freqs],
-            vpt2_x_matrix=np.asarray(x_mat, dtype=np.float64)
-            if x_mat is not None
-            else None,
-            dipole_moments_debye=dipoles,
-            is_mpqc_primary=True,
-            is_analytic_vpt2_active=x_mat is not None,
-            routing_metadata={
-                "tier_description": "Tier 1: MPQC CCSD(T)-F12 Primary Benchmark",
-                "raw": mpqc_data,
-            },
+            harmonic_frequencies=frequencies, vpt2_x_matrix=matrix,
+            dipole_moments_debye=dipoles, is_mpqc_primary=engine == "MPQC",
+            is_analytic_vpt2_active=analytic,
+            routing_metadata={"selection": "supplied record", "method": data.get("method"), "raw": data},
         )
-
-    # Tier 2: ORCA Primary for analytic VPT2
-    if orca_data is not None:
-        energy = orca_data.get(
-            "energy_hartree", orca_data.get("electronic_energy", None)
-        )
-        freqs = orca_data.get("frequencies", orca_data.get("harmonic_frequencies", []))
-        dipoles = orca_data.get(
-            "dipoles",
-            orca_data.get("dipole_moments", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0}),
-        )
-        x_mat = orca_data.get("x_matrix", orca_data.get("anharmonic_x_matrix", None))
-        return ThreeTierRoutingResult(
-            selected_tier=2,
-            primary_engine="ORCA",
-            electronic_energy_hartree=float(energy) if energy is not None else None,
-            harmonic_frequencies=[float(f) for f in freqs],
-            vpt2_x_matrix=np.asarray(x_mat, dtype=np.float64)
-            if x_mat is not None
-            else None,
-            dipole_moments_debye=dipoles,
-            is_mpqc_primary=False,
-            is_analytic_vpt2_active=x_mat is not None,
-            routing_metadata={
-                "tier_description": "Tier 2: ORCA Analytic VPT2 Primary",
-                "raw": orca_data,
-            },
-        )
-
-    # Tier 3: CFOUR Legacy Alternate
-    if cfour_data is not None:
-        energy = cfour_data.get("energy_hartree", cfour_data.get("eccsd_t", None))
-        freqs = cfour_data.get("frequencies", [])
-        dipoles = cfour_data.get("dipoles", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0})
-        x_mat = cfour_data.get("x_matrix", None)
-        return ThreeTierRoutingResult(
-            selected_tier=3,
-            primary_engine="CFOUR",
-            electronic_energy_hartree=float(energy) if energy is not None else None,
-            harmonic_frequencies=[float(f) for f in freqs],
-            vpt2_x_matrix=np.asarray(x_mat, dtype=np.float64)
-            if x_mat is not None
-            else None,
-            dipole_moments_debye=dipoles,
-            is_mpqc_primary=False,
-            is_analytic_vpt2_active=x_mat is not None,
-            routing_metadata={
-                "tier_description": "Tier 3: CFOUR Legacy Alternate Fallback",
-                "raw": cfour_data,
-            },
-        )
-
-    if mpqc_data is not None:
-        energy = mpqc_data.get("energy_hartree", None)
-        freqs = mpqc_data.get("frequencies", [])
-        dipoles = mpqc_data.get("dipoles", {"mu_a": 0.0, "mu_b": 0.0, "mu_c": 0.0})
-        return ThreeTierRoutingResult(
-            selected_tier=1,
-            primary_engine="MPQC",
-            electronic_energy_hartree=float(energy) if energy is not None else None,
-            harmonic_frequencies=[float(f) for f in freqs],
-            vpt2_x_matrix=None,
-            dipole_moments_debye=dipoles,
-            is_mpqc_primary=True,
-            is_analytic_vpt2_active=False,
-            routing_metadata={
-                "tier_description": "Tier 1: MPQC CCSD(T)-F12 Single-Point",
-                "raw": mpqc_data,
-            },
-        )
-
-    raise ValueError("No ab initio data provided to 3-Tier Routing Protocol.")
+    raise ValueError("No supplied record meets the requested observable/provenance requirements.")
 
 
 # =============================================================================
@@ -1733,134 +1239,74 @@ def route_3tier_abinitio_payload(
 
 
 class TorqSpcatBridge:
-    """Torq SPCAT bridge class for backwards-compatibility with CoChem-TORQ workflow."""
+    """Read explicitly typed spectroscopic data; native file generation is gated."""
 
-    def __init__(
-        self,
-        tensor_json_path: str | Path,
-        mpqc_out_path: str | Path,
-        temperature_k: float = 298.15,
-    ) -> None:
+    def __init__(self, tensor_json_path, mpqc_out_path, temperature_k=298.15):
         self.tensor_file = Path(tensor_json_path)
         self.mpqc_file = Path(mpqc_out_path)
         self.orca_file = self.mpqc_file
-        self.temperature = float(temperature_k)
-        self.temperature_k = float(temperature_k)
-
+        self.temperature = self.temperature_k = float(temperature_k)
+        if not math.isfinite(self.temperature) or self.temperature <= 0:
+            raise ValueError("Temperature must be finite and positive.")
         self.tensor_data = self._load_json(self.tensor_file)
-        self.point_id = str(self.tensor_data.get("point_id", "000"))
-        self.is_linear = bool(self.tensor_data.get("is_linear", False))
-
-        constants_dict = self.tensor_data.get("tensors", {}).get(
-            "rotational_constants_MHz", {}
-        )
-        self.rot_A_MHz = float(constants_dict.get("A", 10000.0) or 10000.0)
-        self.rot_B_MHz = float(constants_dict.get("B", 5000.0) or 5000.0)
-        self.rot_C_MHz = float(constants_dict.get("C", 3333.33) or 3333.33)
-
+        self.point_id = str(self.tensor_data.get("point_id", self.tensor_file.stem))
+        if type(self.tensor_data.get("is_linear")) is not bool:
+            raise ValueError("Explicit rotor classification is required.")
+        self.is_linear = self.tensor_data["is_linear"]
+        constants = self.tensor_data.get("tensors", {}).get("rotational_constants_MHz")
+        if not isinstance(constants, dict):
+            raise ValueError("Rotational constants are unavailable.")
+        for axis in (("B", "C") if self.is_linear else ("A", "B", "C")):
+            if axis not in constants or constants[axis] is None or not math.isfinite(float(constants[axis])) or float(constants[axis]) <= 0:
+                raise ValueError(f"Missing or invalid rotational constant {axis}.")
+        self.rot_A_MHz = None if self.is_linear else float(constants["A"])
+        self.rot_B_MHz, self.rot_C_MHz = float(constants["B"]), float(constants["C"])
         self.sigma = self._determine_symmetry_divisor()
-        self.frequencies_cm1: list[float] = []
-        self.dipole_moments: dict[str, float] = {"a": 0.0, "b": 0.0, "c": 0.0}
+        self.frequencies_cm1 = None
+        self.dipole_moments = None
 
-    def _load_json(self, filepath: Path) -> dict[str, Any]:
-        if not filepath.exists():
-            raise FileNotFoundError(
-                f"Tensor file {filepath} not found. Run Stage 4.1 first."
-            )
-        if filepath.stat().st_size == 0:
-            return {}
-        try:
-            with open(filepath, encoding="utf-8") as f:
-                return json.loads(f.read())
-        except Exception:
-            return {}
+    def _load_json(self, filepath):
+        def reject_constant(token):
+            raise ValueError(f"Nonfinite JSON number {token} is prohibited.")
+        with open(filepath, encoding="utf-8") as source:
+            data = json.load(source, parse_constant=reject_constant)
+        if not isinstance(data, dict) or not data:
+            raise ValueError("Tensor JSON must be a nonempty object.")
+        return data
 
-    def _determine_symmetry_divisor(self) -> int:
-        coords = self.tensor_data.get("coordinates", [])
-        symbols = self.tensor_data.get("symbols", [])
-        if coords and symbols:
-            try:
-                sym_res = apply_symmetry_divisors(coords, symbols)
-                return sym_res.sigma
-            except Exception:
-                pass
-        return 1
+    def _determine_symmetry_divisor(self):
+        symmetry = self.tensor_data.get("symmetry")
+        if isinstance(symmetry, dict) and symmetry.get("source"):
+            sigma = symmetry.get("sigma")
+            if type(sigma) is int and sigma >= 1:
+                return sigma
+            raise ValueError("Explicit symmetry divisor must be a positive integer.")
+        coordinates, symbols = self.tensor_data.get("coordinates"), self.tensor_data.get("symbols")
+        if coordinates is None or symbols is None:
+            raise ValueError("Symmetry provenance or a resolvable geometry is required.")
+        return apply_symmetry_divisors(coordinates, symbols).sigma
 
-    def parse_mpqc_observables(self) -> None:
-        if not self.mpqc_file.exists():
-            logger.error(
-                "MPQC output %s missing. Cannot parse vibrational partition functions.",
-                self.mpqc_file,
-            )
-            return
-
-        freqs: list[float] = []
-        try:
-            with open(self.mpqc_file, errors="ignore", encoding="utf-8") as f:
-                content = f.read()
-
-            dipole_match = re.search(
-                r"Total Dipole Moment\s+:\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)",
-                content,
-            )
-            if dipole_match:
-                dx, dy, dz = map(float, dipole_match.groups())
-                self.dipole_moments = {"a": abs(dx), "b": abs(dy), "c": abs(dz)}
-
-            freq_section = re.search(
-                r"VIBRATIONAL FREQUENCIES\s+[-=]+\s*(.*?)(?=\n\n|\n[A-Z]|\Z)",
-                content,
-                re.DOTALL,
-            )
-            if freq_section:
-                for line in freq_section.group(1).strip().splitlines():
-                    m = re.search(r"^\s*\d+:\s+(-?\d+\.\d+)\s+cm\*\*-1", line)
-                    if m:
-                        val = float(m.group(1))
-                        if val > 0.1:
-                            freqs.append(val)
-        except Exception as e:
-            logger.warning("Error reading MPQC file: %s", e)
-
-        self.frequencies_cm1 = freqs
-        if self.frequencies_cm1:
-            low_frequency_lam_trap(self.frequencies_cm1)
-
-    def calculate_partition_functions(self) -> tuple[float, float, float]:
-        q_rot = calculate_rotational_partition_function(
-            a_mhz=self.rot_A_MHz,
-            b_mhz=self.rot_B_MHz,
-            c_mhz=self.rot_C_MHz,
-            temp_k=self.temperature_k,
-            sigma=float(self.sigma),
-            is_linear=self.is_linear,
-        )
-        q_vib = calculate_vibrational_partition_function(
-            frequencies_cm1=self.frequencies_cm1,
-            temp_k=self.temperature_k,
-        )
-        q_total = q_rot * q_vib
-        return q_rot, q_vib, q_total
-
-    def generate_spcat_files(self) -> None:
-        artifact_dir = Path(os.environ.get("COCHEM_ARTIFACT_DIR", ".")) / "spcat"
-        artifact_dir.mkdir(parents=True, exist_ok=True)
-        var_file = artifact_dir / f"spcat_{self.point_id}.var"
-        int_file = artifact_dir / f"spcat_{self.point_id}.int"
-
-        generate_spcat_var(
-            molecule_name=f"spcat_{self.point_id}",
-            parameters={"A": self.rot_A_MHz, "B": self.rot_B_MHz, "C": self.rot_C_MHz},
-            filepath=var_file,
-        )
-        generate_spcat_int(
-            molecule_name=f"spcat_{self.point_id}",
-            dipoles=self.dipole_moments,
-            temperatures=[self.temperature_k],
-            filepath_template=int_file,
+    def parse_mpqc_observables(self):
+        raise NotImplementedError(
+            "The mixed MPQC/ORCA text parser is unqualified. It did not establish "
+            "dipole units, the principal-axis transformation or vibrational-mode identity. "
+            "Use a validated engine property adapter."
         )
 
-    def export_spcat_catalog(self) -> None:
+    def calculate_partition_functions(self):
+        if self.frequencies_cm1 is None:
+            raise ValueError("Vibrational characterization is unavailable; Q_vib was not replaced by 1.")
+        qr = calculate_rotational_partition_function(
+            self.rot_A_MHz, self.rot_B_MHz, self.rot_C_MHz,
+            self.temperature_k, float(self.sigma), self.is_linear,
+        )
+        qv = calculate_vibrational_partition_function(self.frequencies_cm1, self.temperature_k)
+        return qr, qv, qr * qv
+
+    def generate_spcat_files(self):
+        raise NotImplementedError("Native SPCAT file generation is unqualified; use verified decks with PickettSPCATRunner.")
+
+    def export_spcat_catalog(self):
         self.generate_spcat_files()
 
 

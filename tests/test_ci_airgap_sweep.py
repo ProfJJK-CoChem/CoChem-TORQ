@@ -75,7 +75,10 @@ def test_shannon_entropy_calculation() -> None:
     assert abs(calculate_shannon_entropy(b"AB" * 512) - 1.0) < 1e-6
 
     # Normal English source code -> roughly 4.0 - 5.5 bits/byte
-    code_sample = b"def calculate_energy(mass: float, velocity: float) -> float:\n    return 0.5 * mass * (velocity ** 2)\n" * 10
+    code_sample = (
+        b"def calculate_energy(mass: float, velocity: float) -> float:\n    return 0.5 * mass * (velocity ** 2)\n"
+        * 10
+    )
     h_code = calculate_shannon_entropy(code_sample)
     assert 3.5 <= h_code <= 5.8
 
@@ -108,7 +111,9 @@ def test_magic_number_detection() -> None:
     # HDF5
     assert inspect_magic_number(b"\x89HDF\r\n\x1a\n\x00\x00" + b"\x00" * 32) is not None
     # SQLite
-    assert inspect_magic_number(b"SQLite format 3\x00\x10\x00" + b"\x00" * 32) is not None
+    assert (
+        inspect_magic_number(b"SQLite format 3\x00\x10\x00" + b"\x00" * 32) is not None
+    )
     # NumPy
     assert inspect_magic_number(b"\x93NUMPY\x01\x00v\x00" + b"\x00" * 32) is not None
     # Parquet
@@ -116,7 +121,9 @@ def test_magic_number_detection() -> None:
     # Linux ELF
     assert inspect_magic_number(b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 32) is not None
     # Windows PE
-    assert inspect_magic_number(b"MZ\x90\x00\x03\x00\x00\x00" + b"\x00" * 32) is not None
+    assert (
+        inspect_magic_number(b"MZ\x90\x00\x03\x00\x00\x00" + b"\x00" * 32) is not None
+    )
     # Benign text
     assert inspect_magic_number(b"# CoChem Static Repository Tier\n") is None
 
@@ -126,7 +133,9 @@ def test_qm_log_signatures_detection() -> None:
     orca_hdr = b"=========================================\n       * O R C A *\n========================================="
     assert check_qm_log_signatures(orca_hdr) is not None
 
-    energy_hdr = b"FINAL SINGLE POINT ENERGY   -152.8732148\n"
+    energy_hdr = (
+        b"FINAL SINGLE POINT ENERGY\n"  # signature token, not a fabricated calculation
+    )
     assert check_qm_log_signatures(energy_hdr) is not None
 
     benign_text = b"def run_calculation(): pass\n"
@@ -153,7 +162,9 @@ def test_config_pollution_detection(tmp_path: Path) -> None:
     """Verify config pollution detection flags active jobs and localized paths."""
     # Clean config
     clean_cfg = tmp_path / "cochem_system_config.json"
-    clean_cfg.write_text(json.dumps({"environment": "production", "active_jobs": []}), encoding="utf-8")
+    clean_cfg.write_text(
+        json.dumps({"environment": "production", "active_jobs": []}), encoding="utf-8"
+    )
     assert len(check_config_pollution(clean_cfg)) == 0
 
     # Polluted config with active jobs
@@ -164,16 +175,22 @@ def test_config_pollution_detection(tmp_path: Path) -> None:
 
     # Polluted config with localized path leak
     dirty_path = tmp_path / "dirty_path.json"
-    dirty_path.write_text(json.dumps({"data_dir": "C:\\Users\\researcher\\scratch"}), encoding="utf-8")
+    dirty_path.write_text(
+        json.dumps({"data_dir": "C:\\Users\\researcher\\scratch"}), encoding="utf-8"
+    )
     issues_path = check_config_pollution(dirty_path)
     assert any("Localized system path leak" in iss for iss in issues_path)
 
 
 def test_clean_workspace_scan(tmp_path: Path) -> None:
     """Verify that a compliant static workspace passes air-gap sweep cleanly."""
-    (tmp_path / "main.py").write_text("print('Clean static repository')", encoding="utf-8")
+    (tmp_path / "main.py").write_text(
+        "print('Clean static repository')", encoding="utf-8"
+    )
     (tmp_path / "README.md").write_text("# Project CoChem", encoding="utf-8")
-    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'cochem'", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname = 'cochem'", encoding="utf-8"
+    )
 
     sub = tmp_path / "src" / "pkg"
     sub.mkdir(parents=True)
@@ -224,7 +241,9 @@ def test_cli_execution_clean(tmp_path: Path) -> None:
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
 
-    assert proc.returncode == 0, f"Expected 0, got {proc.returncode}. STDERR: {proc.stderr}"
+    assert proc.returncode == 0, (
+        f"Expected 0, got {proc.returncode}. STDERR: {proc.stderr}"
+    )
     assert "[PASSED] CLEAN" in proc.stdout
 
 
@@ -334,6 +353,7 @@ def test_invalid_repo_paths(tmp_path: Path) -> None:
 
     regular_file = tmp_path / "file.txt"
     regular_file.write_text("hello", encoding="utf-8")
-    with pytest.raises(NotADirectoryError, match="Repository root path is not a directory"):
+    with pytest.raises(
+        NotADirectoryError, match="Repository root path is not a directory"
+    ):
         run_airgap_sweep(repo_root=regular_file)
-

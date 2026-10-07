@@ -10,33 +10,65 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from cochem_base.core.exceptions import (
-    AirGapBoundaryError,
-    CoChemError,
-    CoordinateShapeError,
-    IsotopeMassResolutionError,
-    IsotopeStabilityError,
-    PESStorageError,
-    ProcessReaperError,
-    RadiusNotFoundError,
-    SchemaMigrationError,
-    SubprocessBrokerError,
-    ThermodynamicsParameterError,
-)
+class CoChemError(Exception):
+    """TORQ-local error contract; importing it does not require a BASE service.
 
-try:
-    from cochem_base.exceptions import (
-        MissingDataError as BaseMissingDataError,
-        SingularityError,
-    )
-except ImportError:
-    class BaseMissingDataError(CoChemError, KeyError):
-        def __init__(self, message: str, details: Optional[Any] = None) -> None:
-            super().__init__(message, error_code="COCHEM_E_MISSING_DATA")
+    BASE adapters translate errors at their boundary rather than impersonating
+    an unavailable sibling package or coupling standalone numerical imports to it.
+    """
+    def __init__(self, message: str, error_code: str | None = None, **details: Any) -> None:
+        super().__init__(message)
+        self.message = message
+        self.error_code = error_code
+        self.details = details
 
-    class SingularityError(CoChemError, ValueError):
-        def __init__(self, message: str, details: Optional[Any] = None) -> None:
-            super().__init__(message, error_code="COCHEM_E_SINGULARITY")
+
+class AirGapBoundaryError(CoChemError):
+    """AirGapBoundary operation failed."""
+
+
+class CoordinateShapeError(CoChemError):
+    """CoordinateShape operation failed."""
+
+
+class IsotopeMassResolutionError(CoChemError):
+    """IsotopeMassResolution operation failed."""
+
+
+class IsotopeStabilityError(CoChemError):
+    """IsotopeStability operation failed."""
+
+
+class PESStorageError(CoChemError):
+    """PESStorage operation failed."""
+
+
+class ProcessReaperError(CoChemError):
+    """ProcessReaper operation failed."""
+
+
+class RadiusNotFoundError(CoChemError):
+    """RadiusNotFound operation failed."""
+
+
+class SchemaMigrationError(CoChemError):
+    """SchemaMigration operation failed."""
+
+
+class SubprocessBrokerError(CoChemError):
+    """SubprocessBroker operation failed."""
+
+
+class ThermodynamicsParameterError(CoChemError):
+    """ThermodynamicsParameter operation failed."""
+
+
+class BaseMissingDataError(CoChemError, KeyError):
+    """A required value was not provided or could not be resolved."""
+
+
+class SingularityError(CoChemError, ValueError):
+    """The requested operation is undefined at a singular input."""
 
 
 class MissingDataError(BaseMissingDataError):

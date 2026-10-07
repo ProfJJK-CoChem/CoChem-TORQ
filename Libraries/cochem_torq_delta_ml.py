@@ -7,11 +7,10 @@ Strict Zero-Mock Mandate v3: Completely authentic physics, dynamic baselines, an
 from __future__ import annotations
 
 import logging
-import os
+import re
 import shutil
 import subprocess
 import tempfile
-import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
@@ -118,7 +117,7 @@ class GFN2Result(dict):
     def __init__(
         self,
         *args: Any,
-        energy_ev: float = 0.0,
+        energy_ev: float,
         forces: torch.Tensor | None = None,
         charge: int = 0,
         uhf: int = 0,
@@ -126,6 +125,9 @@ class GFN2Result(dict):
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
+        if (not np.isfinite(energy_ev) or forces is None or forces.ndim != 2 or forces.shape[1] != 3
+                or not len(forces) or not torch.isfinite(forces).all()):
+            raise ValueError("GFN2Result requires a finite calculated energy and forces.")
         self["energy_ev"] = energy_ev
         self["energy"] = energy_ev
         self["forces"] = forces
@@ -172,7 +174,7 @@ class GFN2xTBEngine(BaselinePhysicsEngine):
         self._check_environment()
 
     def _check_environment(self) -> None:
-        """Verify presence of xtb-python library, xtb executable, or ASE physical fallback [M]."""
+        """Check availability of actual GFN2-xTB implementations only."""
         try:
             from xtb.interface import Calculator, Param  # noqa: F401
             self.xtb_available = True
@@ -184,15 +186,6 @@ class GFN2xTBEngine(BaselinePhysicsEngine):
         if shutil.which("xtb") is not None:
             self.xtb_available = True
             return
-
-        # Physical fallback per Rule 14 (Silent Test Skip Ban & Physical Fallback)
-        try:
-            from ase.calculators.emt import EMT  # noqa: F401
-            self.xtb_available = True
-            self.has_emt_fallback = True
-            return
-        except ImportError:
-            self.has_emt_fallback = False
 
         self.xtb_available = False
 
@@ -313,140 +306,59 @@ class GFN2xTBEngine(BaselinePhysicsEngine):
         device = coords_input.device if isinstance(coords_input, torch.Tensor) else "cpu"
         dtype = coords_input.dtype if isinstance(coords_input, torch.Tensor) else torch.float64
 
-        try:
-            # 1. Prioritize direct in-memory evaluation via xtb-python
-            if self.has_xtb_python:
-                try:
-                    from xtb.interface import Calculator, Param
-                    bohr_coords = coords_np / BOHR_TO_ANGSTROM
-                    calc = Calculator(Param.GFN2xTB, z_np, bohr_coords)
-                    calc.set_charge(charge)
-                    calc.set_uhf(two_s)
-                    res = calc.singlepoint()
-                    energy_hartree = res.get_energy()
-                    grad_hartree_bohr = res.get_gradient()
-
-                    forces_hartree_bohr = -np.array(grad_hartree_bohr)
-                    energy_ev = float(energy_hartree * HARTREE_TO_EV)
-                    forces_tensor = UnitHarmonizer.convert_forces(
-                        torch.tensor(forces_hartree_bohr, dtype=dtype, device=device),
-                        from_length_unit="Bohr", to_length_unit="Angstrom",
-                        from_energy_unit="Hartree", to_energy_unit="eV",
-                    )
-                    return GFN2Result(
-                        energy_ev=energy_ev,
-                        forces=forces_tensor,
-                        charge=charge,
-                        multiplicity=effective_multiplicity,
-                        uhf=two_s,
-                    )
-                except Exception as py_err:
-                    logger.debug("xtb-python in-memory evaluation error, falling back to CLI: %s", py_err)
-
-            # 2. Fallback to CLI xtb if executable available
-            if shutil.which("xtb") is not None:
-                from ase import Atoms
-                from ase.io import write
-
-                ase_atoms = Atoms(numbers=z_np, positions=coords_np)
-                if scratch_dir is not None:
-                    workdir = Path(scratch_dir)
-                    workdir.mkdir(parents=True, exist_ok=True)
-                    cleanup_workdir = False
-                else:
-                    env_scratch = os.environ.get("COCH_SCRATCH") or os.environ.get("COCHEM_SCRATCH_DIR")
-                    base_scratch = Path(env_scratch) if env_scratch else Path(tempfile.gettempdir())
-                    workdir = base_scratch / f"xtb_{uuid.uuid4().hex}"
-                    workdir.mkdir(parents=True, exist_ok=True)
-                    cleanup_workdir = True
-
-                try:
-                    xyz_path = workdir / "mol.xyz"
-                    write(str(xyz_path), ase_atoms, format="xyz")
-
-                    cmd = ["xtb", str(xyz_path), "--gfn", "2", "--grad", "--chrg", str(charge), "--uhf", str(two_s)]
-                    result = subprocess.run(cmd, cwd=str(workdir), capture_output=True, text=True, check=True)
-                    energy_hartree = 0.0
-                    for line in result.stdout.splitlines():
-                        if "TOTAL ENERGY" in line:
-                            parts = line.split()
-                            energy_hartree = float(parts[-3]) if len(parts) >= 3 else 0.0
-
-                    grad_path = workdir / "gradient"
-                    forces_hartree_bohr = []
-                    with open(grad_path) as f:
-                        lines = f.readlines()
-                        for line in lines[2 : 2 + len(z_np)]:
-                            parts = line.split()
-                            forces_hartree_bohr.append([-float(parts[0]), -float(parts[1]), -float(parts[2])])
-
-                    energy_ev = float(energy_hartree * HARTREE_TO_EV)
-                    forces_tensor = UnitHarmonizer.convert_forces(
-                        torch.tensor(forces_hartree_bohr, dtype=dtype, device=device),
-                        from_length_unit="Bohr", to_length_unit="Angstrom",
-                        from_energy_unit="Hartree", to_energy_unit="eV",
-                    )
-                    return GFN2Result(
-                        energy_ev=energy_ev,
-                        forces=forces_tensor,
-                        charge=charge,
-                        multiplicity=effective_multiplicity,
-                        uhf=two_s,
-                    )
-                except Exception as e:
-                    raise BaselineExecutionError(
-                        f"TORQ_BASELINE_EXEC_FAIL: GFN2-xTB execution failed during runtime dispatch: {e}",
-                        method="GFN2-xTB",
-                    )
-                finally:
-                    if cleanup_workdir and workdir.exists():
-                        shutil.rmtree(workdir, ignore_errors=True)
-
-            # 3. Authentic Physical Fallback (Rule 14) via ASE EMT / LJ
-            from ase import Atoms
-            from ase.calculators.emt import EMT
-
-            if scratch_dir is not None:
-                workdir = Path(scratch_dir)
-                workdir.mkdir(parents=True, exist_ok=True)
-
-            ase_atoms = Atoms(numbers=z_np, positions=coords_np)
+        if coords_np.shape != (len(z_np), 3) or not np.isfinite(coords_np).all():
+            raise ValueError("GFN2-xTB requires finite coordinates with shape (N, 3).")
+        failures = []
+        if self.has_xtb_python:
             try:
-                ase_atoms.calc = EMT()
-                energy_ev = float(ase_atoms.get_potential_energy())
-                forces_np = np.asarray(ase_atoms.get_forces(), dtype=np.float64)
-            except Exception:
-                lj = LennardJonesBaselineEngine()
-                energy_ev, forces_tensor = lj.calculate(
-                    torch.tensor(coords_np, dtype=dtype, device=device),
-                    list(z_np),
-                )
-                return GFN2Result(
-                    energy_ev=float(energy_ev),
-                    forces=forces_tensor,
-                    charge=charge,
-                    multiplicity=effective_multiplicity,
-                    uhf=two_s,
-                )
-
-            forces_tensor = torch.tensor(forces_np, dtype=dtype, device=device)
-            return GFN2Result(
-                energy_ev=energy_ev,
-                forces=forces_tensor,
-                charge=charge,
-                multiplicity=effective_multiplicity,
-                uhf=two_s,
-            )
-        finally:
-            artifacts = ["charges", "wbo", ".xtbtopo.mol", "xtbopt.xyz", "gradient", "xtbrestart"]
-            cwd = Path.cwd()
-            for fname in artifacts:
-                f_cwd = cwd / fname
-                if f_cwd.exists():
-                    try:
-                        f_cwd.unlink()
-                    except Exception:
-                        pass
+                from xtb.interface import Calculator, Param
+                calc = Calculator(Param.GFN2xTB, z_np, coords_np / BOHR_TO_ANGSTROM,
+                                  charge=float(charge), uhf=two_s)
+                result = calc.singlepoint()
+                forces = -np.asarray(result.get_gradient()) * HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM
+                return GFN2Result(energy_ev=float(result.get_energy()) * HARTREE_TO_EV,
+                                  forces=torch.tensor(forces, dtype=dtype, device=device),
+                                  charge=charge, multiplicity=effective_multiplicity, uhf=two_s)
+            except Exception as exc:
+                failures.append(f"xtb-python: {exc}")
+        executable = shutil.which("xtb")
+        if executable is not None:
+            from ase import Atoms
+            from ase.io import write
+            # A unique child directory prevents stale files from being parsed and
+            # preserves all caller-owned files, including supplied scratch data.
+            if scratch_dir is not None:
+                Path(scratch_dir).mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory(prefix="torq_xtb_", dir=scratch_dir) as work:
+                workdir = Path(work)
+                xyz_path = workdir / "mol.xyz"
+                write(str(xyz_path), Atoms(numbers=z_np, positions=coords_np), format="xyz")
+                try:
+                    result = subprocess.run(
+                        [executable, str(xyz_path), "--gfn", "2", "--grad", "--chrg", str(charge), "--uhf", str(two_s)],
+                        cwd=workdir, capture_output=True, text=True, check=True,
+                    )
+                    matches = re.findall(r"TOTAL ENERGY\s+([-+]?\d+(?:\.\d*)?(?:[EeDd][-+]?\d+)?)", result.stdout)
+                    if not matches:
+                        raise ValueError("xTB output contains no TOTAL ENERGY.")
+                    energy_hartree = float(matches[-1].replace("D", "E").replace("d", "e"))
+                    lines = (workdir / "gradient").read_text().splitlines()
+                    # Turbomole $grad: marker, cycle/energy, N coordinates, N gradients.
+                    if not lines or lines[0].strip() != "$grad":
+                        raise ValueError("Unrecognized xTB gradient file format.")
+                    grad_lines = lines[2 + len(z_np):2 + 2 * len(z_np)]
+                    gradients = np.asarray([[float(v.replace("D", "E").replace("d", "e")) for v in line.split()] for line in grad_lines])
+                    if gradients.shape != coords_np.shape or not np.isfinite(gradients).all():
+                        raise ValueError("xTB gradient is missing, malformed, or non-finite.")
+                    return GFN2Result(energy_ev=energy_hartree * HARTREE_TO_EV,
+                                      forces=torch.tensor(-gradients * HARTREE_PER_BOHR_TO_EV_PER_ANGSTROM, dtype=dtype, device=device),
+                                      charge=charge, multiplicity=effective_multiplicity, uhf=two_s)
+                except Exception as exc:
+                    failures.append(f"xtb CLI: {exc}")
+        raise BaselineExecutionError(
+            "GFN2-xTB calculation unavailable or failed; no substitute Hamiltonian used.",
+            method="GFN2-xTB", diagnostics={"failures": failures},
+        )
 
 
 class PM6Engine(BaselinePhysicsEngine):
@@ -488,7 +400,7 @@ class PM6Engine(BaselinePhysicsEngine):
                 subprocess.run(["mopac", mop_path], cwd=tmpdir, capture_output=True, text=True, check=True)
 
                 out_path = os.path.join(tmpdir, "mol.out")
-                energy_ev = 0.0
+                energy_ev = None
                 forces_ev_angstrom = []
                 reading_grad = False
                 with open(out_path) as f:
@@ -508,7 +420,9 @@ class PM6Engine(BaselinePhysicsEngine):
                             except ValueError:
                                 pass
 
-                if len(forces_ev_angstrom) != len(atomic_numbers):
+                if energy_ev is None or not np.isfinite(energy_ev):
+                    raise ValueError("MOPAC output is missing a finite heat of formation.")
+                if len(forces_ev_angstrom) != len(atomic_numbers) or not np.isfinite(forces_ev_angstrom).all():
                     raise ValueError("Failed to parse all forces from MOPAC output.")
 
                 return energy_ev, torch.tensor(forces_ev_angstrom, dtype=coordinates.dtype, device=coordinates.device)
@@ -556,31 +470,23 @@ class EMTBaselineEngine(BaselinePhysicsEngine):
 class LennardJonesBaselineEngine(BaselinePhysicsEngine):
     """Authentic physical Lennard-Jones non-bonded baseline engine with Lorentz-Berthelot mixing. [M]"""
 
-    def __init__(self) -> None:
-        # Standard Universal Force Field (UFF) / OPLS non-bonded physical parameters:
-        # sigma in Angstroms, epsilon in eV
-        self.default_params: dict[int, tuple[float, float]] = {
-            1: (2.571, 0.001908),   # H
-            6: (3.431, 0.004553),   # C
-            7: (3.261, 0.003035),   # N
-            8: (3.118, 0.002602),   # O
-            9: (2.997, 0.002168),   # F
-            16: (3.595, 0.011880),  # S
-            17: (3.516, 0.009843),  # Cl
-            18: (3.405, 0.010410),  # Ar
-            36: (3.636, 0.014380),  # Kr
-        }
+    def __init__(self, parameters: dict[int, tuple[float, float]] | None = None) -> None:
+        """Require explicitly supplied (sigma in Angstrom, epsilon in eV) parameters.
+
+        The caller must retain the force-field source and atom typing provenance.
+        No atomic-radius estimate or default well depth is substituted.
+        """
+        self.parameters = dict(parameters or {})
+        for sigma, epsilon in self.parameters.values():
+            if not np.isfinite([sigma, epsilon]).all() or sigma <= 0 or epsilon <= 0:
+                raise ValueError("Lennard-Jones parameters must be finite and positive.")
 
     def _get_params(self, z: int) -> tuple[float, float]:
-        """Dynamically retrieve or estimate LJ parameters using Mendeleev covalent radii. [D]"""
-        if z in self.default_params:
-            return self.default_params[z]
-        # Dynamically scale from mendeleev vdw or covalent radius
-        el = element(int(z))
-        r_cov_pm = el.covalent_radius or 100.0
-        sigma = float(r_cov_pm * 1e-2 * 2.0)  # Convert pm to Angstroms and diameter
-        epsilon = 0.005  # Standard default non-bonded depth in eV
-        return (sigma, epsilon)
+        if z not in self.parameters:
+            raise BaselineExecutionError(
+                f"Explicit Lennard-Jones parameters unavailable for atomic number {z}.", method="LennardJones"
+            )
+        return self.parameters[z]
 
     def calculate(
         self,
@@ -589,6 +495,10 @@ class LennardJonesBaselineEngine(BaselinePhysicsEngine):
     ) -> tuple[float, torch.Tensor]:
         """Evaluate exact physical Lennard-Jones potential and analytical autograd forces. [D]"""
         n_atoms = len(atomic_numbers)
+        if n_atoms == 0 or coordinates.shape != (n_atoms, 3) or not torch.isfinite(coordinates).all():
+            raise ValueError("A nonempty finite molecular geometry is required.")
+        for z in atomic_numbers:
+            self._get_params(int(z))
         if n_atoms < 2:
             return 0.0, torch.zeros_like(coordinates)
 
@@ -619,6 +529,8 @@ class LennardJonesBaselineEngine(BaselinePhysicsEngine):
         mask = torch.triu(torch.ones((n_atoms, n_atoms), dtype=torch.bool, device=device), diagonal=1)
 
         # Guard against zero distance
+        if torch.any(dist[mask] <= 0):
+            raise ValueError("Coincident atoms are invalid for the Lennard-Jones potential.")
         clamped_dist = torch.where(mask, dist, torch.ones_like(dist))
         sr6 = (sig_ij / clamped_dist) ** 6
         sr12 = sr6 ** 2
@@ -658,12 +570,11 @@ class DeltaMLEngine:
             else:
                 raise ValueError(f"Unknown baseline method: {config.baseline_method}")
         else:
-            # Physical Lennard-Jones baseline fallback
-            self.baseline_engine = LennardJonesBaselineEngine()
+            raise ValueError("An explicitly configured baseline engine is required for Delta-ML.")
 
         # D3 Dispersion augmentation (REQ-TORQ-DISP-060 [D], [M])
         self.dispersion_config = dispersion_config
-        if isinstance(config, DeltaMLDispersionConfig):
+        if DeltaMLDispersionConfig is not None and isinstance(config, DeltaMLDispersionConfig):
             self.dispersion_config = config
 
         if use_d3_dispersion is not None:
@@ -708,8 +619,7 @@ class DeltaMLEngine:
                     method=str(type(self.baseline_engine).__name__),
                 )
         else:
-            e_base = 0.0
-            f_base = torch.zeros_like(coordinates)
+            raise BaselineExecutionError("No baseline engine is configured.", method="NONE")
 
         if not isinstance(f_base, torch.Tensor):
             f_base = torch.tensor(f_base, dtype=coordinates.dtype, device=coordinates.device)
@@ -722,6 +632,8 @@ class DeltaMLEngine:
             except Exception as exc:
                 raise DispersionIntegrationError(f"D3 dispersion calculation failed: {exc}")
 
+        if f_base.shape != coordinates.shape or not np.isfinite(e_base) or not torch.isfinite(f_base).all():
+            raise BaselineExecutionError("Baseline returned invalid energy or forces.", method=type(self.baseline_engine).__name__)
         return float(e_base), f_base
 
     @staticmethod
@@ -763,11 +675,13 @@ class DeltaMLEngine:
         delta_predictor: Callable[[torch.Tensor, Sequence[int]], tuple[float, torch.Tensor]] | None = None,
     ) -> tuple[float, torch.Tensor]:
         """Execute forward inference pipeline: baseline (with D3) + predicted delta. [M]"""
+        if delta_predictor is None:
+            raise BaselineExecutionError("A trained delta predictor is required; baseline-only results are available through compute_baseline().", method="Delta-ML")
         e_base, f_base = self.compute_baseline(coordinates, atomic_numbers)
-        if delta_predictor is not None:
-            e_delta, f_delta = delta_predictor(coordinates, atomic_numbers)
-            return self.reconstruct_target(e_base, f_base, e_delta, f_delta)
-        return e_base, f_base
+        e_delta, f_delta = delta_predictor(coordinates, atomic_numbers)
+        if f_delta.shape != coordinates.shape or not np.isfinite(e_delta) or not torch.isfinite(f_delta).all():
+            raise ValueError("Delta predictor returned invalid energy or forces.")
+        return self.reconstruct_target(e_base, f_base, e_delta, f_delta)
 
 
 # DeltaMLCorrector alias for DeltaMLEngine (Suggestion #79)

@@ -1,63 +1,58 @@
-"""Pickett SPCAT Binary Execution Wrapper & Line Catalog Parser (cochem_torq_spcat.py).
+"""Execute SPCAT with supplied decks and parse supported fixed-width catalogs.
 
-Wraps execution of Pickett SPCAT binary, parses .cat fixed-width output catalogs,
-and integrates with pure-Python/NumPy AsymmetricTopDiagonalizer fallback.
-Complies with Method Matrix v4 §15 and Zero-Mock Mandate.
+Legacy automatic deck writers are disabled until validated against SPCAT. Missing
+engines, failed runs and unsupported quantum-number formats are explicit errors.
 """
 
 from __future__ import annotations
 
-import os
+import hashlib
+import json
+import math
 import shutil
 import subprocess
+import tempfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence
-import pandas as pd
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from cochem_torq_asymmetric_rotor import (
-    AsymmetricTopDiagonalizer,
-    RotationalConstants,
-    TransitionRecord,
-)
+try:
+    from .cochem_torq_asymmetric_rotor import RotationalConstants, TransitionRecord
+except ImportError:
+    from cochem_torq_asymmetric_rotor import RotationalConstants, TransitionRecord
+
+
+@dataclass(frozen=True)
+class SPCATTransitionRecord(TransitionRecord):
+    """Catalog record retaining uncertainty and quantum-number convention."""
+
+    uncertainty_mhz: float
+    quantum_number_format: int
 
 
 class PickettSPCATRunner:
-    """SPCAT wrapper for formatting .var/.int files, binary invocation, and .cat parsing."""
+    """Run the requested SPCAT binary without substitution of another solver."""
 
-    def __init__(self, spcat_bin_path: Optional[Path | str] = None) -> None:
-        self.spcat_bin: Optional[Path] = None
-        if spcat_bin_path:
-            p = Path(spcat_bin_path)
-            if p.is_file():
-                self.spcat_bin = p
-        if not self.spcat_bin:
+    def __init__(self, spcat_bin_path: Path | str | None = None) -> None:
+        if spcat_bin_path is not None:
+            candidate = Path(spcat_bin_path).resolve()
+            if not candidate.is_file():
+                raise FileNotFoundError(
+                    f"Requested SPCAT executable missing: {candidate}"
+                )
+            self.spcat_bin: Path | None = candidate
+        else:
             resolved = shutil.which("spcat") or shutil.which("spcat.exe")
-            if resolved:
-                self.spcat_bin = Path(resolved)
+            self.spcat_bin = Path(resolved).resolve() if resolved else None
 
     def write_var_file(self, target_path: Path | str, c: RotationalConstants) -> Path:
-        """Writes Pickett .var parameter file with rotational and quartic constants."""
-        p = Path(target_path).resolve()
-        p.parent.mkdir(parents=True, exist_ok=True)
-
-        # Watson A-reduction parameter representation
-        # Parameter ID codes (Pickett convention: 10000=A, 20000=B, 30000=C, 200=-DJ, 1100=-DJK, etc.)
-        lines = [
-            "CoChem-TORQ Watson A-reduced parameters",
-            "   5   100   0   0.0000E+000   1.0000E+000   1.0000E+000",
-            f"       10000  {c.A:16.6f} 1.000000E-04",
-            f"       20000  {c.B:16.6f} 1.000000E-04",
-            f"       30000  {c.C:16.6f} 1.000000E-04",
-            f"         200  {-c.D_J:16.6f} 1.000000E-06",
-            f"        1100  {-c.D_JK:16.6f} 1.000000E-06",
-            f"        2000  {-c.D_K:16.6f} 1.000000E-06",
-            f"       40100  {-c.d_1:16.6f} 1.000000E-06",
-            f"       41000  {-c.d_2:16.6f} 1.000000E-06",
-        ]
-        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        return p
+        """Reject the legacy writer's unvalidated Hamiltonian and uncertainty deck."""
+        raise NotImplementedError(
+            "Legacy SPCAT .var generation is unvalidated: supply an explicit "
+            "validated parameter deck, including state model and uncertainties."
+        )
 
     def write_int_file(
         self,
@@ -67,125 +62,184 @@ class PickettSPCATRunner:
         freq_min_mhz: float = 0.0,
         freq_max_mhz: float = 200000.0,
     ) -> Path:
-        """Writes Pickett .int file with dipole moments and partition functions."""
-        p = Path(target_path).resolve()
-        p.parent.mkdir(parents=True, exist_ok=True)
-
-        lines = [
-            "CoChem-TORQ Dipole and Intensity Setup",
-            f"   0    1    0.0    0.0000    {freq_max_mhz:10.1f}   -10.0   1.0000",
-            f"   {temperature_k:.2f}    1000.000",
-            f"   1   {c.mu_a:.4f}",
-            f"   2   {c.mu_b:.4f}",
-            f"   3   {c.mu_c:.4f}",
-        ]
-        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        return p
+        """Reject the legacy writer's invented partition function and invalid format."""
+        raise NotImplementedError(
+            "Legacy SPCAT .int generation is unvalidated: supply an explicit "
+            "validated intensity deck with calculated partition function, "
+            "temperature and principal-axis dipoles."
+        )
 
     def run_spcat(
-        self,
-        base_name: str,
-        working_dir: Path | str,
-        timeout: float = 30.0,
-    ) -> Optional[Path]:
-        """Executes SPCAT binary if available, generating base_name.cat."""
-        if not self.spcat_bin or not self.spcat_bin.exists():
-            return None
-
+        self, base_name: str, working_dir: Path | str, timeout: float = 30.0
+    ) -> Path:
+        """Execute supplied decks in a fresh directory; retain execution provenance."""
+        if self.spcat_bin is None or not self.spcat_bin.is_file():
+            raise FileNotFoundError(
+                "SPCAT executable unavailable; no alternate solver selected"
+            )
+        if Path(base_name).name != base_name or base_name in ("", ".", ".."):
+            raise ValueError("SPCAT base_name must be a plain file stem")
         wd = Path(working_dir).resolve()
-        cat_file = wd / f"{base_name}.cat"
-
-        cmd = [str(self.spcat_bin), base_name]
-        try:
-            subprocess.run(
-                cmd,
-                cwd=str(wd),
+        inputs = [wd / f"{base_name}.{suffix}" for suffix in ("var", "int")]
+        for path in inputs:
+            if not path.is_file() or not path.stat().st_size:
+                raise FileNotFoundError(
+                    f"Explicit nonempty SPCAT input required: {path}"
+                )
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("SPCAT timeout must be finite and positive")
+        with tempfile.TemporaryDirectory(prefix="spcat_", dir=wd) as task_dir:
+            task_path = Path(task_dir)
+            for path in inputs:
+                shutil.copy2(path, task_path / path.name)
+            input_hashes = {
+                path.name: hashlib.sha256(
+                    (task_path / path.name).read_bytes()
+                ).hexdigest()
+                for path in inputs
+            }
+            executable_hash = hashlib.sha256(self.spcat_bin.read_bytes()).hexdigest()
+            completed = subprocess.run(
+                [str(self.spcat_bin), base_name],
+                cwd=task_path,
                 check=True,
                 timeout=timeout,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
             )
-            if cat_file.exists():
-                return cat_file
-        except Exception:
-            pass
-        return None
+            generated = task_path / f"{base_name}.cat"
+            if not generated.is_file():
+                raise RuntimeError("SPCAT exited without producing a new catalog")
+            self.parse_cat_file(generated)
+            catalog = wd / generated.name
+            shutil.copy2(generated, catalog)
+            (wd / f"{base_name}.stdout").write_bytes(completed.stdout)
+            (wd / f"{base_name}.stderr").write_bytes(completed.stderr)
+            provenance = {
+                "engine": "SPCAT",
+                "executable": str(self.spcat_bin),
+                "executable_sha256": executable_hash,
+                "input_sha256": input_hashes,
+                "catalog_sha256": hashlib.sha256(catalog.read_bytes()).hexdigest(),
+                "returncode": completed.returncode,
+                "parser_scope": "QN format 303; integer asymmetric-top J,Ka,Kc",
+            }
+            (wd / f"{base_name}.provenance.json").write_text(
+                json.dumps(provenance, indent=2, allow_nan=False), encoding="utf-8"
+            )
+        return catalog
 
     def parse_cat_file(self, cat_path: Path | str) -> list[TransitionRecord]:
-        """Parses fixed-width Pickett .cat line catalog file."""
-        p = Path(cat_path).resolve()
-        if not p.exists():
-            raise FileNotFoundError(f"SPCAT output catalog not found: {p}")
+        """Parse QNFMT=303 records; reject malformed/unsupported rows with line number.
 
+        This adapter handles integer J,Ka,Kc up to 99. Hyperfine and encoded quantum
+        numbers need a separately validated parser. Intensity remains log10 SPCAT
+        integrated intensity, not a linear intensity.
+        """
+        path = Path(cat_path).resolve()
         transitions: list[TransitionRecord] = []
-        with open(p, "r", encoding="utf-8", errors="ignore") as f:
-            for line in f:
-                if len(line) < 50:
+        with path.open(encoding="ascii", errors="strict") as source:
+            for line_number, raw in enumerate(source, 1):
+                line = raw.rstrip("\r\n")
+                if not line.strip():
                     continue
                 try:
-                    # Pickett format:
-                    # FREQ(13) ERR(8) LGINT(8) DR(2) ELO(10) GUP(3) TAG(7) QN_UPPER(12) QN_LOWER(12)
-                    freq_mhz = float(line[0:13].strip())
-                    lgint = float(line[21:29].strip())
-                    elo_cm1 = float(line[31:41].strip())
-
-                    # Quantum numbers upper / lower: last 6 integers on line
-                    qn_str = line[51:] if len(line) > 51 else ""
-                    parts = qn_str.split()
-                    if len(parts) >= 6:
-                        j_u, ka_u, kc_u = int(parts[-6]), int(parts[-5]), int(parts[-4])
-                        j_l, ka_l, kc_l = int(parts[-3]), int(parts[-2]), int(parts[-1])
-                    else:
-                        j_u, ka_u, kc_u = 1, 0, 1
-                        j_l, ka_l, kc_l = 0, 0, 0
-
-                    delta_ka = abs(ka_u - ka_l)
-                    delta_kc = abs(kc_u - kc_l)
-                    dipole_type = "a" if delta_ka % 2 == 0 else "b"
-
+                    if len(line) < 79:
+                        raise ValueError(
+                            "truncated fixed-width record; expected 79 columns"
+                        )
+                    qn_format = int(line[51:55])
+                    if qn_format != 303:
+                        raise ValueError(
+                            f"unsupported quantum-number format {qn_format}"
+                        )
+                    frequency = float(line[:13])
+                    uncertainty = float(line[13:21])
+                    log_intensity = float(line[21:29])
+                    lower_energy = float(line[31:41])
+                    if not all(
+                        math.isfinite(v)
+                        for v in (frequency, uncertainty, log_intensity, lower_energy)
+                    ):
+                        raise ValueError("nonfinite catalog observable")
+                    if frequency <= 0 or uncertainty < 0 or lower_energy < 0:
+                        raise ValueError(
+                            "invalid frequency, uncertainty or lower-state energy"
+                        )
+                    if line[61:67].strip() or line[73:79].strip():
+                        raise ValueError("unexpected additional quantum numbers")
+                    upper = tuple(int(line[i : i + 2]) for i in (55, 57, 59))
+                    lower = tuple(int(line[i : i + 2]) for i in (67, 69, 71))
+                    for j, ka, kc in (upper, lower):
+                        if not (
+                            0 <= ka <= j <= 99
+                            and 0 <= kc <= j
+                            and ka + kc in (j, j + 1)
+                        ):
+                            raise ValueError("invalid asymmetric-top quantum numbers")
+                    if abs(upper[0] - lower[0]) > 1 or upper[0] == lower[0] == 0:
+                        raise ValueError(
+                            "unsupported electric-dipole delta-J assignment"
+                        )
+                    parity = (
+                        abs(upper[1] - lower[1]) % 2,
+                        abs(upper[2] - lower[2]) % 2,
+                    )
+                    dipole_type = {(0, 1): "a", (1, 1): "b", (1, 0): "c"}.get(parity)
+                    if dipole_type is None:
+                        raise ValueError(
+                            "unassigned dipole parity; no dipole type inferred"
+                        )
                     transitions.append(
-                        TransitionRecord(
-                            freq_mhz=freq_mhz,
-                            intensity=lgint,
-                            j_upper=j_u,
-                            ka_upper=ka_u,
-                            kc_upper=kc_u,
-                            j_lower=j_l,
-                            ka_lower=ka_l,
-                            kc_lower=kc_l,
-                            e_lower_cm1=elo_cm1,
+                        SPCATTransitionRecord(
+                            freq_mhz=frequency,
+                            intensity=log_intensity,
+                            j_upper=upper[0],
+                            ka_upper=upper[1],
+                            kc_upper=upper[2],
+                            j_lower=lower[0],
+                            ka_lower=lower[1],
+                            kc_lower=lower[2],
+                            e_lower_cm1=lower_energy,
                             dipole_type=dipole_type,
+                            uncertainty_mhz=uncertainty,
+                            quantum_number_format=qn_format,
                         )
                     )
-                except Exception:
-                    continue
-
+                except (ValueError, IndexError) as exc:
+                    raise ValueError(f"{path.name}: line {line_number}: {exc}") from exc
+        if not transitions:
+            raise ValueError(f"SPCAT catalog contains no supported transitions: {path}")
         return transitions
 
     def generate_line_catalog(
         self,
-        constants: RotationalConstants,
+        constants: RotationalConstants | None,
         output_parquet: Path | str,
-        working_dir: Optional[Path | str] = None,
+        working_dir: Path | str | None = None,
         base_name: str = "spcat_run",
     ) -> Path:
-        """Generates authentic line catalog Parquet via SPCAT binary or pure-Python fallback."""
+        """Run explicitly supplied decks and export supported catalog records.
+
+        Pass ``constants=None`` to select the externally supplied decks. The
+        legacy constants-only generation path is unavailable; two contradictory
+        sources of Hamiltonian parameters cannot be silently accepted.
+        """
+        if constants is not None:
+            raise ValueError(
+                "Pass constants=None to use explicit SPCAT decks; automatic "
+                "constants-to-deck generation is unvalidated"
+            )
         wd = Path(working_dir) if working_dir else Path(output_parquet).parent
-        wd.mkdir(parents=True, exist_ok=True)
-
-        cat_path = None
-        if self.spcat_bin:
-            self.write_var_file(wd / f"{base_name}.var", constants)
-            self.write_int_file(wd / f"{base_name}.int", constants)
-            cat_path = self.run_spcat(base_name, wd)
-
-        if cat_path and cat_path.exists():
-            records = self.parse_cat_file(cat_path)
-            df = pd.DataFrame([r.__dict__ for r in records])
-            table = pa.Table.from_pandas(df)
-            pq.write_table(table, str(output_parquet))
-            return Path(output_parquet)
-
-        # Authentic pure-Python fallback
-        diag = AsymmetricTopDiagonalizer(constants=constants, j_max=5)
-        return diag.export_line_catalog_parquet(output_parquet)
+        catalog = self.run_spcat(base_name, wd)
+        records = self.parse_cat_file(catalog)
+        table = pa.Table.from_pylist([record.__dict__ for record in records])
+        metadata = {
+            b"engine": b"SPCAT",
+            b"intensity_convention": b"log10 integrated intensity, nm^2 MHz",
+            b"catalog_sha256": hashlib.sha256(catalog.read_bytes())
+            .hexdigest()
+            .encode(),
+            b"provenance": (wd / f"{base_name}.provenance.json").read_bytes(),
+        }
+        pq.write_table(table.replace_schema_metadata(metadata), output_parquet)
+        return Path(output_parquet)

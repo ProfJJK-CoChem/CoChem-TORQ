@@ -1,0 +1,101 @@
+{
+  "schema_version": "cochem.canonical-environment-evidence/1",
+  "recorded_at": "2026-10-07T21:50:41.742851+00:00",
+  "validation_environment": "local Docker on managed cloud",
+  "hosted_actions_run_performed": false,
+  "live_codespace_started": false,
+  "source_worktree_status": "modified",
+  "actions_transport_tests": {
+    "passed": 16,
+    "failed": 0,
+    "scope": "software transport only; no engine qualification"
+  },
+  "calculation_image": {
+    "image_id": "sha256:0a334aeba1a30ba08903d24e02126e5fc1e715cc3a36b8f3bbcd00d4b4989daa",
+    "qualified_scope": "H2/RHF/STO-3G energy, native gradient and native Hessian on Linux CPU",
+    "engine_version": "2.14.0",
+    "geometric_version": "1.1.1",
+    "gradient_fd_max_error": 2.5765801714427994e-09,
+    "hessian_fd_max_error": 8.346642932366422e-09,
+    "qualification_report_sha256": "cb11b752bcb7211fcef89801d3907ac4700d20696574b8a6222383342b6b7b73",
+    "raw_derivatives_sha256": "02cd7e1feadf2a8ed03f8cd5b5f873a201bfa7e6984291bd1bed1b12984d1da2",
+    "network_mode": "none",
+    "root_filesystem_read_only": true
+  },
+  "genuine_water_worker": {
+    "status": "complete",
+    "request_id": "9b45c6fb-be4f-4773-80bc-ee672824a950",
+    "request_sha256": "7c24c48e7e357be5e56014322cc117410f7e19e4b02bce5ffde15ed2494d2864",
+    "manifest_sha256": "90a14224c05b080116b65a9721ff25f9fd9f5bd219fe60f145c6667a77822f7e",
+    "verified_files": 34,
+    "typed_shard_verification": "passed",
+    "source_identity": {
+      "code_sha256": "fab0d3eeedf5152d0e73be8fa92a3f15434c86c2a8eb26d3c58bc53554be3f4b",
+      "declared_engine_image": "sha256:0a334aeba1a30ba08903d24e02126e5fc1e715cc3a36b8f3bbcd00d4b4989daa",
+      "declared_workflow_commit": "d7a4739a5f7d6f22ed659b32eeb4706bef16225e",
+      "distribution": "CoChem-TORQ",
+      "git_commit": null,
+      "working_tree_dirty": null
+    },
+    "stages": {
+      "anharmonic_force_field": "blocked",
+      "electronic_structure": "available",
+      "equilibrium_constants": "available",
+      "equilibrium_geometry": "available",
+      "ground_state_constants": "blocked",
+      "harmonic_analysis": "available",
+      "identification_catalog": "blocked",
+      "resonance_analysis": "blocked",
+      "rigid_rotor_catalog": "available",
+      "stationary_rotational_constants": "available",
+      "vpt2": "blocked"
+    },
+    "harmonic_evidence": {
+      "stationary_character": "positive_definite_vibrational_hessian",
+      "external_rank": 6,
+      "external_residual_relative": 1.2063276875221115e-07,
+      "symmetry_residual_relative": 3.893533136209761e-16,
+      "frequencies_cm1": [
+        2170.0455588206178,
+        4140.001165052471,
+        4391.066304963935
+      ]
+    },
+    "separate_optimization_and_hessian_native_directories": true,
+    "identification_ready": false,
+    "experimental_accuracy_established": false
+  },
+  "interface_image": {
+    "image_id": "sha256:e2675c1069785e7a7d671c51f059cf598ef6faff0883ee9f83d5ffb86683ff5c",
+    "hash_locked_post_create_install": "passed",
+    "actual_authenticated_notebook_readiness": "ready",
+    "github_cli": {
+      "available": true,
+      "path": "/usr/bin/gh",
+      "version_text": "gh version 2.23.0 (2023-02-27 Debian 2.23.0+dfsg1-1)"
+    },
+    "quantum_engine_installed_in_interface": false,
+    "source_modules": [
+      {
+        "module_id": "base",
+        "revision": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+        "built_wheel_sha256": "f8bb9880e273c874636731241dd537cc35cddc6aff8a3e9240dbba3ae8c70530",
+        "source_sha256": "8dbfbbe708cb1a95b1d8ea0d185796eca9d0d85f1e865ede26b21b1153caf51c",
+        "environment_sha256": "9fe8c73fc5b74656bc027dba32f2f228d5776394e6594d64eea0fbfcc7d705c1",
+        "pip_check": {
+          "passed": true
+        }
+      },
+      {
+        "module_id": "topos",
+        "revision": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+        "built_wheel_sha256": "3cf3871af94005b2975dfa27a9ce0864b5ef2ded78fd3cdbb86ba715b0561f29",
+        "source_sha256": "ffa86b586bff64ee404484177a5b0e0fb382e94517b4ff82adda97a9bd42e429",
+        "environment_sha256": "32070b84a8f98c842414fed581204e76b56d4d9f2d0657c98911eb0d1434e3d0",
+        "pip_check": {
+          "passed": true
+        }
+      }
+    ]
+  }
+}

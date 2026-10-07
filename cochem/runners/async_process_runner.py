@@ -5,6 +5,10 @@ and concurrency-safe Single-Writer Multiple-Reader (SWMR) HDF5 telemetry.
 """
 
 import os
+import math
+import re
+import tempfile
+import threading
 import shutil
 import time
 from pathlib import Path
@@ -13,15 +17,15 @@ from typing import Any, Callable, Dict, List, Optional
 import filelock
 import h5py
 
-from src.cochem.hpc.models import (
+from cochem.hpc.models import (
     MpiClusterExecutionConfig,
     SlurmDryRunResult,
     SlurmJobDirectiveSpec,
     SlurmResourceValidationError,
 )
-from src.cochem.hpc.slurm_generator import SlurmDryRunGenerator
-from src.cochem.runners.cuda_budget import CudaMemoryManager
-from src.cochem.runners.mpi_supervisor import MpiProcessSupervisor
+from cochem.hpc.slurm_generator import SlurmDryRunGenerator
+from cochem.runners.cuda_budget import CudaMemoryManager
+from cochem.runners.mpi_supervisor import MpiProcessSupervisor
 
 
 class AsyncProcessRunner:
@@ -57,12 +61,15 @@ class AsyncProcessRunner:
             scratch_dir if scratch_dir is not None else fallback_scratch
         ).resolve()
 
-        self.cuda_manager = cuda_manager or CudaMemoryManager()
+        self.cuda_manager = cuda_manager or CudaMemoryManager(allow_cpu_fallback=False)
         self.slurm_generator = slurm_generator or SlurmDryRunGenerator()
         self.mpi_supervisor = mpi_supervisor or MpiProcessSupervisor()
 
         self.telemetry_lock_path = self.scratch_dir / ".telemetry.lock"
         self._active_writers: Dict[str, h5py.File] = {}
+        self._writer_locks: Dict[str, filelock.FileLock] = {}
+        self._telemetry_guard = threading.RLock()
+        self._owned_scratch_dirs: set[Path] = set()
 
         # Ensure write destinations exist
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -83,55 +90,77 @@ class AsyncProcessRunner:
             )
 
     def init_telemetry(self, telemetry_file: Path) -> None:
-        """Initialize resizable datasets for Single-Writer Multiple-Reader (SWMR) HDF5 telemetry."""
+        """Create or reopen telemetry without truncating existing observations.
+
+        A per-file lock is held for the writer's lifetime. Only committed rows
+        may be consumed; the availability mask distinguishes unknown energy
+        from a measured/calculated zero. Legacy ambiguous files need migration.
+        """
         self.validate_write_path(telemetry_file)
         telemetry_file.parent.mkdir(parents=True, exist_ok=True)
-
-        resolved_key = str(telemetry_file.resolve())
-        with filelock.FileLock(str(self.telemetry_lock_path), timeout=30.0):
-            h5_file = h5py.File(telemetry_file, "w", libver="latest")
-            grp = h5_file.create_group("telemetry")
-            grp.create_dataset(
-                "step",
-                shape=(0,),
-                maxshape=(None,),
-                dtype="int64",
-                chunks=True,
-            )
-            grp.create_dataset(
-                "energy",
-                shape=(0,),
-                maxshape=(None,),
-                dtype="float64",
-                chunks=True,
-            )
-            grp.create_dataset(
-                "walltime",
-                shape=(0,),
-                maxshape=(None,),
-                dtype="float64",
-                chunks=True,
-            )
-            h5_file.swmr_mode = True
-            h5_file.flush()
-            self._active_writers[resolved_key] = h5_file
+        key = str(telemetry_file.resolve())
+        with self._telemetry_guard:
+            if key in self._active_writers:
+                return
+            ownership = filelock.FileLock(key + ".writer.lock", timeout=0, thread_local=False)
+            ownership.acquire()
+            handle = None
+            try:
+                exists = telemetry_file.exists()
+                handle = h5py.File(telemetry_file, "r+" if exists else "x", libver="latest")
+                if exists:
+                    if handle.attrs.get("telemetry_schema_version") != 2:
+                        raise ValueError("Existing telemetry has no qualified availability schema; explicit migration is required.")
+                    group = handle["telemetry"]
+                    count = int(group["committed_rows"][()])
+                    if count < 0:
+                        raise ValueError("Existing telemetry has a negative committed row count.")
+                    for name in ("step", "energy", "energy_available", "walltime"):
+                        dataset = group[name]
+                        if dataset.ndim != 1 or dataset.shape[0] < count:
+                            raise ValueError("Existing telemetry has inconsistent committed rows.")
+                    # An interrupted append may leave an uncommitted suffix.
+                    for name in ("step", "energy", "energy_available", "walltime"):
+                        group[name].resize((count,))
+                else:
+                    handle.attrs["telemetry_schema_version"] = 2
+                    group = handle.create_group("telemetry")
+                    for name, dtype in (("step", "int64"), ("energy", "float64"),
+                                        ("energy_available", "bool"), ("walltime", "float64")):
+                        group.create_dataset(name, shape=(0,), maxshape=(None,), dtype=dtype, chunks=True)
+                    group.create_dataset("committed_rows", data=0, dtype="int64")
+                    group["energy"].attrs["units"] = "hartree"
+                    group["energy"].attrs["missingness"] = "NaN with energy_available=false"
+                    group["walltime"].attrs["units"] = "seconds"
+                handle.swmr_mode = True
+                handle.flush()
+                self._active_writers[key] = handle
+                self._writer_locks[key] = ownership
+            except BaseException:
+                if handle is not None:
+                    handle.close()
+                ownership.release()
+                raise
 
     def close_telemetry(self, telemetry_file: Path) -> None:
-        """Explicitly flush and close an active SWMR HDF5 telemetry file handle."""
-        resolved_key = str(telemetry_file.resolve())
-        h5_file = self._active_writers.pop(resolved_key, None)
-        if h5_file is not None and h5_file.id.valid:
-            h5_file.flush()
-            h5_file.close()
+        """Close a writer and release its per-file ownership lock."""
+        key = str(telemetry_file.resolve())
+        with self._telemetry_guard:
+            handle = self._active_writers.pop(key, None)
+            ownership = self._writer_locks.pop(key, None)
+            try:
+                if handle is not None and handle.id.valid:
+                    try:
+                        handle.flush()
+                    finally:
+                        handle.close()
+            finally:
+                if ownership is not None:
+                    ownership.release()
 
     def close(self) -> None:
-        """Flush and close all open SWMR telemetry writer handles."""
-        keys = list(self._active_writers.keys())
-        for key in keys:
-            h5_file = self._active_writers.pop(key, None)
-            if h5_file is not None and h5_file.id.valid:
-                h5_file.flush()
-                h5_file.close()
+        for key in list(self._active_writers):
+            self.close_telemetry(Path(key))
 
     def __enter__(self) -> "AsyncProcessRunner":
         return self
@@ -141,76 +170,41 @@ class AsyncProcessRunner:
         self.cleanup_scratch()
 
     def cleanup_scratch(self, task_name: Optional[str] = None) -> None:
-        """Clean up ephemeral per-job scratch directory or entire scratch root safely."""
-        if task_name is not None:
-            job_scratch = self.scratch_dir / task_name
-            if job_scratch.exists():
-                shutil.rmtree(job_scratch, ignore_errors=True)
-        else:
-            if self.scratch_dir.exists():
-                for item in self.scratch_dir.iterdir():
-                    if item.name == ".telemetry.lock":
-                        continue
-                    if item.is_dir():
-                        shutil.rmtree(item, ignore_errors=True)
-                    else:
-                        item.unlink(missing_ok=True)
+        """Remove only scratch directories created by this runner instance."""
+        for path in tuple(self._owned_scratch_dirs):
+            if task_name is None or path.name == task_name:
+                shutil.rmtree(path)
+                self._owned_scratch_dirs.remove(path)
 
     def record_telemetry_metric(
-        self,
-        telemetry_file: Path,
-        step: int,
-        energy: float,
-        walltime: float,
+        self, telemetry_file: Path, step: int, energy: Optional[float], walltime: float,
     ) -> None:
-        """Thread and process-safely record telemetry progress metric to SWMR HDF5."""
+        """Publish one committed telemetry row with explicit energy availability."""
+        if isinstance(step, bool) or not isinstance(step, int) or step < 0:
+            raise ValueError("Telemetry step must be a nonnegative integer.")
+        if not math.isfinite(walltime) or walltime < 0:
+            raise ValueError("Telemetry walltime must be finite and nonnegative.")
+        if energy is not None and not math.isfinite(energy):
+            raise ValueError("Available telemetry energy must be finite; use None for unavailable.")
         self.validate_write_path(telemetry_file)
-        resolved_key = str(telemetry_file.resolve())
-
-        with filelock.FileLock(str(self.telemetry_lock_path), timeout=30.0):
-            active_handle = self._active_writers.get(resolved_key)
-            if active_handle is not None and active_handle.id.valid:
-                step_ds = active_handle["telemetry/step"]
-                energy_ds = active_handle["telemetry/energy"]
-                walltime_ds = active_handle["telemetry/walltime"]
-
-                current_len = step_ds.shape[0]
-                new_len = current_len + 1
-
-                step_ds.resize((new_len,))
-                energy_ds.resize((new_len,))
-                walltime_ds.resize((new_len,))
-
-                step_ds[current_len] = step
-                energy_ds[current_len] = energy
-                walltime_ds[current_len] = walltime
-
-                step_ds.flush()
-                energy_ds.flush()
-                walltime_ds.flush()
-                active_handle.flush()
-            else:
-                with h5py.File(telemetry_file, "a", libver="latest") as h5_file:
-                    h5_file.swmr_mode = True
-                    step_ds = h5_file["telemetry/step"]
-                    energy_ds = h5_file["telemetry/energy"]
-                    walltime_ds = h5_file["telemetry/walltime"]
-
-                    current_len = step_ds.shape[0]
-                    new_len = current_len + 1
-
-                    step_ds.resize((new_len,))
-                    energy_ds.resize((new_len,))
-                    walltime_ds.resize((new_len,))
-
-                    step_ds[current_len] = step
-                    energy_ds[current_len] = energy
-                    walltime_ds[current_len] = walltime
-
-                    step_ds.flush()
-                    energy_ds.flush()
-                    walltime_ds.flush()
-                    h5_file.flush()
+        key = str(telemetry_file.resolve())
+        with self._telemetry_guard:
+            if key not in self._active_writers:
+                self.init_telemetry(telemetry_file)
+            handle = self._active_writers[key]
+            group = handle["telemetry"]
+            count = int(group["committed_rows"][()])
+            values = {"step": step, "energy": energy if energy is not None else float("nan"),
+                      "energy_available": energy is not None, "walltime": walltime}
+            for name, value in values.items():
+                dataset = group[name]
+                dataset.resize((count + 1,))
+                dataset[count] = value
+                dataset.flush()
+            handle.flush()
+            group["committed_rows"][()] = count + 1
+            group["committed_rows"].flush()
+            handle.flush()
 
     async def dispatch_task(
         self,
@@ -229,8 +223,10 @@ class AsyncProcessRunner:
     ) -> Dict[str, Any]:
         """Dispatch a high-performance computation task adhering to tripartite and cluster invariants."""
         # Setup job scratch space
-        job_scratch = self.scratch_dir / task_name
-        job_scratch.mkdir(parents=True, exist_ok=True)
+        if re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9_.-]*", task_name) is None:
+            raise ValueError("Task names must be nonempty safe filename components.")
+        job_scratch = Path(tempfile.mkdtemp(prefix=task_name + "_", dir=self.scratch_dir))
+        self._owned_scratch_dirs.add(job_scratch)
         execution_cwd = cwd or job_scratch
 
         # Prepare environment with Tripartite storage locations
@@ -265,44 +261,47 @@ class AsyncProcessRunner:
                 )
 
         # 3. Initialize SWMR HDF5 Telemetry
-        telemetry_file = job_scratch / f"{task_name}_telemetry.h5"
+        telemetry_file = self.artifacts_dir / "telemetry" / f"{job_scratch.name}.h5"
         self.init_telemetry(telemetry_file)
 
-        # 4. Supervise Process Execution
-        start_time = time.monotonic()
-        if mpi_config is not None:
-            config_with_env = mpi_config.model_copy(
-                update={"environment_vars": {**mpi_config.environment_vars, **run_env}}
-            )
-            exec_result = await self.mpi_supervisor.run_mpi_task(
-                config=config_with_env,
-                binary_args=binary_args,
-                cwd=execution_cwd,
-                telemetry_callback=telemetry_callback,
-                rank_trace_callback=rank_trace_callback,
-            )
-        else:
-            exec_result = await self.mpi_supervisor.run_command(
-                command=binary_args,
-                cwd=execution_cwd,
-                env=run_env,
-                telemetry_callback=telemetry_callback,
-                rank_trace_callback=rank_trace_callback,
+        try:
+            # 4. Supervise Process Execution
+            start_time = time.monotonic()
+            if mpi_config is not None:
+                config_with_env = mpi_config.model_copy(
+                    update={"environment_vars": {**mpi_config.environment_vars, **run_env}}
+                )
+                exec_result = await self.mpi_supervisor.run_mpi_task(
+                    config=config_with_env,
+                    binary_args=binary_args,
+                    cwd=execution_cwd,
+                    telemetry_callback=telemetry_callback,
+                    rank_trace_callback=rank_trace_callback,
+                )
+            else:
+                exec_result = await self.mpi_supervisor.run_command(
+                    command=binary_args,
+                    cwd=execution_cwd,
+                    env=run_env,
+                    telemetry_callback=telemetry_callback,
+                    rank_trace_callback=rank_trace_callback,
+                )
+
+            elapsed = time.monotonic() - start_time
+
+            # 5. Record Completion Metric to Telemetry
+            self.record_telemetry_metric(
+                telemetry_file=telemetry_file,
+                step=1,
+                energy=None,
+                walltime=elapsed,
             )
 
-        elapsed = time.monotonic() - start_time
-
-        # 5. Record Completion Metric to Telemetry
-        self.record_telemetry_metric(
-            telemetry_file=telemetry_file,
-            step=1,
-            energy=0.0,
-            walltime=elapsed,
-        )
-        self.close_telemetry(telemetry_file)
+        finally:
+            self.close_telemetry(telemetry_file)
 
         if cleanup_on_completion:
-            self.cleanup_scratch(task_name=task_name)
+            self.cleanup_scratch(task_name=job_scratch.name)
 
         return {
             "task_name": task_name,
@@ -314,4 +313,7 @@ class AsyncProcessRunner:
             "artifacts_dir": str(self.artifacts_dir),
             "slurm_result": slurm_result,
             "elapsed_seconds": elapsed,
+            "energy_hartree": None,
+            "energy_status": "unavailable",
+            "scientific_validation": "not_performed_by_process_runner",
         }

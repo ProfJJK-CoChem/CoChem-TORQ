@@ -1,0 +1,499 @@
+{
+  "acceptance_record": null,
+  "actual_evidence_runner_contract": {
+    "allowed_outcomes": [
+      "passed_for_named_profile",
+      "failed",
+      "blocked_reference_or_capability",
+      "incomplete_budget",
+      "unrun"
+    ],
+    "evidence_artifacts": [],
+    "execution_status": "not_executed",
+    "preflight_required": [
+      "accepted immutable preregistration digest",
+      "completed curator-approved reference manifest",
+      "exact qualified recipe/version/derivative tuples",
+      "accepted budgets",
+      "all enabled target values fixed",
+      "blind held-out scoring separation"
+    ],
+    "prohibited_shortcuts": [
+      "mocked engine output",
+      "fabricated reference values",
+      "skipped physics reported passed",
+      "missing observables replaced by numbers",
+      "unexecuted Actions image promoted by local tests",
+      "reference download hash treated as authenticity or permission proof"
+    ],
+    "required_run_fields": [
+      "run_uuid",
+      "preregistration_sha256",
+      "source_commit",
+      "engine_image_digest",
+      "dependency_and_engine_manifest",
+      "recipe_sha256",
+      "request_and_molecule_identity",
+      "raw_input_output_artifact_digests",
+      "effective_units_and_settings",
+      "actual_calculation_stage_statuses",
+      "convergence_and_state_diagnostics",
+      "timing_resources_and_failures",
+      "prediction_digest_sealed_before_scoring",
+      "curated_reference_manifest_sha256",
+      "metrics_and_sample_counts",
+      "all_exclusions_and_amendments"
+    ],
+    "schema_version": "cochem.torq.benchmark.evidence/1"
+  },
+  "benchmark_id": "rotational-identification-first-row-proposal-v1",
+  "challenge_candidates": [
+    {
+      "chemical_family": "inversion",
+      "formula": "NH3",
+      "parent_id": "ammonia",
+      "purpose": "Require inversion-state and symmetry labels; reject an unqualified semirigid identification claim"
+    },
+    {
+      "chemical_family": "internal_rotation",
+      "formula": "CH3OH",
+      "parent_id": "methanol",
+      "purpose": "Require torsion-rotation branch; preserve earlier equilibrium/harmonic outputs when unsupported"
+    },
+    {
+      "chemical_family": "weak_binding_tunneling",
+      "formula": "(H2O)2",
+      "parent_id": "water-dimer",
+      "purpose": "Test large-amplitude and tunneling limitations; no rigid-rotor ground-state substitution"
+    },
+    {
+      "chemical_family": "weak_binding_tunneling",
+      "formula": "(HF)2",
+      "parent_id": "hydrogen-fluoride-dimer",
+      "purpose": "Test isotope/state/convergence sensitivity and unsupported-model reporting"
+    }
+  ],
+  "created_date": "2026-10-07",
+  "decision_policy": "D10 bounded preregistration selected; this proposal is not an accepted or completed preregistration",
+  "frozen_preregistration_sha256": null,
+  "leakage_controls": [
+    "Freeze all engine recipes, sources, model parameters, split definitions, line/band selection, exclusions and metrics before held-out execution",
+    "Use development data only for solver/debugging and calibration families only for declared calibration",
+    "Seal prediction and raw-artifact digests before opening held-out scoring references",
+    "Never tune coefficients, geometry scaling, resonance criteria or error intervals against held-out residuals",
+    "Record amendments, failed trials and inspected data; an inspected held-out set becomes development data for subsequent model changes",
+    "Report macro parent/family metrics and sample counts, not transition-count pseudo-replication",
+    "Do not count fitted catalogue predictions as independent observed lines or a shared experimental source as independent cross-check"
+  ],
+  "metrics": {
+    "constants": [
+      "signed errors per axis",
+      "absolute error MHz",
+      "relative error ppm",
+      "parent-weighted MAE",
+      "parent-weighted RMSE",
+      "max absolute error",
+      "failure fraction"
+    ],
+    "differences": [
+      "signed isotope/conformer difference residual",
+      "covariance-aware uncertainty where provided"
+    ],
+    "relative_intensities": [
+      "log ratio residual with specified normalization",
+      "uncertainty-weighted residual where valid",
+      "temperature/calibration sensitivity"
+    ],
+    "transitions": [
+      "signed and absolute frequency residual MHz",
+      "parent-weighted MAE/RMSE",
+      "maximum residual",
+      "coverage by band and J/Ka",
+      "assignment/blend exclusions"
+    ],
+    "uncertainty": [
+      "declared nominal versus observed coverage",
+      "parent/family sample counts",
+      "binomial or family-bootstrap interval only when its assumptions hold",
+      "out-of-domain and calibration failures"
+    ]
+  },
+  "observable_contracts": {
+    "equilibrium_rotational_constants": {
+      "label": "Ae,Be,Ce or appropriate linear representation",
+      "reference_origin_required": true,
+      "reference_requirement": "Independently justified equilibrium or semi-experimental equilibrium reference with correction sources, uncertainty and covariance. Ground-state fitted constants cannot be relabeled equilibrium constants.",
+      "reference_values": [],
+      "unit": "MHz"
+    },
+    "ground_state_rotational_constants": {
+      "label": "A0,B0,C0 or appropriate linear representation",
+      "reference_requirement": "Primary measured/fitted reference for the exact isotopologue, electronic/vibrational/tunneling state and effective Hamiltonian. Retain uncertainty and covariance or explicit covariance unavailable status.",
+      "reference_values": [],
+      "unit": "MHz"
+    },
+    "relative_line_intensities": {
+      "label": "Within-dataset relative integrated line intensities with defined normalization",
+      "normalization_transition_id": null,
+      "reference_requirement": "Actual measurement temperature, density/population assumptions, instrument-response/calibration and uncertainty. A catalogue model intensity is not an independent absolute laboratory intensity.",
+      "reference_values": [],
+      "temperature_K": null,
+      "unit": "dimensionless ratio after specified measurement-response and population treatment"
+    },
+    "selected_rotational_transitions": {
+      "band_frequency_bounds_MHz": null,
+      "label": "Upper/lower quantum states, transition frequency and band definition",
+      "max_J": null,
+      "max_Ka": null,
+      "reference_requirement": "Authentic measured line positions with uncertainty, assignment/blend flags and state/Hamiltonian convention; catalogue predictions must be identified as predictions rather than measurements.",
+      "reference_values": [],
+      "unit": "MHz"
+    }
+  },
+  "primary_candidates": [
+    {
+      "chemical_family": "hydrides",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "H2O",
+      "isotopologue_candidates": [
+        "H2O-16O",
+        "D2O-16O"
+      ],
+      "parent_id": "water",
+      "reference_curation": "pending",
+      "split": "development"
+    },
+    {
+      "chemical_family": "diatomic_carbonyls",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CO",
+      "isotopologue_candidates": [
+        "12C16O",
+        "13C16O"
+      ],
+      "parent_id": "carbon-monoxide",
+      "reference_curation": "pending",
+      "split": "development"
+    },
+    {
+      "chemical_family": "aldehydes",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CH2O",
+      "isotopologue_candidates": [
+        "12CH2-16O",
+        "13CH2-16O"
+      ],
+      "parent_id": "formaldehyde",
+      "reference_curation": "pending",
+      "split": "development"
+    },
+    {
+      "chemical_family": "aldehydes",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "C2H4O",
+      "isotopologue_candidates": [
+        "main_isotopologue"
+      ],
+      "parent_id": "acetaldehyde",
+      "reference_curation": "pending",
+      "split": "development"
+    },
+    {
+      "chemical_family": "halomethanes",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CH3F",
+      "isotopologue_candidates": [
+        "main_isotopologue"
+      ],
+      "parent_id": "methyl-fluoride",
+      "reference_curation": "pending",
+      "split": "calibration"
+    },
+    {
+      "chemical_family": "halomethanes",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CH2F2",
+      "isotopologue_candidates": [
+        "main_isotopologue"
+      ],
+      "parent_id": "difluoromethane",
+      "reference_curation": "pending",
+      "split": "calibration"
+    },
+    {
+      "chemical_family": "halomethanes",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CHF3",
+      "isotopologue_candidates": [
+        "main_isotopologue"
+      ],
+      "parent_id": "fluoroform",
+      "reference_curation": "pending",
+      "split": "calibration"
+    },
+    {
+      "chemical_family": "nitriles",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "HCN",
+      "isotopologue_candidates": [
+        "main_isotopologue"
+      ],
+      "parent_id": "hydrogen-cyanide",
+      "reference_curation": "pending",
+      "split": "held_out"
+    },
+    {
+      "chemical_family": "nitriles",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CH3CN",
+      "isotopologue_candidates": [
+        "main_isotopologue",
+        "13C-methyl_isotopologue"
+      ],
+      "parent_id": "acetonitrile",
+      "reference_curation": "pending",
+      "split": "held_out"
+    },
+    {
+      "chemical_family": "ketenes",
+      "conformer": "must_be_identified_from_curated_source",
+      "eligible_observables": [
+        "ground_state_rotational_constants",
+        "selected_rotational_transitions",
+        "equilibrium_rotational_constants_if_independent_reference_exists",
+        "relative_line_intensities_if_measurement_conditions_are_known"
+      ],
+      "formula": "CH2CO",
+      "isotopologue_candidates": [
+        "main_isotopologue"
+      ],
+      "parent_id": "ketene",
+      "reference_curation": "pending",
+      "split": "held_out"
+    }
+  ],
+  "products": {
+    "A": "Absolute de novo predictions; no held-out experimental constants or lines used to fit, shift or scale this prediction",
+    "B": "Separately scored experimental/semi-experimental inference; every anchor and its uncertainty are identified; anchored observations excluded from independent scoring",
+    "C": "Isotope/conformer/state differences; theoretical versus experimentally anchored origins remain distinct; covariance retained"
+  },
+  "proposal_sha256": "88b1ac932e462cfc9c4e1efdb3f40e191268fe645f7e306a982eb031c2cb5550",
+  "reference_curation": {
+    "entries": [],
+    "entry_required_fields": [
+      "reference_id",
+      "primary_source_locator",
+      "raw_reference_artifact_sha256",
+      "retrieval_date",
+      "reuse_permission",
+      "parent_id",
+      "isotope_identity",
+      "conformer_identity",
+      "electronic_vibrational_tunneling_state",
+      "observable_definition",
+      "units",
+      "uncertainty_and_covariance_status",
+      "fit_or_measurement_origin",
+      "Hamiltonian_convention",
+      "curator_review_record"
+    ],
+    "equilibrium_extra_fields": [
+      "vibrational_and_other_corrections",
+      "correction_sources",
+      "experimental_anchor_overlap",
+      "reference_product_class"
+    ],
+    "exclusions": [
+      "reference uncertainty unavailable for an uncertainty-weighted metric",
+      "unresolved isotope/state/assignment identity",
+      "measured and predicted entries not separable",
+      "reference derived from the same tested method without an independent source",
+      "experimental anchors reused as held-out absolute predictions"
+    ],
+    "provider_locators": [
+      {
+        "name": "CDMS",
+        "status": "provider_locator_only_not_retrieved_or_reference_evidence",
+        "url": "https://cdms.astro.uni-koeln.de/"
+      },
+      {
+        "name": "JPL molecular spectroscopy catalog",
+        "status": "provider_locator_only_not_retrieved_or_reference_evidence",
+        "url": "https://spec.jpl.nasa.gov/"
+      }
+    ],
+    "status": "not_completed"
+  },
+  "release_gate": {
+    "blocked_by": [
+      "reference_curation_not_completed",
+      "predictive_targets_not_accepted",
+      "preregistration_not_frozen",
+      "qualified_full_spectroscopy_profile_unavailable",
+      "held_out_benchmark_not_executed"
+    ],
+    "fulfils_V_BENCH": false,
+    "fulfils_V_RELEASE": false,
+    "fulfils_completed_preregistration": false,
+    "status": "blocked"
+  },
+  "resource_proposal": {
+    "canonical_calculation_environment": "GitHub Actions qualified worker image; separately authorized larger site profile only when needed",
+    "canonical_interface_environment": "GitHub Codespaces",
+    "exhaustion_behavior": "Retain authentic completed stages and failed attempts; report incomplete scientific goal without replacing missing properties",
+    "revdsd_and_anharmonic_limits": {
+      "max_energy_evaluations": null,
+      "max_scratch_MB": null,
+      "max_total_cpu_seconds": null,
+      "status": "Measure complete-energy/displacement cost on development cases before accepting a campaign budget"
+    },
+    "status": "not_accepted_cost_pilot_required",
+    "teaching_validation_limits": {
+      "max_cores_per_job": 2,
+      "max_jobs": 64,
+      "max_memory_MB": 4096,
+      "max_total_cpu_seconds": 230400,
+      "max_wall_seconds_per_job": 1800
+    }
+  },
+  "schema_version": "cochem.torq.benchmark.preregistration/1",
+  "scope": {
+    "accuracy_claim_limit": "Only the explicitly qualified domain and observable; no general laboratory or astronomical identification guarantee",
+    "challenge_parent_limit": 4,
+    "domain": "closed-shell gas-phase first-row parent molecules, individually qualified method and nuclear-motion profiles",
+    "line_selection_requires": "Curated complete band coverage and matching isotope/vibrational/tunneling/Hamiltonian labels; finalize before predictions are inspected",
+    "max_selected_lines_per_isotopologue": 20,
+    "primary_isotopologue_limit": 14,
+    "primary_parent_limit": 10,
+    "scientific_profiles": [
+      "qualified equilibrium-structure profile",
+      "separately qualified vibrational-correction profile",
+      "qualified Hamiltonian/intensity profile"
+    ],
+    "selection_rule": "Fixed candidate order in this record. Ineligible references remain excluded with reasons; replacements require a versioned amendment before held-out evaluation.",
+    "student_hf_profiles": "Software and numerical execution evidence only; not a substitute for target spectroscopy-accuracy evidence"
+  },
+  "split": {
+    "assignment": "Fixed explicitly in primary_candidates before any held-out prediction evaluation",
+    "calibration_families": [
+      "halomethanes"
+    ],
+    "development_families": [
+      "hydrides",
+      "diatomic_carbonyls",
+      "aldehydes"
+    ],
+    "family_reclassification_rule": "Any revised chemical-family grouping requires a pre-evaluation amendment; reclassify related parents together rather than splitting close analogues.",
+    "held_out_families": [
+      "nitriles",
+      "ketenes"
+    ],
+    "limitations": "Only three calibration parents and three held-out parents are proposed. Coverage estimates and transfer claims will be exploratory with very wide intervals; transitions and isotopologues do not create independent parent samples.",
+    "unit": "chemical_family; all parent conformers, isotopologues, states and transitions remain within their family partition"
+  },
+  "srs_sha256": "a044d13c3f0f6a159055f4ca544c70a5dd2f4b5544d6ee223b9d91607aada4aa",
+  "status": "proposed_unaccepted_reference_curation_incomplete",
+  "thresholds": {
+    "freeze_rule": "Every enabled predictive product requires numeric accepted targets, rationale and numerical/experimental uncertainty separation before a held-out run; null targets prevent pass/fail or qualification claims.",
+    "numerical_kernel_proposals": [
+      {
+        "acceptance": "pending for selected benchmark profile",
+        "maximum": 1e-10,
+        "metric": "well_conditioned_inertia_rotational_constant_relative_difference",
+        "source": "SRS V-ROT"
+      },
+      {
+        "acceptance": "mandatory policy, not a chemical accuracy target",
+        "maximum": 0,
+        "metric": "missing_or_fabricated_reference_entries_allowed",
+        "source": "TORQ-GOV-001 mandatory evidence policy"
+      }
+    ],
+    "predictive_proposals": [
+      {
+        "maximum": null,
+        "metric": "parent_weighted_relative_MAE_ppm",
+        "observable": "equilibrium_rotational_constants",
+        "status": "proposed_value_pending_reference_and_numerical_pilot"
+      },
+      {
+        "maximum": null,
+        "metric": "parent_weighted_relative_MAE_ppm",
+        "observable": "ground_state_rotational_constants",
+        "status": "proposed_value_pending_force_field_profile_and_reference_curation"
+      },
+      {
+        "maximum": null,
+        "metric": "maximum_absolute_frequency_residual_MHz",
+        "observable": "selected_rotational_transitions",
+        "status": "proposed_value_pending_band_J_Ka_and_identification_context"
+      },
+      {
+        "maximum": null,
+        "metric": "parent_weighted_absolute_log_ratio_error",
+        "observable": "relative_line_intensities",
+        "status": "proposed_value_pending_temperature_calibration_and_population_model"
+      }
+    ],
+    "status": "proposed_not_accepted; predictive numbers require domain/reference/pilot justification before preregistration freeze",
+    "uncertainty_proposal": {
+      "acceptance": "proposed descriptive target only; small planned sample cannot qualify general calibrated coverage",
+      "minimum_parent_count_for_claim": null,
+      "nominal_coverage": 0.95
+    }
+  }
+}

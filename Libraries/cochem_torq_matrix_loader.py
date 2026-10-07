@@ -34,12 +34,11 @@ import uuid
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, Final, List, Literal, Optional, Set, Tuple, Union
+from typing import Any, Dict, Final, List, Optional, Set, Tuple, Union
 
 from mendeleev import element as mendeleev_element
-import numpy as np
 import psutil
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 # Configure module-level logging
 logger = logging.getLogger("CoChem-TORQ.MatrixLoader")
@@ -506,14 +505,12 @@ _MACE_OMOL_Z: Final[Set[int]] = {
     get_atomic_number("I"),   # 53
 }
 
-# MACE-POLAR-1 / MACE-MP-0: Broad periodic table coverage up to Z=89 (Ac)
-_MACE_POLAR_Z: Final[Set[int]] = set(range(1, 90))
+# No checkpoint-specific domain manifest is currently qualified for this name.
+_MACE_POLAR_Z: Final[Set[int]] = set()
 
 # GFN2-xTB / GFN-FF: Elements Z=1..86 (H to Rn)
 _GFN2_XTB_Z: Final[Set[int]] = set(range(1, 87))
 
-# PySCF / Empirical fallback: All elements Z=1..118
-_ALL_ELEMENTS_Z: Final[Set[int]] = set(range(1, 119))
 
 
 MLFF_CATALOG: Final[Dict[str, MLFFModelSpec]] = {
@@ -526,7 +523,7 @@ MLFF_CATALOG: Final[Dict[str, MLFFModelSpec]] = {
     "MACE-POLAR-1": MLFFModelSpec(
         name="MACE-POLAR-1",
         supported_z=_MACE_POLAR_Z,
-        description="MACE Polarizable Foundation Model with extended periodic table coverage (Z=1..89)",
+        description="Unqualified model name; checkpoint-specific elemental coverage is unavailable",
         architecture="Polarizable Higher-Order Equivariant MPNN",
     ),
     "MACE-OMOL-0": MLFFModelSpec(
@@ -555,33 +552,11 @@ MLFF_CATALOG: Final[Dict[str, MLFFModelSpec]] = {
         architecture="Polarizable Classical Force Field",
         is_quantum_semiempirical=False,
     ),
-    "PySCF_RHF": MLFFModelSpec(
-        name="PySCF_RHF",
-        supported_z=_ALL_ELEMENTS_Z,
-        description="PySCF Ab Initio Restricted Hartree-Fock Electronic Structure Fallback",
-        architecture="Ab Initio Quantum Chemistry",
-        is_quantum_semiempirical=False,
-    ),
-    "EMPIRICAL_COVALENT": MLFFModelSpec(
-        name="EMPIRICAL_COVALENT",
-        supported_z=_ALL_ELEMENTS_Z,
-        description="Pyykkö covalent radius harmonic potential with Lennard-Jones steric repulsion",
-        architecture="Empirical Molecular Mechanics",
-        is_quantum_semiempirical=False,
-    ),
+
 }
 
-# Authoritative MLFF Fallback Hierarchy Chain
-DEFAULT_MLFF_FALLBACK_CHAIN: Final[List[str]] = [
-    "MACE-OFF23",
-    "MACE-POLAR-1",
-    "MACE-OMOL-0",
-    "AIMNet2",
-    "GFN2-xTB",
-    "GFN-FF",
-    "PySCF_RHF",
-    "EMPIRICAL_COVALENT",
-]
+# Retained for source compatibility only; model substitutions require a new plan.
+DEFAULT_MLFF_FALLBACK_CHAIN: Final[List[str]] = []
 
 
 def resolve_mlff_model(
@@ -589,46 +564,32 @@ def resolve_mlff_model(
     requested_model: Optional[str] = None,
     fallback_chain: Optional[Sequence[str]] = None,
 ) -> Tuple[MLFFModelSpec, List[str]]:
-    """Resolves the highest-fidelity capable MLFF model for given chemical elements.
+    """Check one explicitly selected advisory model, without method substitution.
 
-    Evaluates the elements against the fallback chain, recording the rejected models
-    and the explicit elemental reason for rejection.
-
-    Args:
-        symbols: Sequence of chemical element symbols (e.g. ['C', 'H', 'O', 'Fe']).
-        requested_model: Preferred MLFF model name, if specified.
-        fallback_chain: Custom fallback chain sequence of model names.
-
-    Returns:
-        Tuple of (selected MLFFModelSpec, fallback_trail description list).
-
-    Raises:
-        UnsupportedElementError: If no model in the chain supports the elements.
+    Historical element lists are candidate metadata, not evidence of a supplied
+    checkpoint's chemical/state domain or validated executable capability.
     """
     valid_symbols = validate_element_symbols(symbols)
-    atomic_numbers = [get_atomic_number(s) for s in valid_symbols]
-    chain = list(fallback_chain or DEFAULT_MLFF_FALLBACK_CHAIN)
-
-    if requested_model and requested_model in MLFF_CATALOG:
-        # Move requested model to front of evaluation chain
-        chain = [requested_model] + [m for m in chain if m != requested_model]
-
-    fallback_trail: List[str] = []
-
-    for model_name in chain:
-        if model_name not in MLFF_CATALOG:
-            continue
-        spec = MLFF_CATALOG[model_name]
-        if spec.supports_elements(atomic_numbers):
-            fallback_trail.append(f"Selected '{model_name}' (Coverage: {len(spec.supported_z)} elements, fully matches {set(valid_symbols)})")
-            return spec, fallback_trail
-        else:
-            unsupported = spec.get_unsupported_elements(atomic_numbers)
-            fallback_trail.append(f"Rejected '{model_name}': unsupported element(s) {unsupported}")
-
-    raise UnsupportedElementError(
-        f"No MLFF model in fallback chain supports atomic species {set(valid_symbols)} (Z: {set(atomic_numbers)})."
-    )
+    if not valid_symbols:
+        raise UnsupportedElementError("An advisory model requires a nonempty molecular system.")
+    if fallback_chain:
+        if len(fallback_chain) != 1 or (requested_model and fallback_chain[0] != requested_model):
+            raise ValueError("Automatic model substitution is disabled; select one model in an explicit plan.")
+        requested_model = fallback_chain[0]
+    if not requested_model:
+        raise ValueError("Specify the requested advisory model; no ML model is selected implicitly.")
+    if requested_model not in MLFF_CATALOG:
+        raise ValueError(f"Unknown or unsupported advisory model: {requested_model}")
+    if requested_model == "MACE-POLAR-1":
+        raise UnsupportedElementError("MACE-POLAR-1 has no checkpoint-specific validated domain manifest.")
+    spec = MLFF_CATALOG[requested_model]
+    atomic_numbers = [get_atomic_number(symbol) for symbol in valid_symbols]
+    if not spec.supports_elements(atomic_numbers):
+        raise UnsupportedElementError(
+            f"Requested model {requested_model} does not list elements {spec.get_unsupported_elements(atomic_numbers)}; "
+            "no alternative method has been selected."
+        )
+    return spec, [f"Requested {requested_model}: candidate element coverage only; advisory, unvalidated until checkpoint/domain qualification."]
 
 
 # =============================================================================
@@ -910,7 +871,7 @@ def validate_auxiliary_basis(
     if ri_type == "RI-JK" or "RI-JK" in ri_type:
         if "DEF2/J" in aux_upper and "DEF2/JK" not in aux_upper:
             raise AuxiliaryBasisMismatchError(
-                f"Auxiliary basis mismatch for RI-JK: 'def2/J' only provides Coulomb fitting. 'def2/JK' is required for HF exchange fitting."
+                "Auxiliary basis mismatch for RI-JK: 'def2/J' only provides Coulomb fitting. 'def2/JK' is required for HF exchange fitting."
             )
         notes.append("Verified def2/JK auxiliary basis for exact HF exchange fitting.")
 
@@ -970,7 +931,7 @@ class ExecutionCascade(BaseModel):
 
     tier: str = Field(..., description="Method Matrix tier identifier")
     target_walltime: str = Field(..., description="Expected walltime ceiling")
-    selected_mlff: str = Field(..., description="Selected capable MLFF model name")
+    selected_mlff: Optional[str] = Field(default=None, description="Explicit advisory model, if requested")
     fallback_trail: List[str] = Field(default_factory=list, description="Audit trail of MLFF models evaluated")
     method: str = Field(..., description="Primary electronic structure method")
     basis_set: str = Field(..., description="Primary atomic orbital basis set")
@@ -1044,8 +1005,9 @@ def parse_execution_cascade(
         )
     tier_cfg = METHOD_MATRIX_V4_TIERS[tier]
 
-    # 2. Resolve MLFF Fallback Hierarchy
-    mlff_spec, fallback_trail = resolve_mlff_model(valid_symbols, requested_model=requested_mlff)
+    # ML is optional and advisory under the accepted D03 policy.
+    mlff_spec, fallback_trail = (resolve_mlff_model(valid_symbols, requested_model=requested_mlff)
+                                if requested_mlff else (None, ["ML advisory stage not requested."]))
 
     # 3. Resolve Basis Sets & Diffuse/Weak Complex Escalation
     basis_set = tier_cfg.basis_set
@@ -1100,13 +1062,6 @@ def parse_execution_cascade(
     stages: List[Dict[str, Any]] = [
         {
             "stage_idx": 1,
-            "stage_name": "MLFF_Screening_And_Preopt",
-            "model": mlff_spec.name,
-            "convergence_tol_max_g": max(tol_max_g * 10.0, 1e-3),
-            "description": f"Initial potential energy screening with {mlff_spec.name}",
-        },
-        {
-            "stage_idx": 2,
             "stage_name": "DFT_Hessian_And_Surface_Refinement",
             "method": method,
             "basis_set": basis_set,
@@ -1118,6 +1073,13 @@ def parse_execution_cascade(
             "description": f"Refinement with {method}/{basis_set}",
         },
     ]
+
+    if mlff_spec is not None:
+        stages.insert(0, {
+            "stage_idx": 0, "stage_name": "ML_Advisory", "model": mlff_spec.name,
+            "advisory_only": True, "capability_status": "unvalidated",
+            "description": "Optional candidate prioritization; no final observables, pruning or convergence certification.",
+        })
 
     if is_coupled_cluster:
         stages.append({
@@ -1151,7 +1113,7 @@ def parse_execution_cascade(
     cascade = ExecutionCascade(
         tier=tier,
         target_walltime=tier_cfg.target_walltime,
-        selected_mlff=mlff_spec.name,
+        selected_mlff=mlff_spec.name if mlff_spec else None,
         fallback_trail=fallback_trail,
         method=method,
         basis_set=basis_set,
@@ -1203,7 +1165,7 @@ class ProvenanceManifest(BaseModel):
     grid_level: str = Field(..., description="Integration grid level")
     dispersion: Optional[str] = Field(default=None, description="Dispersion correction")
     tol_max_g: float = Field(..., description="Maximum gradient convergence threshold")
-    selected_mlff: str = Field(..., description="Selected MLFF potential model")
+    selected_mlff: Optional[str] = Field(default=None, description="Explicit advisory model, if requested")
     fallback_trail: List[str] = Field(default_factory=list, description="MLFF selection audit trail")
     element_symbols: List[str] = Field(default_factory=list, description="Element symbols")
     atomic_numbers: List[int] = Field(default_factory=list, description="Atomic numbers Z")

@@ -8,6 +8,8 @@ dynamic Mendeleev atomic weight and radius calculations.
 from __future__ import annotations
 
 import functools
+import math
+from collections import Counter
 import re
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Optional, Tuple
@@ -103,7 +105,10 @@ class DonorAtom(BaseModel):
     def covalent_radius_angstrom(self) -> float:
         """Dynamic covalent radius in Angstroms from Mendeleev."""
         elem = get_mendeleev_element(self.symbol)
-        radius_pm = float(elem.covalent_radius or 75.0)
+        radius = elem.covalent_radius
+        if radius is None or not math.isfinite(float(radius)) or float(radius) <= 0:
+            raise ValueError(f"No finite tabulated covalent radius for {self.symbol}.")
+        radius_pm = float(radius)
         return radius_pm / 100.0
 
 
@@ -147,22 +152,91 @@ class Ligand(BaseModel):
 
 
 def calculate_formula_weight(formula: str) -> float:
-    """Calculate exact molecular weight for a chemical formula dynamically using Mendeleev."""
-    clean_formula = re.sub(r"[\^\+\-\{\}\[\]]", "", formula)
-    pattern = r"([A-Z][a-z]*)(\d*)"
-    matches = re.findall(pattern, clean_formula)
-    if not matches:
-        return 0.0
+    """Conventional formula-unit molar mass from tabulated elemental weights.
 
+    This is an average elemental-weight calculation, not an exact isotope mass.
+    Supports nested parentheses/brackets, dot-separated adducts and explicit
+    charge suffixes. Unknown elements, invalid grammar and unavailable weights
+    raise instead of returning a partial mass. Electron masses are not included.
+    """
+    if not isinstance(formula, str) or not formula.strip() or len(formula) > 10000:
+        raise ValueError("A nonempty bounded chemical formula is required.")
+    text = formula.strip()
+    if re.search(r"\s", text):
+        raise ValueError("Whitespace inside a chemical formula is unsupported.")
+    # Explicit caret charges or a coordination-bracket charge are unambiguous.
+    text = re.sub(r"\^(?:[1-9][0-9]*)?[+-]$", "", text)
+    text = re.sub(r"(?<=\])(?:[1-9][0-9]*)?[+-]$", "", text)
+    if text.endswith(("+", "-")):
+        uncharged = text[:-1]
+        if re.fullmatch(r"[A-Z][a-z]?[0-9]+", uncharged):
+            raise ValueError("Ambiguous atomic-ion suffix; write charge explicitly, e.g. Fe^3+.")
+        text = uncharged
+    parts = re.split(r"[.·]", text)
+    counts: Counter[str] = Counter()
+
+    def parse_number(part: str, position: int) -> tuple[int, int]:
+        match = re.match(r"[0-9]+", part[position:])
+        if match is None:
+            return 1, position
+        digits = match.group()
+        if digits.startswith("0"):
+            raise ValueError("Stoichiometric coefficients must be positive without leading zeroes.")
+        return int(digits), position + len(digits)
+
+    def parse_group(part: str, position: int, closing: str | None = None, depth: int = 0):
+        if depth > 32:
+            raise ValueError("Chemical formula nesting limit exceeded.")
+        group: Counter[str] = Counter()
+        while position < len(part):
+            char = part[position]
+            if char in ")]":
+                if char != closing or not group:
+                    raise ValueError("Unmatched or empty chemical-formula group.")
+                return group, position + 1
+            if char in "([":
+                nested, position = parse_group(part, position + 1, ")" if char == "(" else "]", depth + 1)
+                multiplier, position = parse_number(part, position)
+                group.update({symbol: number * multiplier for symbol, number in nested.items()})
+                continue
+            match = re.match(r"[A-Z][a-z]?", part[position:])
+            if match is None:
+                raise ValueError(f"Invalid formula syntax at {part[position:]!r}.")
+            symbol = match.group()
+            position += len(symbol)
+            multiplier, position = parse_number(part, position)
+            group[symbol] += multiplier
+        if closing is not None:
+            raise ValueError("Unclosed chemical-formula group.")
+        if not group:
+            raise ValueError("Empty chemical formula or adduct segment.")
+        return group, position
+
+    for part in parts:
+        if not part:
+            raise ValueError("Empty chemical formula or adduct segment.")
+        factor, position = parse_number(part, 0)
+        group, end = parse_group(part, position)
+        if end != len(part):
+            raise ValueError("Chemical formula was not completely parsed.")
+        counts.update({symbol: number * factor for symbol, number in group.items()})
     total_weight = 0.0
-    for symbol, count_str in matches:
-        count = int(count_str) if count_str else 1
+    for symbol, count in counts.items():
         try:
             elem = get_mendeleev_element(symbol)
-            if elem.atomic_weight is not None:
-                total_weight += float(elem.atomic_weight) * count
-        except (ValueError, KeyError, AttributeError):
-            continue
+        except (ValueError, KeyError, AttributeError) as exc:
+            raise ValueError(f"Unknown element {symbol!r}; no formula mass is available.") from exc
+        if elem.symbol != symbol or elem.atomic_weight is None:
+            raise ValueError(f"No canonical tabulated elemental weight for {symbol!r}.")
+        weight = float(elem.atomic_weight)
+        if not math.isfinite(weight) or weight <= 0:
+            raise ValueError(f"Invalid tabulated elemental weight for {symbol!r}.")
+        try:
+            total_weight += weight * count
+        except OverflowError as exc:
+            raise ValueError("Formula-unit mass exceeds finite numerical representation.") from exc
+    if not math.isfinite(total_weight) or total_weight <= 0:
+        raise ValueError("Formula-unit molar mass is not finite and positive.")
     return total_weight
 
 
@@ -212,7 +286,10 @@ class MetalCenter(BaseModel):
     @property
     def covalent_radius_angstrom(self) -> float:
         """Dynamic covalent radius in Angstroms."""
-        radius_pm = float(self.element_record.covalent_radius or 130.0)
+        radius = self.element_record.covalent_radius
+        if radius is None or not math.isfinite(float(radius)) or float(radius) <= 0:
+            raise ValueError(f"No finite tabulated covalent radius for {self.symbol}.")
+        radius_pm = float(radius)
         return radius_pm / 100.0
 
     @property
@@ -223,29 +300,31 @@ class MetalCenter(BaseModel):
             return MetalCategory.LANTHANIDE
         if 89 <= z <= 103:
             return MetalCategory.ACTINIDE
+        gid = self.group_id
+        if gid is None or not 3 <= gid <= 12:
+            raise ValueError(f"{self.symbol} is outside the implemented transition/f-block metal model.")
         return MetalCategory.TRANSITION_METAL
 
     @property
     def d_electrons(self) -> int:
-        """Calculate d-electron count d^n = max(0, G - z) for transition metals."""
+        """Formal ligand-field d-count; not an atomic ground-state configuration."""
         if self.category != MetalCategory.TRANSITION_METAL:
-            return 0
+            raise ValueError("A formal transition-metal d-count is unavailable for f-block centers.")
         gid = self.group_id
         if gid is None:
-            return 0
-        return max(0, gid - self.oxidation_state)
+            raise ValueError(f"No tabulated group for {self.symbol}; d-count unavailable.")
+        count = gid - self.oxidation_state
+        if not 0 <= count <= 10:
+            raise ValueError("Formal d-count is outside the supported zero-to-ten electron model.")
+        return count
 
     @property
     def f_electrons(self) -> int:
-        """Calculate f-electron count for lanthanides and actinides."""
-        z = self.atomic_number
-        if self.category == MetalCategory.LANTHANIDE:
-            valence_electrons = z - 54
-            return max(0, valence_electrons - self.oxidation_state)
-        if self.category == MetalCategory.ACTINIDE:
-            valence_electrons = z - 86
-            return max(0, valence_electrons - self.oxidation_state)
-        return 0
+        """No f-shell configuration is inferred from atomic number alone."""
+        raise ValueError(
+            "Ionic f-electron configuration is unavailable: a qualified state/configuration "
+            "source is required, not atomic-number subtraction."
+        )
 
     def validate_oxidation_state(self) -> None:
         """Verify that the oxidation state is physically and chemically valid."""
@@ -263,11 +342,16 @@ class MetalCenter(BaseModel):
     def determine_spin_multiplicity(
         self, geometry: CoordinationPolyhedron = CoordinationPolyhedron.OCTAHEDRAL
     ) -> int:
-        """Determine 2S + 1 spin multiplicity based on d-electron count, geometry, and spin state."""
-        dn = self.d_electrons
+        """Propose a textbook ligand-field spin estimate, never establish a ground state.
+
+        The high/low field label is a model assumption. Actual complex state
+        selection needs ligand-specific electronic evidence and spin-orbit treatment.
+        """
         if self.category != MetalCategory.TRANSITION_METAL:
-            fn = self.f_electrons
-            return fn + 1 if fn > 0 else 1
+            raise ValueError("f-block spin cannot be inferred from element and oxidation state.")
+        dn = self.d_electrons
+        if self.spin_state.lower() not in ("high", "low"):
+            raise ValueError("The ligand-field estimate requires an explicit high/low model label.")
 
         is_high = self.spin_state.lower() == "high"
 
@@ -320,50 +404,25 @@ class MetalCenter(BaseModel):
             if dn == 5:
                 return 6
 
-        return 1
+        raise ValueError("No qualified spin estimate for this geometry/electron-count model.")
 
-    def check_geometry_compatibility(self, polyhedron: CoordinationPolyhedron) -> Tuple[bool, str]:
-        """Check compatibility between metal electronic configuration and coordination geometry."""
-        dn = self.d_electrons
-        period = self.period
+    def check_geometry_compatibility(
+        self, polyhedron: CoordinationPolyhedron,
+    ) -> Tuple[Optional[bool], str]:
+        """Return undetermined without ligand-/state-specific electronic evidence.
 
-        if polyhedron == CoordinationPolyhedron.SQUARE_PLANAR:
-            if dn == 8:
-                if period >= 5 or self.symbol in ("Pt", "Pd", "Au", "Rh", "Ir", "Ni"):
-                    return (
-                        True,
-                        f"d8 {self.symbol}(+{self.oxidation_state}) strongly favors square planar geometry.",
-                    )
-            return (
-                True,
-                f"Square planar is permissible for {self.symbol}(+{self.oxidation_state}).",
-            )
-
-        if polyhedron == CoordinationPolyhedron.OCTAHEDRAL:
-            if dn == 6 and self.symbol in ("Pt", "Co", "Ru", "Rh", "Ir", "Fe"):
-                return (
-                    True,
-                    f"d6 {self.symbol}(+{self.oxidation_state}) strongly favors low-spin octahedral geometry.",
-                )
-            return (
-                True,
-                f"Octahedral geometry is compatible with {self.symbol}(+{self.oxidation_state}).",
-            )
-
-        if polyhedron == CoordinationPolyhedron.LINEAR:
-            if dn == 10 and self.symbol in ("Ag", "Au", "Cu", "Hg"):
-                return (
-                    True,
-                    f"d10 {self.symbol}(+{self.oxidation_state}) strongly favors linear coordination.",
-                )
-            return (
-                True,
-                f"Linear coordination is permissible for {self.symbol}(+{self.oxidation_state}).",
-            )
-
+        A geometric template or formal d-count cannot establish compatibility,
+        stability, preferred geometry or the spin ground state of a complex.
+        ``None`` is deliberately distinct from both validated and invalid.
+        """
+        if not isinstance(polyhedron, CoordinationPolyhedron):
+            raise ValueError("A supported coordination-template identifier is required.")
         return (
-            True,
-            f"Geometry {polyhedron.value} evaluated for {self.symbol}(+{self.oxidation_state}).",
+            None,
+            f"Electronic compatibility of {self.symbol}({self.oxidation_state:+d}) "
+            f"with {polyhedron.value} is undetermined. Ligand identity, electronic "
+            "state and qualified calculation or experimental evidence are required; "
+            "a template is not a geometry or ground-state validation.",
         )
 
 
@@ -849,7 +908,7 @@ class InorganicComplex(BaseModel):
 
     @property
     def spin_multiplicity(self) -> int:
-        """Spin multiplicity calculated for the coordination complex."""
+        """Ligand-field model estimate only; not a calculated electronic ground state."""
         return self.metal_center.determine_spin_multiplicity(self.geometry.polyhedron)
 
     @property

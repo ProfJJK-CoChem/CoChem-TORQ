@@ -11,7 +11,7 @@ Implements:
    and zero-interruption spooling to `telemetry_spool.jsonl`.
 2. 2D Strided Regular Grid Decimation for Potential Energy Surfaces (PES) with
    stationary point preservation and color-blind accessible Plotly 3D HTML carousels
-   for multi-state Discrete Variable Representation (DVR) probability wavefunctions.
+   for externally supplied probability-density overlays with no inferred solver/state identity.
 3. Multi-frame XYZ Crash Animation and JSON Diagnostic Exporter for Steric Shatter
    Soft-Quench aborts and gradient explosion analysis.
 4. Strict Filesystem Air-Gap compliance writing exclusively to dynamic
@@ -27,6 +27,7 @@ import json
 import logging
 import math
 import os
+import re
 import tempfile
 import time
 from datetime import timezone
@@ -146,7 +147,7 @@ class WebhookPayload(BaseModel):
 class CrashDiagnostic(BaseModel):
     """Diagnostic schema for Steric Shatter Soft-Quench crash captures."""
 
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", populate_by_name=True, allow_inf_nan=False)
 
     error_node_id: str
     timestamp: str = Field(
@@ -155,7 +156,9 @@ class CrashDiagnostic(BaseModel):
     num_frames: int
     num_atoms: int
     symbols: list[str]
-    min_interatomic_distance: float
+    min_interatomic_distance: float | None
+    distance_status: str = "computed"
+    distance_reason: str | None = None
     colliding_pair: tuple[int, int] | None = None
     max_gradient_norm: float | None = None
     abort_reason: str
@@ -510,7 +513,7 @@ def stream_webhook_events(
         import threading
 
         res: list[Any] = [None]
-        err: list[Optional[Exception]] = [None]
+        err: list[Exception | None] = [None]
 
         def _runner() -> None:
             try:
@@ -693,15 +696,16 @@ def generate_plotly_3d_carousels(
     title: str = "CoChem-TORQ 2D Torsional Potential Energy Surface",
 ) -> Path:
     """
-    Downsamples multi-dimensional PES grids and DVR probability wavefunctions
+    Downsamples supplied potential grids and externally provided probability densities
     using 2D Strided Regular Grid Decimation while preserving stationary points.
     Generates interactive, color-blind accessible HTML Plotly 3D visualizers.
 
     :param pes_tensor: 2D array of potential energies, or dict with
         'pes', 'phi1', 'phi2'.
-    :param dvr_wavefunctions: Optional list or array of DVR probability densities.
-    :param phi1_grid: Optional 1D array of phi1 dihedral coordinates.
-    :param phi2_grid: Optional 1D array of phi2 dihedral coordinates.
+    :param dvr_wavefunctions: Historical argument name for externally supplied probability densities.
+        Rendering does not establish DVR solutions or assign vibrational quantum numbers.
+    :param phi1_grid: Required phi1 coordinates unless present in the input dictionary.
+    :param phi2_grid: Required phi2 coordinates unless present in the input dictionary.
     :param artifact_dir: Target deliverable directory (Filesystem Air-Gap).
     :param filename: Output HTML filename.
     :param max_nodes: Maximum allowable node threshold (default: 5000).
@@ -714,33 +718,21 @@ def generate_plotly_3d_carousels(
 
     # Unpack PES tensor and coordinate grids
     if isinstance(pes_tensor, dict):
-        pes = np.asarray(pes_tensor["pes"], dtype=np.float64)
-        n1, n2 = pes.shape
+        pes = np.asarray(pes_tensor["pes"], dtype=float)
         raw_phi1 = pes_tensor.get("phi1", phi1_grid)
-        phi1 = (
-            np.linspace(-180.0, 180.0, n1)
-            if raw_phi1 is None
-            else np.asarray(raw_phi1, dtype=np.float64)
-        )
         raw_phi2 = pes_tensor.get("phi2", phi2_grid)
-        phi2 = (
-            np.linspace(-180.0, 180.0, n2)
-            if raw_phi2 is None
-            else np.asarray(raw_phi2, dtype=np.float64)
-        )
     else:
-        pes = np.asarray(pes_tensor, dtype=np.float64)
-        n1, n2 = pes.shape
-        phi1 = (
-            np.linspace(-180.0, 180.0, n1)
-            if phi1_grid is None
-            else np.asarray(phi1_grid, dtype=np.float64)
-        )
-        phi2 = (
-            np.linspace(-180.0, 180.0, n2)
-            if phi2_grid is None
-            else np.asarray(phi2_grid, dtype=np.float64)
-        )
+        pes = np.asarray(pes_tensor, dtype=float)
+        raw_phi1, raw_phi2 = phi1_grid, phi2_grid
+    if pes.ndim != 2 or min(pes.shape) < 2 or not np.isfinite(pes).all():
+        raise ValueError("A finite complete two-dimensional surface is required for rendering.")
+    if raw_phi1 is None or raw_phi2 is None:
+        raise ValueError("Actual angle grids are required; missing coordinates cannot be invented.")
+    phi1, phi2 = np.asarray(raw_phi1, dtype=float), np.asarray(raw_phi2, dtype=float)
+    if (phi1.shape != (pes.shape[0],) or phi2.shape != (pes.shape[1],)
+            or not np.isfinite(phi1).all() or not np.isfinite(phi2).all()
+            or np.any(np.diff(phi1) <= 0) or np.any(np.diff(phi2) <= 0)):
+        raise ValueError("Finite strictly increasing angle grids must match the surface axes.")
 
     # Decimate 2D grid while preserving stationary points
     phi1_sub, phi2_sub, pes_sub, stationary_pts = decimate_2d_grid_with_extrema(
@@ -815,7 +807,7 @@ def generate_plotly_3d_carousels(
             )
         )
 
-    # 3. Multi-State DVR Wavefunction Probability Distributions (Carousel Traces)
+    # 3. Externally supplied density overlays (visualization only)
     updatemenus = []
     if dvr_wavefunctions is not None and len(dvr_wavefunctions) > 0:
         wf_list = (
@@ -825,27 +817,25 @@ def generate_plotly_3d_carousels(
         )
         num_states = len(wf_list)
 
-        # Baseline offset for wavefunction overlay
+        # Visual display elevation for supplied density overlays
         pes_min = float(np.nanmin(pes_sub))
         pes_max = float(np.nanmax(pes_sub))
         v_span = max(1.0, pes_max - pes_min)
 
-        # Add a trace for each DVR state
+        # Add a trace for each supplied density, without assigning quantum labels
         for state_idx, wf in enumerate(wf_list):
             wf_arr = np.asarray(wf, dtype=np.float64)
-            # Decimate wavefunction to match grid stride
-            s1 = max(1, len(phi1) // len(phi1_sub))
-            s2 = max(1, len(phi2) // len(phi2_sub))
-            wf_sub = wf_arr[::s1, ::s2]
-            # Ensure shape match
-            if wf_sub.shape != pes_sub.shape:
-                wf_sub = np.resize(wf_sub, pes_sub.shape)
-
-            # Normalize and elevate probability density
-            prob_density = np.abs(wf_sub)
-            p_max = np.nanmax(prob_density)
-            if p_max > 1e-12:
-                prob_density = prob_density / p_max
+            if (wf_arr.shape != pes.shape or not np.isfinite(wf_arr).all()
+                    or np.any(wf_arr < 0) or not np.any(wf_arr > 0)):
+                raise ValueError("Supplied probability density must be finite, nonnegative, nonzero and match the original grid.")
+            # Decimation may retain additional extrema. Use their exact source
+            # indices instead of resizing or repeating probability values.
+            i1, i2 = np.searchsorted(phi1, phi1_sub), np.searchsorted(phi2, phi2_sub)
+            if (not np.array_equal(phi1[i1], phi1_sub)
+                    or not np.array_equal(phi2[i2], phi2_sub)):
+                raise ValueError("Rendered grids do not identify exact retained source coordinates.")
+            wf_sub = wf_arr[np.ix_(i1, i2)]
+            prob_density = wf_sub / float(np.max(wf_arr))
 
             # Offset probability surface slightly above local PES
             z_wf = pes_sub + prob_density * (v_span * 0.25)
@@ -858,13 +848,13 @@ def generate_plotly_3d_carousels(
                     colorscale="Plasma",
                     opacity=0.65,
                     showscale=False,
-                    name=f"DVR State v={state_idx}",
+                    name=f"Supplied density {state_idx}",
                     visible=(state_idx == 0),
                     hoverinfo="x+y+z",
                     hovertemplate=(
-                        f"DVR v={state_idx}<br>ϕ₁: %{{y:.1f}}°<br>"
+                        f"Supplied density {state_idx}<br>ϕ₁: %{{y:.1f}}°<br>"
                         f"ϕ₂: %{{x:.1f}}°<br>"
-                        f"|ψ|² Offset: %{{z:.2f}} cm⁻¹<extra></extra>"
+                        f"Visual elevation (surface + scaled density): %{{z:.2f}} cm⁻¹<extra></extra>"
                     ),
                 )
             )
@@ -881,20 +871,20 @@ def generate_plotly_3d_carousels(
             )
         )
 
-        # Option for each DVR state
+        # Option for each supplied density
         for s_idx in range(num_states):
             vis = [True, True if stationary_pts else False] + [
                 (i == s_idx) for i in range(num_states)
             ]
             buttons.append(
                 dict(
-                    label=f"DVR State v={s_idx}",
+                    label=f"Supplied density {s_idx}",
                     method="update",
                     args=[
                         {"visible": vis},
                         {
                             "title": (
-                                f"{title} (DVR State v={s_idx} "
+                                f"{title} (Supplied density {s_idx} "
                                 f"Probability Distribution)"
                             )
                         },
@@ -975,33 +965,28 @@ def generate_plotly_3d_carousels(
 # ============================================================================
 
 
-def _compute_pairwise_distances(coords: np.ndarray) -> tuple[float, tuple[int, int]]:
+def _compute_pairwise_distances(
+    coords: np.ndarray,
+) -> tuple[float | None, tuple[int, int] | None]:
+    """Actual minimum separation in Å; a single atom has no atom pair.
+
+    Invalid/nonfinite geometry is an error, rather than a zero-distance collision
+    or a fabricated pair. No atoms are dropped to recover an apparently usable
+    minimum. Input must be atom-ordered finite N by 3 Cartesian coordinates.
     """
-    Computes minimum interatomic distance and colliding pair indices.
-
-    :param coords: (N, 3) Cartesian coordinates in Angstroms.
-    :return: (min_distance, (atom_i, atom_j))
-    """
-    num_atoms = coords.shape[0]
-    if num_atoms < 2:
-        return 999.0, (0, 0)
-
-    # Compute difference vectors: (N, N, 3)
-    diff = coords[:, np.newaxis, :] - coords[np.newaxis, :, :]
-    dist_matrix = np.linalg.norm(diff, axis=-1)
-
-    # Mask diagonal
-    np.fill_diagonal(dist_matrix, np.inf)
-
-    if np.isnan(dist_matrix).all():
-        return 0.0, (0, 1)
-
-    try:
-        min_idx = np.unravel_index(np.nanargmin(dist_matrix), dist_matrix.shape)
-        min_dist = float(dist_matrix[min_idx])
-        return min_dist, (int(min_idx[0]), int(min_idx[1]))
-    except ValueError:
-        return 0.0, (0, 1)
+    coordinates = np.asarray(coords, dtype=float)
+    if (coordinates.ndim != 2 or coordinates.shape[1] != 3
+            or len(coordinates) == 0 or not np.isfinite(coordinates).all()):
+        raise ValueError("Minimum-distance analysis requires finite nonempty N by 3 coordinates.")
+    if len(coordinates) == 1:
+        return None, None
+    i, j = np.triu_indices(len(coordinates), k=1)
+    with np.errstate(over="ignore", invalid="ignore"):
+        distances = np.linalg.norm(coordinates[i] - coordinates[j], axis=1)
+    if not np.isfinite(distances).all():
+        raise ValueError("Computed pair distances overflow or are nonfinite; no valid minimum is available.")
+    index = int(np.argmin(distances))
+    return float(distances[index]), (int(i[index]), int(j[index]))
 
 
 def export_crash_animation(
@@ -1012,7 +997,7 @@ def export_crash_animation(
     gradients: list[np.ndarray] | None = None,
     artifact_dir: str | Path | None = None,
     scratch_dir: str | Path | None = None,
-    abort_reason: str = "Steric Shatter Soft-Quench Abort: Unresolvable atomic overlap",
+    abort_reason: str = "Abort reason not supplied by caller.",
 ) -> dict[str, Path]:
     """
     Captures optimization trajectories during Steric Shatter Soft-Quench aborts into
@@ -1029,6 +1014,9 @@ def export_crash_animation(
     :param abort_reason: Text description of the physics abort condition.
     :return: Dictionary containing 'xyz_path', 'node_xyz_path', etc.
     """
+    if (not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", error_node_id)
+            or error_node_id in {".", ".."}):
+        raise ValueError("Crash node identifiers must be bounded safe filename identifiers.")
     target_artifacts = _resolve_artifact_dir(artifact_dir)
     target_scratch = _resolve_scratch_dir(scratch_dir)
 
@@ -1051,24 +1039,34 @@ def export_crash_animation(
         # Single frame (1, N, 3)
         traj_arr = traj_arr[np.newaxis, ...]
 
+    if (traj_arr.ndim != 3 or traj_arr.shape[2] != 3
+            or traj_arr.shape[0] == 0 or traj_arr.shape[1] == 0
+            or not np.isfinite(traj_arr).all()):
+        raise ValueError("Crash trajectory must contain finite nonempty [frames,atoms,3] coordinates.")
     num_frames, num_atoms, _ = traj_arr.shape
-
-    # Default symbols if missing
     if symbols is None or len(symbols) != num_atoms:
-        symbols = ["X"] * num_atoms
+        raise ValueError("Actual atom symbols matching every trajectory atom are required.")
+    from mendeleev import element
 
-    # Track minimum distance and exploding gradients across trajectory
-    min_overall_dist = float("inf")
-    colliding_pair: tuple[int, int] = (0, 0)
+    for symbol in symbols:
+        if (not isinstance(symbol, str) or not re.fullmatch(r"[A-Z][a-z]?", symbol)
+                or element(symbol).symbol != symbol):
+            raise ValueError(f"Invalid or unavailable actual atom symbol: {symbol!r}.")
+    if energies is not None:
+        energy_array = np.asarray(energies, dtype=float)
+        if energy_array.shape != (num_frames,) or not np.isfinite(energy_array).all():
+            raise ValueError("Provided trajectory energies must be finite and align with every frame.")
+    min_overall_dist: float | None = None
+    colliding_pair: tuple[int, int] | None = None
     crash_frame_idx = num_frames - 1
     max_grad_norm: float | None = None
-
-    if gradients is not None and len(gradients) > 0:
-        grad_norms = [float(np.linalg.norm(g)) for g in gradients]
-        try:
-            max_grad_norm = float(np.nanmax(np.asarray(grad_norms)))
-        except ValueError:
-            max_grad_norm = None
+    if gradients is not None:
+        gradient_array = np.asarray(gradients, dtype=float)
+        if gradient_array.shape != traj_arr.shape or not np.isfinite(gradient_array).all():
+            raise ValueError("Provided gradients must be finite and match all trajectory frames/atoms.")
+        max_grad_norm = float(np.max(np.linalg.norm(gradient_array.reshape(num_frames, -1), axis=1)))
+        if not math.isfinite(max_grad_norm):
+            raise ValueError("Provided gradient norm exceeds finite numerical representation.")
 
     # Format multi-frame XYZ string
     xyz_lines: list[str] = []
@@ -1076,27 +1074,30 @@ def export_crash_animation(
         frame_coords: np.ndarray = np.asarray(traj_arr[f_idx], dtype=np.float64)
         frame_min_d, frame_pair = _compute_pairwise_distances(frame_coords)
 
-        if frame_min_d < min_overall_dist:
+        if frame_min_d is not None and (min_overall_dist is None or frame_min_d < min_overall_dist):
             min_overall_dist = frame_min_d
             colliding_pair = frame_pair
             crash_frame_idx = f_idx
 
         e_str = (
             f" Energy: {energies[f_idx]:.6f} Eh |"
-            if (energies and f_idx < len(energies))
+            if energies is not None
             else ""
         )
-        comment = (
-            f"Frame {f_idx}/{num_frames - 1} | Node: {error_node_id} |{e_str} "
-            f"MinDist: {frame_min_d:.4f} A (Atoms {frame_pair[0]}-{frame_pair[1]})"
+        distance_comment = (
+            f"MinDist: {frame_min_d:.8g} A (Atoms {frame_pair[0]}-{frame_pair[1]})"
+            if frame_min_d is not None and frame_pair is not None else
+            "MinDist: not applicable (fewer than two atoms)"
         )
+        comment = (f"Frame {f_idx}/{num_frames - 1} | Node: {error_node_id} |{e_str} "
+                   + distance_comment)
 
         xyz_lines.append(str(num_atoms))
         xyz_lines.append(comment)
         for a_idx in range(num_atoms):
             sym = symbols[a_idx]
             x, y, z = frame_coords[a_idx]
-            xyz_lines.append(f"{sym:<3} {x:12.6f} {y:12.6f} {z:12.6f}")
+            xyz_lines.append(f"{sym:<3} {x:.17g} {y:.17g} {z:.17g}")
 
     xyz_content = "\n".join(xyz_lines) + "\n"
 
@@ -1112,15 +1113,17 @@ def export_crash_animation(
         f.write(xyz_content)
 
     # Build diagnostic JSON payload
-    init_energy = float(energies[0]) if (energies and len(energies) > 0) else None
-    final_energy = float(energies[-1]) if (energies and len(energies) > 0) else None
+    init_energy = float(energies[0]) if energies is not None else None
+    final_energy = float(energies[-1]) if energies is not None else None
 
     diagnostic = CrashDiagnostic(
         error_node_id=error_node_id,
         num_frames=num_frames,
         num_atoms=num_atoms,
         symbols=symbols,
-        min_interatomic_distance=round(min_overall_dist, 6),
+        min_interatomic_distance=min_overall_dist,
+        distance_status="computed" if min_overall_dist is not None else "not_applicable",
+        distance_reason=None if min_overall_dist is not None else "Fewer than two atoms: no atom pair exists.",
         colliding_pair=colliding_pair,
         max_gradient_norm=max_grad_norm,
         abort_reason=abort_reason,
@@ -1134,6 +1137,7 @@ def export_crash_animation(
             diagnostic.model_dump(),
             f,
             indent=2,
+            allow_nan=False,
             default=_json_serial_default,
             ensure_ascii=False,
         )

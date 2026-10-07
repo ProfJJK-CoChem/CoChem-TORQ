@@ -12,14 +12,12 @@ if _torq_libs.is_dir() and str(_torq_libs) not in sys.path:
 from Libraries.cochem_torq_conformal import (
     CalibrationSample,
     ConformalPredictor,
+    ConformalCalibrationError,
 )
 from Libraries.cochem_torq_inference_schemas import ConformalInterval, ConformalPredictorConfig
-from cochem_base.exceptions import ConformalCalibrationError
-from cochem_base.schemas import ConformalCalibrationConfig
 
 __all__ = [
     "CalibrationSample",
-    "ConformalCalibrationConfig",
     "ConformalCalibrationError",
     "ConformalInterval",
     "ConformalPredictor",

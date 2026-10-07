@@ -11,6 +11,8 @@ import hashlib
 import json
 import os
 import platform
+import shutil
+import tempfile
 import threading
 import time
 import uuid
@@ -68,6 +70,8 @@ def compute_qbc_energy_variance(energies: Sequence[float]) -> float:
             diagnostics={"num_models": m},
         )
     arr = np.asarray(energies, dtype=np.float64)
+    if not np.isfinite(arr).all():
+        raise ActiveLearningSelectionError("Committee energies must be finite; missing predictions are not zero uncertainty.")
     mean_e = np.mean(arr)
     var_e = np.sum((arr - mean_e) ** 2) / float(m - 1)
     return float(max(0.0, var_e))
@@ -79,6 +83,9 @@ def compute_max_force_epistemic_std(forces: np.ndarray) -> float:
     forces shape: (M, N, 3)
     alpha_F^std = max_i sqrt( 1/(M-1) sum_m ||F_{i,m} - F_{i,mean}||_2^2 )
     """
+    forces = np.asarray(forces, dtype=np.float64)
+    if forces.ndim != 3 or forces.shape[1] == 0 or forces.shape[2] != 3 or not np.isfinite(forces).all():
+        raise ActiveLearningSelectionError("Committee forces must be finite with shape (M, N, 3), N > 0.")
     m, n, _ = forces.shape
     if m < 2:
         raise ActiveLearningSelectionError(
@@ -468,6 +475,8 @@ class ActiveLearner:
         If sigma_E > threshold_sigma_mev (10.0 meV):
             Action: 'QUERY_ANCHOR' (query_anchor: True)
         """
+        if not np.isfinite(sigma_e_mev) or sigma_e_mev < 0 or not np.isfinite(threshold_sigma_mev) or threshold_sigma_mev < 0:
+            raise ActiveLearningSelectionError("Uncertainty and threshold must be finite and nonnegative.")
         query_anchor = bool(sigma_e_mev > threshold_sigma_mev)
         action = "QUERY_ANCHOR" if query_anchor else "SURROGATE_PREDICT"
         return {
@@ -475,20 +484,22 @@ class ActiveLearner:
             "query_anchor": query_anchor,
             "sigma_e_mev": float(sigma_e_mev),
             "threshold_sigma_mev": float(threshold_sigma_mev),
+            "advisory_only": True,
+            "eligible_for_pruning": False,
         }
 
 
 # =============================================================================
-# Thread-Safe HDF5 SWMR Persistence Manager (Suggestion #103)
+# Thread-Safe HDF5 Snapshot Persistence Manager (Suggestion #103)
 # =============================================================================
 class ActiveLearningHDF5Manager:
-    """Thread-safe and multi-process HDF5 SWMR persistence manager for Active Learning candidate pool [M].
+    """Thread-safe and multi-process HDF5 snapshot persistence manager for Active Learning candidate pool [M].
 
     Enforces:
     - IPC process synchronization via filelock.FileLock.
     - In-process thread safety via threading.RLock.
     - Companion JSON lease metadata (f"{h5_path}.lease.json").
-    - HDF5 single-writer multiple-reader (SWMR) mode.
+    - Atomic publication of complete snapshots, safe for dynamic group creation.
     - Fletcher32 data integrity checksums and shuffle filters on chunked datasets.
     """
 
@@ -515,7 +526,7 @@ class ActiveLearningHDF5Manager:
                     "hostname": platform.node() if hasattr(platform, "node") else "localhost",
                     "timestamp": now_ts,
                     "h5_file": str(self.hdf5_path),
-                    "mode": "SWMR_WRITE",
+                    "mode": "SNAPSHOT_PUBLICATION",
                 }
                 staging = self.lease_file.with_name(
                     f"{self.lease_file.name}.tmp.{current_pid}_{threading.get_ident()}_{time.monotonic_ns()}"
@@ -523,85 +534,82 @@ class ActiveLearningHDF5Manager:
                 try:
                     staging.write_text(json.dumps(payload, indent=2), encoding="utf-8")
                     os.replace(staging, self.lease_file)
-                except Exception:
-                    pass
-                try:
                     yield
                 finally:
-                    if self.lease_file.exists():
-                        try:
-                            self.lease_file.unlink()
-                        except Exception:
-                            pass
+                    staging.unlink(missing_ok=True)
+                    self.lease_file.unlink(missing_ok=True)
 
     def append_candidate(self, record: dict[str, Any]) -> None:
-        """Append candidate geometry record to HDF5 SWMR pool under Fletcher32 checksum protection."""
-        cid = str(record.get("candidate_id", f"cand_{uuid.uuid4().hex[:8]}"))
+        """Append without replacement, publishing a complete immutable HDF5 snapshot.
+
+        Dynamic group creation is not performed in SWMR mode. Existing readers
+        retain their old inode; subsequent readers see the complete new snapshot.
+        """
+        cid = str(record.get("candidate_id", f"cand_{uuid.uuid4().hex}"))
+        if not cid or "/" in cid or cid in {".", ".."}:
+            raise ValueError("Candidate ID must be a nonempty single HDF5 group name.")
         coords = np.asarray(record["coordinates"], dtype=np.float64)
-        z = np.asarray(record["atomic_numbers"], dtype=np.int32)
-
+        raw_z = np.asarray(record["atomic_numbers"])
+        if (raw_z.ndim != 1 or not len(raw_z) or coords.shape != (len(raw_z), 3)
+                or not np.isfinite(coords).all() or not np.isfinite(raw_z).all()
+                or np.any(raw_z != np.floor(raw_z)) or np.any((raw_z < 1) | (raw_z > 118))):
+            raise ValueError("Candidate requires finite geometry and valid aligned atomic numbers.")
+        z = raw_z.astype(np.int32)
+        metadata = {k: v for k, v in record.items() if k not in ("coordinates", "atomic_numbers")}
+        metadata["candidate_id"] = cid
+        metadata_json = json.dumps(metadata, allow_nan=False)
         with self._acquire_lease():
-            mode = "a" if self.hdf5_path.exists() else "w"
-            with h5py.File(self.hdf5_path, mode, libver="latest") as f:
+            fd, staging_name = tempfile.mkstemp(prefix=self.hdf5_path.name + ".", suffix=".tmp", dir=self.hdf5_path.parent)
+            os.close(fd)
+            staging = Path(staging_name)
+            try:
+                if self.hdf5_path.exists():
+                    shutil.copy2(self.hdf5_path, staging)
+                    mode = "a"
+                else:
+                    mode = "w"
+                with h5py.File(staging, mode, libver="latest") as handle:
+                    group = handle.require_group("candidates")
+                    if cid in group:
+                        raise ValueError(f"Candidate {cid!r} already exists; overwriting scientific records is forbidden.")
+                    candidate = group.create_group(cid)
+                    candidate.create_dataset("coordinates", data=coords, chunks=coords.shape, fletcher32=True, shuffle=True)
+                    candidate.create_dataset("atomic_numbers", data=z, chunks=z.shape, fletcher32=True, shuffle=True)
+                    candidate.attrs["candidate_id"] = cid
+                    candidate.attrs["metadata_json"] = metadata_json
+                    handle.flush()
+                with staging.open("rb") as committed:
+                    os.fsync(committed.fileno())
+                os.replace(staging, self.hdf5_path)
+                directory_fd = os.open(self.hdf5_path.parent, os.O_DIRECTORY)
                 try:
-                    f.swmr_mode = True
-                except Exception:
-                    pass
-
-                grp = f.require_group("candidates")
-                if cid in grp:
-                    del grp[cid]
-
-                cand_grp = grp.create_group(cid)
-                cand_grp.create_dataset(
-                    "coordinates",
-                    data=coords,
-                    chunks=coords.shape,
-                    fletcher32=True,
-                    shuffle=True,
-                )
-                cand_grp.create_dataset(
-                    "atomic_numbers",
-                    data=z,
-                    chunks=z.shape,
-                    fletcher32=True,
-                    shuffle=True,
-                )
-                for k, v in record.items():
-                    if k not in ("coordinates", "atomic_numbers"):
-                        if isinstance(v, str | int | float | bool):
-                            cand_grp.attrs[k] = v
-                        elif v is None:
-                            cand_grp.attrs[k] = ""
-                        else:
-                            cand_grp.attrs[k] = json.dumps(v)
-                f.flush()
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
+            finally:
+                staging.unlink(missing_ok=True)
 
     def read_candidates(self) -> list[dict[str, Any]]:
-        """Read all candidate records from HDF5 pool in SWMR reader mode."""
+        """Read one complete snapshot, preserving JSON null and structured metadata."""
         with self._rlock:
             if not self.hdf5_path.exists():
                 return []
-            records: list[dict[str, Any]] = []
-            try:
-                f = h5py.File(self.hdf5_path, "r", libver="latest", swmr=True)
-            except Exception:
-                f = h5py.File(self.hdf5_path, "r", libver="latest")
-            with f:
-                if "candidates" not in f:
+            records = []
+            with h5py.File(self.hdf5_path, "r", libver="latest") as handle:
+                if "candidates" not in handle:
                     return []
-                grp = f["candidates"]
-                for key in sorted(grp.keys()):
-                    cand_grp = grp[key]
-                    rec: dict[str, Any] = {
-                        "candidate_id": cand_grp.attrs.get("candidate_id", key),
-                        "coordinates": np.array(cand_grp["coordinates"]),
-                        "atomic_numbers": [int(x) for x in cand_grp["atomic_numbers"]],
-                    }
-                    for attr_k, attr_v in cand_grp.attrs.items():
-                        if attr_k not in rec:
-                            rec[attr_k] = attr_v
-                    records.append(rec)
+                for key in sorted(handle["candidates"].keys()):
+                    candidate = handle["candidates"][key]
+                    if "metadata_json" in candidate.attrs:
+                        record = json.loads(candidate.attrs["metadata_json"])
+                    else:
+                        # Older records retain their original stored attributes;
+                        # an empty string cannot be reinterpreted as known null.
+                        record = dict(candidate.attrs)
+                        record.setdefault("candidate_id", key)
+                    record["coordinates"] = np.asarray(candidate["coordinates"])
+                    record["atomic_numbers"] = [int(z) for z in candidate["atomic_numbers"]]
+                    records.append(record)
             return records
 
 
@@ -619,6 +627,8 @@ class ActiveLearningSampler:
         threshold_sigma_mev: float = 10.0,
         delta_ml_model: Optional[Any] = None,
     ) -> None:
+        if not np.isfinite(threshold_sigma_mev) or threshold_sigma_mev < 0:
+            raise ActiveLearningSelectionError("Uncertainty threshold must be finite and nonnegative.")
         self.threshold_sigma_mev = threshold_sigma_mev
         self.delta_ml_model = delta_ml_model
 
@@ -636,29 +646,39 @@ class ActiveLearningSampler:
         Else:
             Interpolates high-level correction via Delta-ML surrogate (tagged [E]).
         """
-        import scipy.constants
-        hartree_in_ev = scipy.constants.physical_constants["Hartree energy in eV"][0]
+        if not np.isfinite(scout_energy_ha):
+            raise ActiveLearningSelectionError("A finite scout energy is required.")
+        if not np.isfinite(committee_sigma_mev) or committee_sigma_mev < 0:
+            raise ActiveLearningSelectionError("Committee uncertainty must be finite and nonnegative.")
         gate_tripped = bool(committee_sigma_mev > self.threshold_sigma_mev)
 
         if gate_tripped:
             if anchor_evaluator is not None:
                 anchor_energy = float(anchor_evaluator(candidate_geometry))
             else:
-                anchor_energy = scout_energy_ha + (committee_sigma_mev / (1000.0 * hartree_in_ev))
+                raise ActiveLearningSelectionError(
+                    "High-level anchor required, but no anchor evaluator is configured; scout result remains unchanged."
+                )
             provenance = "[M]"
             final_energy = anchor_energy
             action = "QUERY_ANCHOR"
         else:
-            delta_e = 0.0
-            if self.delta_ml_model is not None and hasattr(self.delta_ml_model, "predict"):
-                delta_e = float(self.delta_ml_model.predict(candidate_geometry))
+            if self.delta_ml_model is None or not callable(getattr(self.delta_ml_model, "predict", None)):
+                raise ActiveLearningSelectionError(
+                    "Delta-ML prediction unavailable: a trained predictor is required; no zero correction is substituted."
+                )
+            delta_e = float(self.delta_ml_model.predict(candidate_geometry))
             final_energy = scout_energy_ha + delta_e
             provenance = "[E]"
             action = "SURROGATE_PREDICT"
 
+        if not np.isfinite(final_energy):
+            raise ActiveLearningSelectionError("Evaluator returned a non-finite energy.")
         return {
             "action": action,
             "query_anchor": gate_tripped,
+            "advisory_only": True,
+            "eligible_for_pruning": False,
             "sigma_mev": float(committee_sigma_mev),
             "threshold_mev": float(self.threshold_sigma_mev),
             "energy_hartree": float(final_energy),
@@ -673,10 +693,14 @@ class ActiveLearningSampler:
         """Run active learning committee sampling across a candidate PES grid."""
         results = []
         for cand in candidates:
+            scout_energy = cand.get("scout_energy", cand.get("energy_hartree"))
+            sigma = cand.get("sigma_mev", cand.get("uncertainty_mev"))
+            if scout_energy is None or sigma is None or cand.get("coordinates") is None:
+                raise ActiveLearningSelectionError("Each candidate requires coordinates, scout energy, and measured committee uncertainty.")
             res = self.evaluate_configuration(
                 candidate_geometry=cand.get("coordinates"),
-                scout_energy_ha=float(cand.get("scout_energy", cand.get("energy_hartree", 0.0))),
-                committee_sigma_mev=float(cand.get("sigma_mev", cand.get("uncertainty_mev", 0.0))),
+                scout_energy_ha=float(scout_energy),
+                committee_sigma_mev=float(sigma),
                 anchor_evaluator=anchor_evaluator,
             )
             cand_result = dict(cand)

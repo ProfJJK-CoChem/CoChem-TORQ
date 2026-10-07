@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -104,7 +104,9 @@ def get_covalent_radius(symbol: str) -> float:
                 return float(rad_pm) / 100.0
         except Exception:
             pass
-    return COVALENT_RADII_ANG.get(clean_sym, 0.76)
+    if clean_sym in COVALENT_RADII_ANG:
+        return COVALENT_RADII_ANG[clean_sym]
+    raise ValueError(f"Covalent radius unavailable for {symbol!r}.")
 
 
 @functools.lru_cache(maxsize=128)
@@ -394,28 +396,40 @@ class TorqQuenchGovernor:
 def format_to_qcschema_v1(
     symbols: Sequence[str],
     coordinates: np.ndarray,
-    energy: float = 0.0,
+    energy: float | None = None,
     temperature_k: float = 298.15,
     pressure_atm: float = 1.0,
     provenance: dict[str, Any] | None = None,
+    *,
+    method: str | None = None,
+    molecular_charge: int | None = None,
+    molecular_multiplicity: int | None = None,
 ) -> dict[str, Any]:
-    """Format molecular state and results to MolSSI QCSchema v1 specifications."""
-    coords_list = np.asarray(coordinates, dtype=np.float64).flatten().tolist()
-    symbols_list = [str(s).capitalize() for s in symbols]
+    """Serialize an actual energy (Hartree) at the supplied geometry (Angstrom).
 
-    if provenance is None:
-        provenance = {
-            "creator": "CoChem-TORQ",
-            "version": "1.0.0",
-            "routine": "conformal_quench",
-        }
+    Method, electronic state, and engine provenance are mandatory. QCSchema
+    geometry is converted to Bohr; this helper does not perform a calculation.
+    """
+    from scipy.constants import physical_constants
+    coords = np.asarray(coordinates, dtype=np.float64)
+    if coords.shape != (len(symbols), 3) or not len(symbols) or not np.isfinite(coords).all():
+        raise ValueError("A nonempty finite molecular geometry is required.")
+    if energy is None or not np.isfinite(energy):
+        raise ValueError("A calculated finite energy in Hartree is required.")
+    if not method or not provenance or not all(provenance.get(k) for k in ("creator", "version", "routine")):
+        raise ValueError("The actual method and engine provenance are required.")
+    if molecular_charge is None or molecular_multiplicity is None or molecular_multiplicity < 1:
+        raise ValueError("The molecular charge and spin multiplicity are required.")
+    bohr_angstrom = physical_constants["Bohr radius"][0] * 1e10
+    coords_list = (coords / bohr_angstrom).flatten().tolist()
+    symbols_list = [str(s).capitalize() for s in symbols]
 
     return {
         "schema_name": "qcschema_output",
         "schema_version": 1,
         "driver": "energy",
         "model": {
-            "method": "GFN2-xTB",
+            "method": method,
             "basis": None,
         },
         "molecule": {
@@ -423,6 +437,8 @@ def format_to_qcschema_v1(
             "schema_version": 2,
             "symbols": symbols_list,
             "geometry": coords_list,
+            "molecular_charge": molecular_charge,
+            "molecular_multiplicity": molecular_multiplicity,
         },
         "properties": {
             "return_energy": float(energy),
@@ -446,7 +462,9 @@ class ConformalMDQuencher:
         hdf5_store_path: str | Path | None = None,
         check_interval: int = 5,
         force_uncertainty_threshold: float = 0.50,
+        energy_evaluator: Callable[[Sequence[str], np.ndarray], dict[str, Any]] | None = None,
     ) -> None:
+        self.energy_evaluator = energy_evaluator
         self.conformal_predictor = conformal_predictor
         self.hdf5_store_path = Path(hdf5_store_path) if hdf5_store_path else None
         self.check_interval = max(1, int(check_interval))
@@ -468,6 +486,8 @@ class ConformalMDQuencher:
         """Evaluate MD step with conformal bounds, triggering rollback and quench if uncertainty exceeded."""
         coords = np.asarray(coordinates, dtype=np.float64)
         syms = [str(s).capitalize() for s in symbols]
+        if self.last_checkpoint_symbols is not None and syms != self.last_checkpoint_symbols:
+            raise ValueError("Cannot roll back a trajectory with a changed molecular identity.")
 
         # Initial checkpoint if not set
         if self.last_checkpoint_coords is None:
@@ -512,31 +532,29 @@ class ConformalMDQuencher:
             # Apply physical quench (soft quench)
             quench_result = execute_soft_quench(syms, rollback_coords)
             quenched_coords = quench_result["relaxed_coordinates"]
-            if energy_pred is not None:
-                quenched_energy = float(energy_pred)
-            else:
-                try:
-                    import torch
-
-                    from Libraries.cochem_torq_delta_ml import GFN2xTBEngine
-                    xtb_engine = GFN2xTBEngine()
-                    if xtb_engine.xtb_available:
-                        calc_res = xtb_engine.calculate(
-                            atoms=torch.tensor(quenched_coords, dtype=torch.float64),
-                            charge=0,
-                            atomic_numbers=[int(element(s).atomic_number) for s in syms],
-                        )
-                        quenched_energy = float(calc_res["energy_ev"])
-                    else:
-                        quenched_energy = 0.0
-                except Exception:
-                    quenched_energy = 0.0
-
-            # Format to MolSSI QCSchema v1
+            # A prediction at the pre-quench coordinates cannot be reused here.
+            # Preserve the geometric proposal even when no evaluator is installed.
+            if not quench_result["converged"] or self.energy_evaluator is None:
+                return {
+                    "action": "QUENCH_PROPOSAL_REQUIRES_EVALUATION",
+                    "quenched_coordinates": quenched_coords,
+                    "quench": quench_result,
+                    "energy_hartree": None,
+                    "qcschema": None,
+                    "step_idx": step_idx,
+                }
+            evaluation = self.energy_evaluator(syms, np.copy(quenched_coords))
+            evaluated_coords = np.asarray(evaluation.get("coordinates_angstrom"), dtype=np.float64)
+            if (evaluation.get("success") is not True or evaluation.get("symbols") != syms
+                    or evaluated_coords.shape != quenched_coords.shape
+                    or not np.array_equal(evaluated_coords, quenched_coords)):
+                raise ValueError("Quench evaluator must return a successful result for the exact quenched geometry and symbols.")
             qcschema = format_to_qcschema_v1(
-                symbols=syms,
-                coordinates=quenched_coords,
-                energy=quenched_energy,
+                symbols=syms, coordinates=quenched_coords,
+                energy=evaluation.get("energy_hartree"), method=evaluation.get("method"),
+                provenance=evaluation.get("provenance"),
+                molecular_charge=evaluation.get("molecular_charge"),
+                molecular_multiplicity=evaluation.get("molecular_multiplicity"),
             )
 
             # Enqueue into HDF5 SWMR container
@@ -568,7 +586,7 @@ class ConformalMDQuencher:
                         ds.flush()
                         f.flush()
                 except Exception as h5_err:
-                    logger.debug("HDF5 SWMR persistence failed: %s", h5_err)
+                    raise RuntimeError(f"Quench result persistence failed: {h5_err}") from h5_err
 
             return {
                 "action": "QUENCH_AND_ROLLBACK",

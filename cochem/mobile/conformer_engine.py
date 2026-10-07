@@ -7,6 +7,7 @@ energy minimization strictly adhering to the Zero-Mock mandate.
 from __future__ import annotations
 
 import logging
+import math
 import re
 
 from rdkit import Chem
@@ -79,7 +80,9 @@ def extract_error_atom_indices(mol: Chem.Mol | None, exception: Exception) -> li
     return indices
 
 
-def generate_3d_conformer(payload: SketcherPayloadSchema) -> Conformer3DResultSchema:
+def generate_3d_conformer(
+    payload: SketcherPayloadSchema, *, max_minimization_iterations: int = 500,
+) -> Conformer3DResultSchema:
     """Synthesize reproducible 3D conformer with ETKDGv3 and MMFF94/UFF minimization.
 
     Parameters
@@ -92,6 +95,9 @@ def generate_3d_conformer(payload: SketcherPayloadSchema) -> Conformer3DResultSc
     Conformer3DResultSchema
         Resulting 3D conformer coordinates, potential energy, and valence validation state.
     """
+    if type(max_minimization_iterations) is not int or max_minimization_iterations < 0:
+        raise ValueError("The minimization iteration limit must be a nonnegative integer.")
+
     # 1. Parse Molecule from V2000 Molfile or fallback to SMILES
     mol: Chem.Mol | None = None
     if payload.molfile_v2000:
@@ -181,37 +187,63 @@ def generate_3d_conformer(payload: SketcherPayloadSchema) -> Conformer3DResultSc
                 ),
             )
 
-    # 5. Energy Minimization via MMFF94 with fallback to UFF
+    # MMFF94 and UFF are distinct models. Report the selected model and never
+    # reinterpret a failed minimization as success using a different potential.
     energy_kcal_mol: float | None = None
     force_field_used: str | None = None
-
+    minimization_converged = False
+    diagnostics: list[str] = []
+    ff = None
     try:
-        props = AllChem.MMFFGetMoleculeProperties(mol_with_hs, mmffVariant="MMFF94")
-        if props is not None:
-            ff = AllChem.MMFFGetMoleculeForceField(mol_with_hs, props)
-            if ff is not None:
-                ff.Minimize(maxIts=500)
-                energy_kcal_mol = float(ff.CalcEnergy())
-                force_field_used = "MMFF94"
+        if AllChem.MMFFHasAllMoleculeParams(mol_with_hs):
+            props = AllChem.MMFFGetMoleculeProperties(mol_with_hs, mmffVariant="MMFF94")
+            if props is not None:
+                ff = AllChem.MMFFGetMoleculeForceField(mol_with_hs, props)
+                force_field_used = "MMFF94" if ff is not None else None
+            if ff is None:
+                diagnostics.append("MMFF94 force-field construction unavailable.")
+        else:
+            diagnostics.append("MMFF94 parameters unavailable for this molecule.")
+        if ff is None:
+            if AllChem.UFFHasAllMoleculeParams(mol_with_hs):
+                ff = AllChem.UFFGetMoleculeForceField(mol_with_hs)
+                force_field_used = "UFF" if ff is not None else None
+                if ff is None:
+                    diagnostics.append("UFF force-field construction unavailable.")
+            else:
+                diagnostics.append("UFF parameters unavailable for this molecule.")
+        if ff is not None:
+            status = int(ff.Minimize(maxIts=max_minimization_iterations))
+            if status != 0:
+                diagnostics.append(
+                    f"{force_field_used} minimization did not converge "
+                    f"(RDKit status {status}; iteration limit {max_minimization_iterations})."
+                )
+            else:
+                calculated = float(ff.CalcEnergy())
+                if not math.isfinite(calculated):
+                    diagnostics.append(f"{force_field_used} energy is nonfinite.")
+                else:
+                    energy_kcal_mol = calculated
+                    minimization_converged = True
     except (RuntimeError, ValueError) as ff_err:
-        logger.debug("MMFF94 minimization exception: %s", ff_err)
+        diagnostics.append(f"Force-field execution failed: {ff_err}")
+        logger.debug("Force-field execution exception: %s", ff_err)
 
-    if force_field_used is None:
-        try:
-            ff = AllChem.UFFGetMoleculeForceField(mol_with_hs)
-            if ff is not None:
-                ff.Minimize(maxIts=500)
-                energy_kcal_mol = float(ff.CalcEnergy())
-                force_field_used = "UFF"
-        except (RuntimeError, ValueError) as ff_err:
-            logger.debug("UFF minimization exception: %s", ff_err)
-
-    # 6. Extract Optimized 3D Coordinates
+    # Retain actual embedded/partially minimized coordinates on failure.
     conf = mol_with_hs.GetConformer(0)
     coords_3d: list[AtomCoordinate3D] = []
     for atom in mol_with_hs.GetAtoms():
         idx = atom.GetIdx()
         pos = conf.GetAtomPosition(idx)
+        if not all(math.isfinite(value) for value in (pos.x, pos.y, pos.z)):
+            return Conformer3DResultSchema(
+                success=False, smiles=payload.smiles, force_field_used=force_field_used,
+                validation=ValenceValidationResultSchema(
+                    success=True, diagnostic_message="3D conformer coordinates are nonfinite.",
+                    atom_error_indices=[],
+                ),
+            )
         coords_3d.append(
             AtomCoordinate3D(
                 atom_index=idx,
@@ -227,7 +259,7 @@ def generate_3d_conformer(payload: SketcherPayloadSchema) -> Conformer3DResultSc
     canonical_smiles = Chem.MolToSmiles(Chem.RemoveHs(mol_with_hs))
 
     return Conformer3DResultSchema(
-        success=True,
+        success=minimization_converged,
         smiles=canonical_smiles,
         molfile_v3000=molfile_v3000,
         energy_kcal_mol=energy_kcal_mol,
@@ -235,7 +267,13 @@ def generate_3d_conformer(payload: SketcherPayloadSchema) -> Conformer3DResultSc
         coordinates_3d=coords_3d,
         validation=ValenceValidationResultSchema(
             success=True,
-            diagnostic_message="3D conformer successfully synthesized and minimized.",
+            diagnostic_message=(
+                f"Actual ETKDGv3 geometry minimized with {force_field_used}; "
+                "RDKit minimizer converged. This force-field structure is not a quantum equilibrium result."
+                if minimization_converged else
+                "Actual embedded/partially minimized geometry retained; optimization unavailable or failed. "
+                + " ".join(diagnostics)
+            ),
             atom_error_indices=[],
         ),
     )

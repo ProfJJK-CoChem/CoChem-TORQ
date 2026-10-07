@@ -40,12 +40,12 @@ class ElementData:
     atomic_number: int
     symbol: str
     name: str
-    atomic_weight: float
-    isotopes: Tuple[Tuple[int, float, float], ...]  # (mass_number, exact_mass_amu, natural_abundance)
+    atomic_weight: Optional[float]
+    isotopes: Tuple[Tuple[int, float, Optional[float]], ...]  # (mass_number, exact_mass_amu, natural_abundance)
     covalent_radius_pm: Optional[float]
     vdw_radius_pm: Optional[float]
-    valence_electrons: int
-    mass: float = 0.0
+    valence_electrons: Optional[int]
+    mass: Optional[float] = None
     mass_number: Optional[int] = None
     formal_charge: int = 0
     is_isotope: bool = False
@@ -70,25 +70,13 @@ def _load_element_data(z_or_sym: Union[int, str]) -> ElementData:
     symbol = str(elem.symbol)
     name = str(elem.name)
 
-    # Standard atomic weight with dynamic fallback to most stable isotope mass
-    weight = elem.atomic_weight
-    if weight is None or float(weight) <= 0.0:
-        iso_masses = [iso.mass_number for iso in elem.isotopes if iso.mass_number is not None]
-        if iso_masses:
-            weight = float(max(iso_masses))
-        else:
-            weight = float(z)
-    else:
-        weight = float(weight)
-
-    # Isotope tuple: (mass_number, exact_mass_amu, abundance)
-    isotope_list: List[Tuple[int, float, float]] = []
+    # A database standard atomic weight is not an isotope mass. Preserve absence.
+    weight = float(elem.atomic_weight) if elem.atomic_weight is not None else None
+    isotope_list = []
     for iso in elem.isotopes:
-        if iso.mass_number is not None:
-            m_num = int(iso.mass_number)
-            m_exact = float(iso.mass) if iso.mass is not None and float(iso.mass) > 0.0 else float(m_num)
-            m_abund = float(iso.abundance) if iso.abundance is not None else 0.0
-            isotope_list.append((m_num, m_exact, m_abund))
+        if iso.mass_number is not None and iso.mass is not None and float(iso.mass) > 0:
+            isotope_list.append((int(iso.mass_number), float(iso.mass),
+                                 float(iso.abundance) if iso.abundance is not None else None))
     isotopes_tuple = tuple(sorted(isotope_list, key=lambda x: x[0]))
 
     # Radii in picometers
@@ -104,7 +92,7 @@ def _load_element_data(z_or_sym: Union[int, str]) -> ElementData:
     elif elem.electrons is not None:
         val_e = int(elem.electrons)
     else:
-        val_e = 0
+        val_e = None
 
     data = ElementData(
         atomic_number=z,
@@ -275,7 +263,7 @@ def get_element(symbol_or_z: Union[str, int]) -> ElementData:
         mass = float(iso.mass)
     else:
         is_isotope = False
-        mass = float(base_data.atomic_weight)
+        mass = base_data.atomic_weight
 
     return ElementData(
         atomic_number=base_data.atomic_number,
@@ -316,17 +304,11 @@ def get_isotope_mass(symbol_or_z: Union[str, int], mass_number: int) -> float:
 
 
 def get_element_mass(symbol_or_z: Union[str, int]) -> float:
-    """Dynamically resolve atomic or isotopic mass in unified atomic mass units (u).
-
-    Handles standard elements ('H', 'C', 'Ar') and isotopic aliases ('D', 'T', '13C', '18O').
-    """
-    if isinstance(symbol_or_z, int):
-        return get_element(symbol_or_z).atomic_weight
-
-    clean_sym, mass_number = parse_symbol_or_isotope(symbol_or_z)
-    if mass_number is not None:
-        return get_isotope_mass(clean_sym, mass_number)
-    return get_element(clean_sym).atomic_weight
+    """Return a tabulated isotope mass (most abundant if no isotope is supplied)."""
+    from Libraries.cochem_isotopes import isotope_mass
+    data = get_element(symbol_or_z)
+    query = f"{data.mass_number}{data.symbol}" if data.is_isotope else data.symbol
+    return isotope_mass(query)
 
 
 class MendeleevResolver:
@@ -340,7 +322,10 @@ class MendeleevResolver:
         return get_element(symbol_or_z).atomic_number
 
     def get_atomic_weight(self, symbol_or_z: Union[str, int]) -> float:
-        return get_element(symbol_or_z).atomic_weight
+        weight = get_element(symbol_or_z).atomic_weight
+        if weight is None:
+            raise MissingDataError(f"No tabulated standard atomic weight for {symbol_or_z}")
+        return weight
 
     def get_element_mass(self, symbol_or_z: Union[str, int]) -> float:
         return get_element_mass(symbol_or_z)
@@ -366,12 +351,12 @@ class MendeleevResolver:
     def get_isotope_mass(self, symbol_or_z: Union[str, int], mass_number: int) -> float:
         return get_isotope_mass(symbol_or_z, mass_number)
 
-    def get_isotope_abundance(self, symbol_or_z: Union[str, int], mass_number: int) -> float:
+    def get_isotope_abundance(self, symbol_or_z: Union[str, int], mass_number: int) -> Optional[float]:
         elem_data = get_element(symbol_or_z)
         for m_num, _, abund in elem_data.isotopes:
             if m_num == mass_number:
                 return abund
-        return 0.0
+        raise MissingDataError(f"No tabulated isotope {mass_number} for {symbol_or_z}")
 
     def get_available_isotopes(self, symbol_or_z: Union[str, int]) -> List[int]:
         return [m_num for m_num, _, _ in get_element(symbol_or_z).isotopes]
@@ -383,7 +368,10 @@ class MendeleevResolver:
 # Default global resolver instance for backwards compatibility
 mendeleev_resolver = MendeleevResolver()
 
-from cochem_base.core.mendeleev_invariants import get_element_cache
+def get_element_cache() -> Dict[str, ElementData]:
+    """Return a snapshot of the actual local cache; callers cannot mutate it."""
+    with _CACHE_LOCK:
+        return dict(_ELEMENTS_BY_SYMBOL)
 
 __all__ = [
     "ElementData",

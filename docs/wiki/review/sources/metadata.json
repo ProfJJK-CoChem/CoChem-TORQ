@@ -1,0 +1,184 @@
+{
+  "qcelemental_init": {
+    "url": "https://raw.githubusercontent.com/MolSSI/QCElemental/master/qcelemental/models/__init__.py",
+    "status": "retrieved",
+    "bytes": 574,
+    "commit": "7828af830a1fa8de78517bcaec750eee8a9468ca",
+    "immutable_url": "https://raw.githubusercontent.com/MolSSI/QCElemental/7828af830a1fa8de78517bcaec750eee8a9468ca/qcelemental/models/__init__.py",
+    "pinned_content_matches": true,
+    "sha256": "0b36015d6bacdc353d7b7c21fd36f5446386260777be100a7ba61b3a553aa229"
+  },
+  "qcio_readme": {
+    "url": "https://raw.githubusercontent.com/coltonbh/qcio/master/README.md",
+    "status": "retrieved",
+    "bytes": 13020,
+    "commit": "a93394d1b91c954920c1e6be67260d80b80bf4ac",
+    "immutable_url": "https://raw.githubusercontent.com/coltonbh/qcio/a93394d1b91c954920c1e6be67260d80b80bf4ac/README.md",
+    "pinned_content_matches": true,
+    "sha256": "e1f15ddcb913742f5e125010c8372caa80d0bb735f00a0c51499100ad8a269ad"
+  },
+  "gpu4pyscf_readme": {
+    "url": "https://raw.githubusercontent.com/pyscf/gpu4pyscf/master/README.md",
+    "status": "retrieved",
+    "bytes": 6985,
+    "commit": "f0e4de92f7e1046cfa6cb642e433c376aecdfabc",
+    "immutable_url": "https://raw.githubusercontent.com/pyscf/gpu4pyscf/f0e4de92f7e1046cfa6cb642e433c376aecdfabc/README.md",
+    "pinned_content_matches": true,
+    "sha256": "30ef3e5156c2f0609fec2e257461ccbb5c6ac2d2e4bbe0c751b0bb836198926e"
+  },
+  "pyscf_gpu": {
+    "url": "https://raw.githubusercontent.com/pyscf/pyscf.github.io/master/source/user/gpu.rst",
+    "status": "retrieved",
+    "bytes": 6313,
+    "commit": "f899927ce5b3015886ebd684d185935b58ad4b5e",
+    "immutable_url": "https://raw.githubusercontent.com/pyscf/pyscf.github.io/f899927ce5b3015886ebd684d185935b58ad4b5e/source/user/gpu.rst",
+    "pinned_content_matches": true,
+    "sha256": "50f16537129eb5194de3be1fe9db57706be353727d44c047cd9caf6223a9c49a"
+  },
+  "h5py_swmr": {
+    "url": "https://raw.githubusercontent.com/h5py/h5py/master/docs/swmr.rst",
+    "status": "retrieved",
+    "bytes": 6983,
+    "commit": "0f9cbe7c3814ef8007c20ef5cfba0b134f6aa699",
+    "immutable_url": "https://raw.githubusercontent.com/h5py/h5py/0f9cbe7c3814ef8007c20ef5cfba0b134f6aa699/docs/swmr.rst",
+    "pinned_content_matches": true,
+    "sha256": "1ee5fb947a41bc7bc0c39b118c154f1c5192c7b85b951811f8b3c314df2a167d"
+  },
+  "pyckett_readme": {
+    "url": "https://raw.githubusercontent.com/Ltotheois/Pyckett/main/README.md",
+    "status": "retrieved",
+    "bytes": 4313,
+    "commit": "783bbad282c0e5140015b8d493e092b9f929394a",
+    "immutable_url": "https://raw.githubusercontent.com/Ltotheois/Pyckett/783bbad282c0e5140015b8d493e092b9f929394a/README.md",
+    "pinned_content_matches": true,
+    "sha256": "f6a19fa32518f15b6439f410cce5d666f708f3033f0a53008a745275ed15d037"
+  },
+  "pyckett_init": {
+    "url": "https://raw.githubusercontent.com/Ltotheois/Pyckett/main/pyckett/__init__.py",
+    "status": "retrieved",
+    "bytes": 69568,
+    "commit": "783bbad282c0e5140015b8d493e092b9f929394a",
+    "immutable_url": "https://raw.githubusercontent.com/Ltotheois/Pyckett/783bbad282c0e5140015b8d493e092b9f929394a/pyckett/__init__.py",
+    "pinned_content_matches": true,
+    "sha256": "310d6f1aec9a00a7e3705e290599f294e84acdbc5bf1a23804220d56616255a1"
+  },
+  "qcio_release_init": {
+    "url": "https://raw.githubusercontent.com/coltonbh/qcio/v0.16.2/qcio/__init__.py",
+    "status": "HTTP Error 404: Not Found"
+  },
+  "qcio_release_readme": {
+    "url": "https://raw.githubusercontent.com/coltonbh/qcio/v0.16.2/README.md",
+    "status": "HTTP Error 404: Not Found"
+  },
+  "qcelemental_v1_init": {
+    "url": "https://raw.githubusercontent.com/MolSSI/QCElemental/master/qcelemental/models/v1/__init__.py",
+    "status": "retrieved",
+    "bytes": 7167,
+    "commit": "7828af830a1fa8de78517bcaec750eee8a9468ca",
+    "immutable_url": "https://raw.githubusercontent.com/MolSSI/QCElemental/7828af830a1fa8de78517bcaec750eee8a9468ca/qcelemental/models/v1/__init__.py",
+    "pinned_content_matches": true,
+    "sha256": "c5bef9f785e2d0d302ed8e783b610025aea0f99da630b137bd5abfd925e7e990"
+  },
+  "psi4_dh": {
+    "url": "https://raw.githubusercontent.com/psi4/psi4/master/psi4/driver/procrouting/dft/dh_functionals.py",
+    "status": "retrieved",
+    "bytes": 19123,
+    "commit": "23be3de4b1f6cd70e337b98a2a200008cf350274",
+    "immutable_url": "https://raw.githubusercontent.com/psi4/psi4/23be3de4b1f6cd70e337b98a2a200008cf350274/psi4/driver/procrouting/dft/dh_functionals.py",
+    "pinned_content_matches": true,
+    "sha256": "bc649bdff21b5aac905f0fc34514d614655566bfedb241d2ca94b9f73449a920"
+  },
+  "qcengine_cfour": {
+    "url": "https://raw.githubusercontent.com/MolSSI/QCEngine/master/qcengine/programs/cfour.py",
+    "status": "HTTP Error 404: Not Found"
+  },
+  "cfour_hessian_manual": {
+    "url": "https://cfour.uni-mainz.de/cfour/index.php?n=Main.AnalyticEnergyDerivatives",
+    "status": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  "janpa_sf": {
+    "url": "https://sourceforge.net/projects/janpa/",
+    "status": "retrieved",
+    "bytes": 91919
+  },
+  "openssl_dgst": {
+    "url": "https://raw.githubusercontent.com/openssl/openssl/master/doc/man1/openssl-dgst.pod.in",
+    "status": "retrieved",
+    "bytes": 10590,
+    "commit": "866d2dbe55805eead5eee5bd49e9633ea135132e",
+    "immutable_url": "https://raw.githubusercontent.com/openssl/openssl/866d2dbe55805eead5eee5bd49e9633ea135132e/doc/man1/openssl-dgst.pod.in",
+    "pinned_content_matches": true,
+    "sha256": "94b1103af18aabc522be1f7ed60fa47db7f889517f9e1618bf455bd9f7a4c674"
+  },
+  "cfour_runner": {
+    "url": "https://raw.githubusercontent.com/MolSSI/QCEngine/master/qcengine/programs/cfour/runner.py",
+    "status": "retrieved",
+    "bytes": 8637,
+    "commit": "bf1b799c4a17010f679a4472bb1ec56492f2d0d9",
+    "immutable_url": "https://raw.githubusercontent.com/MolSSI/QCEngine/bf1b799c4a17010f679a4472bb1ec56492f2d0d9/qcengine/programs/cfour/runner.py",
+    "pinned_content_matches": true,
+    "sha256": "31e730681b8ef6e6fb565b7f6fdfad697a880c46302b4cc0df00b49c84f780e6"
+  },
+  "cfour_germinate": {
+    "url": "https://raw.githubusercontent.com/MolSSI/QCEngine/master/qcengine/programs/cfour/germinate.py",
+    "status": "retrieved",
+    "bytes": 1636,
+    "commit": "bf1b799c4a17010f679a4472bb1ec56492f2d0d9",
+    "immutable_url": "https://raw.githubusercontent.com/MolSSI/QCEngine/bf1b799c4a17010f679a4472bb1ec56492f2d0d9/qcengine/programs/cfour/germinate.py",
+    "pinned_content_matches": true,
+    "sha256": "00cb8a8d36c87012ae623d48619c626f7ab4f448387b0e0ea1e173dc215f9a61"
+  },
+  "psi4_cfour_docs": {
+    "url": "https://raw.githubusercontent.com/psi4/psi4/master/doc/sphinxman/source/cfour.rst",
+    "status": "retrieved",
+    "bytes": 59977,
+    "commit": "23be3de4b1f6cd70e337b98a2a200008cf350274",
+    "immutable_url": "https://raw.githubusercontent.com/psi4/psi4/23be3de4b1f6cd70e337b98a2a200008cf350274/doc/sphinxman/source/cfour.rst",
+    "pinned_content_matches": true,
+    "sha256": "eb9b50d672ccff953fa191c904c7fdbf6a565f883b2633076b3e28b49abae6c8"
+  },
+  "dftd4_params": {
+    "url": "https://raw.githubusercontent.com/dftd4/dftd4/main/assets/parameters.toml",
+    "status": "retrieved",
+    "bytes": 23778,
+    "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+    "immutable_url": "https://raw.githubusercontent.com/dftd4/dftd4/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml",
+    "pinned_content_matches": true,
+    "sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f"
+  },
+  "dftd4_readme": {
+    "url": "https://raw.githubusercontent.com/dftd4/dftd4/main/README.md",
+    "status": "retrieved",
+    "bytes": 17764,
+    "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+    "immutable_url": "https://raw.githubusercontent.com/dftd4/dftd4/d5f891808c2145becdcce742f67ecc7e711067d7/README.md",
+    "pinned_content_matches": true,
+    "sha256": "a67498f82b393768147df1c3f65431427d8d879bc81d9008688359db3e1149db"
+  },
+  "janpa_files": {
+    "url": "https://sourceforge.net/projects/janpa/files/",
+    "status": "retrieved",
+    "bytes": 116047
+  },
+  "janpa_code": {
+    "url": "https://sourceforge.net/p/janpa/code/HEAD/tree/",
+    "status": "retrieved",
+    "bytes": 91919
+  },
+  "janpa_readme": {
+    "url": "https://downloads.sourceforge.net/project/janpa/readme.md",
+    "status": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  "janpa_index": {
+    "url": "https://downloads.sourceforge.net/project/janpa/index.html",
+    "status": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  "janpa_wiki": {
+    "url": "https://sourceforge.net/p/janpa/wiki/",
+    "status": "retrieved"
+  },
+  "janpa_e2": {
+    "url": "https://sourceforge.net/p/janpa/wiki/E2_pert/",
+    "status": "retrieved"
+  }
+}

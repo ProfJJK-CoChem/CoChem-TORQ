@@ -1,55 +1,40 @@
-"""
-CoChem-TORQ: CFOUR Coupled-Cluster Analytic Hessian & Sextic Distortion Bridge
-=============================================================================
-Phase 5 (Stage 4.5) Authoritative Quantum Engine Bridge
--------------------------------------------------------
-Governs CFOUR (Coupled-Cluster techniques for Computational Chemistry) execution,
-Z-matrix internal coordinate generation with dummy-atom (X) singularity protection
-for linear/quasi-linear angles, coupled-cluster analytic second derivatives,
-VPT2 anharmonic force fields, Watson A/S-reduction quartic and sextic centrifugal
-distortion calculations, nuclear quadrupole coupling (EFG conversion), nuclear
-spin-rotation tensors, DBOC, relativistic corrections, and Pickett SPCAT / HDF5
-provenance integration.
+"""CFOUR input, partial-output and immutable-archive helpers.
 
-Authoritative Standards & Method Matrix v4/v5 Compliance:
-- Method Matrix (§9, §13, §14; Tables 3-C, 4-C, 6-C, 8-C)
-- Mendeleev Mandate: Dynamic atomic and isotopic mass lookups via mendeleev library.
-- CODATA 2022 Exact Physical Constants
-- Tripartite Filesystem Air-Gap Compliance & SHA-256 Cryptographic Provenance
-- Anti-Spoofing & Physical Execution Protocol Mandate: Physical execution and analytical validation.
+Missing quantities remain unavailable. The parser has not been certified on
+release-pinned genuine CFOUR fixtures, so it does not infer scientific
+convergence or effective method/basis from a successful process exit. The
+unsupported generic gradient/Hessian adapter fails before launching a job.
 """
 
 from __future__ import annotations
 
 import atexit
 import hashlib
-import json
 import logging
 import math
 import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Final, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import h5py
 import numpy as np
-import psutil
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from cochem_base.interfaces import ElectronicStructureExecutor
-from cochem_base.schemas import GradientPayload, QuantumJobSpec
-from cochem_base.environment import BinaryRegistry, PathRegistry
-from cochem_base.exceptions import BinaryNotFoundError
+
+class CFOURUnavailableError(RuntimeError):
+    """The requested CFOUR executable or validated capability is unavailable."""
+
 
 try:
     from mendeleev import element as get_mendeleev_element
+
     _MENDELEEV_AVAILABLE = True
 except ImportError:
     _MENDELEEV_AVAILABLE = False
@@ -59,48 +44,40 @@ except ImportError:
 # 0. Subprocess Lifecycle Management & Zombie Cleanup
 # ============================================================================
 
-def cleanup_zombies() -> None:
-    """
-    Terminates orphaned CFOUR subprocesses to prevent host resource exhaustion.
-    Scans for xcfour, cfour, xncc, xjoda, xvpt2, xsymcor, xja2fja, xcubic, xbcktrn.
-    """
-    cfour_binaries = {
-        "xcfour", "cfour", "xncc", "xjoda", "xvpt2", "xsymcor",
-        "xja2fja", "xcubic", "xbcktrn", "xdvdol", "xvprops"
-    }
-    for proc in psutil.process_iter(["pid", "name"]):
-        try:
-            pname = str(proc.info["name"]).lower()
-            if any(b in pname for b in cfour_binaries):
-                for child in proc.children(recursive=True):
-                    try:
-                        child.kill()
-                    except psutil.NoSuchProcess:
-                        pass
-                try:
-                    proc.kill()
-                except psutil.NoSuchProcess:
-                    pass
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
 
+def cleanup_zombies() -> None:
+    """Reap only CFOUR processes started by this module, never other users' jobs."""
+    for process in tuple(_ACTIVE_CFOUR_PROCESSES):
+        if process.poll() is None:
+            process.kill()
+        process.wait()
+        _ACTIVE_CFOUR_PROCESSES.discard(process)
+
+
+_ACTIVE_CFOUR_PROCESSES: set[subprocess.Popen] = set()
 atexit.register(cleanup_zombies)
 
 # Module-level logger
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-CFOUR] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(levelname)s: [CoChem-TORQ-CFOUR] %(message)s"
+)
 logger = logging.getLogger("TorqCfourBridge")
 
 CFOUR_PATH = os.environ.get("CFOUR_PATH", "xcfour")
-ARTIFACTS_DIR = os.environ.get("COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts"))
+ARTIFACTS_DIR = os.environ.get(
+    "COCHEM_ARTIFACTS_DIR", str(Path.home() / "cochem_artifacts")
+)
 
 
 # ============================================================================
-# 1. Fundamental Constants (CODATA 2022) & Dynamic Mendeleev Retrievals
+# 1. Recorded Physical Conversion Constants & Dynamic Mendeleev Retrievals
 # ============================================================================
+
 
 @dataclass(frozen=True)
 class CFOURPhysicalConstants:
-    """CODATA 2022 Fundamental Constants for Quantum Chemistry and Spectroscopy."""
+    """Recorded conversion values; only SI-defined h and c are exact."""
+
     # Speed of light in vacuum [cm / s]
     C_CM_S: float = 29979245800.0
     # Planck constant [J * s]
@@ -157,7 +134,7 @@ def get_isotopic_mass(symbol: str, mass_number: Optional[int] = None) -> float:
         for iso in el.isotopes:
             if iso.mass_number == mass_number:
                 return float(iso.mass)
-    return get_atomic_mass(symbol)
+    raise ValueError(f"No isotopic mass is available for {symbol}-{mass_number}.")
 
 
 def get_atomic_number(symbol: str) -> int:
@@ -175,9 +152,9 @@ def get_atomic_number(symbol: str) -> int:
 # 2. Mathematical Rigid Rotor & Geometry Utilities
 # ============================================================================
 
+
 def compute_center_of_mass(
-    symbols: Sequence[str],
-    coordinates: np.ndarray
+    symbols: Sequence[str], coordinates: np.ndarray
 ) -> np.ndarray:
     """
     Computes the center of mass vector using dynamic Mendeleev masses.
@@ -192,8 +169,7 @@ def compute_center_of_mass(
 
 
 def compute_inertia_tensor(
-    symbols: Sequence[str],
-    coordinates: np.ndarray
+    symbols: Sequence[str], coordinates: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculates the principal moments of inertia and rotational constants (MHz).
@@ -225,13 +201,12 @@ def compute_inertia_tensor(
     sorted_moments = eigvals[sort_idx]
     sorted_axes = eigvecs[:, sort_idx]
 
-    # Calculate rotational constants A >= B >= C in MHz
-    rot_constants_mhz = np.full(3, 0.0, dtype=np.float64)
-    for k in range(3):
-        if sorted_moments[k] > 1e-6:
-            rot_constants_mhz[k] = CONSTANTS.INERTIA_TO_MHZ_FACTOR / sorted_moments[k]
-        else:
-            rot_constants_mhz[k] = 0.0
+    # A singular principal moment requires a separate linear/atomic model.
+    if not np.all(np.isfinite(sorted_moments)) or np.any(sorted_moments <= 1e-6):
+        raise ValueError(
+            "Three finite rotational constants require a nonlinear rotor; use a qualified linear/atomic model."
+        )
+    rot_constants_mhz = CONSTANTS.INERTIA_TO_MHZ_FACTOR / sorted_moments
 
     return sorted_moments, sorted_axes, rot_constants_mhz
 
@@ -240,152 +215,183 @@ def compute_inertia_tensor(
 # 3. Pydantic Structured Data Models
 # ============================================================================
 
+
 class CFOURRotationalConstants(BaseModel):
     """Equilibrium and vibrationally corrected rotational constants."""
-    model_config = ConfigDict(extra="ignore")
 
-    Ae_MHz: float = 0.0
-    Be_MHz: float = 0.0
-    Ce_MHz: float = 0.0
-    Ae_cm1: float = 0.0
-    Be_cm1: float = 0.0
-    Ce_cm1: float = 0.0
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
 
-    A0_MHz: float = 0.0
-    B0_MHz: float = 0.0
-    C0_MHz: float = 0.0
-    A0_cm1: float = 0.0
-    B0_cm1: float = 0.0
-    C0_cm1: float = 0.0
+    Ae_MHz: Optional[float] = None
+    Be_MHz: Optional[float] = None
+    Ce_MHz: Optional[float] = None
+    Ae_cm1: Optional[float] = None
+    Be_cm1: Optional[float] = None
+    Ce_cm1: Optional[float] = None
 
-    alpha_A_MHz: List[float] = Field(default_factory=list)
-    alpha_B_MHz: List[float] = Field(default_factory=list)
-    alpha_C_MHz: List[float] = Field(default_factory=list)
+    A0_MHz: Optional[float] = None
+    B0_MHz: Optional[float] = None
+    C0_MHz: Optional[float] = None
+    A0_cm1: Optional[float] = None
+    B0_cm1: Optional[float] = None
+    C0_cm1: Optional[float] = None
 
-    alpha_A_cm1: List[float] = Field(default_factory=list)
-    alpha_B_cm1: List[float] = Field(default_factory=list)
-    alpha_C_cm1: List[float] = Field(default_factory=list)
+    alpha_A_MHz: Optional[List[float]] = None
+    alpha_B_MHz: Optional[List[float]] = None
+    alpha_C_MHz: Optional[List[float]] = None
 
-    inertial_defect_amu_angstrom2: float = 0.0
-    asymmetry_kappa: float = 0.0
+    alpha_A_cm1: Optional[List[float]] = None
+    alpha_B_cm1: Optional[List[float]] = None
+    alpha_C_cm1: Optional[List[float]] = None
+
+    inertial_defect_amu_angstrom2: Optional[float] = None
+    asymmetry_kappa: Optional[float] = None
+    asymmetry_source: Optional[str] = None
 
 
 class CFOURQuarticDistortion(BaseModel):
     """Watson A-reduction and S-reduction quartic centrifugal distortion constants."""
-    model_config = ConfigDict(extra="ignore")
+
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
 
     # Watson A-reduction parameters (kHz)
-    Delta_J_kHz: float = 0.0
-    Delta_JK_kHz: float = 0.0
-    Delta_K_kHz: float = 0.0
-    delta_J_kHz: float = 0.0
-    delta_K_kHz: float = 0.0
+    Delta_J_kHz: Optional[float] = None
+    Delta_JK_kHz: Optional[float] = None
+    Delta_K_kHz: Optional[float] = None
+    delta_J_kHz: Optional[float] = None
+    delta_K_kHz: Optional[float] = None
 
     # Watson S-reduction parameters (kHz)
-    D_J_kHz: float = 0.0
-    D_JK_kHz: float = 0.0
-    D_K_kHz: float = 0.0
-    d_1_kHz: float = 0.0
-    d_2_kHz: float = 0.0
+    D_J_kHz: Optional[float] = None
+    D_JK_kHz: Optional[float] = None
+    D_K_kHz: Optional[float] = None
+    d_1_kHz: Optional[float] = None
+    d_2_kHz: Optional[float] = None
 
-    reduction_type: str = "A"
+    reduction_type: Optional[str] = None
 
 
 class CFOURSexticDistortion(BaseModel):
     """
     Watson A-reduction and S-reduction sextic centrifugal distortion constants.
-    CFOUR unique capability (Method Matrix Section 9.3 & 14.1, Table 6-C).
+    Values and reduction must be parsed with explicit units.
     """
-    model_config = ConfigDict(extra="ignore")
+
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
 
     # Watson A-reduction parameters (Hz)
-    Phi_J_Hz: float = 0.0
-    Phi_JK_Hz: float = 0.0
-    Phi_KJ_Hz: float = 0.0
-    Phi_K_Hz: float = 0.0
-    phi_J_Hz: float = 0.0
-    phi_JK_Hz: float = 0.0
-    phi_K_Hz: float = 0.0
+    Phi_J_Hz: Optional[float] = None
+    Phi_JK_Hz: Optional[float] = None
+    Phi_KJ_Hz: Optional[float] = None
+    Phi_K_Hz: Optional[float] = None
+    phi_J_Hz: Optional[float] = None
+    phi_JK_Hz: Optional[float] = None
+    phi_K_Hz: Optional[float] = None
 
     # Watson S-reduction parameters (Hz)
-    H_J_Hz: float = 0.0
-    H_JK_Hz: float = 0.0
-    H_KJ_Hz: float = 0.0
-    H_K_Hz: float = 0.0
-    h_1_Hz: float = 0.0
-    h_2_Hz: float = 0.0
-    h_3_Hz: float = 0.0
+    H_J_Hz: Optional[float] = None
+    H_JK_Hz: Optional[float] = None
+    H_KJ_Hz: Optional[float] = None
+    H_K_Hz: Optional[float] = None
+    h_1_Hz: Optional[float] = None
+    h_2_Hz: Optional[float] = None
+    h_3_Hz: Optional[float] = None
 
-    reduction_type: str = "A"
+    reduction_type: Optional[str] = None
 
 
 class CFOURVibrationalData(BaseModel):
     """Harmonic and VPT2 anharmonic vibrational frequencies and force fields."""
-    model_config = ConfigDict(extra="ignore")
 
-    harmonic_frequencies_cm1: List[float] = Field(default_factory=list)
-    anharmonic_frequencies_cm1: List[float] = Field(default_factory=list)
-    ir_intensities_km_mol: List[float] = Field(default_factory=list)
-    symmetry_irreps: List[str] = Field(default_factory=list)
-    harmonic_zpe_kcal_mol: float = 0.0
-    anharmonic_zpe_kcal_mol: float = 0.0
-    x_matrix_cm1: List[List[float]] = Field(default_factory=list)
-    cubic_force_constants_cm1: Dict[str, float] = Field(default_factory=dict)
-    semidiagonal_quartic_cm1: Dict[str, float] = Field(default_factory=dict)
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
+
+    harmonic_frequencies_cm1: Optional[List[float]] = None
+    anharmonic_frequencies_cm1: Optional[List[float]] = None
+    ir_intensities_km_mol: Optional[List[float]] = None
+    symmetry_irreps: Optional[List[str]] = None
+    harmonic_zpe_kcal_mol: Optional[float] = None
+    anharmonic_zpe_kcal_mol: Optional[float] = None
+    x_matrix_cm1: Optional[List[List[float]]] = None
+    cubic_force_constants_cm1: Optional[Dict[str, float]] = None
+    semidiagonal_quartic_cm1: Optional[Dict[str, float]] = None
 
 
 class CFOURDipoleMoment(BaseModel):
     """Electric dipole moment in principal axis frame and Cartesian components."""
-    model_config = ConfigDict(extra="ignore")
 
-    mu_a_debye: float = 0.0
-    mu_b_debye: float = 0.0
-    mu_c_debye: float = 0.0
-    mu_total_debye: float = 0.0
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
 
-    mu_a_au: float = 0.0
-    mu_b_au: float = 0.0
-    mu_c_au: float = 0.0
-    mu_total_au: float = 0.0
+    mu_a_debye: Optional[float] = None
+    mu_b_debye: Optional[float] = None
+    mu_c_debye: Optional[float] = None
+    mu_total_debye: Optional[float] = None
+
+    mu_a_au: Optional[float] = None
+    mu_b_au: Optional[float] = None
+    mu_c_au: Optional[float] = None
+    mu_total_au: Optional[float] = None
 
 
 class CFOURNuclearQuadrupole(BaseModel):
     """Electric Field Gradient (EFG) and Nuclear Quadrupole Coupling Tensor."""
-    model_config = ConfigDict(extra="ignore")
 
-    atom_index: int = 0
-    element: str = ""
-    Q_mbarn: float = 0.0
-    efg_tensor_au: List[List[float]] = Field(default_factory=lambda: [[0.0]*3 for _ in range(3)])
-    chi_tensor_kHz: List[List[float]] = Field(default_factory=lambda: [[0.0]*3 for _ in range(3)])
-    chi_aa_kHz: float = 0.0
-    chi_bb_kHz: float = 0.0
-    chi_cc_kHz: float = 0.0
-    asymmetry_eta: float = 0.0
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
+
+    atom_index: int = Field(ge=1)
+    element: str = Field(min_length=1)
+    isotope_mass_number: Optional[int] = Field(default=None, ge=1)
+    nuclear_q_source: Optional[str] = None
+    tensor_frame: str = "engine_output_unverified"
+    chi_principal_values_kHz: Optional[List[float]] = None
+    Q_mbarn: Optional[float] = None
+    efg_tensor_au: Optional[List[List[float]]] = None
+    chi_tensor_kHz: Optional[List[List[float]]] = None
+    chi_aa_kHz: Optional[float] = None
+    chi_bb_kHz: Optional[float] = None
+    chi_cc_kHz: Optional[float] = None
+    asymmetry_eta: Optional[float] = None
 
 
 class CFOURSpinRotation(BaseModel):
     """Nuclear spin-rotation coupling tensor (SPINROT=ON)."""
-    model_config = ConfigDict(extra="ignore")
 
-    atom_index: int = 0
-    element: str = ""
-    C_tensor_kHz: List[List[float]] = Field(default_factory=lambda: [[0.0]*3 for _ in range(3)])
-    C_aa_kHz: float = 0.0
-    C_bb_kHz: float = 0.0
-    C_cc_kHz: float = 0.0
-    C_iso_kHz: float = 0.0
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
+
+    atom_index: int = Field(ge=1)
+    element: str = Field(min_length=1)
+    tensor_frame: str = "engine_output_unverified"
+    C_tensor_kHz: Optional[List[List[float]]] = None
+    C_aa_kHz: Optional[float] = None
+    C_bb_kHz: Optional[float] = None
+    C_cc_kHz: Optional[float] = None
+    C_iso_kHz: Optional[float] = None
 
 
 class CFOUREnergies(BaseModel):
     """Electronic energies and corrections in Hartree."""
-    model_config = ConfigDict(extra="ignore")
 
-    scf_energy_hartree: float = 0.0
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
+
+    scf_energy_hartree: Optional[float] = None
     mp2_energy_hartree: Optional[float] = None
     ccsd_energy_hartree: Optional[float] = None
     ccsd_t_energy_hartree: Optional[float] = None
-    final_energy_hartree: float = 0.0
+    final_energy_hartree: Optional[float] = None
     correlation_energy_hartree: Optional[float] = None
     dboc_correction_hartree: Optional[float] = None
     relativistic_correction_hartree: Optional[float] = None
@@ -393,28 +399,42 @@ class CFOUREnergies(BaseModel):
 
 class CFOUROutputPayload(BaseModel):
     """Master structured container for complete CFOUR calculation results."""
-    model_config = ConfigDict(extra="ignore")
+
+    model_config = ConfigDict(
+        extra="forbid", allow_inf_nan=False, validate_assignment=True
+    )
 
     molecule_name: str = ""
-    calc_method: str = "CCSD(T)"
-    basis_set: str = "ANO1"
+    calc_method: Optional[str] = None
+    requested_method: Optional[str] = None
+    basis_set: Optional[str] = None
+    requested_basis: Optional[str] = None
     energies: CFOUREnergies = Field(default_factory=CFOUREnergies)
-    rotational_constants: CFOURRotationalConstants = Field(default_factory=CFOURRotationalConstants)
-    quartic_distortion: CFOURQuarticDistortion = Field(default_factory=CFOURQuarticDistortion)
-    sextic_distortion: CFOURSexticDistortion = Field(default_factory=CFOURSexticDistortion)
+    rotational_constants: CFOURRotationalConstants = Field(
+        default_factory=CFOURRotationalConstants
+    )
+    quartic_distortion: CFOURQuarticDistortion = Field(
+        default_factory=CFOURQuarticDistortion
+    )
+    sextic_distortion: CFOURSexticDistortion = Field(
+        default_factory=CFOURSexticDistortion
+    )
     vibrational_data: CFOURVibrationalData = Field(default_factory=CFOURVibrationalData)
     dipole_moment: CFOURDipoleMoment = Field(default_factory=CFOURDipoleMoment)
     quadrupole_coupling: List[CFOURNuclearQuadrupole] = Field(default_factory=list)
     spin_rotation: List[CFOURSpinRotation] = Field(default_factory=list)
-    optimized_coordinates: List[List[Union[str, float]]] = Field(default_factory=list)
+    optimized_coordinates: Optional[List[List[Union[str, float]]]] = None
     raw_output_sha256: str = ""
-    calculation_converged: bool = True
-    wall_clock_seconds: float = 0.0
+    calculation_converged: Optional[bool] = None
+    process_returncode: Optional[int] = None
+    validation_issues: List[str] = Field(default_factory=list)
+    wall_clock_seconds: Optional[float] = None
 
 
 # ============================================================================
 # 4. Z-Matrix Builder with Dummy-Atom Singularity Protection
 # ============================================================================
+
 
 class CFOURZmatBuilder:
     """
@@ -437,13 +457,17 @@ class CFOURZmatBuilder:
         v2 = p3 - p2
         norm1 = np.linalg.norm(v1)
         norm2 = np.linalg.norm(v2)
-        if norm1 < 1e-8 or norm2 < 1e-8:
-            return 0.0
+        if not np.isfinite([norm1, norm2]).all() or norm1 < 1e-8 or norm2 < 1e-8:
+            raise ValueError(
+                "Undefined Z-matrix angle: finite nonzero bond vectors are required."
+            )
         cosine = np.clip(np.dot(v1, v2) / (norm1 * norm2), -1.0, 1.0)
         return float(np.degrees(np.arccos(cosine)))
 
     @staticmethod
-    def _compute_dihedral(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray, p4: np.ndarray) -> float:
+    def _compute_dihedral(
+        p1: np.ndarray, p2: np.ndarray, p3: np.ndarray, p4: np.ndarray
+    ) -> float:
         """Computes dihedral angle p1-p2-p3-p4 in degrees [-180, 180]."""
         b1 = p2 - p1
         b2 = p3 - p2
@@ -456,8 +480,15 @@ class CFOURZmatBuilder:
         norm_n2 = np.linalg.norm(n2)
         norm_b2 = np.linalg.norm(b2)
 
-        if norm_n1 < 1e-8 or norm_n2 < 1e-8 or norm_b2 < 1e-8:
-            return 0.0
+        if (
+            not np.isfinite([norm_n1, norm_n2, norm_b2]).all()
+            or norm_n1 < 1e-8
+            or norm_n2 < 1e-8
+            or norm_b2 < 1e-8
+        ):
+            raise ValueError(
+                "Undefined Z-matrix dihedral: finite nonzero reference planes and axis are required."
+            )
 
         n1 /= norm_n1
         n2 /= norm_n2
@@ -484,7 +515,17 @@ class CFOURZmatBuilder:
         if n_atoms == 0:
             raise ValueError("Cannot construct ZMAT from empty atom list.")
 
-        coords = [np.asarray(c, dtype=np.float64) for c in coordinates]
+        geometry = np.asarray(coordinates, dtype=np.float64)
+        if geometry.shape != (n_atoms, 3) or not np.isfinite(geometry).all():
+            raise ValueError(
+                "Z-matrix input requires aligned finite Cartesian coordinates."
+            )
+        for index in range(n_atoms):
+            if np.any(
+                np.linalg.norm(geometry[index + 1 :] - geometry[index], axis=1) < 1e-8
+            ):
+                raise ValueError("Coincident nuclei cannot define a Z-matrix geometry.")
+        coords = [coordinate for coordinate in geometry]
         zmat_lines: List[str] = []
         variables: Dict[str, float] = {}
 
@@ -516,8 +557,12 @@ class CFOURZmatBuilder:
 
             elif i == 2:
                 # Check for angle singularity between atom 0, atom 1, and atom 2
-                ang = cls._compute_angle(curr_pos, placed_positions[1], placed_positions[0])
-                if ang < linear_angle_threshold_deg or ang > (180.0 - linear_angle_threshold_deg):
+                ang = cls._compute_angle(
+                    curr_pos, placed_positions[1], placed_positions[0]
+                )
+                if ang < linear_angle_threshold_deg or ang > (
+                    180.0 - linear_angle_threshold_deg
+                ):
                     # Introduce dummy atom X
                     var_r_count += 1
                     rx_name = f"R{var_r_count}"
@@ -557,7 +602,9 @@ class CFOURZmatBuilder:
                     var_a_count += 1
                     a_name = f"A{var_a_count}"
                     dist = cls._compute_distance(curr_pos, placed_positions[1])
-                    ang = cls._compute_angle(curr_pos, placed_positions[1], placed_positions[0])
+                    ang = cls._compute_angle(
+                        curr_pos, placed_positions[1], placed_positions[0]
+                    )
 
                     zmat_lines.append(f"{sym} 2 {r_name} 1 {a_name}")
                     variables[r_name] = dist
@@ -572,8 +619,15 @@ class CFOURZmatBuilder:
                 ref3 = ref2 - 1
 
                 dist = cls._compute_distance(curr_pos, placed_positions[ref1 - 1])
-                ang = cls._compute_angle(curr_pos, placed_positions[ref1 - 1], placed_positions[ref2 - 1])
-                dih = cls._compute_dihedral(curr_pos, placed_positions[ref1 - 1], placed_positions[ref2 - 1], placed_positions[ref3 - 1])
+                ang = cls._compute_angle(
+                    curr_pos, placed_positions[ref1 - 1], placed_positions[ref2 - 1]
+                )
+                dih = cls._compute_dihedral(
+                    curr_pos,
+                    placed_positions[ref1 - 1],
+                    placed_positions[ref2 - 1],
+                    placed_positions[ref3 - 1],
+                )
 
                 var_r_count += 1
                 r_name = f"R{var_r_count}"
@@ -582,7 +636,9 @@ class CFOURZmatBuilder:
                 var_d_count += 1
                 d_name = f"D{var_d_count}"
 
-                zmat_lines.append(f"{sym} {ref1} {r_name} {ref2} {a_name} {ref3} {d_name}")
+                zmat_lines.append(
+                    f"{sym} {ref1} {r_name} {ref2} {a_name} {ref3} {d_name}"
+                )
                 variables[r_name] = dist
                 variables[a_name] = ang
                 variables[d_name] = dih
@@ -603,14 +659,13 @@ class CFOURZmatBuilder:
 
         return "\n".join(body), variables
 
-
     @classmethod
     def generate_full_zmat_input(
         cls,
         symbols: Sequence[str],
         coordinates: Sequence[Sequence[float]],
-        method: str = "CCSD(T)",
-        basis: str = "ANO1",
+        method: str,
+        basis: str,
         reference: str = "RHF",
         frozen_core: bool = True,
         anharm: str = "VPT2",
@@ -626,10 +681,7 @@ class CFOURZmatBuilder:
         Constructs a complete CFOUR input deck (ZMAT) with parameter block and %isotopes.
         """
         zmat_body, _ = cls.cartesian_to_zmat(
-            symbols=symbols,
-            coordinates=coordinates,
-            title=title,
-            optimize_all=optimize
+            symbols=symbols, coordinates=coordinates, title=title, optimize_all=optimize
         )
 
         # Method Matrix standard keyword dictionary
@@ -681,6 +733,7 @@ class CFOURZmatBuilder:
 # 5. CFOUR Output Parser Engine
 # ============================================================================
 
+
 class CFOUROutputParser:
     """
     High-fidelity regular expression parser for CFOUR text outputs.
@@ -690,54 +743,35 @@ class CFOUROutputParser:
 
     @classmethod
     def parse_energies(cls, text: str) -> CFOUREnergies:
-        """Extracts electronic energies and corrections."""
+        """Keep parsed components without promoting missing higher-level energy."""
         energies = CFOUREnergies()
-
-        # SCF Energy
-        m_scf = re.search(r"E\(SCF\)\s*=\s*([-\d\.]+)\s*a\.u\.", text) or \
-                re.search(r"Total Energy\s*=\s*([-\d\.]+)\s*a\.u\.", text) or \
-                re.search(r"Reference energy\s+is\s+([-\d\.]+)", text)
-        if m_scf:
-            energies.scf_energy_hartree = float(m_scf.group(1))
-
-        # MP2 Energy
-        m_mp2 = re.search(r"Total MP2 energy\s*:\s*([-\d\.]+)", text) or \
-                re.search(r"E\(MP2\)\s*=\s*([-\d\.]+)", text)
-        if m_mp2:
-            energies.mp2_energy_hartree = float(m_mp2.group(1))
-
-        # CCSD Energy
-        m_ccsd = re.search(r"Total CCSD energy\s*:\s*([-\d\.]+)", text) or \
-                 re.search(r"E\(CCSD\)\s*=\s*([-\d\.]+)", text)
-        if m_ccsd:
-            energies.ccsd_energy_hartree = float(m_ccsd.group(1))
-
-        # CCSD(T) Energy
-        m_ccsdt = re.search(r"Total CCSD\(T\) energy\s*:\s*([-\d\.]+)", text) or \
-                  re.search(r"E\(CCSD\(T\)\)\s*=\s*([-\d\.]+)", text) or \
-                  re.search(r"Total energy for calculation type CCSD\(T\)\s*:\s*([-\d\.]+)", text)
-        if m_ccsdt:
-            energies.ccsd_t_energy_hartree = float(m_ccsdt.group(1))
-            energies.final_energy_hartree = energies.ccsd_t_energy_hartree
-        elif energies.ccsd_energy_hartree is not None:
-            energies.final_energy_hartree = energies.ccsd_energy_hartree
-        elif energies.mp2_energy_hartree is not None:
-            energies.final_energy_hartree = energies.mp2_energy_hartree
-        else:
-            energies.final_energy_hartree = energies.scf_energy_hartree
-
-        # DBOC Correction
-        m_dboc = re.search(r"Total DBOC\s*=\s*([-\d\.]+)\s*a\.u\.", text) or \
-                 re.search(r"DBOC energy correction\s*:\s*([-\d\.]+)", text)
-        if m_dboc:
-            energies.dboc_correction_hartree = float(m_dboc.group(1))
-
-        # Relativistic Correction
-        m_rel = re.search(r"Relativistic correction\s*=\s*([-\d\.]+)\s*a\.u\.", text) or \
-                re.search(r"Total Relativistic Energy\s*:\s*([-\d\.]+)", text)
-        if m_rel:
-            energies.relativistic_correction_hartree = float(m_rel.group(1))
-
+        number = r"([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])"
+        patterns = {
+            "scf_energy_hartree": r"(?:E\(SCF\)\s*=|Reference energy\s+is)\s*",
+            "mp2_energy_hartree": r"(?:Total MP2 energy\s*:|E\(MP2\)\s*=)\s*",
+            "ccsd_energy_hartree": r"(?:Total CCSD energy\s*:|E\(CCSD\)\s*=)\s*",
+            "ccsd_t_energy_hartree": r"(?:Total CCSD\(T\) energy\s*:|E\(CCSD\(T\)\)\s*=)\s*",
+            "dboc_correction_hartree": r"(?:Total DBOC\s*=|DBOC energy correction\s*:)\s*",
+            "relativistic_correction_hartree": r"(?:Relativistic correction\s*=|Total Relativistic Energy\s*:)\s*",
+        }
+        for field, pattern in patterns.items():
+            matches = list(re.finditer(pattern + number, text))
+            if matches:
+                value = matches[-1].group(1).replace("D", "E").replace("d", "e")
+                setattr(energies, field, float(value))
+        # A specifically reported total is retained as reported, but parsing
+        # alone never establishes the requested method's scientific convergence.
+        totals = list(
+            re.finditer(
+                r"Total energy for calculation type (?:SCF|HF|MP2|CCSD|CCSD\(T\))\s*:\s*"
+                + number,
+                text,
+            )
+        )
+        if totals:
+            energies.final_energy_hartree = float(
+                totals[-1].group(1).replace("D", "E").replace("d", "e")
+            )
         return energies
 
     @classmethod
@@ -746,32 +780,45 @@ class CFOUROutputParser:
         rc = CFOURRotationalConstants()
 
         # Equilibrium constants (cm^-1 or MHz)
-        m_rc_cm = re.search(r"Rotational constants\s*\(in cm-1\):\s*A\s*=\s*([\d\.]+)\s*B\s*=\s*([\d\.]+)\s*C\s*=\s*([\d\.]+)", text, re.IGNORECASE)
-        m_rc_mhz = re.search(r"Rotational constants\s*\(in MHz\):\s*A\s*=\s*([\d\.]+)\s*B\s*=\s*([\d\.]+)\s*C\s*=\s*([\d\.]+)", text, re.IGNORECASE)
+        m_rc_cm = re.search(
+            r"Rotational constants\s*\(in cm-1\):\s*A\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*B\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*C\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])",
+            text,
+            re.IGNORECASE,
+        )
+        m_rc_mhz = re.search(
+            r"Rotational constants\s*\(in MHz\):\s*A\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*B\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*C\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])",
+            text,
+            re.IGNORECASE,
+        )
 
         if m_rc_mhz:
-            rc.Ae_MHz = float(m_rc_mhz.group(1))
-            rc.Be_MHz = float(m_rc_mhz.group(2))
-            rc.Ce_MHz = float(m_rc_mhz.group(3))
+            rc.Ae_MHz = float(m_rc_mhz.group(1).replace("D", "E").replace("d", "e"))
+            rc.Be_MHz = float(m_rc_mhz.group(2).replace("D", "E").replace("d", "e"))
+            rc.Ce_MHz = float(m_rc_mhz.group(3).replace("D", "E").replace("d", "e"))
             rc.Ae_cm1 = rc.Ae_MHz * CONSTANTS.MHZ_TO_CM1
             rc.Be_cm1 = rc.Be_MHz * CONSTANTS.MHZ_TO_CM1
             rc.Ce_cm1 = rc.Ce_MHz * CONSTANTS.MHZ_TO_CM1
         elif m_rc_cm:
-            rc.Ae_cm1 = float(m_rc_cm.group(1))
-            rc.Be_cm1 = float(m_rc_cm.group(2))
-            rc.Ce_cm1 = float(m_rc_cm.group(3))
+            rc.Ae_cm1 = float(m_rc_cm.group(1).replace("D", "E").replace("d", "e"))
+            rc.Be_cm1 = float(m_rc_cm.group(2).replace("D", "E").replace("d", "e"))
+            rc.Ce_cm1 = float(m_rc_cm.group(3).replace("D", "E").replace("d", "e"))
             rc.Ae_MHz = rc.Ae_cm1 * CONSTANTS.CM1_TO_MHZ
             rc.Be_MHz = rc.Be_cm1 * CONSTANTS.CM1_TO_MHZ
             rc.Ce_MHz = rc.Ce_cm1 * CONSTANTS.CM1_TO_MHZ
 
         # Ground state rotational constants (A0, B0, C0) and vibration-rotation shifts
-        m_shift_sec = re.search(r"Be,\s*B0\s*AND\s*B-B0\s*SHIFTS\s*FOR\s*SINGLY\s*EXCITED\s*VIBRATIONAL\s*STATES.*?\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE)
+        m_shift_sec = re.search(
+            r"Be,\s*B0\s*AND\s*B-B0\s*SHIFTS\s*FOR\s*SINGLY\s*EXCITED\s*VIBRATIONAL\s*STATES.*?\n(.*?)(?=\n\n|\n[A-Z]|\Z)",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
         if m_shift_sec:
             lines = m_shift_sec.group(1).strip().splitlines()
             for line in lines:
                 if "Ground State" in line or "State 0" in line:
-                    nums = [float(x) for x in re.findall(r"[-+]?\d*\.\d+|\d+", line)]
-                    if len(nums) >= 3:
+                    values = re.sub(r"^\s*(?:Ground State|State 0)\s+", "", line)
+                    nums = [float(x) for x in re.findall(r"[-+]?\d*\.\d+|\d+", values)]
+                    if len(nums) == 3:
                         rc.A0_cm1 = nums[0]
                         rc.B0_cm1 = nums[1]
                         rc.C0_cm1 = nums[2]
@@ -780,15 +827,29 @@ class CFOUROutputParser:
                         rc.C0_MHz = rc.C0_cm1 * CONSTANTS.CM1_TO_MHZ
 
         # Vibration-rotation alpha constants (alpha_A, alpha_B, alpha_C)
-        m_alpha_sec = re.search(r"Vibration-rotation\s*interaction\s*constants\s*\(in MHz\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE)
+        m_alpha_sec = re.search(
+            r"Vibration-rotation\s*interaction\s*constants\s*\(in MHz\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
         if m_alpha_sec:
             for line in m_alpha_sec.group(1).strip().splitlines():
                 parts = line.split()
-                if len(parts) >= 4:
+                if len(parts) == 4:
                     try:
                         a_A = float(parts[1])
                         a_B = float(parts[2])
                         a_C = float(parts[3])
+                        if rc.alpha_A_MHz is None:
+                            for name in (
+                                "alpha_A_MHz",
+                                "alpha_B_MHz",
+                                "alpha_C_MHz",
+                                "alpha_A_cm1",
+                                "alpha_B_cm1",
+                                "alpha_C_cm1",
+                            ):
+                                setattr(rc, name, [])
                         rc.alpha_A_MHz.append(a_A)
                         rc.alpha_B_MHz.append(a_B)
                         rc.alpha_C_MHz.append(a_C)
@@ -798,21 +859,19 @@ class CFOUROutputParser:
                     except ValueError:
                         continue
 
-        # If A0 was not directly parsed from section, compute B0 = Be - 0.5 * sum(alpha)
-        if rc.A0_MHz == 0.0 and len(rc.alpha_A_MHz) > 0 and rc.Ae_MHz > 0.0:
-            rc.A0_MHz = rc.Ae_MHz - 0.5 * sum(rc.alpha_A_MHz)
-            rc.B0_MHz = rc.Be_MHz - 0.5 * sum(rc.alpha_B_MHz)
-            rc.C0_MHz = rc.Ce_MHz - 0.5 * sum(rc.alpha_C_MHz)
-            rc.A0_cm1 = rc.A0_MHz * CONSTANTS.MHZ_TO_CM1
-            rc.B0_cm1 = rc.B0_MHz * CONSTANTS.MHZ_TO_CM1
-            rc.C0_cm1 = rc.C0_MHz * CONSTANTS.MHZ_TO_CM1
-
-        # Ray's asymmetry parameter kappa = (2B - A - C) / (A - C)
-        A = rc.A0_MHz if rc.A0_MHz > 0.0 else rc.Ae_MHz
-        B = rc.B0_MHz if rc.B0_MHz > 0.0 else rc.Be_MHz
-        C = rc.C0_MHz if rc.C0_MHz > 0.0 else rc.Ce_MHz
-        if abs(A - C) > 1e-6:
-            rc.asymmetry_kappa = float((2.0 * B - A - C) / (A - C))
+        # Do not derive B0 from a potentially incomplete or ambiguously
+        # degenerate alpha table. The typed spectroscopy stage validates that.
+        ground = (rc.A0_MHz, rc.B0_MHz, rc.C0_MHz)
+        equilibrium = (rc.Ae_MHz, rc.Be_MHz, rc.Ce_MHz)
+        selected = None
+        if all(value is not None for value in ground):
+            selected, rc.asymmetry_source = ground, "vibrational_ground_state"
+        elif all(value is not None for value in equilibrium):
+            selected, rc.asymmetry_source = equilibrium, "equilibrium"
+        if selected is not None:
+            A, B, C = selected
+            if abs(A - C) > 1e-6:
+                rc.asymmetry_kappa = float((2.0 * B - A - C) / (A - C))
 
         return rc
 
@@ -821,159 +880,103 @@ class CFOUROutputParser:
         """Extracts harmonic frequencies, VPT2 anharmonic fundamentals, and ZPE."""
         vib = CFOURVibrationalData()
 
-        # Harmonic frequencies
-        m_harm = re.search(r"Harmonic\s+vibrational\s+frequencies\s*\(cm-1\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE)
-        if m_harm:
-            for line in m_harm.group(1).strip().splitlines():
-                matches = re.findall(r"[-+]?\d*\.\d+|\d+", line)
-                for num in matches:
-                    try:
-                        val = float(num)
-                        if val > 0.1:
-                            vib.harmonic_frequencies_cm1.append(val)
-                    except ValueError:
-                        pass
-
-        # Anharmonic fundamental frequencies
-        m_anh = re.search(r"Anharmonic\s+vibrational\s+frequencies\s*\(cm-1\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE) or \
-                re.search(r"VPT2\s+Fundamentals\s*\(cm-1\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE)
-        if m_anh:
-            for line in m_anh.group(1).strip().splitlines():
-                matches = re.findall(r"[-+]?\d*\.\d+|\d+", line)
-                for num in matches:
-                    try:
-                        val = float(num)
-                        if val > 0.1:
-                            vib.anharmonic_frequencies_cm1.append(val)
-                    except ValueError:
-                        pass
+        # Only a bare list with explicit decimal/scientific numbers is
+        # understood here. Indexed tables require a versioned format parser;
+        # scanning every number could mistake mode indices for frequencies.
+        number = r"[-+]?(?:\d+\.\d*|\.\d+)(?:[EeDd][-+]?\d+)?"
+        headers = {
+            "harmonic_frequencies_cm1": r"Harmonic\s+vibrational\s+frequencies",
+            "anharmonic_frequencies_cm1": r"(?:Anharmonic\s+vibrational\s+frequencies|VPT2\s+Fundamentals)",
+        }
+        for field, header in headers.items():
+            match = re.search(
+                header + r"\s*\(cm-1\):\s*\n(.*?)(?=\n\s*\n|\Z)",
+                text,
+                re.DOTALL | re.IGNORECASE,
+            )
+            if match:
+                block = match.group(1).strip()
+                if re.fullmatch(number + r"(?:\s+" + number + r")*", block):
+                    # Negative/zero frequencies are evidence, never discarded.
+                    setattr(
+                        vib,
+                        field,
+                        [
+                            float(item.replace("D", "E").replace("d", "e"))
+                            for item in block.split()
+                        ],
+                    )
 
         # Zero-point energy (ZPE)
-        m_zpe = re.search(r"Zero\s*point\s*vibrational\s*energy\s*:\s*([\d\.]+)\s*kcal/mol", text, re.IGNORECASE)
+        m_zpe = re.search(
+            r"Zero\s*point\s*vibrational\s*energy\s*:\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*kcal/mol",
+            text,
+            re.IGNORECASE,
+        )
         if m_zpe:
-            vib.harmonic_zpe_kcal_mol = float(m_zpe.group(1))
+            vib.harmonic_zpe_kcal_mol = float(
+                m_zpe.group(1).replace("D", "E").replace("d", "e")
+            )
 
-        m_azpe = re.search(r"Anharmonic\s*zero\s*point\s*energy\s*:\s*([\d\.]+)\s*kcal/mol", text, re.IGNORECASE)
+        m_azpe = re.search(
+            r"Anharmonic\s*zero\s*point\s*energy\s*:\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*kcal/mol",
+            text,
+            re.IGNORECASE,
+        )
         if m_azpe:
-            vib.anharmonic_zpe_kcal_mol = float(m_azpe.group(1))
+            vib.anharmonic_zpe_kcal_mol = float(
+                m_azpe.group(1).replace("D", "E").replace("d", "e")
+            )
 
         return vib
 
     @classmethod
     def parse_centrifugal_distortion(
-        cls,
-        text: str
+        cls, text: str
     ) -> Tuple[CFOURQuarticDistortion, CFOURSexticDistortion]:
-        """
-        Parses Watson A- and S-reduction quartic and sextic centrifugal distortion constants.
-        Enforces case-sensitive parsing to distinguish uppercase (Delta, Phi, D, H)
-        from lowercase (delta, phi, d, h) reduction parameters.
-        """
-        quartic = CFOURQuarticDistortion()
-        sextic = CFOURSexticDistortion()
-
-        # Watson A-reduction Quartic Distortion (kHz)
-        m_dj = re.search(r"\bDelta_J\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_dj:
-            quartic.Delta_J_kHz = float(m_dj.group(1))
-
-        m_djk = re.search(r"\bDelta_JK\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_djk:
-            quartic.Delta_JK_kHz = float(m_djk.group(1))
-
-        m_dk = re.search(r"\bDelta_K\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_dk:
-            quartic.Delta_K_kHz = float(m_dk.group(1))
-
-        m_delj = re.search(r"\bdelta_[Jj]\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_delj:
-            quartic.delta_J_kHz = float(m_delj.group(1))
-
-        m_delk = re.search(r"\bdelta_[Kk]\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_delk:
-            quartic.delta_K_kHz = float(m_delk.group(1))
-
-        # Watson S-reduction Quartic Distortion (kHz)
-        m_sdj = re.search(r"\bD_J\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_sdj:
-            quartic.D_J_kHz = float(m_sdj.group(1))
-            quartic.reduction_type = "S"
-
-        m_sdjk = re.search(r"\bD_JK\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_sdjk:
-            quartic.D_JK_kHz = float(m_sdjk.group(1))
-
-        m_sdk = re.search(r"\bD_K\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_sdk:
-            quartic.D_K_kHz = float(m_sdk.group(1))
-
-        m_d1 = re.search(r"\bd_?1\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_d1:
-            quartic.d_1_kHz = float(m_d1.group(1))
-
-        m_d2 = re.search(r"\bd_?2\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_d2:
-            quartic.d_2_kHz = float(m_d2.group(1))
-
-        # Watson A-reduction Sextic Centrifugal Distortion (Hz)
-        m_phij = re.search(r"\bPhi_J\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_phij:
-            sextic.Phi_J_Hz = float(m_phij.group(1))
-
-        m_phijk = re.search(r"\bPhi_JK\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_phijk:
-            sextic.Phi_JK_Hz = float(m_phijk.group(1))
-
-        m_phikj = re.search(r"\bPhi_KJ\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_phikj:
-            sextic.Phi_KJ_Hz = float(m_phikj.group(1))
-
-        m_phik = re.search(r"\bPhi_K\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_phik:
-            sextic.Phi_K_Hz = float(m_phik.group(1))
-
-        m_sphij = re.search(r"\bphi_[Jj]\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_sphij:
-            sextic.phi_J_Hz = float(m_sphij.group(1))
-
-        m_sphijk = re.search(r"\bphi_[Jj][Kk]\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_sphijk:
-            sextic.phi_JK_Hz = float(m_sphijk.group(1))
-
-        m_sphik = re.search(r"\bphi_[Kk]\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_sphik:
-            sextic.phi_K_Hz = float(m_sphik.group(1))
-
-        # Watson S-reduction Sextic Centrifugal Distortion (Hz)
-        m_hj = re.search(r"\bH_J\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_hj:
-            sextic.H_J_Hz = float(m_hj.group(1))
-            sextic.reduction_type = "S"
-
-        m_hjk = re.search(r"\bH_JK\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_hjk:
-            sextic.H_JK_Hz = float(m_hjk.group(1))
-
-        m_hkj = re.search(r"\bH_KJ\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_hkj:
-            sextic.H_KJ_Hz = float(m_hkj.group(1))
-
-        m_hk = re.search(r"\bH_K\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_hk:
-            sextic.H_K_Hz = float(m_hk.group(1))
-
-        m_h1 = re.search(r"\bh_?1\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_h1:
-            sextic.h_1_Hz = float(m_h1.group(1))
-
-        m_h2 = re.search(r"\bh_?2\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_h2:
-            sextic.h_2_Hz = float(m_h2.group(1))
-
-        m_h3 = re.search(r"\bh_?3\b\s*[=:]\s*([-\d\.]+)", text)
-        if m_h3:
-            sextic.h_3_Hz = float(m_h3.group(1))
-
+        """Parse explicit named values with explicit units and case semantics."""
+        quartic, sextic = CFOURQuarticDistortion(), CFOURSexticDistortion()
+        number = r"([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)"
+        groups = (
+            (quartic, "kHz", {"Delta_J", "Delta_JK", "Delta_K", "delta_J", "delta_K"}),
+            (
+                sextic,
+                "Hz",
+                {"Phi_J", "Phi_JK", "Phi_KJ", "Phi_K", "phi_J", "phi_JK", "phi_K"},
+            ),
+        )
+        for model, unit, a_names in groups:
+            reductions = set()
+            for field in type(model).model_fields:
+                if not field.endswith("_" + unit):
+                    continue
+                parameter = field[: -(len(unit) + 1)]
+                spelling = re.escape(parameter)
+                if parameter.startswith("phi_"):
+                    spelling = re.escape("phi_") + "".join(
+                        "[" + item + item.lower() + "]" for item in parameter[4:]
+                    )
+                matches = list(
+                    re.finditer(
+                        r"\b"
+                        + spelling
+                        + r"\b\s*[=:]\s*"
+                        + number
+                        + r"\s*"
+                        + re.escape(unit)
+                        + r"\b",
+                        text,
+                    )
+                )
+                if matches:
+                    value = matches[-1].group(1).replace("D", "E").replace("d", "e")
+                    setattr(model, field, float(value))
+                    reductions.add("A" if parameter in a_names else "S")
+            model.reduction_type = (
+                next(iter(reductions))
+                if len(reductions) == 1
+                else ("mixed" if reductions else None)
+            )
         return quartic, sextic
 
     @classmethod
@@ -982,30 +985,26 @@ class CFOUROutputParser:
         dip = CFOURDipoleMoment()
 
         # Match principal axis dipole components
-        m_dip = re.search(r"Dipole\s+moment\s*\(Debye\)\s*:\s*mu_a\s*=\s*([-\d\.]+)\s*mu_b\s*=\s*([-\d\.]+)\s*mu_c\s*=\s*([-\d\.]+)\s*(?:Total\s*=\s*([\d\.]+))?", text, re.IGNORECASE)
+        m_dip = re.search(
+            r"Dipole\s+moment\s*\(Debye\)\s*:\s*mu_a\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*mu_b\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*mu_c\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.])\s*(?:Total\s*=\s*([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][-+]?\d+)?)(?![\w.]))?",
+            text,
+            re.IGNORECASE,
+        )
         if m_dip:
-            dip.mu_a_debye = float(m_dip.group(1))
-            dip.mu_b_debye = float(m_dip.group(2))
-            dip.mu_c_debye = float(m_dip.group(3))
-            dip.mu_total_debye = float(m_dip.group(4)) if m_dip.group(4) else math.sqrt(
-                dip.mu_a_debye**2 + dip.mu_b_debye**2 + dip.mu_c_debye**2
+            dip.mu_a_debye = float(m_dip.group(1).replace("D", "E").replace("d", "e"))
+            dip.mu_b_debye = float(m_dip.group(2).replace("D", "E").replace("d", "e"))
+            dip.mu_c_debye = float(m_dip.group(3).replace("D", "E").replace("d", "e"))
+            dip.mu_total_debye = (
+                float(m_dip.group(4).replace("D", "E").replace("d", "e"))
+                if m_dip.group(4)
+                else math.sqrt(
+                    dip.mu_a_debye**2 + dip.mu_b_debye**2 + dip.mu_c_debye**2
+                )
             )
             dip.mu_a_au = dip.mu_a_debye / CONSTANTS.AU_TO_DEBYE
             dip.mu_b_au = dip.mu_b_debye / CONSTANTS.AU_TO_DEBYE
             dip.mu_c_au = dip.mu_c_debye / CONSTANTS.AU_TO_DEBYE
             dip.mu_total_au = dip.mu_total_debye / CONSTANTS.AU_TO_DEBYE
-        else:
-            # Fallback for Cartesian dipole block
-            m_cart = re.search(r"Dipole\s+moment\s*:\s*X\s*=\s*([-\d\.]+)\s*Y\s*=\s*([-\d\.]+)\s*Z\s*=\s*([-\d\.]+)\s*Total\s*=\s*([\d\.]+)", text, re.IGNORECASE)
-            if m_cart:
-                dip.mu_a_debye = float(m_cart.group(1))
-                dip.mu_b_debye = float(m_cart.group(2))
-                dip.mu_c_debye = float(m_cart.group(3))
-                dip.mu_total_debye = float(m_cart.group(4))
-                dip.mu_a_au = dip.mu_a_debye / CONSTANTS.AU_TO_DEBYE
-                dip.mu_b_au = dip.mu_b_debye / CONSTANTS.AU_TO_DEBYE
-                dip.mu_c_au = dip.mu_c_debye / CONSTANTS.AU_TO_DEBYE
-                dip.mu_total_au = dip.mu_total_debye / CONSTANTS.AU_TO_DEBYE
 
         return dip
 
@@ -1013,102 +1012,103 @@ class CFOUROutputParser:
     def parse_quadrupole_coupling(
         cls,
         text: str,
-        nuclear_q_mbarn: Optional[Dict[str, float]] = None
+        nuclear_q_mbarn: Optional[Dict[str, float]] = None,
+        isotope_by_atom: Optional[Dict[int, int]] = None,
+        nuclear_q_source: Optional[str] = None,
     ) -> List[CFOURNuclearQuadrupole]:
+        """Retain EFGs; convert only with explicit isotope-specific Q and source.
+
+        ``isotope_by_atom`` uses one-based output atom numbers. Q keys are
+        isotope labels such as ``14N`` or ``35Cl``, not bare element names.
+        Tensor axes are not assumed to equal rotational principal axes.
         """
-        Parses Electric Field Gradient (EFG) tensors and converts to nuclear quadrupole coupling constants.
-        Conversion formula: chi [kHz] = EFG [a.u.] * Q [mbarn] * 234.96474
-        """
-        q_constants: Dict[str, float] = {
-            "N": 20.44,   # 14N nuclear quadrupole moment in mbarn
-            "D": 2.860,   # 2H (D) nuclear quadrupole moment in mbarn
-            "CL": -81.65, # 35Cl in mbarn
-            "BR": 313.0,  # 79Br in mbarn
-            "I": -696.0,  # 127I in mbarn
+        if nuclear_q_mbarn and (not isotope_by_atom or not nuclear_q_source):
+            raise ValueError(
+                "Quadrupole conversion requires isotope_by_atom and nuclear_q_source."
+            )
+        q_constants = {
+            key.upper(): value for key, value in (nuclear_q_mbarn or {}).items()
         }
-        if nuclear_q_mbarn:
-            q_constants.update(nuclear_q_mbarn)
-
-        results: List[CFOURNuclearQuadrupole] = []
-
-        # Find EFG sections
-        efg_matches = re.finditer(r"Electric\s+field\s+gradient\s+tensor\s+for\s+atom\s+(\d+)\s*\(([A-Za-z]+)\)\s*\(in a\.u\.\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE)
-        for m in efg_matches:
-            atom_idx = int(m.group(1))
-            sym = m.group(2).upper()
-            efg_lines = m.group(3).strip().splitlines()
-            efg_mat = []
-            for line in efg_lines:
-                row = [float(x) for x in re.findall(r"[-+]?\d*\.\d+|\d+", line)]
-                if len(row) >= 3:
-                    efg_mat.append(row[:3])
-
-            if len(efg_mat) == 3:
-                efg_tensor = np.array(efg_mat, dtype=np.float64)
-                q_val = q_constants.get(sym, 0.0)
-                chi_tensor = efg_tensor * q_val * CONSTANTS.EFG_TO_KHZ_FACTOR
-
-                # Diagonalize to get principal components
-                eigvals = np.linalg.eigvalsh(chi_tensor)
-                sorted_idx = np.argsort(np.abs(eigvals))
-                chi_xx = float(eigvals[sorted_idx[0]])
-                chi_yy = float(eigvals[sorted_idx[1]])
-                chi_zz = float(eigvals[sorted_idx[2]])
-                eta = float(abs((chi_xx - chi_yy) / chi_zz)) if abs(chi_zz) > 1e-6 else 0.0
-
-                nq = CFOURNuclearQuadrupole(
-                    atom_index=atom_idx,
-                    element=sym,
-                    Q_mbarn=q_val,
-                    efg_tensor_au=efg_tensor.tolist(),
-                    chi_tensor_kHz=chi_tensor.tolist(),
-                    chi_aa_kHz=chi_xx,
-                    chi_bb_kHz=chi_yy,
-                    chi_cc_kHz=chi_zz,
-                    asymmetry_eta=eta
-                )
-                results.append(nq)
-
+        if any(
+            re.fullmatch(r"[1-9]\d*[A-Z][A-Z]?", key) is None for key in q_constants
+        ):
+            raise ValueError(
+                "Nuclear quadrupole moments must use isotope keys, e.g. 14N or 35Cl."
+            )
+        if any(not math.isfinite(value) for value in q_constants.values()):
+            raise ValueError("Nuclear quadrupole moments must be finite.")
+        results = []
+        pattern = r"Electric\s+field\s+gradient\s+tensor\s+for\s+atom\s+(\d+)\s*\(([A-Za-z]+)\)\s*\(in a\.u\.\):\s*\n(.*?)(?=\n\s*\n|\Z)"
+        for match in re.finditer(pattern, text, re.DOTALL | re.IGNORECASE):
+            tensor = cls._parse_tensor_block(match.group(3))
+            if tensor is None:
+                continue
+            atom_idx, element = int(match.group(1)), match.group(2).upper()
+            isotope = (isotope_by_atom or {}).get(atom_idx)
+            q_value = (
+                q_constants.get(f"{isotope}{element}") if isotope is not None else None
+            )
+            result = CFOURNuclearQuadrupole(
+                atom_index=atom_idx,
+                element=element,
+                isotope_mass_number=isotope,
+                Q_mbarn=q_value,
+                nuclear_q_source=nuclear_q_source if q_value is not None else None,
+                efg_tensor_au=tensor.tolist(),
+            )
+            if q_value is not None:
+                chi = tensor * q_value * CONSTANTS.EFG_TO_KHZ_FACTOR
+                result.chi_tensor_kHz = chi.tolist()
+                if np.allclose(chi, chi.T, rtol=0.0, atol=1e-10):
+                    values = np.linalg.eigvalsh(chi)
+                    values = values[np.argsort(np.abs(values))]
+                    result.chi_principal_values_kHz = values.tolist()
+                    if values[2] != 0:
+                        result.asymmetry_eta = float(
+                            abs((values[0] - values[1]) / values[2])
+                        )
+                # No chi_aa/bb/cc: EFG principal axes are not the rotor axes.
+            results.append(result)
         return results
+
+    @staticmethod
+    def _parse_tensor_block(block: str) -> Optional[np.ndarray]:
+        lines = [line.split() for line in block.strip().splitlines()]
+        if len(lines) != 3 or any(len(row) != 3 for row in lines):
+            return None
+        try:
+            tensor = np.array(
+                [
+                    [float(item.replace("D", "E").replace("d", "e")) for item in row]
+                    for row in lines
+                ]
+            )
+        except ValueError:
+            return None
+        return tensor if np.all(np.isfinite(tensor)) else None
 
     @classmethod
     def parse_spin_rotation(cls, text: str) -> List[CFOURSpinRotation]:
-        """Extracts nuclear spin-rotation coupling tensors (SPINROT=ON)."""
-        results: List[CFOURSpinRotation] = []
-
-        sr_matches = re.finditer(r"Spin-rotation\s+tensor\s+for\s+atom\s+(\d+)\s*\(([A-Za-z]+)\)\s*\(in kHz\):\s*\n(.*?)(?=\n\n|\n[A-Z]|\Z)", text, re.DOTALL | re.IGNORECASE)
-        for m in sr_matches:
-            atom_idx = int(m.group(1))
-            sym = m.group(2).upper()
-            lines = m.group(3).strip().splitlines()
-            mat = []
-            for line in lines:
-                row = [float(x) for x in re.findall(r"[-+]?\d*\.\d+|\d+", line)]
-                if len(row) >= 3:
-                    mat.append(row[:3])
-
-            if len(mat) == 3:
-                tensor = np.array(mat, dtype=np.float64)
-                caa = float(tensor[0, 0])
-                cbb = float(tensor[1, 1])
-                ccc = float(tensor[2, 2])
-                ciso = float(np.trace(tensor) / 3.0)
-
-                sr = CFOURSpinRotation(
-                    atom_index=atom_idx,
-                    element=sym,
-                    C_tensor_kHz=tensor.tolist(),
-                    C_aa_kHz=caa,
-                    C_bb_kHz=cbb,
-                    C_cc_kHz=ccc,
-                    C_iso_kHz=ciso
+        """Preserve the output-frame tensor without inventing a rotor-frame map."""
+        results = []
+        pattern = r"Spin-rotation\s+tensor\s+for\s+atom\s+(\d+)\s*\(([A-Za-z]+)\)\s*\(in kHz\):\s*\n(.*?)(?=\n\s*\n|\Z)"
+        for match in re.finditer(pattern, text, re.DOTALL | re.IGNORECASE):
+            tensor = cls._parse_tensor_block(match.group(3))
+            if tensor is not None:
+                results.append(
+                    CFOURSpinRotation(
+                        atom_index=int(match.group(1)),
+                        element=match.group(2).upper(),
+                        C_tensor_kHz=tensor.tolist(),
+                        C_iso_kHz=float(np.trace(tensor) / 3.0),
+                    )
                 )
-                results.append(sr)
-
         return results
 
     @classmethod
-    def parse_full_output(cls, output_content: str, molecule_name: str = "") -> CFOUROutputPayload:
+    def parse_full_output(
+        cls, output_content: str, molecule_name: str = ""
+    ) -> CFOUROutputPayload:
         """
         Parses a complete CFOUR output string into a structured CFOUROutputPayload object.
         """
@@ -1121,8 +1121,14 @@ class CFOUROutputParser:
         quadrupole = cls.parse_quadrupole_coupling(output_content)
         spin_rot = cls.parse_spin_rotation(output_content)
 
-        converged = "The calculation has not converged" not in output_content and \
-                    "ERROR" not in output_content
+        failed = bool(
+            re.search(
+                r"not\s+converged|\bERROR\b|\bFATAL\b", output_content, re.IGNORECASE
+            )
+        )
+        # Absence of an error is not positive, calculation-specific convergence
+        # evidence. No genuine release fixture has qualified that parser yet.
+        converged = False if failed else None
 
         payload = CFOUROutputPayload(
             molecule_name=molecule_name,
@@ -1135,7 +1141,10 @@ class CFOUROutputParser:
             quadrupole_coupling=quadrupole,
             spin_rotation=spin_rot,
             raw_output_sha256=sha256_hash,
-            calculation_converged=converged
+            calculation_converged=converged,
+            validation_issues=[
+                "Calculation-specific convergence and effective method/basis parsing are not yet qualified."
+            ],
         )
         return payload
 
@@ -1144,47 +1153,37 @@ class CFOUROutputParser:
 # 6. CFOUR Execution Engine & Chained Restart Manager
 # ============================================================================
 
-class TorqCfourExecutor(ElectronicStructureExecutor):
+
+class TorqCfourExecutor:
     """
     Orchestrates CFOUR job execution, scratch workspace isolation,
     binary execution, restart file propagation, and output parsing.
-    Complies with ElectronicStructureExecutor interface.
+    Direct run interface. Generic gradient execution is explicitly unsupported
+    until a genuine CFOUR gradient parser and adapter have been qualified.
     """
 
     def __init__(self, cfour_path: Optional[str] = None) -> None:
         self.cfour_path = cfour_path
 
     def resolve_binary(self) -> Path:
-        """Resolve the CFOUR executable (xcfour) via environment or BinaryRegistry."""
-        from cochem_base.environment import BinaryRegistry
-        from cochem_base.exceptions import BinaryNotFoundError
-        if self.cfour_path and self.cfour_path != "xcfour":
-            p = Path(self.cfour_path).resolve()
-            if p.is_file():
-                return p
-        try:
-            return BinaryRegistry.resolve("xcfour")
-        except BinaryNotFoundError:
-            raise BinaryNotFoundError(
-                "[MISSING DATA] CFOUR executable (xcfour) not found. "
-                "Cannot execute coupled-cluster analytic force fields."
-            )
-
-    def execute(self, job_spec: QuantumJobSpec) -> GradientPayload:
-        """Standard execution interface for electronic structure calculations."""
-        payload, work_dir = self.run_cfour_job(
-            job_name=job_spec.job_id,
-            symbols=job_spec.symbols,
-            coordinates=job_spec.coordinates,
-            method=job_spec.method,
-            basis=job_spec.basis_set,
+        """Resolve an explicit/site CFOUR binary without requiring CoChem-BASE."""
+        candidate = (
+            self.cfour_path or os.environ.get("CFOUR_PATH") or shutil.which("xcfour")
         )
-        energy = payload.energies.final_energy if payload.energies and payload.energies.final_energy is not None else 0.0
-        return GradientPayload(
-            energy=energy,
-            gradient=[],
-            hessian=payload.vibrational_data.harmonic_frequencies if payload.vibrational_data else None,
-            status="SUCCESS",
+        if candidate:
+            path = Path(candidate).expanduser().resolve()
+            if path.is_file() and os.access(path, os.X_OK):
+                return path
+        raise CFOURUnavailableError(
+            "CFOUR executable (xcfour) is not configured or executable."
+        )
+
+    def execute(self, job_spec: Any) -> Any:
+        """Fail before launch: this bridge has no qualified gradient adapter."""
+        raise CFOURUnavailableError(
+            "Generic CFOUR gradient/Hessian execution is unavailable: a frequency "
+            "vector is not a Hessian, and an empty gradient is not a result. "
+            "Use a separately qualified derivative adapter."
         )
 
     def run_cfour_job(
@@ -1192,8 +1191,8 @@ class TorqCfourExecutor(ElectronicStructureExecutor):
         job_name: str,
         symbols: Sequence[str],
         coordinates: Sequence[Sequence[float]],
-        method: str = "CCSD(T)",
-        basis: str = "ANO1",
+        method: str,
+        basis: str,
         reference: str = "RHF",
         frozen_core: bool = True,
         anharm: str = "VPT2",
@@ -1214,7 +1213,7 @@ class TorqCfourExecutor(ElectronicStructureExecutor):
         bin_path = self.resolve_binary()
 
         if scratch_dir is None:
-            work_dir = PathRegistry.create_scratch_dir(f"cfour_{job_name}")
+            work_dir = Path(tempfile.mkdtemp(prefix="torq_cfour_"))
         else:
             work_dir = Path(scratch_dir)
             work_dir.mkdir(parents=True, exist_ok=True)
@@ -1248,7 +1247,15 @@ class TorqCfourExecutor(ElectronicStructureExecutor):
 
         # 3. Provision restart files (JOBARC, JAINDX, OPTARC, MOINTS, MOABCD, FCMINT)
         if restart_files_dir and Path(restart_files_dir).exists():
-            for rfile in ["JOBARC", "JAINDX", "OPTARC", "MOINTS", "MOABCD", "FCMINT", "FCMFINAL"]:
+            for rfile in [
+                "JOBARC",
+                "JAINDX",
+                "OPTARC",
+                "MOINTS",
+                "MOABCD",
+                "FCMINT",
+                "FCMFINAL",
+            ]:
                 src = Path(restart_files_dir) / rfile
                 if src.exists():
                     shutil.copy2(str(src), str(work_dir / rfile))
@@ -1260,30 +1267,48 @@ class TorqCfourExecutor(ElectronicStructureExecutor):
         try:
             logger.info(f"Launching CFOUR execution '{job_name}' in {work_dir}...")
             with open(output_file, "w", encoding="utf-8") as out_f:
-                res = subprocess.run(
+                res = subprocess.Popen(
                     [str(bin_path)],
                     cwd=str(work_dir),
                     stdout=out_f,
                     stderr=subprocess.STDOUT,
-                    timeout=timeout_seconds,
-                    check=False
                 )
+                _ACTIVE_CFOUR_PROCESSES.add(res)
+                try:
+                    res.wait(timeout=timeout_seconds)
+                except subprocess.TimeoutExpired:
+                    res.kill()
+                    res.wait()
+                    raise
+                finally:
+                    _ACTIVE_CFOUR_PROCESSES.discard(res)
             wall_time = time.perf_counter() - start_time
 
             if res.returncode != 0:
                 logger.warning(f"CFOUR exited with return code {res.returncode}.")
 
         except subprocess.TimeoutExpired:
-            cleanup_zombies()
-            raise TimeoutError(f"CFOUR job '{job_name}' exceeded execution timeout of {timeout_seconds}s.")
+            raise TimeoutError(
+                f"CFOUR job '{job_name}' exceeded execution timeout of {timeout_seconds}s."
+            )
         except Exception as e:
             logger.error(f"Execution error running CFOUR: {e}")
             raise
 
         # 5. Parse output
         output_content = output_file.read_text(encoding="utf-8", errors="ignore")
-        payload = CFOUROutputParser.parse_full_output(output_content, molecule_name=job_name)
+        payload = CFOUROutputParser.parse_full_output(
+            output_content, molecule_name=job_name
+        )
         payload.wall_clock_seconds = wall_time
+        payload.process_returncode = res.returncode
+        payload.requested_method = method
+        payload.requested_basis = basis
+        if res.returncode != 0:
+            payload.calculation_converged = False
+            payload.validation_issues.append(
+                f"CFOUR process exited with code {res.returncode}."
+            )
 
         return payload, work_dir
 
@@ -1292,119 +1317,118 @@ class TorqCfourExecutor(ElectronicStructureExecutor):
 # 7. Bridge Integration: SPCAT Payload & HDF5 Database Export
 # ============================================================================
 
+
 def export_cfour_to_spcat_dict(payload: CFOUROutputPayload) -> Dict[str, Any]:
     """
     Formats parsed CFOUR spectroscopic constants into a structured dictionary
     directly consumable by cochem_spcat_bridge.route_3tier_abinitio_payload.
     """
+    if payload.calculation_converged is not True:
+        raise ValueError(
+            "SPCAT export requires positively verified scientific convergence."
+        )
+    if not payload.calc_method or not payload.basis_set:
+        raise ValueError(
+            "SPCAT export requires the verified effective method and basis."
+        )
     rc = payload.rotational_constants
-    A_mhz = rc.A0_MHz if rc.A0_MHz > 0.0 else rc.Ae_MHz
-    B_mhz = rc.B0_MHz if rc.B0_MHz > 0.0 else rc.Be_MHz
-    C_mhz = rc.C0_MHz if rc.C0_MHz > 0.0 else rc.Ce_MHz
-
+    constants = (rc.A0_MHz, rc.B0_MHz, rc.C0_MHz)
+    dipoles = (
+        payload.dipole_moment.mu_a_debye,
+        payload.dipole_moment.mu_b_debye,
+        payload.dipole_moment.mu_c_debye,
+    )
+    if any(value is None for value in constants):
+        raise ValueError(
+            "Ground-state SPCAT export requires A0, B0 and C0; Be is not a substitute."
+        )
+    if any(value is None for value in dipoles):
+        raise ValueError(
+            "Intensity export requires measured/computed principal-axis dipole components."
+        )
+    if any(value <= 0 for value in constants):
+        raise ValueError(
+            "This SPCAT profile requires three positive nonlinear-rotor constants."
+        )
     return {
-        "eccsd_t": payload.energies.final_energy_hartree,
         "energy_hartree": payload.energies.final_energy_hartree,
-        "rotational_constants_mhz": {"A": A_mhz, "B": B_mhz, "C": C_mhz},
+        "eccsd_t": payload.energies.ccsd_t_energy_hartree,
+        "rotational_constants_kind": "vibrational_ground_state",
+        "rotational_constants_mhz": dict(zip(("A", "B", "C"), constants)),
         "frequencies": payload.vibrational_data.harmonic_frequencies_cm1,
         "anharmonic_frequencies": payload.vibrational_data.anharmonic_frequencies_cm1,
-        "dipoles": {
-            "mu_a": payload.dipole_moment.mu_a_debye,
-            "mu_b": payload.dipole_moment.mu_b_debye,
-            "mu_c": payload.dipole_moment.mu_c_debye,
-        },
+        "dipoles": dict(zip(("mu_a", "mu_b", "mu_c"), dipoles)),
         "quartic_distortion_khz": {
-            "Delta_J": payload.quartic_distortion.Delta_J_kHz,
-            "Delta_JK": payload.quartic_distortion.Delta_JK_kHz,
-            "Delta_K": payload.quartic_distortion.Delta_K_kHz,
-            "delta_J": payload.quartic_distortion.delta_J_kHz,
-            "delta_K": payload.quartic_distortion.delta_K_kHz,
+            key.removesuffix("_kHz"): value
+            for key, value in payload.quartic_distortion.model_dump().items()
+            if key.endswith("_kHz")
         },
+        "quartic_reduction": payload.quartic_distortion.reduction_type,
         "sextic_distortion_hz": {
-            "Phi_J": payload.sextic_distortion.Phi_J_Hz,
-            "Phi_JK": payload.sextic_distortion.Phi_JK_Hz,
-            "Phi_KJ": payload.sextic_distortion.Phi_KJ_Hz,
-            "Phi_K": payload.sextic_distortion.Phi_K_Hz,
-            "phi_J": payload.sextic_distortion.phi_J_Hz,
-            "phi_JK": payload.sextic_distortion.phi_JK_Hz,
-            "phi_K": payload.sextic_distortion.phi_K_Hz,
+            key.removesuffix("_Hz"): value
+            for key, value in payload.sextic_distortion.model_dump().items()
+            if key.endswith("_Hz")
         },
-        "nuclear_quadrupole": [q.model_dump() for q in payload.quadrupole_coupling],
-        "spin_rotation": [sr.model_dump() for sr in payload.spin_rotation],
+        "sextic_reduction": payload.sextic_distortion.reduction_type,
+        "nuclear_quadrupole": [
+            item.model_dump() for item in payload.quadrupole_coupling
+        ],
+        "spin_rotation": [item.model_dump() for item in payload.spin_rotation],
         "sha256": payload.raw_output_sha256,
-        "converged": payload.calculation_converged
+        "converged": payload.calculation_converged,
+        "validation_issues": payload.validation_issues,
     }
 
 
 def save_cfour_to_hdf5(
     payload: CFOUROutputPayload,
     h5_file_path: Union[str, Path],
-    dataset_group: str = "ab_initio/cfour"
+    dataset_group: str = "ab_initio/cfour",
 ) -> None:
-    """
-    Serializes complete CFOUR calculation results into the Master SWMR HDF5 store (landscape.h5).
+    """Archive a complete typed payload, retaining JSON nulls for unknown data.
+
+    This ordinary HDF5 writer is not a SWMR/transaction coordinator. An archive
+    group is immutable to prevent mixing a partial attempt with older results.
     """
     h5_path = Path(h5_file_path)
     h5_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with h5py.File(str(h5_path), "a") as f:
-        grp = f.require_group(dataset_group)
-
-        # Store energies
-        grp.attrs["final_energy_hartree"] = payload.energies.final_energy_hartree
-        grp.attrs["scf_energy_hartree"] = payload.energies.scf_energy_hartree
-        if payload.energies.ccsd_t_energy_hartree is not None:
-            grp.attrs["ccsd_t_energy_hartree"] = payload.energies.ccsd_t_energy_hartree
-
-        # Store rotational constants
-        grp.attrs["Ae_MHz"] = payload.rotational_constants.Ae_MHz
-        grp.attrs["Be_MHz"] = payload.rotational_constants.Be_MHz
-        grp.attrs["Ce_MHz"] = payload.rotational_constants.Ce_MHz
-        grp.attrs["A0_MHz"] = payload.rotational_constants.A0_MHz
-        grp.attrs["B0_MHz"] = payload.rotational_constants.B0_MHz
-        grp.attrs["C0_MHz"] = payload.rotational_constants.C0_MHz
-        grp.attrs["asymmetry_kappa"] = payload.rotational_constants.asymmetry_kappa
-
-        # Store quartic and sextic parameters
-        grp.attrs["Delta_J_kHz"] = payload.quartic_distortion.Delta_J_kHz
-        grp.attrs["Delta_JK_kHz"] = payload.quartic_distortion.Delta_JK_kHz
-        grp.attrs["Delta_K_kHz"] = payload.quartic_distortion.Delta_K_kHz
-        grp.attrs["Phi_J_Hz"] = payload.sextic_distortion.Phi_J_Hz
-        grp.attrs["Phi_JK_Hz"] = payload.sextic_distortion.Phi_JK_Hz
-        grp.attrs["Phi_K_Hz"] = payload.sextic_distortion.Phi_K_Hz
-
-        # Store dipole moments
-        grp.attrs["mu_a_debye"] = payload.dipole_moment.mu_a_debye
-        grp.attrs["mu_b_debye"] = payload.dipole_moment.mu_b_debye
-        grp.attrs["mu_c_debye"] = payload.dipole_moment.mu_c_debye
-        grp.attrs["mu_total_debye"] = payload.dipole_moment.mu_total_debye
-
-        # Store frequency arrays
-        if payload.vibrational_data.harmonic_frequencies_cm1:
-            if "harmonic_frequencies_cm1" in grp:
-                del grp["harmonic_frequencies_cm1"]
-            grp.create_dataset(
-                "harmonic_frequencies_cm1",
-                data=np.array(payload.vibrational_data.harmonic_frequencies_cm1, dtype=np.float64)
+    with h5py.File(str(h5_path), "a") as handle:
+        if dataset_group in handle:
+            raise ValueError(
+                "CFOUR archive groups are immutable; select a new attempt group."
             )
-
-        if payload.vibrational_data.anharmonic_frequencies_cm1:
-            if "anharmonic_frequencies_cm1" in grp:
-                del grp["anharmonic_frequencies_cm1"]
-            grp.create_dataset(
-                "anharmonic_frequencies_cm1",
-                data=np.array(payload.vibrational_data.anharmonic_frequencies_cm1, dtype=np.float64)
-            )
-
-        grp.attrs["sha256_provenance"] = payload.raw_output_sha256
-        grp.attrs["timestamp_utc"] = datetime.now(timezone.utc).isoformat()
-
-    logger.info(f"Successfully archived CFOUR payload to HDF5 at {h5_path} (Group: {dataset_group}).")
+        group = handle.create_group(dataset_group)
+        group.attrs["schema_version"] = "2"
+        group.attrs["timestamp_utc"] = datetime.now(timezone.utc).isoformat()
+        group.attrs["sha256_provenance"] = payload.raw_output_sha256
+        # Persist nulls/status/provenance even where HDF5 cannot represent a
+        # missing scalar attribute. No unknown quantity becomes numeric zero.
+        group.create_dataset(
+            "payload_json",
+            data=payload.model_dump_json(),
+            dtype=h5py.string_dtype("utf-8"),
+        )
+        for model in (
+            payload.energies,
+            payload.rotational_constants,
+            payload.quartic_distortion,
+            payload.sextic_distortion,
+            payload.dipole_moment,
+        ):
+            for key, value in model.model_dump().items():
+                if value is not None and isinstance(value, (int, float)):
+                    group.attrs[key] = value
+        for field in ("harmonic_frequencies_cm1", "anharmonic_frequencies_cm1"):
+            value = getattr(payload.vibrational_data, field)
+            if value is not None:
+                group.create_dataset(field, data=np.asarray(value, dtype=np.float64))
+        handle.flush()
 
 
 # ============================================================================
 # 8. Parallel Queue-Split Decomposition Manager
 # ============================================================================
+
 
 class CFOURDecompositionManager:
     """
@@ -1431,13 +1455,15 @@ class CFOURDecompositionManager:
             extra_lines.extend(["FREQ_ALGORITHM=PARALLEL", "ANH_ALGORITHM=PARALLEL"])
 
         insertion = "\n".join(extra_lines)
-        if re.search(r"(\*CFOUR\(.*?)(\n\s*\))", base_zmat, flags=re.DOTALL | re.IGNORECASE):
+        if re.search(
+            r"(\*CFOUR\(.*?)(\n\s*\))", base_zmat, flags=re.DOTALL | re.IGNORECASE
+        ):
             modified_zmat = re.sub(
                 r"(\*CFOUR\(.*?)(\n\s*\))",
                 rf"\1\n{insertion}\2",
                 base_zmat,
                 count=1,
-                flags=re.DOTALL | re.IGNORECASE
+                flags=re.DOTALL | re.IGNORECASE,
             )
         else:
             modified_zmat = re.sub(r"(?m)^\s*\)", f"{insertion}\n)", base_zmat, count=1)
@@ -1457,6 +1483,7 @@ class CFOURDecompositionManager:
 # ============================================================================
 
 __all__ = [
+    "CFOURUnavailableError",
     "CFOURPhysicalConstants",
     "CONSTANTS",
     "get_atomic_mass",
@@ -1499,7 +1526,12 @@ if __name__ == "__main__":
     logger.info("Generated Water ZMAT:\n" + zmat_w)
 
     lin_syms = ["Ar", "H", "C", "N"]
-    lin_coords = [[0.0, 0.0, 0.0], [0.0, 0.0, 3.0], [0.0, 0.0, 4.065], [0.0, 0.0, 5.221]]
+    lin_coords = [
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 3.0],
+        [0.0, 0.0, 4.065],
+        [0.0, 0.0, 5.221],
+    ]
     zmat_lin, _ = CFOURZmatBuilder.cartesian_to_zmat(lin_syms, lin_coords)
     logger.info("Generated Linear Dummy-Atom ZMAT:\n" + zmat_lin)
 
@@ -1518,4 +1550,3 @@ if __name__ == "__main__":
     logger.info("CFOUR Full Deck and Irrep Decomposition verified successfully.")
 
     logger.info("CoChem-TORQ CFOUR Bridge self-check complete.")
-

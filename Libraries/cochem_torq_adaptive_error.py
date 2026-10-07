@@ -677,27 +677,20 @@ def export_manifest_pyarrow(
             }
         )
 
-    if not rows:
-        rows.append(
-            {
-                "manifest_id": manifest.manifest_id,
-                "point_id": "NONE_ESCALATED",
-                "coordinates": "[]",
-                "point_type": "NONE",
-                "energy_low": 0.0,
-                "energy_mid": None,
-                "residual_delta": 0.0,
-                "requires_escalation": False,
-                "target_theory_level": manifest.target_quantum_tier,
-                "basin_id": "NONE",
-                "coordinate_bounds": "[]",
-                "points_in_basin_count": 0,
-                "provenance_hash": manifest.provenance_hash,
-                "created_at_utc": manifest.created_at_utc,
-            }
-        )
-
-    table = pa.Table.from_pylist(rows)
+    schema = pa.schema([
+        ("manifest_id", pa.string()), ("point_id", pa.string()),
+        ("coordinates", pa.string()), ("point_type", pa.string()),
+        ("energy_low", pa.float64()), ("energy_mid", pa.float64()),
+        ("residual_delta", pa.float64()), ("requires_escalation", pa.bool_()),
+        ("target_theory_level", pa.string()), ("basin_id", pa.string()),
+        ("coordinate_bounds", pa.string()), ("points_in_basin_count", pa.int64()),
+        ("provenance_hash", pa.string()), ("created_at_utc", pa.string()),
+    ], metadata={
+        b"torq_manifest": manifest.model_dump_json().encode("utf-8"),
+        b"energy_units": b"kcal/mol",
+    })
+    # Empty selection is zero data rows, never a fictitious zero-energy anchor.
+    table = pa.Table.from_pylist(rows, schema=schema)
     pq.write_table(table, out)
     logger.info(
         f"Exported EscalationManifest to Parquet at '{out}' ({table.num_rows} rows)."

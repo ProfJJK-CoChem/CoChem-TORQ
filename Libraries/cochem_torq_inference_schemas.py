@@ -7,7 +7,7 @@ Strict Zero-Mock Mandate v3: Strongly typed, validated configurations.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union
+from typing import Any, Dict, List, Literal, NamedTuple, Optional
 import torch
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -445,10 +445,10 @@ class NeighborListResult(NamedTuple):
 
 
 class ConformalInterval(NamedTuple):
-    """Container for rigorous conformal uncertainty intervals. [D]"""
+    """Computed intervals; coverage requires independently justified calibration assumptions."""
 
-    energy_lower: float  # Unit: eV
-    energy_upper: float  # Unit: eV
+    energy_lower: Optional[float]  # Unit: eV; None for force-only requests
+    energy_upper: Optional[float]  # Unit: eV; None for force-only requests
     force_lower: torch.Tensor  # Shape: [N, 3], Unit: eV/Angstrom
     force_upper: torch.Tensor  # Shape: [N, 3], Unit: eV/Angstrom
     confidence_level: float  # 1 - alpha, e.g., 0.95
@@ -540,7 +540,7 @@ class FiniteDiffVerificationResult(BaseModel):
 class VibrationalModes(BaseModel):
     """Full normal mode report containing projected harmonic frequencies and zero-point energy [D]."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
     frequencies_cm1: List[float] = Field(
         ...,
         description="Signed harmonic vibrational frequencies in cm^-1 (nu < 0 for imaginary modes) [D]",
@@ -568,8 +568,25 @@ class VibrationalModes(BaseModel):
         description="Governing standard for isotopic masses [M]",
     )
 
+    zpe_scale_factor: float = Field(default=1.0, ge=0.5, le=1.5)
+    unscaled_zero_point_energy_ev: Optional[float] = Field(default=None, ge=0.0)
+    scaled_frequencies_cm1: Optional[List[float]] = None
+    method: Optional[str] = None
+    basis: Optional[str] = None
+    scaling_provenance: Optional[Dict[str, Any]] = None
+
     @model_validator(mode="after")
     def validate_mode_consistency(self) -> "VibrationalModes":
+        if self.zpe_scale_factor != 1.0:
+            provenance = self.scaling_provenance or {}
+            if not all(provenance.get(k) for k in ("source", "method", "basis", "domain", "target_observable")):
+                raise ValueError("Nonunit ZPE scaling requires complete calibration provenance.")
+            if (not self.method or not self.basis or provenance["target_observable"] != "zpe"
+                    or str(provenance["method"]).strip().lower() != self.method.strip().lower()
+                    or str(provenance["basis"]).strip().lower() != self.basis.strip().lower()):
+                raise ValueError("ZPE calibration does not match the result method, basis, and observable.")
+        if self.scaled_frequencies_cm1 is not None:
+            raise ValueError("Scaled fundamental frequencies require a separate validated observable contract.")
         actual_imaginary = sum(1 for f in self.frequencies_cm1 if f < 0.0)
         if self.imaginary_mode_count != actual_imaginary:
             raise ValueError(

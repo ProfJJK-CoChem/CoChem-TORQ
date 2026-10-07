@@ -1,6 +1,6 @@
 """Graph-Based Geometric Clash Detector.
 
-Implements dynamic Van der Waals queries with 5-tier transactinide fallback hierarchy,
+Implements database-backed Van der Waals queries without invented covalent-radius scaling,
 topological exclusion masks (1-2, 1-3), threshold scaling (1-4, non-bonded, h-bond),
 and spatial acceleration via scipy.spatial.cKDTree.
 """
@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 import networkx as nx
 import numpy as np
@@ -48,7 +47,7 @@ class GeometricClashDetector:
         self._vdw_cache: dict[str, float] = {}
 
     def get_vdw_radius(self, symbol: str) -> float:
-        """Dynamically resolves Van der Waals radius in Angstroms via 5-tier Mendeleev hierarchy."""
+        """Resolve an available database vdW radius; never synthesize one from a covalent radius."""
         sym_clean = symbol.strip()
         if sym_clean in self._vdw_cache:
             return self._vdw_cache[sym_clean]
@@ -76,20 +75,8 @@ class GeometricClashDetector:
             self._vdw_cache[sym_clean] = r_vdw
             return r_vdw
 
-        # 4. Fallback 3 (Superheavy Transactinides Z in [104, 118]): 1.60 * r_cov
-        if elem.covalent_radius_pyykko is not None:
-            r_vdw = 1.60 * (float(elem.covalent_radius_pyykko) / 100.0)
-            self._vdw_cache[sym_clean] = r_vdw
-            return r_vdw
-
-        if elem.covalent_radius_cordero is not None:
-            r_vdw = 1.60 * (float(elem.covalent_radius_cordero) / 100.0)
-            self._vdw_cache[sym_clean] = r_vdw
-            return r_vdw
-
-        # 5. Exception Handling
         raise StericClashError(
-            f"Undefined Van der Waals and covalent radii for element {symbol} (Z={elem.atomic_number})"
+            f"No database Van der Waals radius for element {symbol} (Z={elem.atomic_number}); covalent-radius scaling is not authorized."
         )
 
     def detect_clashes(self, coords: np.ndarray, topology: TopologyGraph) -> list[ClashPair]:
@@ -101,7 +88,6 @@ class GeometricClashDetector:
             )
 
         sorted_nodes = sorted(topology.nodes())
-        node_to_idx = {n: i for i, n in enumerate(sorted_nodes)}
 
         # Precompute elemental radii and atomic numbers
         radii = np.array([self.get_vdw_radius(str(topology.nodes[n]["symbol"])) for n in sorted_nodes], dtype=float)

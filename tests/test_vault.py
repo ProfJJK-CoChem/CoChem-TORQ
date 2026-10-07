@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any
 
 import h5py
 import numpy as np
@@ -35,7 +34,6 @@ from Libraries.cochem_torq_vault import (
     parse_external_mol,
     parse_external_xyz,
     poll_isomer_wavefunctions,
-    sanitize_geometry_valency_and_clashes,
     standardize_geometry_arrow,
     standardize_geometry_dataframe,
 )
@@ -298,50 +296,32 @@ O  0.0000  0.0000  1.1300
 # ==============================================================================
 
 def test_fetch_topos_matrices_and_polling(tmp_path: Path) -> None:
-    """Verifies querying landscape.h5 for conformers and wavefunction pointers."""
+    """Import geometry-only records without inventing energy or wavefunctions."""
     h5_path = tmp_path / "landscape.h5"
-    gbw_file = tmp_path / "conf_001.gbw"
-    gbw_file.write_bytes(b"GBW_WAVEFUNCTION_BINARY_DATA")
-
     with h5py.File(h5_path, "w") as fp:
         conf_grp = fp.create_group("conformers")
-        c1 = conf_grp.create_group("conf_001")
-        c1.create_dataset(
-            "coordinates",
-            data=np.array([[0.0, 0.0, 0.0], [1.13, 0.0, 0.0]], dtype=np.float64),
-        )
-        c1.create_dataset("symbols", data=[b"C", b"O"])
-        c1.attrs["energy_hartree"] = -113.82910
-        c1.attrs["gbw_path"] = str(gbw_file)
-
-        c2 = conf_grp.create_group("conf_002")
-        c2.create_dataset(
-            "coordinates",
-            data=np.array([[0.0, 0.0, 0.0], [1.15, 0.0, 0.0]], dtype=np.float64),
-        )
-        c2.create_dataset("symbols", data=[b"C", b"O"])
-        c2.attrs["energy_hartree"] = -113.82500
-        c2.attrs["gbw_path"] = "/nonexistent/conf_002.gbw"
-
-    # Fetch specific conformer
+        for name, distance in (("conf_001", 1.13), ("conf_002", 1.15)):
+            conf = conf_grp.create_group(name)
+            conf.create_dataset("coordinates", data=np.array([[0., 0., 0.], [distance, 0., 0.]]))
+            conf.create_dataset("symbols", data=[b"C", b"O"])
+    before = h5_path.read_bytes()
     result = fetch_topos_matrices(h5_path, conformer_id="conf_001")
     assert result["conformer_id"] == "conf_001"
     assert result["symbols"] == ["C", "O"]
-    assert result["energy_hartree"] == pytest.approx(-113.82910, rel=1e-6)
-    assert result["gbw_path"] == str(gbw_file)
-    assert result["provenance"] == "[M]"
-
-    # Poll all isomers
+    assert result["energy_hartree"] is None
+    assert result["energy_status"] == "unavailable"
+    assert result["gbw_path"] == ""
+    assert result["wavefunction_status"] == "unavailable"
+    assert result["provenance"] == "[D]"
     isomers = poll_isomer_wavefunctions(h5_path, require_gbw=False)
     assert len(isomers) == 2
-    assert isomers[0]["conformer_id"] == "conf_001"
-    assert isomers[0]["gbw_exists"] is True
-    assert isomers[1]["conformer_id"] == "conf_002"
-    assert isomers[1]["gbw_exists"] is False
-
-    # Missing database
+    assert all(record["energy_hartree"] is None for record in isomers)
+    assert all(record["gbw_exists"] is False for record in isomers)
+    with pytest.raises(MissingDataError, match="wavefunction"):
+        poll_isomer_wavefunctions(h5_path, require_gbw=True)
     with pytest.raises(MissingDataError):
         fetch_topos_matrices(tmp_path / "missing.h5")
+    assert h5_path.read_bytes() == before
 
 
 # ==============================================================================

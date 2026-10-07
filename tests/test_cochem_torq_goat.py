@@ -1,13 +1,7 @@
-"""Zero-Mock Physical Test Suite for CoChem-TORQ ORCA GOAT Conformer Engine.
+"""GOAT adapter contracts, real archived data, and genuine HF deduplication inputs.
 
-================================================================================
-Phase 3 (Stage 2.0 - 2.1) Authentic Test Matrix
---------------------------------------------------------------------------------
-Validates Primary ORCA GOAT Conformer Enumeration (GOAT-EXPLORE, ExtOpt AIMNet2),
-Two-Stage Deduplication (Stage A broad, Stage B spectroscopic --bthr 0.001),
-the 0.93 [M] F1 baseline scoring, dynamic Mendeleev masses, ExtOpt file contract
-and sign-flip physics, QCSchema HDF5 archiving, and Tripartite Filesystem Air-Gap
-compliance per Method Matrix Sections 9B.1-9B.4 and Section 10.
+These tests do not qualify ORCA GOAT conformer-search completeness or accuracy.
+Declared geometries are input examples, never inferred equilibrium structures.
 """
 
 from __future__ import annotations
@@ -60,14 +54,14 @@ from Libraries.cochem_torq_goat import (
     write_xyz_string,
 )
 
+# =============================================================================
+# Declared Geometry Inputs
+# =============================================================================
 
-# =============================================================================
-# Authentic Physical Geometry Fixtures
-# =============================================================================
 
 @pytest.fixture
 def water_geometry() -> tuple[list[str], np.ndarray]:
-    """Authentic equilibrium C2v water (H2O) geometry."""
+    """Declared C2v water-shaped geometry for numerical checks."""
     syms = ["O", "H", "H"]
     coords = np.array(
         [
@@ -86,14 +80,14 @@ def formamidinium_formate_geometry() -> tuple[list[str], np.ndarray]:
     syms = ["C", "N", "N", "H", "H", "H", "C", "O", "O", "H"]
     coords = np.array(
         [
-            [0.000, 1.200, 0.000],   # C (cation)
+            [0.000, 1.200, 0.000],  # C (cation)
             [-1.150, 1.850, 0.000],  # N
-            [1.150, 1.850, 0.000],   # N
-            [0.000, 0.120, 0.000],   # H
+            [1.150, 1.850, 0.000],  # N
+            [0.000, 0.120, 0.000],  # H
             [-1.150, 2.850, 0.000],  # H
-            [1.150, 2.850, 0.000],   # H
+            [1.150, 2.850, 0.000],  # H
             [0.000, -1.800, 0.000],  # C (anion)
-            [-1.200, -1.250, 0.000], # O
+            [-1.200, -1.250, 0.000],  # O
             [1.200, -1.250, 0.000],  # O
             [0.000, -2.880, 0.000],  # H
         ],
@@ -106,6 +100,7 @@ def formamidinium_formate_geometry() -> tuple[list[str], np.ndarray]:
 # 1. Mendeleev Dynamic Integration Tests
 # =============================================================================
 
+
 def test_dynamic_mendeleev_masses() -> None:
     """Verify dynamic atomic and isotopic mass retrieval via Mendeleev."""
     c_mass = get_dynamic_atomic_mass("C")
@@ -113,10 +108,10 @@ def test_dynamic_mendeleev_masses() -> None:
     o_mass = get_dynamic_atomic_mass("O")
     n_mass = get_dynamic_atomic_mass("N")
 
-    assert 12.009 < c_mass < 12.013, f"Unexpected C mass: {c_mass}"
-    assert 1.007 < h_mass < 1.009, f"Unexpected H mass: {h_mass}"
-    assert 15.998 < o_mass < 16.002, f"Unexpected O mass: {o_mass}"
-    assert 14.005 < n_mass < 14.009, f"Unexpected N mass: {n_mass}"
+    assert c_mass == 12.0, f"Unexpected C-12 mass: {c_mass}"
+    assert 1.00782 < h_mass < 1.00783, f"Unexpected H-1 mass: {h_mass}"
+    assert 15.99491 < o_mass < 15.99492, f"Unexpected O-16 mass: {o_mass}"
+    assert 14.00307 < n_mass < 14.00308, f"Unexpected N-14 mass: {n_mass}"
 
     # Isotopic test
     c13_mass = get_dynamic_isotopic_mass("C", 13)
@@ -141,20 +136,33 @@ def test_dynamic_mendeleev_radii() -> None:
 # 2. Rigid Rotor & Rotational Constants Tests
 # =============================================================================
 
-def test_rotational_constants_water(water_geometry: tuple[list[str], np.ndarray]) -> None:
-    """Verify rotational constants calculation for authentic equilibrium water."""
+
+def test_rotational_constants_water(
+    water_geometry: tuple[list[str], np.ndarray],
+) -> None:
+    """Verify rigid-rotor constants for a declared water-shaped input."""
     syms, coords = water_geometry
     (A_mhz, B_mhz, C_mhz), (A_ghz, B_ghz, C_ghz), delta, planar, kappa = (
         compute_moments_and_constants(syms, coords)
     )
 
-    assert A_mhz > B_mhz > C_mhz > 0.0, "Rotational constants must satisfy A > B > C > 0"
-    assert 800000.0 < A_mhz < 950000.0, f"A constant for H2O out of expected range: {A_mhz} MHz"
-    assert 400000.0 < B_mhz < 550000.0, f"B constant for H2O out of expected range: {B_mhz} MHz"
-    assert 250000.0 < C_mhz < 350000.0, f"C constant for H2O out of expected range: {C_mhz} MHz"
+    assert A_mhz > B_mhz > C_mhz > 0.0, (
+        "Rotational constants must satisfy A > B > C > 0"
+    )
+    assert 800000.0 < A_mhz < 950000.0, (
+        f"A constant for H2O out of expected range: {A_mhz} MHz"
+    )
+    assert 400000.0 < B_mhz < 550000.0, (
+        f"B constant for H2O out of expected range: {B_mhz} MHz"
+    )
+    assert 250000.0 < C_mhz < 350000.0, (
+        f"C constant for H2O out of expected range: {C_mhz} MHz"
+    )
 
-    # Planar molecule inertial defect check (Delta ~ 0 for planar equilibrium structure)
-    assert abs(delta) < 0.1, f"Inertial defect Delta for planar H2O should be ~0: {delta}"
+    # Planar molecule inertial defect check (Delta ~ 0 for declared planar input)
+    assert abs(delta) < 0.1, (
+        f"Inertial defect Delta for planar H2O should be ~0: {delta}"
+    )
 
 
 def test_kabsch_alignment_and_rmsd() -> None:
@@ -165,7 +173,11 @@ def test_kabsch_alignment_and_rmsd() -> None:
     # Apply rigid rotation and translation
     theta = math.pi / 4.0
     R = np.array(
-        [[math.cos(theta), -math.sin(theta), 0.0], [math.sin(theta), math.cos(theta), 0.0], [0.0, 0.0, 1.0]]
+        [
+            [math.cos(theta), -math.sin(theta), 0.0],
+            [math.sin(theta), math.cos(theta), 0.0],
+            [0.0, 0.0, 1.0],
+        ]
     )
     shift = np.array([5.0, -3.0, 2.0])
     Q = np.dot(P, R.T) + shift
@@ -177,6 +189,7 @@ def test_kabsch_alignment_and_rmsd() -> None:
 # =============================================================================
 # 3. Non-Covalent Dissociation & Conformational Entropy Tests
 # =============================================================================
+
 
 def test_complex_dissociation_detector() -> None:
     """Verify that dissociated non-covalent complexes are correctly flagged."""
@@ -210,9 +223,13 @@ def test_conformational_entropy_calculation() -> None:
     """Verify conformational entropy S_conf calculation."""
     # Two degenerate conformers at dE = 0: S_conf = R * ln(2) ≈ 1.377 cal/(mol*K)
     energies_degen = [0.0, 0.0]
-    s_conf_degen, weights = calculate_conformational_entropy(energies_degen, temperature_k=298.15)
+    s_conf_degen, weights = calculate_conformational_entropy(
+        energies_degen, temperature_k=298.15
+    )
     expected_s = 1.98720425864083 * np.log(2.0)
-    assert abs(s_conf_degen - expected_s) < 1e-3, f"Expected {expected_s}, got {s_conf_degen}"
+    assert abs(s_conf_degen - expected_s) < 1e-3, (
+        f"Expected {expected_s}, got {s_conf_degen}"
+    )
     assert len(weights) == 2
     assert abs(weights[0] - 0.5) < 1e-4
 
@@ -225,6 +242,7 @@ def test_conformational_entropy_calculation() -> None:
 # =============================================================================
 # 4. ORCA GOAT Input Generation & ExtOpt Contract Tests
 # =============================================================================
+
 
 def test_generate_orca_goat_input_authoritative() -> None:
     """Verify ORCA GOAT input script conforms to Method Matrix §9B.4."""
@@ -260,7 +278,9 @@ def test_extopt_contract_sign_flip_and_conversion() -> None:
     # Gradient must be NEGATIVE (sign flip)
     expected_grad_x = -1.0 * (0.529177210903 / 27.211386245988)
     assert abs(grad_eh_bohr[0, 0] - expected_grad_x) < 1e-10
-    assert grad_eh_bohr[0, 0] < 0.0, "Gradient must have opposite sign of force (uphill vs downhill)"
+    assert grad_eh_bohr[0, 0] < 0.0, (
+        "Gradient must have opposite sign of force (uphill vs downhill)"
+    )
 
 
 def test_extopt_file_contract_roundtrip(tmp_path: Path) -> None:
@@ -283,79 +303,107 @@ def test_extopt_file_contract_roundtrip(tmp_path: Path) -> None:
     assert pcfile is None
 
     engrad_file = tmp_path / "mol_EXT.engrad"
-    grad_data = np.array([[0.001, -0.002, 0.003], [0.000, 0.001, -0.001]], dtype=np.float64)
-    ExtOptContract.write_engrad(engrad_file, n_atoms=2, energy_eh=-76.456789, gradient_eh_bohr=grad_data)
+    from Libraries.cochem_torq_engine import _read_orca_engrad
 
-    assert engrad_file.exists()
+    archive = Path(__file__).resolve().parents[1] / "test.engrad"
+    energy, gradient, atom_numbers, coordinates = _read_orca_engrad(archive, 10)
+    ExtOptContract.write_engrad(
+        engrad_file,
+        n_atoms=len(atom_numbers),
+        energy_eh=energy,
+        gradient_eh_bohr=gradient,
+    )
+    # The ExtOpt format deliberately contains no coordinate block: compare its
+    # numeric payload with the unchanged, genuinely archived ORCA calculation.
     content = engrad_file.read_text(encoding="utf-8")
-    assert "-76.456789000000" in content
-    assert "0.001000000000" in content
+    numbers = [
+        float(line)
+        for line in content.splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    assert int(numbers[0]) == len(atom_numbers)
+    assert numbers[1] == pytest.approx(energy, abs=5e-13)
+    assert np.allclose(np.asarray(numbers[2:]).reshape(10, 3), gradient, atol=5e-13)
 
 
 # =============================================================================
 # 5. Two-Stage Deduplication Tests
 # =============================================================================
 
-def test_two_stage_deduplication(water_geometry: tuple[list[str], np.ndarray]) -> None:
-    """Verify Stage A (broad) and Stage B (spectroscopic) deduplication filters."""
-    syms, coords = water_geometry
 
-    # Create base conformer
-    r0 = ConformerRecord(
-        index=0,
-        symbols=syms,
-        coordinates=coords.tolist(),
-        energy_hartree=-76.000,
-        energy_kcal_rel=0.0,
-        rotational_constants_mhz=(800000.0, 500000.0, 300000.0),
-        origin_engine="GOAT",
+def _real_hf_records(
+    symbols: list[str], geometries: list[np.ndarray], workspace: Path
+) -> list[ConformerRecord]:
+    """Evaluate every input with actual HF/STO-3G and retain native evidence."""
+    pytest.importorskip("pyscf")
+    from scipy.constants import physical_constants
+
+    from cochem_torq.engines import PySCFBackend
+
+    bohr_angstrom = physical_constants["Bohr radius"][0] / 1e-10
+    records = []
+    for index, coordinates in enumerate(geometries):
+        result = PySCFBackend().evaluate(
+            {
+                "molecule": {
+                    "symbols": symbols,
+                    "geometry_bohr": (coordinates / bohr_angstrom).tolist(),
+                    "charge": 0,
+                    "multiplicity": 1,
+                },
+                "method": {
+                    "name": "hf",
+                    "basis": "sto-3g",
+                    "reference": "restricted",
+                    "frozen_core": False,
+                },
+                "properties": ["energy"],
+            },
+            workspace / str(index),
+        )
+        assert result["status"] == "complete"
+        moments = compute_moments_and_constants(symbols, coordinates)
+        records.append(
+            ConformerRecord(
+                index=index,
+                symbols=symbols,
+                coordinates=coordinates.tolist(),
+                energy_hartree=result["energy_hartree"],
+                rotational_constants_mhz=moments[0],
+                rotational_constants_ghz=moments[1],
+                inertial_defect_u_a2=moments[2],
+                planar_moments_u_a2=moments[3],
+                ray_asymmetry_kappa=moments[4],
+                origin_engine="PySCF/HF/STO-3G",
+                provenance_tag="actual_native_evidence",
+            )
+        )
+    minimum = min(record.energy_hartree for record in records)
+    for record in records:
+        record.energy_kcal_rel = (record.energy_hartree - minimum) * 627.5094740631
+    return records
+
+
+def test_two_stage_deduplication(
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
+) -> None:
+    """Deduplicate actual same-method HF inputs; no search completeness is claimed."""
+    symbols, coordinates = water_geometry
+    near = coordinates + np.array([[0, 0, 0], [0, 0.002, 0], [0, -0.002, 0]])
+    distant = coordinates + np.array([[0, 0, 0], [0, 0.08, 0], [0, -0.08, 0]])
+    pool = _real_hf_records(
+        symbols, [coordinates, coordinates.copy(), near, distant], tmp_path / "hf"
     )
-
-    # Exact duplicate
-    r1 = ConformerRecord(
-        index=1,
-        symbols=syms,
-        coordinates=coords.tolist(),
-        energy_hartree=-76.000,
-        energy_kcal_rel=0.0,
-        rotational_constants_mhz=(800000.0, 500000.0, 300000.0),
-        origin_engine="GOAT",
+    stage_a = deduplicate_stage_a(
+        pool, rmsd_thr=0.125, ethr_kcal=0.100, bthr_frac=0.025
     )
-
-    # Conformer with slight energy & B shift (< 1% B difference, Stage A duplicate, Stage B candidate)
-    r2_coords = coords + np.array([[0.0, 0.0, 0.0], [0.0, 0.002, 0.0], [0.0, -0.002, 0.0]])
-    r2 = ConformerRecord(
-        index=2,
-        symbols=syms,
-        coordinates=r2_coords.tolist(),
-        energy_hartree=-75.9999,
-        energy_kcal_rel=0.06,  # 0.06 kcal/mol
-        rotational_constants_mhz=(800000.0, 500500.0, 299800.0),  # 0.1% shift in B
-        origin_engine="GOAT",
-    )
-
-    # Distinct high-energy conformer
-    r3_coords = coords + np.array([[0.0, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, -0.5, 0.0]])
-    r3 = ConformerRecord(
-        index=3,
-        symbols=syms,
-        coordinates=r3_coords.tolist(),
-        energy_hartree=-75.990,
-        energy_kcal_rel=6.27,
-        rotational_constants_mhz=(600000.0, 350000.0, 200000.0),
-        origin_engine="GOAT",
-    )
-
-    pool = [r0, r1, r2, r3]
-
-    # Stage A deduplication
-    stage_a = deduplicate_stage_a(pool, rmsd_thr=0.125, ethr_kcal=0.100, bthr_frac=0.025)
     assert len(stage_a) < len(pool)
     assert any(c.index == 0 for c in stage_a)
     assert any(c.index == 3 for c in stage_a)
-
-    # Stage B spectroscopic deduplication
-    stage_b = deduplicate_stage_b_spectroscopic(stage_a, rmsd_thr=0.125, ethr_kcal=0.05, bthr_frac=0.001)
+    assert not any(c.index == 1 for c in stage_a)
+    stage_b = deduplicate_stage_b_spectroscopic(
+        stage_a, rmsd_thr=0.125, ethr_kcal=0.05, bthr_frac=0.001
+    )
     assert len(stage_b) >= 1
 
 
@@ -363,39 +411,37 @@ def test_two_stage_deduplication(water_geometry: tuple[list[str], np.ndarray]) -
 # 6. Physical Basin Hopping & Pipeline End-to-End Tests
 # =============================================================================
 
-def test_save_ensemble_to_hdf5_qcschema(tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]) -> None:
-    """Verify HDF5 serialization of conformer ensemble adhering to QCSchema."""
-    syms, coords = water_geometry
-    rec = ConformerRecord(
-        index=0,
-        symbols=syms,
-        coordinates=coords.tolist(),
-        energy_hartree=-76.45,
-        energy_kcal_rel=0.0,
-        rotational_constants_mhz=(850000.0, 430000.0, 280000.0),
-        origin_engine="GOAT",
-    )
+
+def test_save_ensemble_to_hdf5_qcschema(
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
+) -> None:
+    """Archive a genuinely calculated energy and geometrically derived constants."""
+    symbols, coordinates = water_geometry
+    record = _real_hf_records(symbols, [coordinates], tmp_path / "hf")[0]
     ensemble = EnsembleContainer(
-        name="Water_Ensemble",
-        conformers=[rec],
+        name="HF_Input_Ensemble",
+        conformers=[record],
         temperature_k=298.15,
-        s_conf_cal_mol_k=0.0,
-        provenance_tag="[M]",
+        s_conf_cal_mol_k=None,
+        provenance_tag="actual_native_evidence",
     )
+    target = tmp_path / "ensemble.h5"
+    save_ensemble_to_hdf5(ensemble, target)
+    with h5py.File(target, "r") as archive:
+        assert archive.attrs["ensemble_name"] == "HF_Input_Ensemble"
+        assert "f1_baseline" not in archive.attrs
+        assert "s_conf_cal_mol_k" not in archive.attrs
+        assert np.array_equal(archive["conformers/coordinates"][:], [coordinates])
+        assert archive["conformers/energies_hartree"][0] == record.energy_hartree
+        assert np.array_equal(
+            archive["conformers/rotational_constants_mhz"][0],
+            record.rotational_constants_mhz,
+        )
 
-    h5_file = tmp_path / "water_ensemble.h5"
-    save_ensemble_to_hdf5(ensemble, h5_file)
 
-    assert h5_file.exists()
-    with h5py.File(h5_file, "r") as f:
-        assert f.attrs["ensemble_name"] == "Water_Ensemble"
-        assert f.attrs["f1_baseline"] == 0.93
-        assert "conformers" in f
-        coords_ds = f["conformers/coordinates"][:]
-        assert coords_ds.shape == (1, 3, 3)
-
-
-def test_execute_goat_conformer_pipeline(tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]) -> None:
+def test_execute_goat_conformer_pipeline(
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
+) -> None:
     """Verify high-level Phase 3 (Stage 2.0 - 2.1) ORCA GOAT conformer pipeline."""
     scratch_dir = tmp_path / "scratch"
     artifacts_dir = tmp_path / "artifacts"
@@ -419,3 +465,50 @@ def test_execute_goat_conformer_pipeline(tmp_path: Path, water_geometry: tuple[l
             artifacts_dir=artifacts_dir,
         )
 
+
+def test_rotor_undefined_axes_are_not_finite_floored_values() -> None:
+    """Check exact one-point and two-point mass geometry, not engine observations."""
+    from scipy.constants import atomic_mass, h
+
+    atom = compute_moments_and_constants(["He"], np.array([[0.0, 0.0, 0.0]]))
+    assert atom[0] == (None, None, None)
+    assert atom[1] == (None, None, None)
+    assert atom[4] is None
+    coordinates = np.array([[-0.5, 0.0, 0.0], [0.5, 0.0, 0.0]])
+    linear = compute_moments_and_constants(["H", "H"], coordinates)
+    assert linear[0][0] is None and linear[1][0] is None
+    inertia_si = 0.5 * get_dynamic_atomic_mass("H") * atomic_mass * 1e-20
+    expected_b = h / (8 * np.pi**2 * inertia_si * 1e6)
+    assert linear[0][1] == pytest.approx(expected_b, rel=1e-10)
+    assert linear[0][2] == pytest.approx(expected_b, rel=1e-10)
+    assert linear[4] is None
+    with pytest.raises(ValueError, match="nonempty finite"):
+        compute_moments_and_constants([], np.empty((0, 3)))
+    with pytest.raises(ValueError, match="Coincident nuclei"):
+        compute_moments_and_constants(["H", "H"], np.zeros((2, 3)))
+
+
+def test_undefined_linear_axis_cannot_authorize_three_axis_pruning(
+    tmp_path: Path,
+) -> None:
+    coordinates = np.array([[0.0, 0.0, -0.37], [0.0, 0.0, 0.37]])
+    first = _real_hf_records(["H", "H"], [coordinates], tmp_path / "hf")[0]
+    second = first.model_copy(
+        update={"index": 1}
+    )  # Same genuine request, no invented measurement.
+    assert first.rotational_constants_mhz[0] is None
+    assert len(deduplicate_stage_a([first, second])) == 2
+    assert len(deduplicate_stage_b_spectroscopic([first, second])) == 2
+    ensemble = EnsembleContainer(name="Linear_actual_HF", conformers=[first])
+    path = tmp_path / "linear.h5"
+    save_ensemble_to_hdf5(ensemble, path)
+    with h5py.File(path, "r") as archive:
+        assert np.isnan(archive["conformers/rotational_constants_mhz"][0, 0])
+        assert np.isfinite(archive["conformers/rotational_constants_mhz"][0, 1:]).all()
+        assert "unavailable" in archive.attrs["missing_physical_values"]
+
+
+def test_search_configuration_never_asserts_unrun_benchmark_f1() -> None:
+    assert GoatConfig().f1_baseline is None
+    with pytest.raises(ValueError):
+        GoatConfig(f1_baseline=0.93)

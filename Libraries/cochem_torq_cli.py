@@ -586,7 +586,7 @@ def action_run(args: argparse.Namespace) -> int:
         if args.json:
             # Serialize cleanly to stdout
             serializable_result = {
-                "status": result.get("status", "success"),
+                "status": result.get("status", "failed"),
                 "calculation_type": calc_type,
                 "hessian_preconditioner": hess_diag,
                 "tier": tier,
@@ -604,21 +604,21 @@ def action_run(args: argparse.Namespace) -> int:
         else:
             spec = result.get("spectral_results", {})
             rot = spec.get("rotational_constants_mhz", {})
-            print(TermColor.ok(f"CoChem-TORQ Pipeline Execution Completed in {elapsed:.2f}s!"))
+            print(f"CoChem-TORQ status: {result.get('status', 'failed')} ({elapsed:.2f}s)")
             print("\n" + TermColor.BOLD + "Spectroscopic Observables Summary:" + TermColor.RESET)
-            print(f"  Point Group:       {spec.get('point_group', 'C1')}")
-            print(f"  Symmetry Number σ: {spec.get('sigma', 1)}")
+            print(f"  Point Group:       {spec.get('point_group') or 'unavailable'}")
+            print(f"  Symmetry Number σ: {spec.get('sigma') if spec.get('sigma') is not None else 'unavailable'}")
             if rot:
-                print(
-                    f"  A = {rot.get('A', 0.0):12.4f} MHz | "
-                    f"B = {rot.get('B', 0.0):12.4f} MHz | "
-                    f"C = {rot.get('C', 0.0):12.4f} MHz"
-                )
+                print(f"  Constants label:   {spec.get('rotational_constants_label', 'unavailable')}")
+                for axis in ("A", "B", "C"):
+                    value = rot.get(axis)
+                    print(f"  {axis}: {value:.4f} MHz" if value is not None else f"  {axis}: unavailable/undefined")
             print(f"\nFinal State:         {TermColor.BOLD}{pipeline.state}{TermColor.RESET}")
             print(f"Deliverables Vault:  {artifacts_dir / 'Processed' / 'Deliverables'}")
             print("=" * 78)
 
-        return 0
+        from Libraries.cochem_torq_pipeline import pipeline_exit_code
+        return pipeline_exit_code(result.get("status", "failed"))
 
     except Exception as run_err:
         elapsed = time.perf_counter() - t0
@@ -650,7 +650,7 @@ def action_run(args: argparse.Namespace) -> int:
             print(trace)
             print("=" * 78)
 
-        return 1
+        return 2 if isinstance(run_err, ValueError) else 3 if isinstance(run_err, (NotImplementedError, FileNotFoundError)) else 5
 
 
 def action_audit(args: argparse.Namespace) -> int:

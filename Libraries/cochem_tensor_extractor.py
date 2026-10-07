@@ -23,7 +23,6 @@ Implements:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import math
@@ -68,7 +67,7 @@ CODATA_YEAR: Final[int] = 2022
 PLANCK_CONSTANT_JS: Final[float] = 6.62607015e-34  # Exact J * s (SI definition)
 SPEED_OF_LIGHT_C: Final[float] = 299792458.0  # Exact m / s (SI definition)
 C_M_S: Final[float] = SPEED_OF_LIGHT_C  # Legacy alias
-ATOMIC_MASS_CONSTANT_U: Final[float] = 1.66053906892e-27  # Exact kg (1 u) (CODATA 2022)
+ATOMIC_MASS_CONSTANT_U: Final[float] = 1.66053906892e-27  # Measured kg/u (CODATA 2022)
 AMU_TO_KG: Final[float] = ATOMIC_MASS_CONSTANT_U  # Legacy alias
 ANGSTROM_TO_M: Final[float] = 1.0e-10  # Exact m
 
@@ -90,51 +89,9 @@ C_ROT_CM1: Final[float] = (C_ROT_MHZ * 1e6) / (
 # =============================================================================
 
 def get_atomic_mass(symbol: str) -> float:
-    """Retrieves exact mono-isotopic mass for an element or isotope using mendeleev.
-
-    Supports notation such as: 'H', 'D', 'T', '13C', 'C13', '18O', 'O18', '37Cl'.
-    """
-    clean_sym = symbol.strip()
-    
-    # Handle specific common aliases
-    if clean_sym == "D":
-        clean_sym = "2H"
-    elif clean_sym == "T":
-        clean_sym = "3H"
-
-    match_prefix = re.match(r"^(\d+)([a-zA-Z]+)$", clean_sym)
-    match_postfix = re.match(r"^([a-zA-Z]+)(\d+)$", clean_sym)
-    
-    elem_str = clean_sym
-    mass_num = None
-    
-    if match_prefix:
-        mass_num = int(match_prefix.group(1))
-        elem_str = match_prefix.group(2)
-    elif match_postfix:
-        elem_str = match_postfix.group(1)
-        mass_num = int(match_postfix.group(2))
-        
-    elem_str = elem_str.capitalize()
-    
-    try:
-        from mendeleev import element
-        elem = element(elem_str)
-        if mass_num is not None:
-            for iso in elem.isotopes:
-                if iso.mass_number == mass_num and iso.mass is not None:
-                    return float(iso.mass)
-            logger.warning(f"Isotope {mass_num} for element {elem_str} not found. Defaulting to most abundant.")
-            
-        # Default to most abundant isotope
-        valid_isotopes = [iso for iso in elem.isotopes if iso.abundance is not None and iso.mass is not None]
-        if valid_isotopes:
-            most_abundant = sorted(valid_isotopes, key=lambda x: x.abundance, reverse=True)[0]
-            return float(most_abundant.mass)
-        elif elem.isotopes and elem.isotopes[0].mass is not None:
-            return float(elem.isotopes[0].mass)
-    except Exception as e:
-        raise ValueError(f"Symbol '{symbol}' not found in mendeleev or error occurred: {e}")
+    """Resolve the requested tabulated isotope without substituting another mass."""
+    from Libraries.cochem_isotopes import isotope_mass
+    return isotope_mass(symbol)
 
 
 def is_ghost_atom(symbol: str) -> bool:
@@ -156,7 +113,7 @@ def filter_ghost_atoms(
     symbols: list[str],
     masses: npt.ArrayLike | None = None,
 ) -> tuple[npt.NDArray[np.float64], list[str], npt.NDArray[np.float64], list[int]]:
-    """Filters out ghost atoms (Z_i = 0, Gh, Ghost, X, mass <= 0) from coordinate and symbol sets.
+    """Filter explicitly labelled ghost atoms; invalid physical masses are errors.
 
     :param coordinates: (N, 3) Cartesian coordinates in Angstroms.
     :param symbols: (N,) atomic symbols.
@@ -172,8 +129,8 @@ def filter_ghost_atoms(
 
     if masses is not None:
         mass_arr = np.array(cast(Any, masses), dtype=np.float64)
-        if mass_arr.shape[0] != n_atoms:
-            raise ValueError(f"Masses length ({mass_arr.shape[0]}) != atom count ({n_atoms}).")
+        if mass_arr.shape != (n_atoms,):
+            raise ValueError(f"Masses must have shape ({n_atoms},), got {mass_arr.shape}")
     else:
         mass_arr = None
 
@@ -187,12 +144,12 @@ def filter_ghost_atoms(
             continue
         if mass_arr is not None:
             m = float(mass_arr[i])
-            if m <= 0.0:
-                continue
+            if not math.isfinite(m) or m <= 0.0:
+                raise ValueError(f"Physical atom {i} ({sym}) requires a finite positive mass")
         else:
             m = get_atomic_mass(sym)
-            if m <= 0.0:
-                continue
+            if not math.isfinite(m) or m <= 0.0:
+                raise ValueError(f"Physical atom {i} ({sym}) requires a finite positive mass")
 
         valid_indices.append(i)
         filtered_symbols.append(sym)
@@ -312,7 +269,7 @@ class AsymmetryResult(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    kappa: float = Field(..., description="Ray's asymmetry parameter in [-1, +1]")
+    kappa: float | None = Field(..., description="Ray's asymmetry parameter; undefined for spherical tops")
     rotor_type: str = Field(..., description="Top classification")
     recommended_representation: str = Field(
         ..., description="Optimal representation (e.g. Ir, IIIr)"
@@ -401,10 +358,8 @@ def diagonalize_inertia_tensor(
         active_coords = coords
         if masses is not None:
             mass_arr = np.array(cast(Any, masses), dtype=np.float64)
-            if mass_arr.shape[0] != n_atoms:
-                raise ValueError(
-                    f"Masses length ({mass_arr.shape[0]}) != atom count ({n_atoms})."
-                )
+            if mass_arr.shape != (n_atoms,):
+                raise ValueError(f"Masses must have shape ({n_atoms},), got {mass_arr.shape}")
         elif symbols is not None:
             if len(symbols) != n_atoms:
                 raise ValueError(
@@ -414,6 +369,8 @@ def diagonalize_inertia_tensor(
                 [get_atomic_mass(sym) for sym in symbols], dtype=np.float64
             )
 
+    if not np.isfinite(active_coords).all() or not np.isfinite(mass_arr).all() or np.any(mass_arr <= 0):
+        raise ValueError("Finite coordinates and strictly positive physical masses are required")
     total_mass = float(np.sum(mass_arr))
     if total_mass <= 0.0:
         raise ValueError("Total molecular mass must be strictly positive.")
@@ -478,8 +435,11 @@ def diagonalize_inertia_tensor(
     is_planar = bool(abs(delta) < 1e-4 or abs(p_cc) < 1e-4)
 
     # 6. Rotational Constants A, B, C (MHz, GHz, cm^-1) via NIST CODATA 2022
-    # Cartesian Protection Check: If Ia < 1.0e-6, flag singularity and omit A
-    is_linear_singularity = i_a < 1.0e-6
+    # Only numerical zero is singular; a finite near-linear moment retains A.
+    moment_roundoff = 100 * np.finfo(np.float64).eps * max(abs(i_b), abs(i_c))
+    if i_a < -moment_roundoff:
+        raise ValueError("Inertia tensor has a materially negative principal moment")
+    is_linear_singularity = abs(i_a) <= moment_roundoff
     if is_linear_singularity:
         a_mhz = None
         a_ghz = None
@@ -489,13 +449,15 @@ def diagonalize_inertia_tensor(
         a_ghz = float(C_ROT_GHZ / i_a)
         a_cm1 = float(C_ROT_CM1 / i_a)
 
-    b_mhz = float(C_ROT_MHZ / i_b) if i_b > 1e-12 else 0.0
-    b_ghz = float(C_ROT_GHZ / i_b) if i_b > 1e-12 else 0.0
-    b_cm1 = float(C_ROT_CM1 / i_b) if i_b > 1e-12 else 0.0
+    if i_b <= 1e-12 or i_c <= 1e-12:
+        raise ValueError("Rotational constants are undefined for a point/monatomic geometry")
+    b_mhz = float(C_ROT_MHZ / i_b)
+    b_ghz = float(C_ROT_GHZ / i_b)
+    b_cm1 = float(C_ROT_CM1 / i_b)
 
-    c_mhz = float(C_ROT_MHZ / i_c) if i_c > 1e-12 else 0.0
-    c_ghz = float(C_ROT_GHZ / i_c) if i_c > 1e-12 else 0.0
-    c_cm1 = float(C_ROT_CM1 / i_c) if i_c > 1e-12 else 0.0
+    c_mhz = float(C_ROT_MHZ / i_c)
+    c_ghz = float(C_ROT_GHZ / i_c)
+    c_cm1 = float(C_ROT_CM1 / i_c)
 
     rot_consts = RotationalConstants(
         A_MHz=a_mhz,
@@ -581,7 +543,7 @@ def apply_cartesian_protections(
     perp_distances = np.sqrt(np.sum(perp_vectors**2, axis=1))
     max_perp_dist = float(np.max(perp_distances)) if n_atoms > 0 else 0.0
 
-    is_strict_linear = (n_atoms <= 2) or (i_a < 1e-4 and max_perp_dist < 1e-4)
+    is_strict_linear = inertia_res.rotational_constants.A_MHz is None
 
     # Quasi-linear check (e.g. floppy complexes with angle close to 180 deg)
     is_quasi_linear = False
@@ -602,7 +564,7 @@ def apply_cartesian_protections(
         elif i_a < threshold_linear or max_perp_dist < 0.05:
             is_quasi_linear = True
 
-    is_any_linear = is_strict_linear or is_quasi_linear
+    is_any_linear = is_strict_linear  # Quasi-linear warnings must not change the physical rotor.
 
     # 3. Project to 2D Cylindrical Coordinates (z, rho, phi)
     u_z = collinear_axis
@@ -652,9 +614,11 @@ def apply_cartesian_protections(
         damping_factor = 1.0
         # For a linear rotor, B = C = C_rot / (0.5 * (Ib + Ic))
         mean_i_perp = 0.5 * (i_b + i_c)
-        b_eff_mhz = float(C_ROT_MHZ / mean_i_perp) if mean_i_perp > 1e-12 else 0.0
-        b_eff_ghz = float(C_ROT_GHZ / mean_i_perp) if mean_i_perp > 1e-12 else 0.0
-        b_eff_cm1 = float(C_ROT_CM1 / mean_i_perp) if mean_i_perp > 1e-12 else 0.0
+        if mean_i_perp <= 0:
+            raise ValueError("Linear rotor requires positive perpendicular inertia")
+        b_eff_mhz = float(C_ROT_MHZ / mean_i_perp)
+        b_eff_ghz = float(C_ROT_GHZ / mean_i_perp)
+        b_eff_cm1 = float(C_ROT_CM1 / mean_i_perp)
 
         protected_rot = RotationalConstants(
             A_MHz=None,
@@ -673,7 +637,7 @@ def apply_cartesian_protections(
         damping_factor = 0.0
         protected_rot = inertia_res.rotational_constants
 
-    is_linear_singularity = bool(i_a < 1.0e-6 or is_strict_linear or is_any_linear)
+    is_linear_singularity = is_strict_linear
 
     return CartesianProtectionResult(
         is_linear=is_strict_linear,
@@ -710,10 +674,16 @@ def calculate_rays_asymmetry(
     :return: AsymmetryResult data model.
     """
     a_val = kwargs.get("A", a_const)
-    b_val = kwargs.get("B", b_const if b_const is not None else 0.0)
-    c_val = kwargs.get("C", c_const if c_const is not None else 0.0)
+    b_val = kwargs.get("B", b_const)
+    c_val = kwargs.get("C", c_const)
 
-    if a_val is None or a_val <= 0.0:
+    if b_val is None or c_val is None or not np.isfinite([b_val, c_val]).all() or min(b_val, c_val) <= 0:
+        raise ValueError("Finite positive B and C are required")
+    if a_val is not None and (not math.isfinite(a_val) or a_val <= 0 or a_val < b_val or b_val < c_val):
+        raise ValueError("Rotational constants must satisfy A >= B >= C > 0")
+    if a_val is None:
+        if not math.isclose(b_val, c_val, rel_tol=1e-10, abs_tol=1e-10):
+            raise ValueError("A is undefined only for the declared linear limit B = C")
         # Linear rotor: limiting prolate with A -> infinity
         return AsymmetryResult(
             kappa=-1.0,
@@ -733,7 +703,7 @@ def calculate_rays_asymmetry(
     diff_ac = a_val - c_val
     if abs(diff_ac) < 1e-9 or (abs(a_val - b_val) < 1e-9 and abs(b_val - c_val) < 1e-9):
         return AsymmetryResult(
-            kappa=0.0,
+            kappa=None,
             rotor_type="Spherical Top",
             recommended_representation="Ir",
             axis_mapping={"x": "b", "y": "c", "z": "a"},
@@ -835,9 +805,11 @@ def dynamic_representation_switch(
             asym = calculate_rays_asymmetry(a_val, b_val, c_val)
             kappa_val = asym.kappa
         else:
-            kappa_val = -0.5
+            raise ValueError("Provide rotational constants or an explicit asymmetry parameter")
     else:
         kappa_val = float(kappa)
+        if not math.isfinite(kappa_val) or not -1 <= kappa_val <= 1:
+            raise ValueError("Ray asymmetry parameter must be finite and in [-1, 1]")
 
     rep_table: dict[str, dict[str, Any]] = {
         "Ir": {
@@ -910,7 +882,7 @@ def dynamic_representation_switch(
 
     chosen_rep = (
         "Ir"
-        if preferred_type == "auto" and kappa_val <= 0.0
+        if preferred_type == "auto" and (kappa_val is None or kappa_val <= 0.0)
         else ("IIIr" if preferred_type == "auto" else preferred_type)
     )
 
@@ -1017,8 +989,7 @@ def compute_blake3_seal(
 ) -> str:
     """Computes a 256-bit BLAKE3 cryptographic hash digest.
 
-    If blake3 is available, uses the native C library. Otherwise falls back to
-    blake2b (32-byte digest) for zero-dependency portability.
+    Requires BLAKE3; another algorithm must not be mislabeled as BLAKE3.
 
     :param data: Input data (bytes, string, dict, or Pydantic model).
     :return: Hexadecimal hash string.
@@ -1026,7 +997,7 @@ def compute_blake3_seal(
     if isinstance(data, BaseModel):
         raw_bytes = data.model_dump_json().encode("utf-8")
     elif isinstance(data, dict):
-        raw_bytes = json.dumps(data, sort_keys=True).encode("utf-8")
+        raw_bytes = json.dumps(data, sort_keys=True, allow_nan=False).encode("utf-8")
     elif isinstance(data, str):
         raw_bytes = data.encode("utf-8")
     elif isinstance(data, (bytes, bytearray, memoryview)):
@@ -1034,12 +1005,9 @@ def compute_blake3_seal(
     else:
         raw_bytes = str(data).encode("utf-8")
 
-    if _BLAKE3_AVAILABLE:
-        try:
-            return blake3.blake3(raw_bytes).hexdigest()
-        except Exception:
-            pass
-    return hashlib.blake2b(raw_bytes, digest_size=32).hexdigest()
+    if not _BLAKE3_AVAILABLE:
+        raise RuntimeError("BLAKE3 digest requested but blake3 is not installed")
+    return blake3.blake3(raw_bytes).hexdigest()
 
 
 def allocate_pyarrow_ipc_buffer(
@@ -1066,37 +1034,34 @@ def allocate_pyarrow_ipc_buffer(
     if isinstance(rc_data, RotationalConstants):
         rc_data = rc_data.model_dump()
 
-    a_mhz = rc_data.get("A_MHz", rc_data.get("A", 0.0))
-    if a_mhz is None:
-        a_mhz = -1.0  # Sentinel for linear / None
-    b_mhz = float(rc_data.get("B_MHz", rc_data.get("B", 0.0)))
-    c_mhz = float(rc_data.get("C_MHz", rc_data.get("C", 0.0)))
+    def finite_or_none(value):
+        if value is None:
+            return None
+        value = float(value)
+        if not math.isfinite(value):
+            raise ValueError("Nonfinite tensor observable")
+        return value
 
-    pm_u_a2 = in_data.get("principal_moments_u_A2", [0.0, 0.0, 0.0])
-    i_a = float(pm_u_a2[0]) if len(pm_u_a2) > 0 else 0.0
-    i_b = float(pm_u_a2[1]) if len(pm_u_a2) > 1 else 0.0
-    i_c = float(pm_u_a2[2]) if len(pm_u_a2) > 2 else 0.0
-
-    # Asymmetry
+    a_mhz = finite_or_none(rc_data.get("A_MHz", rc_data.get("A")))
+    b_mhz = finite_or_none(rc_data.get("B_MHz", rc_data.get("B")))
+    c_mhz = finite_or_none(rc_data.get("C_MHz", rc_data.get("C")))
+    pm = in_data.get("principal_moments_u_A2", d.get("principal_moments_u_A2"))
+    if pm is not None and len(pm) != 3:
+        raise ValueError("Principal moments require exactly three components")
+    i_a, i_b, i_c = [finite_or_none(v) for v in pm] if pm is not None else [None, None, None]
     asym_data = d.get("asymmetry", {})
     if isinstance(asym_data, AsymmetryResult):
         asym_data = asym_data.model_dump()
-    kappa_val = float(asym_data.get("kappa", 0.0))
-    rotor_type_str = str(asym_data.get("rotor_type", "Asymmetric"))
-    rec_rep_str = str(asym_data.get("recommended_representation", "Ir"))
-
-    # Cartesian protection
+    kappa_val = finite_or_none(asym_data.get("kappa"))
+    rotor_type_str = asym_data.get("rotor_type")
+    rec_rep_str = asym_data.get("recommended_representation")
     prot_data = d.get("cartesian_protection", {})
     if isinstance(prot_data, CartesianProtectionResult):
         prot_data = prot_data.model_dump()
-    is_linear = bool(prot_data.get("is_linear", False))
-    linear_singularity = bool(
-        prot_data.get("LINEAR_SINGULARITY", prot_data.get("linear_singularity", is_linear or i_a < 1e-6))
-    )
-    is_planar = bool(in_data.get("is_planar", d.get("is_planar", False)))
-    inertial_defect = float(
-        in_data.get("inertial_defect_u_A2", d.get("inertial_defect_u_A2", 0.0))
-    )
+    is_linear = prot_data.get("is_linear")
+    linear_singularity = prot_data.get("LINEAR_SINGULARITY", prot_data.get("linear_singularity"))
+    is_planar = in_data.get("is_planar", d.get("is_planar"))
+    inertial_defect = finite_or_none(in_data.get("inertial_defect_u_A2", d.get("inertial_defect_u_A2")))
 
     # Construct PyArrow RecordBatch schema
     schema = pa.schema(
@@ -1122,11 +1087,11 @@ def allocate_pyarrow_ipc_buffer(
     batch = pa.RecordBatch.from_arrays(
         [
             pa.array([point_id], type=pa.string()),
-            pa.array([float(in_data.get("total_mass_u", 0.0))], type=pa.float64()),
+            pa.array([finite_or_none(in_data.get("total_mass_u"))], type=pa.float64()),
             pa.array([i_a], type=pa.float64()),
             pa.array([i_b], type=pa.float64()),
             pa.array([i_c], type=pa.float64()),
-            pa.array([float(a_mhz)], type=pa.float64()),
+            pa.array([a_mhz], type=pa.float64()),
             pa.array([b_mhz], type=pa.float64()),
             pa.array([c_mhz], type=pa.float64()),
             pa.array([kappa_val], type=pa.float64()),
@@ -1230,7 +1195,7 @@ class TorqTensorExtractor:
         res = self.get_inertia_result()
         rc = res.rotational_constants
         self.rotational_constants = {
-            "A": rc.A_MHz if rc.A_MHz is not None else 0.0,
+            "A": rc.A_MHz,
             "B": rc.B_MHz,
             "C": rc.C_MHz,
         }
@@ -1247,7 +1212,7 @@ class TorqTensorExtractor:
             )
             rc = self._inertia_result.rotational_constants
             self.rotational_constants = {
-                "A": rc.A_MHz if rc.A_MHz is not None else 0.0,
+                "A": rc.A_MHz,
                 "B": rc.B_MHz,
                 "C": rc.C_MHz,
             }
@@ -1288,11 +1253,7 @@ class TorqTensorExtractor:
             "symbols": self.symbols,
             "coordinates": self.coordinates.tolist(),
             "rotational_constants": {
-                "A": (
-                    in_res.rotational_constants.A_MHz
-                    if in_res.rotational_constants.A_MHz is not None
-                    else 0.0
-                ),
+                "A": in_res.rotational_constants.A_MHz,
                 "B": in_res.rotational_constants.B_MHz,
                 "C": in_res.rotational_constants.C_MHz,
             },
@@ -1539,132 +1500,17 @@ class TorqTensorExtractor:
             logger.warning("Divergence detected - recommending switch to DVR protocol.")
         return divergent, reasons
 
-    def extract_thermal_nmr(
-        self, trajectory_file: str | Path | None = None
-    ) -> dict[str, Any]:
-        """Extracts thermally averaged NMR chemical shielding tensors."""
-        logger.info("Extracting thermally averaged NMR data.")
-        nmr_data: dict[str, Any] = {
-            "isotropic_shielding": [],
-            "frame_count": 0,
-            "thermal_average": 0.0,
-        }
-        try:
-            shielding_values: list[float] = []
-            target_path = Path(trajectory_file) if trajectory_file else None
+    def extract_thermal_nmr(self, trajectory_file: str | Path | None = None) -> dict[str, Any]:
+        """Require per-nucleus electronic shielding and thermal weights.
 
-            if target_path and target_path.exists():
-                lines = target_path.read_text(
-                    encoding="utf-8", errors="ignore"
-                ).splitlines()
-                idx = 0
-                frame_coords = []
-                while idx < len(lines):
-                    line_str = lines[idx].strip()
-                    if line_str.isdigit():
-                        natoms = int(line_str)
-                        frame_lines = lines[idx + 2 : idx + 2 + natoms]
-                        coords = []
-                        for l_str in frame_lines:
-                            parts = l_str.split()
-                            if len(parts) >= 4:
-                                coords.append(
-                                    [
-                                        float(parts[1]),
-                                        float(parts[2]),
-                                        float(parts[3]),
-                                    ]
-                                )
-                        if coords:
-                            frame_coords.append(np.array(coords, dtype=np.float64))
-                        idx += 2 + natoms
-                    else:
-                        idx += 1
+        Coordinates alone do not determine a calculated NMR shielding. The legacy
+        geometry-to-shielding surrogate and cross-nucleus 'thermal average' were removed.
+        """
+        raise RuntimeError("Thermal NMR unavailable: validated per-frame/per-nucleus shielding and weighting adapter required")
 
-                for f_coords in frame_coords:
-                    com = np.mean(f_coords, axis=0)
-                    diff = f_coords - com
-                    dist = float(np.mean(np.sqrt(np.sum(diff**2, axis=1))))
-                    val = float(31.5 + 2.0 * dist)
-                    shielding_values.append(val)
-
-            if not shielding_values and self.orca_file and self.orca_file.exists():
-                content = self.orca_file.read_text(encoding="utf-8", errors="ignore")
-                matches = re.findall(r"Isotropic\s+=\s+(-?\d+\.\d+)", content)
-                if matches:
-                    shielding_values = [float(m) for m in matches]
-
-            if not shielding_values:
-                com = np.mean(self.coordinates, axis=0)
-                diff = self.coordinates - com
-                mean_dist = float(np.mean(np.sqrt(np.sum(diff**2, axis=1))))
-                shielding_values = [float(31.5 + mean_dist)]
-
-            nmr_data["isotropic_shielding"] = [
-                {"frame": i, "shielding": v} for i, v in enumerate(shielding_values)
-            ]
-            nmr_data["frame_count"] = len(shielding_values)
-            nmr_data["thermal_average"] = (
-                float(np.mean(np.array(shielding_values, dtype=np.float64)))
-                if shielding_values
-                else 0.0
-            )
-            logger.info(
-                f"Extracted NMR data from {nmr_data['frame_count']} trajectory frames. "
-                f"Mean shielding: {nmr_data['thermal_average']:.2f} ppm"
-            )
-        except Exception as e:
-            logger.error(f"Error extracting thermal NMR: {e}")
-            raise
-        return nmr_data
-
-    def extract_raman_polarizability(
-        self, orca_file: str | Path | None = None
-    ) -> dict[str, Any]:
-        """Extracts Raman polarizability derivatives from ORCA output."""
-        logger.info("Extracting Raman polarizability data.")
-        raman_data: dict[str, Any] = {
-            "polarizability_derivatives": [],
-            "tensor_components": [],
-        }
-        target_path = Path(orca_file) if orca_file else self.orca_file
-        try:
-            if target_path and target_path.exists():
-                content = target_path.read_text(encoding="utf-8", errors="ignore")
-                deriv_match = re.findall(
-                    r"Polarizability\s+derivative\s*:\s*(-?\d+\.\d+)",
-                    content,
-                    re.IGNORECASE,
-                )
-                if deriv_match:
-                    raman_data["polarizability_derivatives"] = [
-                        float(x) for x in deriv_match
-                    ]
-
-                tensor_match = re.findall(
-                    r"(alpha_\w+)\s*=\s*(-?\d+\.\d+)", content, re.IGNORECASE
-                )
-                if tensor_match:
-                    raman_data["tensor_components"] = [t[0] for t in tensor_match]
-                    if not raman_data["polarizability_derivatives"]:
-                        raman_data["polarizability_derivatives"] = [
-                            float(t[1]) for t in tensor_match
-                        ]
-
-            if not raman_data["tensor_components"]:
-                # Default to principal diagonal components
-                in_res = self.get_inertia_result()
-                evals = in_res.principal_moments_u_A2
-                raman_data["polarizability_derivatives"] = [
-                    float(evals[0]),
-                    float(evals[1]),
-                    float(evals[2]),
-                ]
-                raman_data["tensor_components"] = ["alpha_xx", "alpha_yy", "alpha_zz"]
-        except Exception as e:
-            logger.error(f"Error extracting Raman data: {e}")
-            raise
-        return raman_data
+    def extract_raman_polarizability(self, orca_file: str | Path | None = None) -> dict[str, Any]:
+        """Require a qualified polarizability-derivative parser with units/mode mapping."""
+        raise RuntimeError("Raman derivatives unavailable: a qualified electronic-response parser is required; inertia is not polarizability")
 
     def extract_spin_hamiltonian(
         self, orca_file: str | Path | None = None

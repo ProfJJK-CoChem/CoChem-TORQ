@@ -1,12 +1,7 @@
-"""Zero-Mock Physical Test Suite for CoChem-TORQ CREST & Union Referee Engine.
+"""CREST adapter contracts, actual HF numerical inputs, and missing-evidence handling.
 
-================================================================================
-Phase 3 (Stage 2.0 - 2.1) Authentic Test Matrix
---------------------------------------------------------------------------------
-Validates Independent CREST Conformer Exploration (--nci --nocross --noreftopo),
-CREGEN Refereeing, Two-Stage Deduplication (Stage A broad, Stage B spectroscopic),
-the 6-Step Union Protocol, 0.93 [M] F1 baseline scoring, dynamic Mendeleev masses,
-and Tripartite Filesystem Air-Gap compliance per Method Matrix Sections 9B.1-9B.4.
+No conformer-search completeness, CREST execution, or benchmark F1 is inferred
+from mathematical geometry checks or serializer roundtrips.
 """
 
 from __future__ import annotations
@@ -53,14 +48,14 @@ from Libraries.cochem_torq_crest import (
     write_xyz_string,
 )
 
+# =============================================================================
+# Declared Geometry Inputs
+# =============================================================================
 
-# =============================================================================
-# Authentic Physical Geometry Fixtures
-# =============================================================================
 
 @pytest.fixture
 def water_geometry() -> tuple[list[str], np.ndarray]:
-    """Authentic equilibrium C2v water (H2O) geometry."""
+    """Declared C2v water-shaped geometry for numerical checks."""
     syms = ["O", "H", "H"]
     coords = np.array(
         [
@@ -75,24 +70,24 @@ def water_geometry() -> tuple[list[str], np.ndarray]:
 
 @pytest.fixture
 def hfip_ne_complex_geometry() -> tuple[list[str], np.ndarray]:
-    """Authentic hexafluoroisopropanol...Neon van der Waals complex geometry."""
+    """Declared 13-atom complex-shaped input; no binding or optimization is established."""
     syms = ["C", "C", "C", "O", "H", "H", "F", "F", "F", "F", "F", "F", "Ne"]
     # Model coordinates for 13-atom vdW complex
     coords = np.array(
         [
-            [0.000, 0.000, 0.000],   # C (central)
-            [1.250, 0.850, 0.000],   # C (CF3)
+            [0.000, 0.000, 0.000],  # C (central)
+            [1.250, 0.850, 0.000],  # C (CF3)
             [-1.250, 0.850, 0.000],  # C (CF3)
             [0.000, -0.800, 1.150],  # O
-            [0.000, -0.650, -0.890], # H (CH)
+            [0.000, -0.650, -0.890],  # H (CH)
             [0.000, -1.700, 0.850],  # H (OH)
-            [1.300, 1.650, 1.080],   # F
-            [2.350, 0.050, 0.000],   # F
+            [1.300, 1.650, 1.080],  # F
+            [2.350, 0.050, 0.000],  # F
             [1.300, 1.650, -1.080],  # F
             [-1.300, 1.650, 1.080],  # F
             [-2.350, 0.050, 0.000],  # F
-            [-1.300, 1.650, -1.080], # F
-            [0.000, -3.200, 2.800],  # Ne (vdW bound)
+            [-1.300, 1.650, -1.080],  # F
+            [0.000, -3.200, 2.800],  # Ne (declared contact position)
         ],
         dtype=np.float64,
     )
@@ -103,6 +98,7 @@ def hfip_ne_complex_geometry() -> tuple[list[str], np.ndarray]:
 # 1. Mendeleev Dynamic Integration Tests
 # =============================================================================
 
+
 def test_dynamic_mendeleev_masses() -> None:
     """Verify dynamic atomic and isotopic mass retrieval via Mendeleev."""
     c_mass = get_dynamic_atomic_mass("C")
@@ -110,10 +106,10 @@ def test_dynamic_mendeleev_masses() -> None:
     o_mass = get_dynamic_atomic_mass("O")
     ne_mass = get_dynamic_atomic_mass("Ne")
 
-    assert 12.009 < c_mass < 12.013, f"Unexpected C mass: {c_mass}"
-    assert 1.007 < h_mass < 1.009, f"Unexpected H mass: {h_mass}"
-    assert 15.998 < o_mass < 16.002, f"Unexpected O mass: {o_mass}"
-    assert 20.170 < ne_mass < 20.190, f"Unexpected Ne mass: {ne_mass}"
+    assert c_mass == 12.0, f"Unexpected dominant-isotope C mass: {c_mass}"
+    assert 1.00782 < h_mass < 1.00783, f"Unexpected H-1 mass: {h_mass}"
+    assert 15.99491 < o_mass < 15.99492, f"Unexpected O-16 mass: {o_mass}"
+    assert 19.99243 < ne_mass < 19.99245, f"Unexpected Ne-20 mass: {ne_mass}"
 
 
 def test_dynamic_mendeleev_radii() -> None:
@@ -133,10 +129,11 @@ def test_dynamic_mendeleev_radii() -> None:
 # 2. Moments of Inertia & Rotational Constants
 # =============================================================================
 
+
 def test_water_moments_and_rotational_constants(
-    water_geometry: tuple[list[str], np.ndarray]
+    water_geometry: tuple[list[str], np.ndarray],
 ) -> None:
-    """Verify moments of inertia and rotational constants on equilibrium H2O."""
+    """Verify rigid-rotor mathematics on a declared water-shaped input."""
     syms, coords = water_geometry
     res = compute_moments_and_constants(syms, coords)
 
@@ -165,8 +162,9 @@ def test_center_of_mass(water_geometry: tuple[list[str], np.ndarray]) -> None:
 # 3. Kabsch Alignment & RMSD Tests
 # =============================================================================
 
+
 def test_kabsch_alignment_invariance(
-    water_geometry: tuple[list[str], np.ndarray]
+    water_geometry: tuple[list[str], np.ndarray],
 ) -> None:
     """Verify Kabsch alignment is invariant under translation and pure rotation."""
     syms, coords = water_geometry
@@ -190,13 +188,14 @@ def test_kabsch_alignment_invariance(
 # 4. Complex Dissociation Check
 # =============================================================================
 
+
 def test_check_complex_dissociation(
-    hfip_ne_complex_geometry: tuple[list[str], np.ndarray]
+    hfip_ne_complex_geometry: tuple[list[str], np.ndarray],
 ) -> None:
     """Verify vdW complex dissociation detection."""
     syms, coords = hfip_ne_complex_geometry
 
-    # Bound complex should not be dissociated
+    # The declared contact geometry passes the distance heuristic
     is_dissoc_bound = check_complex_dissociation(syms, coords, max_vdw_factor=2.4)
     assert not is_dissoc_bound, "Bound HFIP...Ne complex falsely flagged as dissociated"
 
@@ -214,57 +213,77 @@ def test_check_complex_dissociation(
 # 5. Multi-Structure XYZ I/O Tests
 # =============================================================================
 
+
+def _real_hf_records(
+    symbols: list[str], geometries: list[np.ndarray], workspace: Path
+) -> list[ConformerRecord]:
+    """Evaluate every input with actual HF/STO-3G and retain native evidence."""
+    pytest.importorskip("pyscf")
+    from scipy.constants import physical_constants
+
+    from cochem_torq.engines import PySCFBackend
+
+    bohr_angstrom = physical_constants["Bohr radius"][0] / 1e-10
+    records = []
+    for index, coordinates in enumerate(geometries):
+        result = PySCFBackend().evaluate(
+            {
+                "molecule": {
+                    "symbols": symbols,
+                    "geometry_bohr": (coordinates / bohr_angstrom).tolist(),
+                    "charge": 0,
+                    "multiplicity": 1,
+                },
+                "method": {
+                    "name": "hf",
+                    "basis": "sto-3g",
+                    "reference": "restricted",
+                    "frozen_core": False,
+                },
+                "properties": ["energy"],
+            },
+            workspace / str(index),
+        )
+        assert result["status"] == "complete"
+        moments = compute_moments_and_constants(symbols, coordinates)
+        records.append(
+            ConformerRecord(
+                index=index,
+                symbols=symbols,
+                coordinates=coordinates.tolist(),
+                energy_hartree=result["energy_hartree"],
+                rotational_constants_mhz=moments["rotational_constants_mhz"],
+                origin_engine="PySCF/HF/STO-3G",
+                provenance_tag="actual_native_evidence",
+            )
+        )
+    minimum = min(record.energy_hartree for record in records)
+    for record in records:
+        record.energy_kcal_rel = (record.energy_hartree - minimum) * 627.5094740631
+    return records
+
+
 def test_multi_xyz_serialization_and_parsing(
-    water_geometry: tuple[list[str], np.ndarray]
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Verify lossless roundtrip serialization and parsing of multi-structure XYZ files."""
-    syms, coords = water_geometry
-
-    phys1 = compute_moments_and_constants(syms, coords)
-    rec1 = ConformerRecord(
-        index=0,
-        symbols=syms,
-        coordinates=coords.tolist(),
-        energy_hartree=-76.425,
-        energy_kcal_rel=0.0,
-        rotational_constants_mhz=phys1["rotational_constants_mhz"],
-        rotational_constants_ghz=phys1["rotational_constants_ghz"],
-        inertial_defect_u_a2=phys1["inertial_defect_u_a2"],
-        planar_moments_u_a2=phys1["planar_moments_u_a2"],
-        ray_asymmetry_kappa=phys1["ray_asymmetry_kappa"],
-        origin_engine="GOAT",
-    )
-
-    perturbed_coords = coords + np.array(
-        [[0.0, 0.0, 0.0], [0.0, 0.02, 0.0], [0.0, -0.02, 0.0]]
-    )
-    phys2 = compute_moments_and_constants(syms, perturbed_coords)
-    rec2 = ConformerRecord(
-        index=1,
-        symbols=syms,
-        coordinates=perturbed_coords.tolist(),
-        energy_hartree=-76.423,
-        energy_kcal_rel=1.255,
-        rotational_constants_mhz=phys2["rotational_constants_mhz"],
-        rotational_constants_ghz=phys2["rotational_constants_ghz"],
-        inertial_defect_u_a2=phys2["inertial_defect_u_a2"],
-        planar_moments_u_a2=phys2["planar_moments_u_a2"],
-        ray_asymmetry_kappa=phys2["ray_asymmetry_kappa"],
-        origin_engine="CREST",
-    )
-
-    xyz_str = write_xyz_string([rec1, rec2])
-    parsed_records = parse_xyz_string(xyz_str)
-
-    assert len(parsed_records) == 2
-    assert parsed_records[0].symbols == syms
-    assert parsed_records[1].symbols == syms
-    assert abs(parsed_records[0].energy_hartree - (-76.425)) < 1e-4
+    """Roundtrip actual HF/STO-3G energies; these are not CREST/GOAT results."""
+    symbols, coordinates = water_geometry
+    displaced = coordinates + np.array([[0, 0, 0], [0, 0.02, 0], [0, -0.02, 0]])
+    records = _real_hf_records(symbols, [coordinates, displaced], tmp_path / "hf")
+    parsed = parse_xyz_string(write_xyz_string(records))
+    assert len(parsed) == 2
+    for source, restored in zip(records, parsed):
+        assert restored.symbols == symbols
+        assert restored.energy_hartree == pytest.approx(
+            source.energy_hartree, abs=1e-10
+        )
+        assert np.allclose(restored.coordinates, source.coordinates, atol=5e-9)
 
 
 # =============================================================================
 # 6. CREST Command Line Construction & Validation
 # =============================================================================
+
 
 def test_crest_command_line_flags() -> None:
     """Verify that CrestRunner strictly includes mandatory flags (--nci, --nocross, --noreftopo, --ewin 12)."""
@@ -296,182 +315,103 @@ def test_crest_command_line_flags() -> None:
 # 7. CREGEN Referee & Deduplication Engine Tests
 # =============================================================================
 
+
 def test_cregen_referee_deduplication(
-    water_geometry: tuple[list[str], np.ndarray]
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Verify CREGEN 5-step sieve deduplication and threshold enforcement."""
-    syms, coords = water_geometry
-
-    # Build exact duplicate + slightly displaced copy within RMSD threshold 0.125 Å
-    phys = compute_moments_and_constants(syms, coords)
-    rec1 = ConformerRecord(
-        index=0,
-        symbols=syms,
-        coordinates=coords.tolist(),
-        energy_hartree=-76.425,
-        energy_kcal_rel=0.0,
-        rotational_constants_mhz=phys["rotational_constants_mhz"],
-        rotational_constants_ghz=phys["rotational_constants_ghz"],
-        inertial_defect_u_a2=phys["inertial_defect_u_a2"],
-        planar_moments_u_a2=phys["planar_moments_u_a2"],
-        origin_engine="GOAT",
-    )
-
-    # Near-duplicate: 0.001 Å displacement (within 0.125 Å RMSD, bthr 1.0% and 0.01 ΔE)
-    near_coords = coords + np.array(
-        [[0.0, 0.0, 0.0], [0.0, 0.001, 0.0], [0.0, -0.001, 0.0]]
-    )
-    phys_near = compute_moments_and_constants(syms, near_coords)
-    rec2 = ConformerRecord(
-        index=1,
-        symbols=syms,
-        coordinates=near_coords.tolist(),
-        energy_hartree=-76.42502,
-        energy_kcal_rel=0.01,
-        rotational_constants_mhz=phys_near["rotational_constants_mhz"],
-        rotational_constants_ghz=phys_near["rotational_constants_ghz"],
-        inertial_defect_u_a2=phys_near["inertial_defect_u_a2"],
-        planar_moments_u_a2=phys_near["planar_moments_u_a2"],
-        origin_engine="CREST",
-    )
-
-    # Distinct isomer: 0.35 Å displacement (beyond 0.125 Å RMSD)
-    distinct_coords = coords + np.array(
-        [[0.0, 0.0, 0.0], [0.0, 0.35, 0.0], [0.0, -0.35, 0.0]]
-    )
-    phys_dist = compute_moments_and_constants(syms, distinct_coords)
-    rec3 = ConformerRecord(
-        index=2,
-        symbols=syms,
-        coordinates=distinct_coords.tolist(),
-        energy_hartree=-76.420,
-        energy_kcal_rel=3.137,
-        rotational_constants_mhz=phys_dist["rotational_constants_mhz"],
-        rotational_constants_ghz=phys_dist["rotational_constants_ghz"],
-        inertial_defect_u_a2=phys_dist["inertial_defect_u_a2"],
-        planar_moments_u_a2=phys_dist["planar_moments_u_a2"],
-        origin_engine="CREST",
-    )
-
+    """Run the in-process deduplicator on genuine same-method energies."""
+    symbols, coordinates = water_geometry
+    near = coordinates + np.array([[0, 0, 0], [0, 0.0001, 0], [0, -0.0001, 0]])
+    distant = coordinates + np.array([[0, 0, 0], [0, 0.08, 0], [0, -0.08, 0]])
+    records = _real_hf_records(symbols, [coordinates, near, distant], tmp_path / "hf")
     referee = CregenReferee(
-        config=CregenConfig(ewin_kcal=12.0, ethr_kcal=0.05, rthr_angstrom=0.125)
+        config=CregenConfig(ewin_kcal=100.0, ethr_kcal=0.05, rthr_angstrom=0.125)
     )
-    survivors = referee.referee_ensemble([rec1, rec2, rec3])
-
-    # Near-duplicate should be filtered out, leaving 2 unique conformers
-    assert len(survivors) == 2, f"Expected 2 unique conformers, got {len(survivors)}"
-    assert survivors[0].origin_engine == "UNION"
-    assert survivors[1].origin_engine == "UNION"
+    survivors = referee.referee_ensemble(records)
+    assert len(survivors) == 2
+    assert all(
+        record.energy_hartree in {item.energy_hartree for item in records}
+        for record in survivors
+    )
 
 
 # =============================================================================
 # 8. Two-Stage Spectroscopic Deduplication Tests
 # =============================================================================
 
+
 def test_spectroscopic_deduplication_tight_threshold(
-    water_geometry: tuple[list[str], np.ndarray]
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Verify Stage B Spectroscopic Deduplication tightens threshold to Delta B/B <= 0.1%."""
-    syms, coords = water_geometry
-    phys = compute_moments_and_constants(syms, coords)
-
-    rec1 = ConformerRecord(
-        index=0,
-        symbols=syms,
-        coordinates=coords.tolist(),
-        energy_hartree=-76.425,
-        energy_kcal_rel=0.0,
-        rotational_constants_mhz=phys["rotational_constants_mhz"],
-        origin_engine="GOAT",
-    )
-
-    # Conformer with ΔB/B ≈ 0.05% (below 0.1% microwave resolution)
-    b_perturbed_coords = coords + np.array(
-        [[0.0, 0.0, 0.0], [0.0, 0.0003, 0.0], [0.0, -0.0003, 0.0]]
-    )
-    phys_p = compute_moments_and_constants(syms, b_perturbed_coords)
-    rec2 = ConformerRecord(
-        index=1,
-        symbols=syms,
-        coordinates=b_perturbed_coords.tolist(),
-        energy_hartree=-76.425,
-        energy_kcal_rel=0.001,
-        rotational_constants_mhz=phys_p["rotational_constants_mhz"],
-        origin_engine="CREST",
-    )
-
-    survivors = deduplicate_spectroscopic([rec1, rec2], bthr_spectroscopic=0.001)
-    assert len(survivors) == 1, "Spectroscopically indistinguishable conformer was not merged"
+    """Exercise a declared numerical threshold, not a universal resolution claim."""
+    symbols, coordinates = water_geometry
+    near = coordinates + np.array([[0, 0, 0], [0, 0.0003, 0], [0, -0.0003, 0]])
+    records = _real_hf_records(symbols, [coordinates, near], tmp_path / "hf")
+    survivors = deduplicate_spectroscopic(records, bthr_spectroscopic=0.001)
+    assert len(survivors) == 1
+    assert survivors[0].energy_hartree in {record.energy_hartree for record in records}
 
 
 # =============================================================================
 # 9. The 6-Step Master Union Protocol Orchestrator Tests
 # =============================================================================
 
+
 def test_union_protocol_full_orchestration(
-    hfip_ne_complex_geometry: tuple[list[str], np.ndarray]
+    hfip_ne_complex_geometry: tuple[list[str], np.ndarray],
 ) -> None:
-    """Verify complete execution of 6-Step Union Protocol, F1 scoring, and audit metrics."""
-    syms, coords = hfip_ne_complex_geometry
-
+    """A supplied seed is not a completed GOAT ensemble or validated union."""
+    symbols, coordinates = hfip_ne_complex_geometry
     referee = UnionConformerReferee()
-    ensemble, report = referee.execute_union_protocol(
-        seed_inputs=[(syms, coords)],
-        system_name="HFIP_Ne_Benchmark",
-    )
-
-    assert isinstance(ensemble, EnsembleContainer)
-    assert isinstance(report, UnionAuditReport)
-    assert len(ensemble.conformers) >= 1
-    assert report.system_name == "HFIP_Ne_Benchmark"
-    assert report.goat_f1_baseline == 0.93, "GOAT F1 benchmark baseline must equal 0.93 [M]"
-    assert report.crest_f1_baseline == 0.77, "CREST F1 baseline must reflect 0.74-0.80 [M]"
-    assert "Both GOAT and CREST are stochastic global optimizers" in report.completeness_disclaimer
-    assert report.provenance_tag == "[M]"
+    with pytest.raises(ValueError, match="energy-model provenance"):
+        referee.execute_union_protocol(
+            seed_inputs=[(symbols, coordinates)], system_name="Missing_GOAT"
+        )
+    with pytest.raises(FileNotFoundError, match="completed GOAT ensemble"):
+        referee.execute_union_protocol(
+            seed_inputs=[(symbols, coordinates)],
+            system_name="Missing_GOAT",
+            goat_energy_model="gfn2",
+        )
 
 
 # =============================================================================
 # 10. FAIR-Compliant HDF5 Serialization Tests
 # =============================================================================
 
+
 def test_hdf5_serialization_and_attributes(
-    water_geometry: tuple[list[str], np.ndarray]
+    tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Verify HDF5 QCSchema serialization and persistent state preservation."""
-    syms, coords = water_geometry
-    referee = UnionConformerReferee()
-    ensemble, report = referee.execute_union_protocol(
-        seed_inputs=[(syms, coords)],
-        system_name="Water_HDF5_Test",
+    """An empty observed ensemble must not invent F1 or thermodynamic results."""
+    ensemble = EnsembleContainer(name="No_calculation", conformers=[])
+    report = UnionAuditReport(
+        system_name="No_calculation",
+        n_seeds=0,
+        n_goat_raw=0,
+        n_crest_raw=0,
+        n_union_raw=0,
+        n_goat_unique=0,
+        n_crest_unique=0,
+        n_shared_intersection=0,
+        n_survivors_stage_a=0,
+        n_survivors_stage_b=0,
+        provenance_tag="serialization_only_no_engine_execution",
     )
-
-    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
-        h5_path = Path(tmp.name)
-
-    try:
-        saved_path = save_ensemble_to_hdf5(ensemble, report, h5_path)
-        assert saved_path.exists()
-
-        with h5py.File(str(saved_path), "r") as f:
-            assert f.attrs["system_name"] == "Water_HDF5_Test"
-            assert f.attrs["goat_f1_baseline"] == 0.93
-            assert "conformers" in f
-            assert "union_audit" in f
-            confs_grp = f["conformers"]
-            assert confs_grp.attrs["count"] == len(ensemble.conformers)
-            assert "conformer_0000" in confs_grp
-            c0 = confs_grp["conformer_0000"]
-            assert "rotational_constants_mhz" in c0
-            assert "coordinates" in c0
-            assert "symbols" in c0
-    finally:
-        if h5_path.exists():
-            h5_path.unlink()
+    path = save_ensemble_to_hdf5(ensemble, report, tmp_path / "unavailable.h5")
+    with h5py.File(path, "r") as archive:
+        assert archive.attrs["system_name"] == "No_calculation"
+        assert "goat_f1_baseline" not in archive.attrs
+        assert "crest_f1_baseline" not in archive.attrs
+        assert "s_conf_union_cal_mol_k" not in archive.attrs
+        assert archive["conformers"].attrs["count"] == 0
+        assert not list(archive["conformers"].keys())
 
 
 # =============================================================================
 # 11. Tripartite Filesystem Air-Gap Security Tests
 # =============================================================================
+
 
 def test_air_gap_violation_prevention() -> None:
     """Verify AirGapViolationError is raised when trying to write inside Ring 1 repo."""
