@@ -1,5 +1,10 @@
 # CoChem-TORQ: Software Requirements Specification (True Architecture v2.1)
 
+> Production ML automation follows [ML safeguards](../ML_SAFEGUARDS.md).
+> This contract supersedes ML-only rejection/cutoff and uncalibrated allocation
+> rules below. Defer reversibly, retain candidates, validate QC sentinels, and
+> never infer pathway absence from an ML barrier or failed search.
+
 **Governing Charters:** Method Matrix v4.2, CoChem Anti-Spoofing Protocol v4.1.1, PMBOK Guide 7th Ed.
 **Status:** Deeply contextualized, expanded, and strictly aligned with physical workflows.
 
