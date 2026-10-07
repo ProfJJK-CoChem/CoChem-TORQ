@@ -194,6 +194,26 @@
           "Native engine gate now passed on GitHub; directory chmod after ownership transfer prevents image-step setup."
         ],
         "scope": "Historical snapshot; inspect current PR checks for later runs."
+      },
+      {
+        "run_id": 37701244082,
+        "source_commit": "65e711f04be0f2a164b7ee10aee86d1ed5bfd0e5",
+        "status": "failed",
+        "passed_jobs": 6,
+        "failed_jobs": [
+          "student-calculation-image"
+        ],
+        "scientific_image_steps": {
+          "build": "passed",
+          "request_normalization": "passed",
+          "genuine_energy_and_derivatives": "passed",
+          "offline_water_calculation": "passed",
+          "sealed_typed_artifact_verification": "passed"
+        },
+        "findings": [
+          "Artifact upload failed with EACCES reading the container-owned private result directory; group-only runner access is required."
+        ],
+        "scope": "Actual hosted teaching/numerical execution, with retention still failed. No experimental accuracy or identification qualification."
       }
     ]
   },

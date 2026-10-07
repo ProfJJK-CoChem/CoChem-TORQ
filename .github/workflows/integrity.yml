@@ -252,6 +252,15 @@ jobs:
         if: always()
         run: |
           docker rm --force torq-image-prepare-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-image-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-image-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-image-verification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} 2>/dev/null || true
+      - name: Grant the authenticated runner group read access to owned image results
+        if: always()
+        run: |
+          for torq_owned_root in "$RUNNER_TEMP/torq-image-results" "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input"; do
+            if [ -d "$torq_owned_root" ]; then
+              sudo chgrp -R "$(id -g)" "$torq_owned_root"
+              sudo chmod -R g+rX "$torq_owned_root"
+            fi
+          done
       - name: Retain real calculation image artifacts and evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

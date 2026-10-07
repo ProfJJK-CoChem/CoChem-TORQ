@@ -90,6 +90,15 @@ jobs:
         if: always()
         run: |
           docker rm --force torq-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} torq-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} 2>/dev/null || true
+      - name: Grant the authenticated runner group read access to owned results
+        if: always()
+        run: |
+          for torq_owned_root in "$RUNNER_TEMP/torq-results" "$RUNNER_TEMP/torq-evidence"; do
+            if [ -d "$torq_owned_root" ]; then
+              sudo chgrp -R "$(id -g)" "$torq_owned_root"
+              sudo chmod -R g+rX "$torq_owned_root"
+            fi
+          done
       - name: Retain results and scientific execution evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
