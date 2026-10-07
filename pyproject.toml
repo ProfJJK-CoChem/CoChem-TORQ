@@ -48,7 +48,12 @@ dispersion = ["dftd3==1.6.0", "tomli>=2,<3"]
 telemetry = ["plotly>=6,<7", "httpx>=0.28,<1"]
 notebooks = ["jupyterlab>=4,<5", "ipywidgets>=8,<9", "anywidget>=0.9", "traitlets>=5", "matplotlib>=3.8"]
 interface = ["jupyterlab==4.5.6", "ipywidgets==8.1.8", "anywidget==0.9.21", "traitlets==5.15.0", "matplotlib>=3.8"]
-calculations = ["pyscf==2.14.0", "geometric==1.1.1", "dftd4==3.7.0", "qcelemental>=0.29,<1"]
+calculations = [
+    "pyscf==2.14.0", "geometric==1.1.1", "dftd4==3.7.0", "qcelemental>=0.29,<1",
+    # DFTD4 3.7 loads its damping parameter table through an external TOML parser,
+    # including on Python 3.11+, where that release does not use stdlib tomllib.
+    "tomli>=2,<3",
+]
 ipc = ["pyzmq>=25", "xxhash>=3"]
 
 [tool.setuptools.package-dir]

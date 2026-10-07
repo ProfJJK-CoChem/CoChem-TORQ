@@ -129,13 +129,18 @@ jobs:
           python -c "import pyscf, geometric; from dftd4.interface import DispersionModel; from importlib.metadata import version; assert pyscf.__version__ == '2.14.0'; assert version('geometric') == '1.1.1'; assert version('dftd4') == '3.7.0'"
       - name: Require actual energies, derivatives and optimization
         run: |
-          python -m pytest -q --basetemp "$RUNNER_TEMP/torq-native-tests" \
+          if python -m pytest -q --basetemp "$RUNNER_TEMP/torq-native-tests" \
             --junitxml "$RUNNER_TEMP/torq-native-tests-report.xml" \
             tests/test_pyscf_integration.py tests/test_revdsd_integration.py \
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
             tests/test_application_contracts.py tests/test_actions_request.py \
-            tests/test_artifact_publication.py tests/test_anharmonic_research.py
-          python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-native-tests-report.xml"
+            tests/test_artifact_publication.py tests/test_anharmonic_research.py; then
+            python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-native-tests-report.xml"
+          else
+            torq_command_status=$?
+            python ci_tools/annotate_ci_failure.py --junit "$RUNNER_TEMP/torq-native-tests-report.xml" || true
+            exit "$torq_command_status"
+          fi
       - name: Record native derivative qualification evidence
         run: |
           python ci_tools/qualify_pyscf_image.py --output "$RUNNER_TEMP/torq-qualification" \
@@ -161,12 +166,18 @@ jobs:
           persist-credentials: false
       - name: Build the actual isolated calculation image
         run: |
-          docker build --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} .
           mkdir -p "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
           sudo chown "1000:$(id -g)" "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
           chmod 775 "$RUNNER_TEMP/torq-image-evidence" "$RUNNER_TEMP/torq-image-input" "$RUNNER_TEMP/torq-image-results"
-          docker image inspect torq-pyscf:${GITHUB_SHA} --format '{{.Id}}' > "$RUNNER_TEMP/torq-image-evidence/image-id.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/torq-image-evidence/source-commit.txt"
+          if docker build --progress=plain --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} . > "$RUNNER_TEMP/torq-image-evidence/build.log" 2>&1; then
+            cat "$RUNNER_TEMP/torq-image-evidence/build.log"
+          else
+            torq_command_status=$?
+            python3 ci_tools/annotate_ci_failure.py --build-log "$RUNNER_TEMP/torq-image-evidence/build.log" || true
+            exit "$torq_command_status"
+          fi
+          docker image inspect torq-pyscf:${GITHUB_SHA} --format '{{.Id}}' > "$RUNNER_TEMP/torq-image-evidence/image-id.txt"
       - name: Normalize and hash the actual student water request
         run: |
           timeout --signal=TERM --kill-after=15s 180s docker run --rm -i --name torq-image-prepare-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \

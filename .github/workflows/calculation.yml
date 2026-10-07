@@ -56,12 +56,18 @@ jobs:
         run: python ci_tools/actions_request.py --output "$RUNNER_TEMP/torq-input/request.json"
       - name: Build the independently isolated calculation image
         run: |
-          docker build --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} .
           mkdir -p "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
           sudo chown "1000:$(id -g)" "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
           chmod 775 "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
-          docker image inspect torq-pyscf:${GITHUB_SHA} --format '{{.Id}}' > "$RUNNER_TEMP/torq-evidence/image-id.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/torq-evidence/source-commit.txt"
+          if docker build --progress=plain --file docker/engines/pyscf/Dockerfile --tag torq-pyscf:${GITHUB_SHA} . > "$RUNNER_TEMP/torq-evidence/build.log" 2>&1; then
+            cat "$RUNNER_TEMP/torq-evidence/build.log"
+          else
+            torq_command_status=$?
+            python ci_tools/annotate_ci_failure.py --build-log "$RUNNER_TEMP/torq-evidence/build.log" || true
+            exit "$torq_command_status"
+          fi
+          docker image inspect torq-pyscf:${GITHUB_SHA} --format '{{.Id}}' > "$RUNNER_TEMP/torq-evidence/image-id.txt"
       - name: Require genuine engine and native derivative qualification
         run: |
           image_id="$(cat "$RUNNER_TEMP/torq-evidence/image-id.txt")"
