@@ -57,6 +57,15 @@ def _plain(value: Any) -> Any:
     return value
 
 
+RUNTIME_SOURCE_MODULES = (
+    "Libraries.cochem_isotopes",
+    "cochem.orchestration.campaign",
+    "cochem.orchestration.campaign_backup",
+    "cochem.orchestration.host_allocation",
+    "cochem.storage.fenced_pes",
+)
+
+
 def source_identity() -> dict[str, Any]:
     package_root = Path(__file__).resolve().parent
     identity: dict[str, Any] = {
@@ -75,17 +84,18 @@ def source_identity() -> dict[str, Any]:
         )
     import importlib.util
 
-    for module in ("Libraries.cochem_isotopes", "cochem.orchestration.campaign"):
+    for module in RUNTIME_SOURCE_MODULES:
         specification = importlib.util.find_spec(module)
-        if specification is not None and specification.origin:
-            records.append(
-                {
-                    "path": module,
-                    "sha256": sha256(
-                        Path(specification.origin).read_bytes()
-                    ).hexdigest(),
-                }
+        if specification is None or not specification.origin:
+            raise RuntimeError(
+                f"Required scientific runtime module is unavailable: {module}"
             )
+        records.append(
+            {
+                "path": module,
+                "sha256": sha256(Path(specification.origin).read_bytes()).hexdigest(),
+            }
+        )
     identity["code_sha256"] = digest(records)
     repository = next(
         (path for path in package_root.parents if (path / ".git").exists()), None
@@ -132,6 +142,21 @@ def validate_request(
         model
     )  # Fail before expensive work if a requested isotope lacks real mass data.
     reasons = list(capabilities["blocking_reasons"])
+    if "constrained_geometry" in model.products:
+        from .constrained_service import constrained_specification
+
+        constrained_specification(model)
+        if execution != "local_validation":
+            reasons.append(
+                "Constrained optimization requires explicit local validation."
+            )
+    elif (
+        model.recipe == "hf-sto-3g-constrained-pes-validation"
+        or "constrained_optimization" in model.source_provenance
+    ):
+        reasons.append(
+            "Constrained specifications require their separate product and recipe."
+        )
     if "pes_scan" in model.products:
         from .scan import scan_blocking_reasons, scan_definition
 
@@ -139,16 +164,20 @@ def validate_request(
             reasons.append(
                 "A PES scan is a separate product from equilibrium spectroscopy."
             )
-        if model.recipe != "hf-sto-3g-pes-validation":
+        if model.recipe not in {
+            "hf-sto-3g-pes-validation",
+            "hf-sto-3g-internal-pes-validation",
+        }:
             reasons.append(
                 "PES scans require their explicitly named local validation recipe."
             )
         reasons.extend(scan_blocking_reasons(model, scan_definition(model)))
         if execution != "local_validation":
             reasons.append("PES scans require the explicit local validation workflow.")
-    elif model.recipe == "hf-sto-3g-pes-validation" or any(
-        key in model.source_provenance for key in ("pes_scan", "adaptive_scan")
-    ):
+    elif model.recipe in {
+        "hf-sto-3g-pes-validation",
+        "hf-sto-3g-internal-pes-validation",
+    } or any(key in model.source_provenance for key in ("pes_scan", "adaptive_scan")):
         reasons.append(
             "A scan declaration requires the separate pes_scan product and recipe."
         )
@@ -173,7 +202,26 @@ def validate_request(
                 "This recipe requires a separately validated basis/element scope "
                 "for those atoms."
             )
-        if model.molecule.multiplicity != profile["multiplicity"]:
+        if profile.get("reference") == "unrestricted":
+            if model.molecule.multiplicity not in profile["multiplicities"]:
+                reasons.append(
+                    "The explicit unrestricted multiplicity exceeds "
+                    "this validation profile."
+                )
+            if model.molecule.charge not in profile["charges"]:
+                reasons.append(
+                    "The explicit unrestricted charge exceeds this validation profile."
+                )
+            if model.products != ["geometry"]:
+                reasons.append(
+                    "Unrestricted validation supports only the separately typed "
+                    "unclassified geometry product."
+                )
+            if execution != "local_validation":
+                reasons.append(
+                    "Unrestricted profiles require explicit local validation."
+                )
+        elif model.molecule.multiplicity != profile["multiplicity"]:
             reasons.append(
                 "Only the explicitly supported restricted closed-shell singlet is "
                 "runnable."
@@ -230,10 +278,18 @@ def validate_request(
 
 def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[str, Any]:
     """Immutable dependency closure; no unplanned method or engine switching."""
+    if profile.get("reference") == "unrestricted":
+        from .open_shell_service import open_shell_plan_for_request
+
+        return open_shell_plan_for_request(request, profile)
     if "pes_scan" in request.products:
         from .scan import scan_plan_for_request
 
         return scan_plan_for_request(request, profile)
+    if "constrained_geometry" in request.products:
+        from .constrained_service import constrained_plan_for_request
+
+        return constrained_plan_for_request(request, profile)
     from .registry import profile_capabilities
 
     needs_hessian = bool(
@@ -284,6 +340,8 @@ def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[st
             dependencies = ["harmonic"] if index == 0 else [chain[index - 1]]
             if product == "ground_state_constants":
                 dependencies += ["rotor"]
+                if profile.get("rovibrational"):
+                    dependencies = ["vibration_rotation_corrections", "rotor"]
             tasks.append(
                 {
                     "id": product,
@@ -293,11 +351,37 @@ def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[st
                         "explicit_experimental_validation_only"
                         if profile.get("anharmonic")
                         and product
-                        in {"anharmonic_force_field", "resonance_analysis", "vpt2"}
+                        in {
+                            "anharmonic_force_field",
+                            "resonance_analysis",
+                            "vpt2",
+                            "ground_state_constants",
+                        }
                         else "blocked_pending_independent_scientific_validation"
                     ),
                 }
             )
+        if profile.get("rovibrational"):
+            for name, parents in (
+                ("rovibrational_precursors", ["harmonic", "rotor"]),
+                (
+                    "vibration_rotation_corrections",
+                    ["rovibrational_precursors", "anharmonic_force_field"],
+                ),
+                ("semirigid_vpt2", ["vibration_rotation_corrections"]),
+                ("centrifugal_distortion", ["vibration_rotation_corrections"]),
+            ):
+                tasks.append(
+                    {
+                        "id": name,
+                        "depends_on": parents,
+                        "operation": name,
+                        "conditional": True,
+                        "qualification": "explicit_experimental_validation_only",
+                        "applicability": "bounded nonresonant Watson model",
+                        "native_calls": 0,
+                    }
+                )
     plan = {
         "schema_version": "cochem.torq.plan/1",
         "capability_purpose": "controlled_validation",
@@ -377,7 +461,20 @@ def _empty_result(
         "scientific_goal": request.scientific_goal.model_dump(mode="json")
         if request.scientific_goal
         else None,
-        "stages": {name: _stage("blocked", name, reason=reason) for name in STAGES},
+        "stages": {
+            name: _stage("blocked", name, reason=reason)
+            for name in STAGES
+            + (
+                (
+                    "rovibrational_precursors",
+                    "vibration_rotation_corrections",
+                    "semirigid_vpt2",
+                    "centrifugal_distortion",
+                )
+                if profile.get("rovibrational")
+                else ()
+            )
+        },
         "errors": [],
         "experimental_accuracy_established": False,
         "identification_ready": False,
@@ -483,6 +580,14 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
     if not validated["executable"]:
         result["errors"] = validated["blocking_reasons"]
         return result
+    if "constrained_geometry" in request.products:
+        from .constrained_service import execute_constrained_worker
+
+        return execute_constrained_worker(request, directory)
+    if profile.get("reference") == "unrestricted":
+        from .open_shell_service import execute_open_shell_worker
+
+        return execute_open_shell_worker(request, directory)
     from .engines.pyscf_backend import PySCFBackend
 
     probe = PySCFBackend.probe()
@@ -765,14 +870,55 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
                 )
                 result["anharmonic_validation"] = research
                 result["errors"].extend(research["errors"])
-                for name, source_name, observable in (
+                for name, source_name, observable, parents in (
                     (
                         "anharmonic_force_field",
                         "anharmonic_force_field",
                         "anharmonic_force_field",
+                        ["harmonic_analysis"],
                     ),
-                    ("resonance_analysis", "resonance_analysis", "resonance_analysis"),
-                    ("vpt2", "vibrational_vpt2", "vibrational_only_vpt2"),
+                    (
+                        "resonance_analysis",
+                        "resonance_analysis",
+                        "resonance_analysis",
+                        ["anharmonic_force_field"],
+                    ),
+                    (
+                        "vpt2",
+                        "vibrational_vpt2",
+                        "vibrational_only_vpt2",
+                        ["anharmonic_force_field", "resonance_analysis"],
+                    ),
+                    (
+                        "rovibrational_precursors",
+                        "rovibrational_precursors",
+                        "rovibrational_precursors",
+                        ["harmonic_analysis", "equilibrium_constants"],
+                    ),
+                    (
+                        "vibration_rotation_corrections",
+                        "vibration_rotation_corrections",
+                        "vibration_rotation_corrections",
+                        ["rovibrational_precursors", "anharmonic_force_field"],
+                    ),
+                    (
+                        "semirigid_vpt2",
+                        "semirigid_vpt2",
+                        "semirigid_vpt2",
+                        ["vibration_rotation_corrections", "resonance_analysis"],
+                    ),
+                    (
+                        "centrifugal_distortion",
+                        "centrifugal_distortion",
+                        "unreduced_harmonic_distortion",
+                        ["vibration_rotation_corrections"],
+                    ),
+                    (
+                        "ground_state_constants",
+                        "ground_state_constants",
+                        "nonresonant_Watson_model_B0",
+                        ["vibration_rotation_corrections", "centrifugal_distortion"],
+                    ),
                 ):
                     observation = research["stages"][source_name]
                     stages[name] = _stage(
@@ -780,23 +926,27 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
                         observable,
                         value=observation.get("value"),
                         reason=observation.get("reason"),
-                        parents=["harmonic_analysis"]
-                        if name == "anharmonic_force_field"
-                        else ["anharmonic_force_field"]
-                        if name == "resonance_analysis"
-                        else ["anharmonic_force_field", "resonance_analysis"],
+                        parents=parents,
                         flags=[
                             "experimental_unqualified",
-                            "rotation_vibration_not_implemented",
+                            "full_resonant_GVPT2_unavailable",
+                            "identification_accuracy_not_established",
                             *observation.get("quality_flags", []),
                         ],
                     )
             except (ValueError, RuntimeError) as exc:
-                stages["anharmonic_force_field"] = _stage(
-                    "unavailable",
-                    "anharmonic_force_field",
-                    reason=str(exc),
-                    parents=["harmonic_analysis"],
+                if stages["anharmonic_force_field"]["status"] != "available":
+                    stages["anharmonic_force_field"] = _stage(
+                        "unavailable",
+                        "anharmonic_force_field",
+                        reason=str(exc),
+                        parents=["harmonic_analysis"],
+                    )
+                result["errors"].append(
+                    {
+                        "code": "ANHARMONIC_STAGE_MAPPING_FAILED",
+                        "message": str(exc),
+                    }
                 )
         _checkpoint(directory, result)
     if "rigid_rotor_catalog" in request.products:
@@ -967,6 +1117,8 @@ def _execute_admitted_request(
     model: CalculationRequest,
     destination: Path,
     approved: ApprovedPlan,
+    *,
+    host_allocation_directory: str | Path | None = None,
 ) -> dict[str, Any]:
     import psutil
 
@@ -976,12 +1128,19 @@ def _execute_admitted_request(
         CampaignCoordinator,
         MeasuredUsage,
     )
+    from cochem.orchestration.host_allocation import (
+        HostAllocationRequest,
+        HostAuthorityError,
+        ObservedHostUsage,
+        bootstrap_host_allocation,
+    )
 
     from .operations import (
         ArtifactBackpressureError,
         artifact_usage,
         enforce_artifact_budget,
     )
+    from .scan import _host_provenance, _verify_host_provenance
 
     scratch_bytes = approved.approval.max_scratch_bytes
     actor = f"local-os:{os.getuid()}@{socket.gethostname()}"
@@ -1126,8 +1285,39 @@ def _execute_admitted_request(
     process = None
     published = False
     launched = False
+    host_ledger = None
+    acquired_host = None
+    host_receipt = None
+    host_provenance = None
+    host_scratch_observed = False
     try:
+        host_ledger = bootstrap_host_allocation(
+            actor=f"local-os-user:{os.getuid()}",
+            directory=host_allocation_directory,
+        )
+        acquired_host = host_ledger.acquire(
+            campaign_id=receipt["campaign_id"],
+            attempt_id=attempt["id"],
+            workspace=staging,
+            request=HostAllocationRequest(
+                cores=model.resources.cores,
+                memory_mb=model.resources.memory_mb,
+                scratch_mb=(scratch_bytes + 1024**2 - 1) // 1024**2,
+                child_inventory_scope=(
+                    "constrained-evaluation-v1"
+                    if "constrained_geometry" in model.products
+                    else "single_owned_worker"
+                ),
+            ),
+            lease_seconds=60.0,
+        )
+        host_receipt = acquired_host.receipt
         with (staging / "worker.log").open("wb") as log:
+            host_receipt = host_ledger.begin_dispatch(
+                host_receipt["allocation_id"],
+                host_receipt["revision"],
+                acquired_host.lease_token,
+            )
             process = subprocess.Popen(
                 [
                     sys.executable,
@@ -1145,6 +1335,12 @@ def _execute_admitted_request(
                 start_new_session=True,
             )
             launched = True
+            host_receipt = host_ledger.bind_dispatch(
+                host_receipt["allocation_id"],
+                host_receipt["revision"],
+                acquired_host.lease_token,
+                pid=process.pid,
+            )
             attempt = queue.record_dispatch(
                 attempt["id"],
                 attempt["revision"],
@@ -1172,21 +1368,24 @@ def _execute_admitted_request(
                     measured_peak_scratch_bytes = max(
                         measured_peak_scratch_bytes, usage["owned_bytes"]
                     )
+                    host_scratch_observed = True
                     owned = psutil.Process(process.pid)
-                    rss = 0
+                    actual_rss_samples = []
                     for member in [owned, *owned.children(recursive=True)]:
                         try:
-                            rss += member.memory_info().rss
+                            actual_rss_samples.append(member.memory_info().rss)
                         except psutil.NoSuchProcess:
                             pass
-                    sampled_peak_memory_mb = max(
-                        sampled_peak_memory_mb or 0.0, rss / 1024**2
-                    )
-                    if rss > approved.approval.max_memory_mb * 1024**2:
-                        raise ArtifactBackpressureError(
-                            "Owned worker process tree exceeded its approved "
-                            "resident-memory ceiling."
+                    if actual_rss_samples:
+                        rss = sum(actual_rss_samples)
+                        sampled_peak_memory_mb = max(
+                            sampled_peak_memory_mb or 0.0, rss / 1024**2
                         )
+                        if rss > approved.approval.max_memory_mb * 1024**2:
+                            raise ArtifactBackpressureError(
+                                "Owned worker process tree exceeded its approved "
+                                "resident-memory ceiling."
+                            )
                 except psutil.NoSuchProcess:
                     pass
                 except ArtifactBackpressureError as exc:
@@ -1205,7 +1404,39 @@ def _execute_admitted_request(
                         "Coordinator lease lost; stale worker artifacts will not be "
                         "published."
                     )
+                try:
+                    host_receipt = host_ledger.heartbeat(
+                        host_receipt["allocation_id"],
+                        host_receipt["revision"],
+                        acquired_host.lease_token,
+                    )
+                except HostAuthorityError:
+                    host_receipt = host_ledger.observe_worker_exit(
+                        host_receipt["allocation_id"],
+                        host_receipt["revision"],
+                        acquired_host.lease_token,
+                    )
+                    # The ledger proves actual PID/create-time death (including
+                    # a zombie) and current authority; poll may still race exit.
+                    process.wait()
+                    break
                 time.sleep(0.2)
+        process.wait()
+        host_receipt = host_ledger.reconcile(
+            host_receipt["allocation_id"],
+            host_receipt["revision"],
+            reason="Actual spectroscopy child wait completed before shared "
+            "host resource reconciliation.",
+            usage=ObservedHostUsage(
+                peak_memory_mb=sampled_peak_memory_mb,
+                peak_scratch_mb=measured_peak_scratch_bytes / 1024**2
+                if host_scratch_observed
+                else None,
+                measurement_source="Actual sampled owned-process RSS and owned "
+                "staging byte observations; missing peaks unavailable.",
+            ),
+        )
+        host_provenance = _host_provenance(host_ledger, host_receipt)
         if (
             timed_out
             or budget_failure
@@ -1265,6 +1496,7 @@ def _execute_admitted_request(
             "cpu_accounting": "conservative_reserved_ceiling; "
             "exact CPU measurement unavailable",
             "coordinator": "single_authority_campaign_CAS_and_fenced_publication",
+            "host_allocation": host_provenance.model_dump(mode="json"),
         }
         if wall_seconds > approved.approval.max_wall_seconds and not timed_out:
             result["status"] = (
@@ -1318,6 +1550,13 @@ def _execute_admitted_request(
             worker_id=task_id,
         )
         verify_shard(staging, expected_request_sha256=checked["request_sha256"])
+
+        def publish_with_host_authority() -> None:
+            if host_ledger is None or host_provenance is None:
+                raise ValueError("Publication requires actual shared host authority.")
+            _verify_host_provenance(host_ledger, host_provenance)
+            publish_shard(staging, destination)
+
         queue.publish(
             attempt["id"],
             attempt["revision"],
@@ -1337,7 +1576,7 @@ def _execute_admitted_request(
                     "exact CPU/GPU and memory peak unavailable"
                 ),
             ),
-            lambda: publish_shard(staging, destination),
+            publish_with_host_authority,
             state="succeeded" if result["status"] == "complete" else result["status"],
             lease_token=lease["lease_token"],
             lease_generation=lease["lease_generation"],
@@ -1349,6 +1588,8 @@ def _execute_admitted_request(
         try:
             if process is not None and process.poll() is None:
                 _stop_owned_process(process)
+            if process is not None:
+                process.wait()
             if not published:
                 current_attempt = queue.attempt(attempt["id"])
                 if current_attempt["state"] not in {
@@ -1367,13 +1608,46 @@ def _execute_admitted_request(
                             "publication; authentic staging retained."
                         ),
                     )
+            if host_ledger is not None and host_receipt is not None:
+                if host_receipt["state"] == "running":
+                    host_receipt = host_ledger.reconcile(
+                        host_receipt["allocation_id"],
+                        host_receipt["revision"],
+                        reason="Actual owned child wait completed after "
+                        "unsuccessful spectroscopy publication.",
+                        usage=ObservedHostUsage(
+                            peak_memory_mb=sampled_peak_memory_mb,
+                            peak_scratch_mb=measured_peak_scratch_bytes / 1024**2
+                            if host_scratch_observed
+                            else None,
+                            measurement_source="Actual sampled RSS/staging bytes; "
+                            "missing observations unavailable.",
+                        ),
+                    )
+                elif host_receipt["state"] == "reserved" and acquired_host is not None:
+                    host_ledger.release_undispatched(
+                        host_receipt["allocation_id"],
+                        host_receipt["revision"],
+                        acquired_host.lease_token,
+                        reason="The live owner ended before dispatch started.",
+                    )
+                # Unbound dispatching records remain unknown/reserved.
+                if host_receipt["state"] == "dispatching":
+                    raise HostAuthorityError(
+                        "Dispatch identity is unknown; shared resources and "
+                        "scientific cost accounting remain held for recovery."
+                    )
+            if not published:
+                # The shared ledger verifies every known nested child before
+                # any physical-cost settlement. Outer process death alone is
+                # insufficient for a constrained adapter's separate sessions.
                 queue.reconcile(
                     attempt["id"],
                     MeasuredUsage(
                         wall_seconds=time.monotonic() - started if launched else 0.0,
                         measurement_source=(
-                            "observed local termination; exact CPU/GPU and memory "
-                            "peak unavailable"
+                            "observed local and nested termination; exact CPU/GPU "
+                            "and memory peak unavailable"
                         )
                         if launched
                         else "not dispatched; Popen did not launch a worker",
@@ -1387,6 +1661,8 @@ def _execute_admitted_request(
                 )
         finally:
             queue.close()
+            if host_ledger is not None:
+                host_ledger.close()
 
 
 def _read_worker_result(path: Path) -> dict[str, Any]:

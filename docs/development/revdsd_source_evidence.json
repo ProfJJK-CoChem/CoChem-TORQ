@@ -1,4 +1,39 @@
 {
+  "additional_preprint_locator_search": {
+    "access": {
+      "DOI_and_Crossref_resolvers": "HTTP403 through normal proxy",
+      "historical_preprint_Figshare_endpoints": "HTTP404"
+    },
+    "archived_date": "2019-05-22",
+    "evidence_class": "secondary_archived_metadata_lead",
+    "metadata_dump_sha256": "4481535730c84134b8320b87274daa2d4fc0fffac064e6d78332c9355adbfe79",
+    "preprint_doi": "10.26434/chemrxiv.7903388.v4",
+    "publisher_SI_MD5_match_established": false,
+    "qualification": "Locator only; no primary technical definition or named-recipe activation.",
+    "retrieval_observation_sha256": "532c1fe7e1c2cce0381d73b717ecb2bb627509fcc39a7b38aecc9810929a56e0",
+    "source_url": "https://github.com/MatthiasGolomb/SciPubCrawl/blob/5a00bb4de7a74b76710ff795b9bb00b655b7be89/examples/lithium_metal_anode/search/chemrxiv_dumps/chemrxiv_2019-05-01_2019-06-01.jsonl",
+    "target_metadata_sha256": "7684b4643c4e0cfe9b10eab490f75d6b695922daae4b03e5cde991ea78a38521",
+    "technical_primary_article_or_SI_bytes_retrieved": false
+  },
+  "analytic_response_milestone": {
+    "GKS_analytic_response_implemented": false,
+    "exact_revdsd_qualified": false,
+    "finite_difference_energy_calls_in_analytic_method": 0,
+    "frozen_core_orbital_response_included": true,
+    "higher_derivative_scope": {
+      "actual_CPHF_and_node_provenance_retained": true,
+      "bounded_calls": "1+2*(3N)*number_of_steps genuine gradient/reference evaluations",
+      "failed_gradient_vs_successful_energy_accounting": "Actual separate attempt/completion counts with retained failure artifact hashes",
+      "formal_error_bound_or_stationarity_or_harmonic_accuracy_qualification": false,
+      "implementation": "Centered Hessian of genuine analytic HF/PT2/D4 gradients at two or more declared steps; no analyticHessian claim",
+      "numerical_consistency_thresholds": "Explicit symmetry, cross-step agreement, translation and nonstationary rotation covariance with distinct units",
+      "raw_matrices_unsymmetrized": true
+    },
+    "implemented_scope": "Real, nondegenerate canonical restricted HF-generated spin-component-scaled PT2 with optional native DFTD4",
+    "independent_engine_validation_available": false,
+    "remaining": "Moving-grid GKS/orbital-versus-energy-functional response, authentic exact recipe and independent matched native energies/derivatives.",
+    "tests": "tests/test_revdsd_exact_milestones.py"
+  },
   "corroborated_secondary_candidate": {
     "exact_exchange_fraction": 0.69,
     "frozen_core": "unreconciled_with_primary_source",
@@ -12,9 +47,262 @@
     "same_spin_pt2_scale": 0.0636
   },
   "independent_native_reference_bundle_available": false,
+  "independent_native_reference_bundle_scope": "Matched accepted original2019 target revDSD recipe; retrieved2021 native output has different coefficients and approximations.",
+  "installed_P86_numerical_observation": {
+    "conclusion": "The four installed implementations produce distinct values; this experiment does not prescribe the original revDSD variant.",
+    "correlation_energy_per_particle_hartree": {
+      "GGA_C_P86": [
+        -0.062261613761323296,
+        -0.0694781422933081
+      ],
+      "GGA_C_P86VWN": [
+        -0.06291793369829222,
+        -0.07041455574937824
+      ],
+      "GGA_C_P86VWN_FT": [
+        -0.06291794336313546,
+        -0.07041455950337723
+      ],
+      "GGA_C_P86_FT": [
+        -0.06226162342616654,
+        -0.0694781460473071
+      ]
+    },
+    "density_and_cartesian_gradient": [
+      [
+        0.37,
+        0.9
+      ],
+      [
+        0.1,
+        0.2
+      ],
+      [
+        0.02,
+        0.13
+      ],
+      [
+        0.06,
+        -0.04
+      ]
+    ],
+    "density_gradient_unit": "electron/bohr^4",
+    "density_unit": "electron/bohr^3",
+    "input_class": "explicit mathematical density points, not observed molecular density",
+    "libxc": "7.0.0",
+    "pyscf": "2.14.0",
+    "schema": "cochem.torq.libxc-variant-observation/1"
+  },
+  "installed_P86_observation": {
+    "actual_libxc": "7.0.0",
+    "actual_pyscf": "2.14.0",
+    "libxc_python_sha256": "0d3cc988782a90775c525eb348aea63f047433191ce01482c641bbfb5e80f2c7",
+    "p86_symbols": {
+      "B3P86": 403,
+      "B3P86G": 403,
+      "B3P86V5": ".2*HF + .08*SLATER + .72*B88, .81*P86 + .19*VWN",
+      "GGA_C_P86": 132,
+      "GGA_C_P86FT": 217,
+      "GGA_C_P86VWN": 252,
+      "GGA_C_P86VWNFT": 253,
+      "GGA_C_P86VWN_FT": 253,
+      "GGA_C_P86_FT": 217,
+      "HYB_GGA_XC_B3P86": 403,
+      "HYB_GGA_XC_B3P86NWCHEM": 315,
+      "HYB_GGA_XC_B3P86_NWCHEM": 315,
+      "HYB_MGGA_XC_BR3P86": 389
+    },
+    "scope": "Observed available implementations and parser mapping only; no identification of original revDSD definition."
+  },
   "named_recipe_activation": "blocked",
+  "native_2021_observation": {
+    "P86_LDA_component_reported": "VWN-5",
+    "accepted_target_qualification": false,
+    "approximations": [
+      "RIJ",
+      "COSX",
+      "RI-MP2",
+      "DefGrid3"
+    ],
+    "basis": "def2-TZVPP",
+    "charge": 0,
+    "comparison_observation_sha256": "d71fe8f9d02802c433acfb5bc2e8b01fa95404fb6e7394a3893c6f29d887e8a0",
+    "engine": "ORCA6.1.1",
+    "exact_exchange_fraction": 0.69,
+    "genuine_TORQ_comparison_observations": {
+      "comparisons": [
+        {
+          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-d65b183d86ef46079fce4b00d1715f84",
+          "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86",
+          "orbital_reference_hartree": -1.1494457008895527,
+          "reference_difference_from_native_hartree": 6.592258376736382e-05,
+          "result_sha256": "6ee954f358f60ede09b389557f1217b71a9be7bae8da5b313b0e6449a14397c1",
+          "scaled_pt2_difference_from_native_hartree": -3.7159054126628677e-06,
+          "scaled_pt2_hartree": -0.020923511905412664,
+          "unscaled_os_hartree": -0.035254442974579046,
+          "unscaled_ss_hartree": -6.841748743119248e-30,
+          "variant": "GGA_C_P86"
+        },
+        {
+          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-0d99c9b199b8460eb2a5d9ff95db4b02",
+          "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86_FT",
+          "orbital_reference_hartree": -1.149449878395727,
+          "reference_difference_from_native_hartree": 6.174507759304504e-05,
+          "result_sha256": "35d9546e7a417924cc4c6456401c2716762d55a406721a6f2f373ab1aaccb3ac",
+          "scaled_pt2_difference_from_native_hartree": -3.734255145649429e-06,
+          "scaled_pt2_hartree": -0.02092353025514565,
+          "unscaled_os_hartree": -0.03525447389241053,
+          "unscaled_ss_hartree": -6.201342494864707e-30,
+          "variant": "GGA_C_P86_FT"
+        },
+        {
+          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-e5f793d94f334101bf7e5f83b2177479",
+          "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86VWN",
+          "orbital_reference_hartree": -1.1493810861300657,
+          "reference_difference_from_native_hartree": 0.0001305373432543,
+          "result_sha256": "cde6eb37790b13da74c9e56d3d33700b73305e2dd0c49dac1aa2c3b95aa62f32",
+          "scaled_pt2_difference_from_native_hartree": -4.996384084837019e-06,
+          "scaled_pt2_hartree": -0.020924792384084838,
+          "unscaled_os_hartree": -0.035256600478660215,
+          "unscaled_ss_hartree": -4.736988925740953e-30,
+          "variant": "GGA_C_P86VWN"
+        },
+        {
+          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-1009b44ef26347049fb8e98da227980e",
+          "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86VWN_FT",
+          "orbital_reference_hartree": -1.1493852644537261,
+          "reference_difference_from_native_hartree": 0.0001263590195939024,
+          "result_sha256": "2c9d1268ae0cf0f86fd8b4e707354c9a56fe6cd2784d0ec4fe78db4db5b9c5c4",
+          "scaled_pt2_difference_from_native_hartree": -5.014734716847491e-06,
+          "scaled_pt2_hartree": -0.02092481073471685,
+          "unscaled_os_hartree": -0.035256631398006485,
+          "unscaled_ss_hartree": -7.250040358552946e-30,
+          "variant": "GGA_C_P86VWN_FT"
+        }
+      ],
+      "exact_revdsd_qualification": false,
+      "limitations": [
+        "Native /2021 coefficients differ from2019 target candidate table; no recipe activation.",
+        "Original paper/SI unavailable.",
+        "Native RI/COSX/grid and current conventional-integral/grid definitions differ; not matched exact reference.",
+        "H2 has zero same-spin PT2 and no core, so cannot validate SS implementation or core policy.",
+        "2021 D4 damping parameters are not printed in the retained output and not guessed.",
+        "Numerical closeness does not resolve P86 versus FT convention."
+      ],
+      "native_DFTD4_version": "3.4.0",
+      "native_dispersion_hartree": -6.6089e-05,
+      "native_first_geometry_angstrom": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0.74
+        ]
+      ],
+      "native_internal_bond_bohr": 1.398397339102,
+      "native_reference_hartree": -1.14951162347332,
+      "native_scaled_pt2_hartree": -0.020919796,
+      "native_total_hartree": -1.170497507757,
+      "recorded_at_utc": "2026-10-08T11:58:55.007702+00:00",
+      "source_native_OS_scale": 0.5935,
+      "source_native_P86_LDA": "VWN-5",
+      "source_native_SS_scale": 0.0566,
+      "source_native_correlation_fraction": 0.4224,
+      "source_native_method": "ORCA6.1.1 REVDSD-PBEP86-D4/2021, RIJ-COSX and RI-MP2, DefGrid3"
+    },
+    "immutable_repository_commit": "edef53de01a5b634ebbf637d73ab8679661b270c",
+    "method_identity": "REVDSD-PBEP86-D4/2021",
+    "multiplicity": 1,
+    "opposite_spin_scale": 0.5935,
+    "p86_correlation_fraction": 0.4224,
+    "pbe_exchange_fraction": 0.31,
+    "same_spin_scale": 0.0566,
+    "source_files": [
+      {
+        "bytes": 134,
+        "name": "opt.inp",
+        "sha256": "a4b97476473353906b73efc399d9b209e4292bd07c7b8c530428ac8df20d0b27",
+        "url": "https://raw.githubusercontent.com/avcopan/project-cyclopentene-oh-addition/edef53de01a5b634ebbf637d73ab8679661b270c/calc/basis/H2/opt.inp"
+      },
+      {
+        "bytes": 177998,
+        "name": "opt_orca.out",
+        "sha256": "744d9b92ac7327ba7d3c7d8a0a4b92ac66ab87ea6b5825a4f99b3fe4db0607db",
+        "url": "https://raw.githubusercontent.com/avcopan/project-cyclopentene-oh-addition/edef53de01a5b634ebbf637d73ab8679661b270c/calc/basis/H2/opt_orca.out"
+      },
+      {
+        "bytes": 201,
+        "name": "opt.xyz",
+        "sha256": "2f72a48a412aa54d025d70aebadd5642a77ac9ef5baadf7ed1f78f629b8099b6",
+        "url": "https://raw.githubusercontent.com/avcopan/project-cyclopentene-oh-addition/edef53de01a5b634ebbf637d73ab8679661b270c/calc/basis/H2/opt.xyz"
+      },
+      {
+        "bytes": 101,
+        "name": "sp.inp",
+        "sha256": "c250a8f2480f6c5737de03bd4e00c1be17c11e272b6da69bcef0a3d89db71e00",
+        "url": "https://raw.githubusercontent.com/avcopan/project-cyclopentene-oh-addition/edef53de01a5b634ebbf637d73ab8679661b270c/calc/basis/H2/sp.inp"
+      },
+      {
+        "bytes": 73877,
+        "name": "sp_orca.out",
+        "sha256": "8aa05d851b0cd91311992ba11572488310468c0e26d34ce8d2cab88709a2bbff",
+        "url": "https://raw.githubusercontent.com/avcopan/project-cyclopentene-oh-addition/edef53de01a5b634ebbf637d73ab8679661b270c/calc/basis/H2/sp_orca.out"
+      }
+    ]
+  },
+  "native_2021_output_retrieved": true,
   "original_publication_doi": "10.1021/acs.jpca.9b03157",
+  "original_publication_title": "Minimally Empirical Double-Hybrid Functionals Trained against the GMTKN55 Database: revDSD-PBEP86-D4, revDOD-PBE-D4, and DOD-SCAN-D4",
+  "primary_SI_bytes_retrieved": false,
   "primary_article_and_SI_retrieved": false,
+  "primary_publisher_metadata_retrieved": true,
+  "primary_source_observation": {
+    "SI_doi": "10.1021/acs.jpca.9b03157.s001",
+    "SI_file": {
+      "download_url": "https://ndownloader.figshare.com/files/15437975",
+      "file_id": 15437975,
+      "local_PDF_checksum_verified": false,
+      "name": "jp9b03157_si_001.pdf",
+      "publisher_computed_md5": "efe4fd1654c9eab5a5f4e9536d433c7f",
+      "publisher_size_bytes": 787293
+    },
+    "SI_redirect_host_observation": {
+      "actual_redirects": [
+        {
+          "initial_url": "https://ndownloader.figshare.com/files/15437975",
+          "redirect_host": "s3-eu-west-1.amazonaws.com",
+          "redirect_path_retained": false,
+          "signed_query_retained": false,
+          "status": 302
+        },
+        {
+          "initial_url": "https://api.figshare.com/v2/file/download/15437975",
+          "redirect_host": "ndownloader.figshare.com",
+          "redirect_path_retained": false,
+          "signed_query_retained": false,
+          "status": 302
+        }
+      ],
+      "blocked_destination_host": "s3-eu-west-1.amazonaws.com",
+      "observation_sha256": "37a2721f62c0779bb38c4f6d0877f83725d957d51b1f0e3ad184b6fae1dfaecb",
+      "scope": "Normal official publisher download chain; no signed query, destination path or credential retained."
+    },
+    "abstract_distinction": "xrevDSD initial orbitals use full DFT correlation; target revDSD is a different method. Abstract does not specify the complete target orbital equation.",
+    "access": {
+      "official_API_metadata": "HTTP200 through normal session proxy",
+      "official_SI_download_redirect": "HTTP403",
+      "publisher_HTML_and_PDF": "HTTP403"
+    },
+    "article_id": 8258924,
+    "first_online": "2019-05-28",
+    "qualification": "Primary metadata only; technical article/SI definitions and native reference components unavailable.",
+    "resource_doi": "10.1021/acs.jpca.9b03157",
+    "version": 2
+  },
   "remaining_gates": [
     "Reconcile original article/SI and any 2019/2021 identity difference",
     "Resolve prescribed orbital-generating functional and P86/FT/VWN mapping",
@@ -52,6 +340,20 @@
       "retained_file": "gen_golden.rs",
       "sha256": "0248b87d0e9d597b6ce033af0ac872977f47d57ae28ad92039791dfa371aeeff",
       "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx-validation/src/bin/gen_golden.rs"
+    },
+    {
+      "establishes": "Authentic title/authors/DOI/abstract/SI file identity; no downloaded SI technical definition or molecular energy reference.",
+      "evidence_class": "primary_publisher_metadata",
+      "retained_file": "article-8258924.json",
+      "sha256": "9b0425468eef545967c314bd307a7a428691637cb46bdf1e4edfd637a287b97f",
+      "url": "https://api.figshare.com/v2/articles/8258924"
+    },
+    {
+      "establishes": "Authentic title/authors/DOI/abstract/SI file identity; no downloaded SI technical definition or molecular energy reference.",
+      "evidence_class": "primary_publisher_metadata",
+      "retained_file": "version-1.data",
+      "sha256": "67e48a58abf6798065f3935d46446b73bcbf9b515370cdef99e0461cef3d9a55",
+      "url": "https://api.figshare.com/v2/articles/8258924/versions/1"
     }
   ]
 }

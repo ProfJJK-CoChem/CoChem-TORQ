@@ -39,7 +39,9 @@ class PESIdentity(BaseModel):
     molecule: Molecule
     recipe: dict[str, Any]
     source_identity: dict[str, Any]
-    evidence_class: Literal["supplied_data", "mathematical_validation"]
+    evidence_class: Literal[
+        "supplied_data", "mathematical_validation", "native_engine_observation"
+    ]
     coordinate_unit: Literal["bohr", "dimensionless"]
     energy_unit: Literal["hartree", "dimensionless"]
     engine: str = Field(min_length=1, max_length=128)
@@ -59,6 +61,21 @@ class PESIdentity(BaseModel):
             or self.energy_unit != "dimensionless"
         ):
             raise ValueError("Mathematical samples do not establish quantum units.")
+        if self.evidence_class == "native_engine_observation" and (
+            self.coordinate_unit != "bohr"
+            or self.energy_unit != "hartree"
+            or self.engine != "PySCF"
+            or self.recipe["id"]
+            not in {
+                "hf-sto-3g-pes-validation",
+                "hf-sto-3g-internal-pes-validation",
+            }
+            or self.source_identity.get("schema_version")
+            != "cochem.torq.native-pes-source/1"
+        ):
+            raise ValueError(
+                "Native PES observations require the exact supported bridge identity."
+            )
         return self
 
     def record(self) -> dict[str, Any]:
@@ -440,6 +457,13 @@ def _publish(
             if source_manifests:
                 _admit(coordinator, sources, source_manifests)
             verify_pes_artifact(staging)
+            if manifest["identity"]["evidence_class"] == "native_engine_observation":
+                # A label or a caller-supplied no-op callback cannot qualify data.
+                # The bridge checks source authority and genuine native quantities
+                # inside this same coordinator publication transaction.
+                from cochem_torq.pes_storage import admit_native_scan_points
+
+                admit_native_scan_points(coordinator, staging)
             if target.exists() or target.is_symlink():
                 raise FileExistsError(
                     "An immutable PES artifact cannot be overwritten."
@@ -653,6 +677,10 @@ def recover_pes_publication(
             _admit(coordinator, sources, source_manifests)
         if verify_pes_artifact(target) != manifest:
             raise ValueError("Orphaned artifact changed during recovery.")
+        if identity.evidence_class == "native_engine_observation":
+            from cochem_torq.pes_storage import admit_native_scan_points
+
+            admit_native_scan_points(coordinator, target)
         _sync_directory(target.parent)
 
     coordinator.publish(

@@ -1,8 +1,9 @@
 """Bounded genuine anharmonic validation; no production rovibrational claim.
 
 The runner executes actual energy calculations through the same PySCF adapter
-and retains every displaced result. Its vibrational-only perturbation model
-cannot fill rotation-vibration alpha, B0, distortion or an identification catalog.
+and retains every displaced result. Vibrational-only and semirigid Watson results
+remain separately named, with explicit applicability gates and no identification
+accuracy claim.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ from .spectroscopy import (
     vibrational_vpt2,
 )
 from .spectroscopy.forcefield import _STENCILS
+from .spectroscopy.harmonic import equilibrium_rotor
 from .spectroscopy.results import (
     ForceFieldData,
     ResonanceAnalysisData,
@@ -104,7 +106,11 @@ def execute_anharmonic_validation(
             "Select the explicit local HF/STO-3G anharmonic-validation recipe."
         )
     profile = get_profile(model.recipe)
-    if "anharmonic_force_field" not in model.products and "vpt2" not in model.products:
+    if not set(model.products) & {
+        "anharmonic_force_field",
+        "vpt2",
+        "ground_state_constants",
+    }:
         raise ValueError(
             "Anharmonic work requires an explicit anharmonic/VPT2 validation product."
         )
@@ -197,6 +203,7 @@ def execute_anharmonic_validation(
         "vibrational_hamiltonian": (
             "rectilinear H0+V3+V4; no rotational/Coriolis/curvilinear kinetic terms"
         ),
+        "rovibrational_protocol": configuration_for_rovibrational(profile),
     }
     planned = planned_energy_evaluations(
         mode_count, tuple(protocol["steps_dimensionless"])
@@ -242,7 +249,16 @@ def execute_anharmonic_validation(
             "value": None,
             "reason": "A required preceding numerical stage has not completed.",
         }
-        for name in ("anharmonic_force_field", "resonance_analysis", "vibrational_vpt2")
+        for name in (
+            "anharmonic_force_field",
+            "resonance_analysis",
+            "vibrational_vpt2",
+            "rovibrational_precursors",
+            "vibration_rotation_corrections",
+            "semirigid_vpt2",
+            "centrifugal_distortion",
+            "ground_state_constants",
+        )
     }
     result: dict[str, Any] = {
         "schema_version": "cochem.torq.anharmonic-validation/1",
@@ -367,6 +383,9 @@ def execute_anharmonic_validation(
             "protocol_sha256": protocol_digest,
             "evidence_class": "engine_calculation",
             "harmonic": harmonic_result,
+            "principal_axes_columns": equilibrium_rotor(
+                harmonic_result.coordinates_bohr, masses
+            ).principal_axes_columns,
         }
         field_value = _plain(field)
         field_value["scientific_context"] = make_scientific_context(
@@ -470,6 +489,14 @@ def execute_anharmonic_validation(
                     "reason": str(error),
                     "qualification": "experimental_unqualified",
                 }
+            _execute_watson_stages(
+                model,
+                harmonic_result,
+                field_value,
+                context_arguments,
+                result,
+                directory,
+            )
     except (ValueError, RuntimeError, OSError, np.linalg.LinAlgError) as error:
         if stages["anharmonic_force_field"]["status"] != "available":
             stages["anharmonic_force_field"] = {
@@ -504,3 +531,206 @@ def execute_anharmonic_validation(
     ).hexdigest()
     result["artifact_manifest_path"] = str(directory / "research-manifest.json")
     return result
+
+
+def configuration_for_rovibrational(profile: dict[str, Any]) -> dict[str, Any]:
+    """Hash explicit model limits in the reviewed protocol before engine work."""
+    from .spectroscopy.rovibrational_perturbation import WatsonCorrectionProtocol
+
+    return WatsonCorrectionProtocol.model_validate(profile["rovibrational"]).model_dump(
+        mode="json"
+    )
+
+
+def _execute_watson_stages(
+    request: CalculationRequest,
+    harmonic: HarmonicResult,
+    field_value: dict[str, Any],
+    context_arguments: dict[str, Any],
+    result: dict[str, Any],
+    directory: Path,
+) -> None:
+    """Derive bounded canonical model products from authenticated native parents."""
+    from .spectroscopy.advanced_products import (
+        ModelGroundStateConstants,
+        UnreducedHarmonicDistortion,
+    )
+    from .spectroscopy.harmonic import equilibrium_rotor
+    from .spectroscopy.results import ScientificContext
+    from .spectroscopy.rovibrational import build_rovibrational_precursors
+    from .spectroscopy.rovibrational_perturbation import (
+        WatsonCorrectionProtocol,
+        calculate_watson_vibration_rotation,
+    )
+    from .spectroscopy.rovibrational_solver import StationaryReference
+
+    stages = result["stages"]
+    names = (
+        "rovibrational_precursors",
+        "vibration_rotation_corrections",
+        "semirigid_vpt2",
+        "centrifugal_distortion",
+        "ground_state_constants",
+    )
+    try:
+        field = ForceFieldData.model_validate(field_value)
+        rotor = equilibrium_rotor(harmonic.coordinates_bohr, harmonic.isotope_masses_u)
+        context = ScientificContext.model_validate(field.scientific_context)
+        precursors = build_rovibrational_precursors(harmonic, rotor, context)
+        _checkpoint(
+            directory / "rovibrational-precursors.json",
+            precursors.model_dump(mode="json"),
+        )
+        stages["rovibrational_precursors"] = {
+            "status": "available",
+            "value": precursors.model_dump(mode="json"),
+            "reason": None,
+            "qualification": "experimental_unqualified",
+        }
+        zero = next(
+            row
+            for row in result["displaced_calculations"]
+            if row["id"] == 0
+            and row["geometry_sha256"] == digest(harmonic.coordinates_bohr.tolist())
+        )
+        native_directory = directory / zero["workspace"]
+        from .scan import _verify_native
+
+        native, actual_manifest = _verify_native(native_directory)
+        if actual_manifest != zero["manifest_sha256"]:
+            raise ValueError("The retained force-field reference manifest changed.")
+        if not np.array_equal(native["geometry_bohr"], harmonic.coordinates_bohr):
+            raise ValueError(
+                "The actual stationarity reference differs from the force field."
+            )
+        stationary = StationaryReference.model_validate_json(
+            canonical_json(
+                {
+                    "source_artifact_sha256": actual_manifest,
+                    "geometry_sha256": digest(harmonic.coordinates_bohr.tolist()),
+                    "evidence_class": "engine_calculation",
+                    "gradient_hartree_bohr": native["gradient_hartree_bohr"],
+                    "maximum_allowed_gradient_hartree_bohr": result["protocol"][
+                        "reference_gradient_max_hartree_bohr"
+                    ],
+                }
+            )
+        )
+        correction = calculate_watson_vibration_rotation(
+            precursors,
+            field,
+            stationary_reference=stationary,
+            protocol=WatsonCorrectionProtocol.model_validate_json(
+                canonical_json(result["protocol"]["rovibrational_protocol"])
+            ),
+        )
+        _checkpoint(
+            directory / "watson-corrections.json", correction.model_dump(mode="json")
+        )
+        correction_sha256 = sha256(
+            (directory / "watson-corrections.json").read_bytes()
+        ).hexdigest()
+        derived_context = make_scientific_context(
+            **context_arguments,
+            parent_artifact_sha256=[correction_sha256],
+        )
+        stages["vibration_rotation_corrections"] = {
+            "status": "available",
+            "value": correction.model_dump(mode="json"),
+            "reason": None,
+            "qualification": "experimental_unqualified",
+            "quality_flags": [
+                "gated_nonresonant_model",
+                "identification_accuracy_not_established",
+            ],
+        }
+        distortion = UnreducedHarmonicDistortion.model_validate(
+            {
+                "scientific_context": derived_context,
+                "distortion": correction.harmonic_distortion,
+                "watson_result_artifact_sha256": correction_sha256,
+            }
+        )
+        _checkpoint(
+            directory / "unreduced-harmonic-distortion.json",
+            distortion.model_dump(mode="json"),
+        )
+        stages["centrifugal_distortion"] = {
+            "status": "available",
+            "value": distortion.model_dump(mode="json"),
+            "reason": None,
+            "qualification": "experimental_unqualified",
+            "quality_flags": [
+                "unreduced_harmonic_model",
+                "A_and_S_reductions_unavailable",
+            ],
+        }
+        if correction.semirigid_vpt2 is not None:
+            stages["semirigid_vpt2"] = {
+                "status": "available",
+                "value": correction.semirigid_vpt2.model_dump(mode="json"),
+                "reason": None,
+                "qualification": "experimental_unqualified",
+                "quality_flags": [
+                    "nonresonant_semirigid_model",
+                    "full_resonant_GVPT2_unavailable",
+                ],
+            }
+        else:
+            stages["semirigid_vpt2"] = {
+                "status": "blocked",
+                "value": None,
+                "reason": "; ".join(correction.semirigid_vpt2_blocking_reasons),
+            }
+        if correction.ground_state_constants_mhz is not None:
+            constants = ModelGroundStateConstants.model_validate(
+                {
+                    "scientific_context": derived_context,
+                    "constants_mhz": correction.ground_state_constants_mhz,
+                    "watson_result_artifact_sha256": correction_sha256,
+                    "watson_result": correction,
+                }
+            )
+            _checkpoint(
+                directory / "model-ground-state-constants.json",
+                constants.model_dump(mode="json"),
+            )
+            stages["ground_state_constants"] = {
+                "status": "available",
+                "value": constants.model_dump(mode="json"),
+                "reason": None,
+                "qualification": "experimental_unqualified",
+                "quality_flags": [
+                    "nonresonant_model_B0",
+                    "identification_accuracy_not_established",
+                ],
+            }
+            result["rotation_vibration_available"] = True
+        else:
+            stages["ground_state_constants"] = {
+                "status": "blocked",
+                "value": None,
+                "reason": "; ".join(correction.states[0].blocking_reasons),
+            }
+    except (
+        ValueError,
+        RuntimeError,
+        OSError,
+        StopIteration,
+        np.linalg.LinAlgError,
+    ) as exc:
+        for name in names:
+            if stages[name]["status"] != "available":
+                stages[name] = {"status": "blocked", "value": None, "reason": str(exc)}
+    if (
+        "ground_state_constants" in request.products
+        and stages["ground_state_constants"]["status"] != "available"
+    ):
+        if result["outcome"] == "complete":
+            result["outcome"] = "partial"
+        result["errors"].append(
+            {
+                "code": "MODEL_GROUND_STATE_CONSTANTS_UNAVAILABLE",
+                "message": stages["ground_state_constants"]["reason"],
+            }
+        )

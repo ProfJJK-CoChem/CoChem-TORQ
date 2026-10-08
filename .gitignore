@@ -13,7 +13,10 @@ CoChem_Artifacts/
 *.parquet
 *.arrow
 *.feather
-*landscape*
+# Runtime landscapes; keep landscape implementation, tests and guides trackable.
+landscape*.sqlite*
+landscape*.json
+*landscape*.npz
 
 # 3. Registry & Provenance Quarantines
 cochem_system_config.json
@@ -45,6 +48,22 @@ build/
 dist/
 *.egg-info/
 .venv/
+
+# Local credential values and privately provisioned licensed engine assets.
+.env
+.env.*
+!.env.example
+!.env.template
+.netrc
+credentials*.json
+licensed_assets/
+vendor-assets/
+*[oO][rR][cC][aA]*.zip
+*[oO][rR][cC][aA]*.tar*
+*[oO][rR][cC][aA]*.tgz
+*[cC][fF][oO][uU][rR]*.zip
+*[cC][fF][oO][uU][rR]*.tar*
+*[cC][fF][oO][uU][rR]*.tgz
 
 # Exception: Allow strictly bounded synthetic .xyz files exclusively for unit tests
 !tests/**/*.xyz

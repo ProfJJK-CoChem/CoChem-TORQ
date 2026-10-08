@@ -41,6 +41,7 @@ PRODUCTS = frozenset(
         "ground_state_constants",
         "identification_catalog",
         "pes_scan",
+        "constrained_geometry",
     }
 )
 PRODUCT_TO_STAGE = {
@@ -195,6 +196,50 @@ class StageResult(Contract):
                 from .spectroscopy.results import ADVANCED_VALUE_SCHEMAS
 
                 schema_candidate = ADVANCED_VALUE_SCHEMAS.get(self.observable)
+            if self.observable == "constrained_stationary_geometry":
+                from .engines.constrained_optimization import (
+                    ConstrainedOptimizationResult,
+                )
+
+                schema_candidate = ConstrainedOptimizationResult
+            if self.observable == "rovibrational_precursors":
+                from .spectroscopy.rovibrational import RovibrationalPrecursors
+
+                schema_candidate = RovibrationalPrecursors
+            if self.observable in {
+                "open_shell_electronic_energy",
+                "open_shell_optimized_geometry",
+            }:
+                from .open_shell_service import (
+                    OpenShellElectronicEnergy,
+                    OpenShellOptimizedGeometry,
+                )
+
+                schema_candidate = {
+                    "open_shell_electronic_energy": OpenShellElectronicEnergy,
+                    "open_shell_optimized_geometry": OpenShellOptimizedGeometry,
+                }[self.observable]
+            if self.observable in {
+                "vibration_rotation_corrections",
+                "semirigid_vpt2",
+                "nonresonant_Watson_model_B0",
+                "unreduced_harmonic_distortion",
+            }:
+                from .spectroscopy.advanced_products import (
+                    ModelGroundStateConstants,
+                    UnreducedHarmonicDistortion,
+                )
+                from .spectroscopy.rovibrational_perturbation import (
+                    SemirigidVPT2Data,
+                    WatsonVibrationRotationResult,
+                )
+
+                schema_candidate = {
+                    "vibration_rotation_corrections": WatsonVibrationRotationResult,
+                    "semirigid_vpt2": SemirigidVPT2Data,
+                    "nonresonant_Watson_model_B0": ModelGroundStateConstants,
+                    "unreduced_harmonic_distortion": UnreducedHarmonicDistortion,
+                }[self.observable]
             if not isinstance(schema_candidate, type) or not issubclass(
                 schema_candidate, BaseModel
             ):
@@ -202,7 +247,10 @@ class StageResult(Contract):
                     "An available scientific observable requires "
                     "a registered typed schema."
                 )
-            schema_candidate.model_validate(self.value)
+            # This contract stores serialized JSON. Strict immutable scientific
+            # schemas accept JSON arrays for tuple fields through their JSON
+            # parser; Python-list validation would reject legitimate artifacts.
+            schema_candidate.model_validate_json(canonical_json(self.value))
         elif self.value is not None or not self.reason:
             raise ValueError(
                 "An unavailable stage requires a reason and forbids substitute values."
@@ -410,7 +458,7 @@ def scientific_content(
     """
     recipe = dict(recipe)
     recipe.pop("recipe_sha256", None)
-    return {
+    content: dict[str, Any] = {
         "schema_version": "cochem.torq.scientific-content/1",
         "serialization_profile": CANONICALIZATION_PROFILE,
         "molecule": request.molecule.model_dump(mode="json"),
@@ -432,6 +480,16 @@ def scientific_content(
         if "rigid_rotor_catalog" in request.products
         else None,
     }
+    operations = {
+        name: request.source_provenance[name]
+        for name in ("pes_scan", "adaptive_scan", "constrained_optimization")
+        if name in request.source_provenance
+    }
+    if operations:
+        # These declarations change the physical sampling/optimization problem.
+        # UUIDs and unrelated record provenance remain outside reusable identity.
+        content["declared_scientific_operations"] = operations
+    return content
 
 
 def scientific_cache_key(

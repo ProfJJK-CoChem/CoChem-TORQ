@@ -114,7 +114,7 @@ def _all_files(root: Path) -> list[dict[str, Any]]:
 def _source_snapshot(
     expected_sha256: str,
 ) -> tuple[dict[str, bytes], list[dict[str, str]]]:
-    from .application import source_identity
+    from .application import RUNTIME_SOURCE_MODULES, source_identity
 
     if source_identity()["code_sha256"] != expected_sha256:
         raise ValueError(
@@ -134,15 +134,16 @@ def _source_snapshot(
         records.append({"path": name, "sha256": sha256(raw).hexdigest()})
     # Preserve the actual source_identity order and path labels. These are real
     # imported modules bound by the application's scientific-source identity.
-    for module in ("Libraries.cochem_isotopes", "cochem.orchestration.campaign"):
+    for module in RUNTIME_SOURCE_MODULES:
         specification = importlib.util.find_spec(module)
-        if specification is not None and specification.origin:
-            path = Path(specification.origin)
-            if path.is_symlink() or not path.is_file():
-                raise ValueError("Require genuine regular scientific source files.")
-            raw = path.read_bytes()
-            sources[f"{module.replace('.', '/')}.py"] = raw
-            records.append({"path": module, "sha256": sha256(raw).hexdigest()})
+        if specification is None or not specification.origin:
+            raise ValueError(f"Required runtime source is unavailable: {module}")
+        path = Path(specification.origin)
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Require genuine regular scientific source files.")
+        raw = path.read_bytes()
+        sources[f"{module.replace('.', '/')}.py"] = raw
+        records.append({"path": module, "sha256": sha256(raw).hexdigest()})
     if digest(records) != expected_sha256:
         raise ValueError(
             "Scientific source changed during publication snapshot capture."

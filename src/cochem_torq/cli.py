@@ -241,6 +241,34 @@ def _parser() -> argparse.ArgumentParser:
     interface.add_argument("--host", default="127.0.0.1")
     interface.add_argument("--port", type=int, default=8888)
     interface.add_argument("--notebook", type=Path, default=Path("UI/Start_TORQ.ipynb"))
+    for name in (
+        "benchmark-references",
+        "benchmark-freeze",
+        "benchmark-seal",
+        "benchmark-score",
+    ):
+        command = commands.add_parser(
+            name, help="Run a pinned, externally reviewed benchmark artifact operation"
+        )
+        if name == "benchmark-freeze":
+            command.add_argument("--design", required=True, type=Path)
+            command.add_argument("--acceptance-record", required=True, type=Path)
+        if name in {"benchmark-seal", "benchmark-score"}:
+            command.add_argument("--freeze", required=True, type=Path)
+            command.add_argument("--expected-freeze-sha256", required=True)
+        if name == "benchmark-seal":
+            command.add_argument("--bundles", required=True, type=Path)
+        if name == "benchmark-score":
+            command.add_argument("--prediction-seal", required=True, type=Path)
+            command.add_argument("--expected-prediction-seal-sha256", required=True)
+        if name in {"benchmark-references", "benchmark-score"}:
+            command.add_argument("--reference-manifest", required=True, type=Path)
+            command.add_argument("--expected-reference-manifest-sha256", required=True)
+            command.add_argument("--curation", required=True, type=Path)
+            command.add_argument("--expected-curation-sha256", required=True)
+            command.add_argument("--sources", required=True, type=Path)
+        if name != "benchmark-references":
+            command.add_argument("--output", required=True, type=Path)
     for command in commands.choices.values():
         if not any(action.dest == "json" for action in command._actions):
             command.add_argument(
@@ -277,6 +305,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             from .registry import matrix_index
 
             emit(matrix_index())
+        elif arguments.command.startswith("benchmark-"):
+            from .benchmark_cli import execute_benchmark_command
+
+            emit(execute_benchmark_command(arguments), status="verified")
         elif arguments.command in {"validate", "execute", "_worker"}:
             request = read_json(arguments.request)
             request_id = request.get("request_id")

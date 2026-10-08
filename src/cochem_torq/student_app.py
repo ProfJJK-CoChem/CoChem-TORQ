@@ -320,6 +320,24 @@ class StudentSession:
             for record in records
         ]
 
+    def inspect_ensemble(self) -> dict[str, Any]:
+        """Inspect retained ledger/raw evidence without changing the request."""
+        from .landscape_inspection import inspect_candidate_ledger
+
+        return inspect_candidate_ledger(self.candidate_ledger_path).model_dump(
+            mode="json"
+        )
+
+    def inspect_scan_landscape(
+        self, directory: str | Path, *, expected_result_sha256: str
+    ) -> dict[str, Any]:
+        """Inspect an already computed approved scan, without dispatching work."""
+        from .landscape_inspection import inspect_scan_landscape
+
+        return inspect_scan_landscape(
+            directory, expected_result_sha256=expected_result_sha256
+        ).model_dump(mode="json")
+
     def inspect_candidate(self, candidate_id: str) -> dict[str, Any]:
         with self._candidate_store() as ledger:
             candidate = ledger.inspect(candidate_id)
@@ -628,7 +646,8 @@ def launch_student_app(
     profiles = [
         profile
         for profile in list_method_profiles()
-        if profile["id"] != "hf-sto-3g-pes-validation"
+        if profile.get("ui_visible", True)
+        and not {"pes_scan", "constrained_geometry"} & set(profile.get("products", []))
     ]
     recipe = widgets.Dropdown(
         options=[
@@ -731,7 +750,80 @@ def launch_student_app(
     inspect_candidate = widgets.Button(description="Inspect candidate history")
     exclude_candidate = widgets.Button(description="Exclude candidate")
     restore_candidate = widgets.Button(description="Restore candidate")
+    retain_candidate = widgets.Button(description="Retain reviewed candidate")
     refresh_candidates = widgets.Button(description="Refresh candidates")
+    ensemble_selection = widgets.Dropdown(
+        options=[
+            ("All recorded selection states", "all"),
+            ("Retained only", "retained"),
+            ("Quarantined only", "quarantined"),
+            ("Excluded only", "excluded"),
+        ],
+        value="all",
+        description="Display",
+    )
+    ensemble_available = widgets.Checkbox(
+        value=False, description="Only authenticated energies"
+    )
+    ensemble_limit_enabled = widgets.Checkbox(
+        value=False, description="Apply relative-energy display limit"
+    )
+    ensemble_limit = widgets.FloatText(value=0.0, description="Limit (hartree)")
+    ensemble_view = widgets.HTML(
+        "<p>Refresh candidates to inspect recorded inputs and genuine energies.</p>"
+    )
+    scan_directory = widgets.Text(
+        description="Scan folder", placeholder="Retained approved scan directory"
+    )
+    scan_digest = widgets.Text(
+        description="Result SHA256",
+        placeholder="Independently retained SHA-256 of the scan result.json",
+    )
+    inspect_scan = widgets.Button(description="Inspect retained scan")
+    scan_view = widgets.HTML(
+        "<p>Inspect a retained approved scan with its independently recorded "
+        "result digest. Inspection starts no calculation.</p>"
+    )
+
+    def render_ensemble() -> None:
+        from .landscape_inspection import (
+            LandscapeFilter,
+            LandscapeInspection,
+            render_landscape_html,
+        )
+
+        states = (
+            ("retained", "excluded", "quarantined", "not_applicable")
+            if ensemble_selection.value == "all"
+            else (ensemble_selection.value,)
+        )
+        filters = LandscapeFilter.model_validate(
+            {
+                "selection_states": states,
+                "available_energies_only": ensemble_available.value,
+                "maximum_relative_energy_hartree": (
+                    ensemble_limit.value if ensemble_limit_enabled.value else None
+                ),
+            }
+        )
+        ensemble_view.value = render_landscape_html(
+            LandscapeInspection.model_validate(session.inspect_ensemble()), filters
+        )
+
+    def render_scan() -> None:
+        from .landscape_inspection import (
+            LandscapeInspection,
+            render_landscape_html,
+        )
+
+        scan_view.value = render_landscape_html(
+            LandscapeInspection.model_validate(
+                session.inspect_scan_landscape(
+                    scan_directory.value.strip(),
+                    expected_result_sha256=scan_digest.value.strip(),
+                )
+            )
+        )
 
     def update_candidates() -> None:
         import html
@@ -770,6 +862,7 @@ def launch_student_app(
             "<th>Current raw availability</th>"
             "</tr></thead><tbody>" + rows + "</tbody></table>"
         )
+        render_ensemble()
 
     def update_lifecycle() -> None:
         import html
@@ -931,7 +1024,16 @@ def launch_student_app(
     inspect_candidate.on_click(lambda _: candidate_action("inspect"))
     exclude_candidate.on_click(lambda _: candidate_action("exclude"))
     restore_candidate.on_click(lambda _: candidate_action("restore"))
+    retain_candidate.on_click(lambda _: candidate_action("retain"))
     refresh_candidates.on_click(lambda _: action(update_candidates))
+    for display_control in (
+        ensemble_selection,
+        ensemble_available,
+        ensemble_limit_enabled,
+        ensemble_limit,
+    ):
+        display_control.observe(lambda _: action(render_ensemble), names="value")
+    inspect_scan.on_click(lambda _: action(render_scan))
     refresh.on_click(
         lambda _: action(lambda: session.status(run.value.strip() or None))
     )
@@ -1076,7 +1178,15 @@ def launch_student_app(
             candidate_choice,
             candidate_reason,
             widgets.HBox([record_candidate, inspect_candidate, refresh_candidates]),
-            widgets.HBox([exclude_candidate, restore_candidate]),
+            widgets.HBox([exclude_candidate, restore_candidate, retain_candidate]),
+            widgets.HTML("<h3>Observed ensemble and landscape</h3>"),
+            widgets.HBox([ensemble_selection, ensemble_available]),
+            widgets.HBox([ensemble_limit_enabled, ensemble_limit]),
+            ensemble_view,
+            scan_directory,
+            scan_digest,
+            inspect_scan,
+            scan_view,
             output,
         ]
     )

@@ -153,8 +153,9 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
     "max_atoms": 3,
     "reason": (
         "Actual finite-displacement vibrational force field, "
-        "bounded to three modes. Rotational VPT2/B0 and "
-        "identification qualification remain blocked."
+        "bounded to three modes, with separately gated nonresonant Watson "
+        "vibration–rotation model predictions. Independent accuracy, resonant "
+        "GVPT2 and identification qualification remain blocked."
     ),
     "products": [
         "geometry",
@@ -162,6 +163,7 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
         "equilibrium_constants",
         "anharmonic_force_field",
         "vpt2",
+        "ground_state_constants",
     ],
     "numerical": {**_BASE["numerical"], "scf_energy_tolerance": 1e-12},
     "anharmonic": {
@@ -174,6 +176,17 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
             "experimental finite-displacement vibrational field; "
             "independent molecular accuracy unqualified"
         ),
+    },
+    "rovibrational": {
+        "maximum_modes": 3,
+        "maximum_intermediate_states": 5000,
+        "minimum_denominator_cm1": 10.0,
+        "maximum_anharmonic_coupling_ratio": 0.1,
+        "maximum_coriolis_coupling_ratio": 0.1,
+        "maximum_relative_rotational_correction": 0.1,
+        "maximum_relative_vibrational_correction": 0.1,
+        "maximum_J": 1,
+        "coupling_floor_cm1": 1e-6,
     },
 }
 
@@ -193,6 +206,45 @@ _PROFILES["hf-sto-3g-pes-validation"] = {
         "Genuine approved restricted H2 fixed-point energy/gradient sampling. "
         "No constrained optimizer, state-following, search completeness or "
         "independent molecular accuracy qualification. Local validation only."
+    ),
+}
+
+_PROFILES["hf-sto-3g-internal-pes-validation"] = {
+    **deepcopy(_PROFILES["hf-sto-3g-education"]),
+    "id": "hf-sto-3g-internal-pes-validation",
+    "version": 1,
+    "label": "RHF / STO-3G declared internal-coordinate scan validation",
+    "optimizer": None,
+    "optimizer_version": None,
+    "constraints": (
+        "fixed minimum-displacement Cartesian embeddings "
+        "of declared bond/angle/torsion coordinates"
+    ),
+    "products": ["pes_scan"],
+    "reason": (
+        "Genuine approved restricted molecular fixed-point energy/gradient sampling "
+        "on an explicit multidimensional or periodic finite design. Coordinate "
+        "construction is mathematical and does not optimize electronic energy. "
+        "No branch/search completeness or independent molecular accuracy claim. "
+        "Local validation only."
+    ),
+}
+
+
+_PROFILES["hf-sto-3g-constrained-pes-validation"] = {
+    **deepcopy(_PROFILES["hf-sto-3g-education"]),
+    "id": "hf-sto-3g-constrained-pes-validation",
+    "version": 1,
+    "label": "RHF / STO-3G constrained energy optimization validation",
+    "optimizer": "SciPy SLSQP",
+    "optimizer_version": "1.18.1",
+    "constraints": "explicit internal-coordinate targets and movable atom rows",
+    "products": ["constrained_geometry"],
+    "reason": (
+        "Genuine bounded energy optimization with independently checked constraints "
+        "and tangent gradients. Constrained stationarity is a separate product from "
+        "unconstrained equilibrium geometry; accuracy remains uncalibrated. "
+        "Local validation only."
     ),
 }
 
@@ -224,6 +276,33 @@ def profile_capabilities(identifier: str) -> tuple[CapabilityRecord, ...]:
     profile = get_profile(identifier)
     if not profile.get("runnable"):
         return ()
+    if profile.get("reference") == "unrestricted":
+        return tuple(
+            CapabilityRecord(
+                tuple_definition=CapabilityTuple(
+                    method=profile["method"],
+                    basis=profile["basis"],
+                    electronic_reference="unrestricted_open_shell",
+                    property=property_name,
+                    derivative=derivative,
+                    engine=profile["engine"],
+                    engine_version=profile["engine_version"],
+                    optimizer_version=profile["optimizer_version"]
+                    if property_name == "optimization"
+                    else None,
+                    hardware="linux-x86_64-cpu",
+                    recipe_sha256=profile["recipe_sha256"],
+                ),
+                availability="experimental",
+                reason="Explicit local unprojected unrestricted validation only; "
+                "spin, native reference stability and model accuracy remain separate.",
+            )
+            for property_name, derivative in (
+                ("energy", "none"),
+                ("gradient", "analytic"),
+                ("optimization", "analytic_gradient_optimization"),
+            )
+        )
     records = []
     for property_name, derivative in (
         ("energy", "none"),
@@ -232,10 +311,18 @@ def profile_capabilities(identifier: str) -> tuple[CapabilityRecord, ...]:
         ("dipole", "density_expectation"),
         ("optimization", "analytic_gradient_optimization"),
     ):
-        if identifier == "hf-sto-3g-pes-validation" and property_name not in {
+        if identifier in {
+            "hf-sto-3g-pes-validation",
+            "hf-sto-3g-internal-pes-validation",
+        } and property_name not in {
             "energy",
             "gradient",
         }:
+            continue
+        if (
+            identifier == "hf-sto-3g-constrained-pes-validation"
+            and property_name == "dipole"
+        ):
             continue
         unsupported = property_name == "dipole" and profile["method"] == "mp2"
         records.append(
@@ -297,13 +384,35 @@ def route_profile_capabilities(
         "linux-x86_64-cpu" if execution == "github_actions" else observed_cpu_hardware()
     )
     selected_products = set(products)
-    if identifier == "hf-sto-3g-pes-validation":
+    if identifier in {"hf-sto-3g-pes-validation", "hf-sto-3g-internal-pes-validation"}:
         required = {"energy", "gradient"}
     else:
         required = {"energy", "gradient", "optimization"}
-    if profile.get("method") != "mp2" and identifier != "hf-sto-3g-pes-validation":
+    if (
+        profile.get("reference") != "unrestricted"
+        and profile.get("method") != "mp2"
+        and identifier
+        not in {
+            "hf-sto-3g-pes-validation",
+            "hf-sto-3g-internal-pes-validation",
+            "hf-sto-3g-constrained-pes-validation",
+        }
+    ):
         required.add("dipole")  # The actual worker always calculates this property.
-    if selected_products - {"geometry"} and identifier != "hf-sto-3g-pes-validation":
+    if (
+        profile.get("reference") != "unrestricted"
+        and selected_products - {"geometry"}
+        and identifier
+        not in {
+            "hf-sto-3g-pes-validation",
+            "hf-sto-3g-internal-pes-validation",
+            "hf-sto-3g-constrained-pes-validation",
+        }
+    ):
+        required.add("hessian")
+    if identifier == "hf-sto-3g-constrained-pes-validation":
+        # Curvature is an explicit request option; retain its exact analytic
+        # dependency in the profile authorization before any native launch.
         required.add("hessian")
     receipts, reasons = [], []
     records = {
@@ -378,3 +487,78 @@ def matrix_index() -> list[dict[str, str]]:
         for track in tracks
         for budget in budgets
     ]
+
+
+# These explicit profiles are separate from restricted classroom spectroscopy.
+# Source-bound local validation does not establish matrix or experimental accuracy.
+_OPEN_SHELL_BASE: dict[str, Any] = {
+    **_BASE,
+    "reference": "unrestricted",
+    "multiplicities": [2, 3, 4, 5, 6, 7],
+    "charges": [-2, -1, 0, 1, 2],
+    "products": ["geometry"],
+    "derivatives": {"gradient": "analytic", "hessian": "unsupported"},
+    "numerical": {
+        "scf_energy_tolerance": 1e-11,
+        "scf_gradient_tolerance": 1e-7,
+        "scf_max_cycle": 150,
+        "dft_grid_level": 4,
+        "check_stability": True,
+        "stability_tolerance": 1e-4,
+        "stability_nroots": 3,
+        "spin_contamination_tolerance": 0.1,
+    },
+    "availability": "experimental",
+    "runnable": True,
+    "local_validation_only": True,
+    "ui_visible": False,
+    "minimum_established": False,
+    "lowest_electronic_state_certified": False,
+    "spin_projection_applied": False,
+    "matrix_refs": [],
+    "method_family": None,
+    "reason": (
+        "Genuine bounded unrestricted local validation of the requested electron "
+        "count and M_S sector. Native spin contamination and reference stability "
+        "are retained. No exact-spin term, lowest-state, Hessian, minimum, "
+        "spectroscopy or experimental-accuracy qualification."
+    ),
+}
+for _open_identifier, _open_method, _open_dispersion, _open_label in (
+    (
+        "uhf-sto-3g-open-shell-validation",
+        "hf",
+        None,
+        "UHF / STO-3G local state validation",
+    ),
+    (
+        "uks-pbe-d4-sto-3g-open-shell-validation",
+        "pbe",
+        "d4",
+        "UKS PBE-D4 / STO-3G local state validation",
+    ),
+    (
+        "uks-b3lyp-d4-sto-3g-open-shell-validation",
+        "b3lyp",
+        "d4",
+        "UKS B3LYP-D4 / STO-3G local state validation",
+    ),
+):
+    _open_profile = {
+        **_OPEN_SHELL_BASE,
+        "id": _open_identifier,
+        "version": 1,
+        "label": _open_label,
+        "method": _open_method,
+        "basis": "sto-3g",
+        "dispersion": _open_dispersion,
+        "citation": (
+            "Native PySCF 2.14.0 unrestricted implementation; method and D4 "
+            "references retained in authentic engine artifacts."
+        ),
+    }
+    _open_profile.pop("multiplicity", None)
+    if _open_dispersion == "d4":
+        _open_profile["dispersion_version"] = "3.7.0"
+    _PROFILES[_open_identifier] = _open_profile
+del _open_identifier, _open_method, _open_dispersion, _open_label, _open_profile
