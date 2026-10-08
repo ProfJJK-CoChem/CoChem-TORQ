@@ -1,7 +1,9 @@
-"""Active Learning Orchestrator for dynamic QM selection, Kabsch RMSD, and air-gapped manifests.
+"""Advisory acquisition, geometric comparisons, and air-gapped manifests.
 
 Method Matrix v4 Provenance Tags: [M] Mandated, [D] Derived, [E] Empirical.
-Strict Zero-Mock Mandate v3: Completely authentic physics, dynamic Mendeleev masses, and air-gapped serialization.
+These tags are policy metadata, not evidence of executed or validated methods.
+Input-geometry rigid-rotor quantities use actual Mendeleev isotope masses;
+undefined axes remain unavailable. No callback scalar qualifies a QM method.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import h5py
 import numpy as np
@@ -45,14 +47,14 @@ class ActiveLearningState(str, Enum):
 
 @dataclass
 class CandidateGeometry:
-    """Authentic physical molecular geometry with committee uncertainty telemetry. [M]"""
+    """Declared geometry and committee statistics; not an engine qualification."""
 
     candidate_id: str
-    coordinates: np.ndarray             # (N, 3) in Angstroms
-    atomic_numbers: list[int]           # (N,) atomic numbers Z
-    energy_variance: float              # sigma_E^2 in eV^2
-    max_force_std: float                # alpha_F^std in eV/Angstrom
-    rotational_constants: tuple[float, float, float] # (A, B, C) in cm^-1
+    coordinates: np.ndarray  # (N, 3) in Angstroms
+    atomic_numbers: list[int]  # (N,) atomic numbers Z
+    energy_variance: float  # sigma_E^2 in eV^2
+    max_force_std: float  # alpha_F^std in eV/Angstrom
+    rotational_constants: tuple[float | None, float | None, float | None]
     state: ActiveLearningState = ActiveLearningState.UNLABELED
     assigned_tier: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -60,7 +62,7 @@ class CandidateGeometry:
 
 def compute_qbc_energy_variance(energies: Sequence[float]) -> float:
     """Compute Query-by-Committee (QBC) unbiased energy sample variance. [D]
-    
+
     sigma_E^2(X) = 1/(M-1) sum_m (E_m - E_mean)^2
     """
     m = len(energies)
@@ -69,9 +71,15 @@ def compute_qbc_energy_variance(energies: Sequence[float]) -> float:
             f"QBC energy variance requires at least 2 committee predictions, got M={m}.",
             diagnostics={"num_models": m},
         )
+    if np.iscomplexobj(energies):
+        raise ActiveLearningSelectionError("Committee energies must be real.")
     arr = np.asarray(energies, dtype=np.float64)
+    if arr.shape != (m,):
+        raise ActiveLearningSelectionError("Each committee energy must be a scalar.")
     if not np.isfinite(arr).all():
-        raise ActiveLearningSelectionError("Committee energies must be finite; missing predictions are not zero uncertainty.")
+        raise ActiveLearningSelectionError(
+            "Committee energies must be finite; missing predictions are not zero uncertainty."
+        )
     mean_e = np.mean(arr)
     var_e = np.sum((arr - mean_e) ** 2) / float(m - 1)
     return float(max(0.0, var_e))
@@ -79,24 +87,33 @@ def compute_qbc_energy_variance(energies: Sequence[float]) -> float:
 
 def compute_max_force_epistemic_std(forces: np.ndarray) -> float:
     """Compute maximum atomic force epistemic standard deviation alpha_F^std in eV/Angstrom. [D]
-    
+
     forces shape: (M, N, 3)
     alpha_F^std = max_i sqrt( 1/(M-1) sum_m ||F_{i,m} - F_{i,mean}||_2^2 )
     """
+    if np.iscomplexobj(forces):
+        raise ActiveLearningSelectionError("Committee forces must be real.")
     forces = np.asarray(forces, dtype=np.float64)
-    if forces.ndim != 3 or forces.shape[1] == 0 or forces.shape[2] != 3 or not np.isfinite(forces).all():
-        raise ActiveLearningSelectionError("Committee forces must be finite with shape (M, N, 3), N > 0.")
+    if (
+        forces.ndim != 3
+        or forces.shape[1] == 0
+        or forces.shape[2] != 3
+        or not np.isfinite(forces).all()
+    ):
+        raise ActiveLearningSelectionError(
+            "Committee forces must be finite with shape (M, N, 3), N > 0."
+        )
     m, n, _ = forces.shape
     if m < 2:
         raise ActiveLearningSelectionError(
             f"Force epistemic variance requires at least 2 committee predictions, got M={m}.",
             diagnostics={"num_models": m},
         )
-    mean_f = np.mean(forces, axis=0, keepdims=True) # (1, N, 3)
-    diff_f = forces - mean_f                        # (M, N, 3)
-    sq_norm = np.sum(diff_f ** 2, axis=-1)          # (M, N)
+    mean_f = np.mean(forces, axis=0, keepdims=True)  # (1, N, 3)
+    diff_f = forces - mean_f  # (M, N, 3)
+    sq_norm = np.sum(diff_f**2, axis=-1)  # (M, N)
     var_f = np.sum(sq_norm, axis=0) / float(m - 1)  # (N,)
-    stds = np.sqrt(np.maximum(0.0, var_f))          # (N,)
+    stds = np.sqrt(np.maximum(0.0, var_f))  # (N,)
     return float(np.max(stds))
 
 
@@ -105,14 +122,35 @@ def center_geometry_mass_weighted(
     atomic_numbers: Sequence[int],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute Mendeleev mass-weighted center of mass and translate to origin. [M]/[D]
-    
+
     Returns (centered_coords, com).
     """
+    if np.iscomplexobj(coordinates) or np.iscomplexobj(atomic_numbers):
+        raise ActiveLearningSelectionError(
+            "Physical coordinates and atomic numbers must be real"
+        )
     coords = np.asarray(coordinates, dtype=np.float64)
-    masses = np.array([get_monoisotopic_mass(int(z)) for z in atomic_numbers], dtype=np.float64)
+    numbers = np.asarray(atomic_numbers)
+    if (
+        numbers.ndim != 1
+        or not len(numbers)
+        or coords.shape != (len(numbers), 3)
+        or not np.isfinite(coords).all()
+        or not np.isfinite(numbers).all()
+        or np.any(numbers != np.floor(numbers))
+        or np.any((numbers < 1) | (numbers > 118))
+    ):
+        raise ActiveLearningSelectionError(
+            "A finite aligned physical geometry and integer atomic numbers are required"
+        )
+    masses = np.array(
+        [get_monoisotopic_mass(int(z)) for z in numbers], dtype=np.float64
+    )
     total_mass = np.sum(masses)
     if total_mass <= 1e-12:
-        raise ActiveLearningSelectionError("Total molecular mass must be strictly positive.")
+        raise ActiveLearningSelectionError(
+            "Total molecular mass must be strictly positive."
+        )
 
     com = np.sum(coords * masses[:, np.newaxis], axis=0) / total_mass
     centered = coords - com[np.newaxis, :]
@@ -122,39 +160,23 @@ def center_geometry_mass_weighted(
 def compute_rotational_constants(
     coordinates: np.ndarray,
     atomic_numbers: Sequence[int],
-) -> tuple[float, float, float]:
+) -> tuple[float | None, float | None, float | None]:
     """Compute principal rotational constants (A, B, C) in cm^-1 via Mendeleev inertia tensor. [D]
-    
+
     I_{alpha, beta} = sum_i m_i (||x'_i||^2 delta_{alpha, beta} - x'_{i, alpha} x'_{i, beta})
     A = h / (8 pi^2 c I_A), B = h / (8 pi^2 c I_B), C = h / (8 pi^2 c I_C)
     """
+    from cochem_torq.spectroscopy.harmonic import equilibrium_rotor
+    from cochem_torq.units import ANGSTROM_BOHR, SPEED_OF_LIGHT_METRE_SECOND
+
     centered, _ = center_geometry_mass_weighted(coordinates, atomic_numbers)
-    masses = np.array([get_monoisotopic_mass(int(z)) for z in atomic_numbers], dtype=np.float64)
-
-    r2 = np.sum(centered ** 2, axis=1) # (N,)
-    inertia = np.array(
-        [
-            [
-                np.sum(masses * ((1.0 if alpha == beta else 0.0) * r2 - centered[:, alpha] * centered[:, beta]))
-                for beta in range(3)
-            ]
-            for alpha in range(3)
-        ],
-        dtype=np.float64,
+    masses = [get_monoisotopic_mass(int(z)) for z in atomic_numbers]
+    rotor = equilibrium_rotor(centered * ANGSTROM_BOHR, masses)
+    mhz_to_cm1 = 1e6 / (100.0 * SPEED_OF_LIGHT_METRE_SECOND)
+    return tuple(
+        value * mhz_to_cm1 if value is not None else None
+        for value in rotor.constants_mhz
     )
-
-    # Diagonalize inertia tensor
-    eigvals = np.linalg.eigvalsh(inertia)
-    eigvals = np.sort(np.maximum(1e-12, eigvals))
-    ia, ib, ic = eigvals[0], eigvals[1], eigvals[2]
-
-    # Conversion factor from u * Angstrom^2 to cm^-1:
-    # h / (8 * pi^2 * c * 1.66053906660e-47 kg m^2) approx 16.8576292
-    h_c_factor = 16.857629204031
-    const_a = float(h_c_factor / ia)
-    const_b = float(h_c_factor / ib)
-    const_c = float(h_c_factor / ic)
-    return (const_a, const_b, const_c)
 
 
 def kabsch_rmsd(
@@ -162,7 +184,7 @@ def kabsch_rmsd(
     coords_b: np.ndarray,
 ) -> float:
     """Compute pairwise minimum root-mean-square deviation via Kabsch SVD in SO(3). [D]
-    
+
     D_geom = sqrt( 1/N sum_i ||x_{a,i} - x_{b,i} R||_2^2 )
     """
     p = np.asarray(coords_a, dtype=np.float64)
@@ -187,25 +209,98 @@ def kabsch_rmsd(
     # Rotated q coordinates
     q_rot = np.dot(q_c, r)
     diff = p_c - q_rot
-    rmsd = np.sqrt(np.mean(np.sum(diff ** 2, axis=1)))
+    rmsd = np.sqrt(np.mean(np.sum(diff**2, axis=1)))
     return float(rmsd)
 
 
+@dataclass(frozen=True)
+class RotationalRedundancyAssessment:
+    """Comparison of declared axes, retaining missingness and applicability."""
+
+    complete: bool
+    redundant: bool | None
+    required_axes: tuple[str, ...]
+    compared_axes: tuple[str, ...]
+    unavailable_required_axes: tuple[str, ...]
+    relative_changes: tuple[float | None, float | None, float | None]
+
+
+def assess_stage_b_rotational_redundancy(
+    rot_a: tuple[float | None, float | None, float | None],
+    rot_b: tuple[float | None, float | None, float | None],
+    threshold: float = 0.001,
+    *,
+    required_axes: tuple[str, ...] = ("A", "B", "C"),
+) -> RotationalRedundancyAssessment:
+    """Missing required axes cannot establish complete rotational equivalence.
+
+    A caller may explicitly request B/C comparison for a declared linear model;
+    this never establishes the unavailable A-axis quantity or conformer identity.
+    """
+    if len(rot_a) != 3 or len(rot_b) != 3:
+        raise ActiveLearningSelectionError(
+            "Exactly three principal-axis quantities are required"
+        )
+    if (
+        not required_axes
+        or len(set(required_axes)) != len(required_axes)
+        or any(axis not in ("A", "B", "C") for axis in required_axes)
+    ):
+        raise ActiveLearningSelectionError(
+            "Required comparison axes must be a nonempty unique subset of A/B/C"
+        )
+    if (
+        isinstance(threshold, (bool, complex))
+        or not np.isfinite(threshold)
+        or threshold <= 0
+    ):
+        raise ActiveLearningSelectionError(
+            "Rotational comparison threshold must be finite and positive"
+        )
+    changes = []
+    compared = []
+    missing = []
+    for axis, left, right in zip(("A", "B", "C"), rot_a, rot_b):
+        for value in (left, right):
+            if value is not None and (
+                isinstance(value, (bool, complex, np.complexfloating))
+                or not np.isfinite(value)
+                or value <= 0
+            ):
+                raise ActiveLearningSelectionError(
+                    "Available rotational constants must be finite and positive"
+                )
+        if left is None or right is None:
+            changes.append(None)
+            if axis in required_axes:
+                missing.append(axis)
+        else:
+            changes.append(float(abs(left - right) / left))
+            compared.append(axis)
+    complete = not missing
+    redundant = (
+        all(changes[("A", "B", "C").index(axis)] < threshold for axis in required_axes)
+        if complete
+        else None
+    )
+    return RotationalRedundancyAssessment(
+        complete,
+        redundant,
+        required_axes,
+        tuple(compared),
+        tuple(missing),
+        tuple(changes),
+    )
+
+
 def check_stage_b_rotational_redundancy(
-    rot_a: tuple[float, float, float],
-    rot_b: tuple[float, float, float],
+    rot_a: tuple[float | None, float | None, float | None],
+    rot_b: tuple[float | None, float | None, float | None],
     threshold: float = 0.001,
 ) -> bool:
-    """Stage B relative rotational constant invariance check max(|Delta B| / B) < threshold. [M]"""
-    a_a, b_a, c_a = rot_a
-    a_b, b_b, c_b = rot_b
-
-    rel_a = abs(a_a - a_b) / max(1e-12, a_a)
-    rel_b = abs(b_a - b_b) / max(1e-12, b_a)
-    rel_c = abs(c_a - c_b) / max(1e-12, c_a)
-
-    max_rel = max(rel_a, rel_b, rel_c)
-    return max_rel < threshold
+    """Conservative compatibility wrapper: incomplete comparisons retain candidates."""
+    assessment = assess_stage_b_rotational_redundancy(rot_a, rot_b, threshold)
+    return assessment.complete and assessment.redundant is True
 
 
 def route_qm_tier(
@@ -216,88 +311,70 @@ def route_qm_tier(
     interactive_gate: Callable[..., bool] | None = None,
     **kwargs: Any,
 ) -> str:
-    """Route candidate dynamically based on epistemic force uncertainty severity and hardware availability [M].
+    """Plan the uncertainty-selected method without substituting another method.
 
-    - Moderate (0.05 < alpha_F <= 0.20 eV/A): Tier T3-10s GFN2-xTB
-    - High (0.20 < alpha_F <= 0.80 eV/A): Tier T3O-1h ORCA 6.0 omegaB97X-V/jun-cc-pVTZ
-    - Extreme (alpha_F > 0.80 eV/A): Tier T3O-12h Canonical junChS composite scheme
-
-    Hardware Triage Gate:
-    Inspects available local computational engines (e.g. ORCA, CFOUR) and the allocated compute budget
-    before assigning high-force-uncertainty candidates to high-cost composite tiers.
-    If a required engine is absent or projected wall-clock time exceeds budget, triggers an interactive
-    decision gate or gracefully degrades to the highest supported tier (e.g., 'B3LYP-D4/def2-TZVP' or 'T3O-1h').
+    Tier durations are configured planning budgets, not measured wall times.
+    Declared or detected executable availability is not scientific qualification.
+    Missing engines or budget block the plan. The retained interactive_gate
+    argument cannot bypass a missing engine or an insufficient compute budget.
     """
+    if (
+        isinstance(max_force_std, (bool, complex, np.complexfloating))
+        or not np.isfinite(max_force_std)
+        or max_force_std < 0
+    ):
+        raise ActiveLearningSelectionError(
+            "Force uncertainty must be finite and nonnegative."
+        )
     if max_force_std <= 0.20:
-        nominal_tier = "T3-10s"
+        nominal_tier, required, planned_hours = "T3-10s", ("xtb",), 10.0 / 3600.0
     elif max_force_std <= 0.80:
-        nominal_tier = "T3O-1h"
+        nominal_tier, required, planned_hours = "T3O-1h", ("orca",), 1.0
     else:
-        nominal_tier = "T3O-12h"
+        nominal_tier, required, planned_hours = "T3O-12h", ("orca", "cfour"), 12.0
 
-    if nominal_tier == "T3-10s":
-        return nominal_tier
-
-    # Normalize engine availability
-    engines: list[str] = []
     if available_engines is not None:
-        engines = [e.lower() for e in available_engines]
-    elif hardware_topology is not None and hasattr(hardware_topology, "available_engines") and hardware_topology.available_engines:
-        engines = [e.lower() for e in hardware_topology.available_engines]
+        engines = {e.lower() for e in available_engines}
+    elif (
+        hardware_topology is not None
+        and getattr(hardware_topology, "available_engines", None) is not None
+    ):
+        engines = {e.lower() for e in hardware_topology.available_engines}
     else:
-        import shutil
-        if shutil.which("orca") is not None:
-            engines.append("orca")
-        if shutil.which("xcfour") is not None or shutil.which("cfour") is not None:
-            engines.append("cfour")
-        if shutil.which("xtb") is not None:
-            engines.append("xtb")
-
-    # Ingest compute budget from hardware topology if not explicitly provided
-    if compute_budget_hours is None and hardware_topology is not None and hasattr(hardware_topology, "compute_budget_hours"):
-        compute_budget_hours = float(hardware_topology.compute_budget_hours)
-
-    needs_cfour = (nominal_tier == "T3O-12h")
-    needs_orca = (nominal_tier in ("T3O-1h", "T3O-12h"))
-    has_cfour = "cfour" in engines
-    has_orca = "orca" in engines
-
-    projected_hours = 12.0 if nominal_tier == "T3O-12h" else 1.0
-    budget_exceeded = (compute_budget_hours is not None and compute_budget_hours < projected_hours)
-
-    # Core capacity gate from hardware topology: T3O-12h requires >= 4 P-cores for parallel CC
+        engines = {engine for engine in ("orca", "xtb") if shutil.which(engine)}
+        if shutil.which("xcfour") or shutil.which("cfour"):
+            engines.add("cfour")
+    if compute_budget_hours is None and hardware_topology is not None:
+        compute_budget_hours = getattr(hardware_topology, "compute_budget_hours", None)
+    if compute_budget_hours is not None and (
+        isinstance(compute_budget_hours, (bool, complex, np.complexfloating))
+        or not np.isfinite(compute_budget_hours)
+        or compute_budget_hours < 0
+    ):
+        raise ActiveLearningSelectionError(
+            "Compute budget must be finite and nonnegative."
+        )
+    missing = [engine for engine in required if engine not in engines]
+    budget_exceeded = (
+        compute_budget_hours is not None and compute_budget_hours < planned_hours
+    )
+    insufficient_cores = False
     if hardware_topology is not None and nominal_tier == "T3O-12h":
         p_cores = getattr(hardware_topology, "p_cores", None)
-        if p_cores is not None and p_cores < 4:
-            budget_exceeded = True
-
-    missing_engines: list[str] = []
-    if needs_cfour and not has_cfour:
-        missing_engines.append("CFOUR")
-    if needs_orca and not has_orca:
-        missing_engines.append("ORCA")
-
-    if missing_engines or budget_exceeded:
-        if interactive_gate is not None:
-            decision = interactive_gate(
-                nominal_tier=nominal_tier,
-                missing_engines=missing_engines,
-                budget_exceeded=budget_exceeded,
-                compute_budget_hours=compute_budget_hours,
-            )
-            if decision:
-                return nominal_tier
-
-        # Graceful degradation cascade [M]
-        if has_orca:
-            if budget_exceeded and compute_budget_hours is not None and compute_budget_hours < 1.0:
-                return "T3-10s" if "xtb" in engines else "B3LYP-D4/def2-TZVP"
-            return "B3LYP-D4/def2-TZVP" if nominal_tier == "T3O-12h" else "T3O-1h"
-        elif "xtb" in engines:
-            return "T3-10s"
-        else:
-            return "B3LYP-D4/def2-TZVP"
-
+        insufficient_cores = p_cores is not None and p_cores < 4
+    if missing or budget_exceeded or insufficient_cores:
+        raise ActiveLearningSelectionError(
+            "Selected QM tier is unavailable; no alternative method is substituted.",
+            diagnostics={
+                "nominal_tier": nominal_tier,
+                "missing_engines": missing,
+                "budget_exceeded": budget_exceeded,
+                "insufficient_cores": insufficient_cores,
+                "configured_tier_budget_hours": planned_hours,
+                "compute_budget_hours": compute_budget_hours,
+                "scientific_qualification": "not_established",
+            },
+        )
     return nominal_tier
 
 
@@ -319,17 +396,37 @@ class ActiveLearningOrchestrator:
     ) -> list[CandidateGeometry]:
         """Evaluate unlabeled pool and instantiate CandidateGeometry representations. [M]"""
         p = len(geometries)
+        if any(
+            len(values) != p
+            for values in (atomic_numbers, committee_energies, committee_forces)
+        ) or (candidate_ids is not None and len(candidate_ids) != p):
+            raise ActiveLearningSelectionError(
+                "Candidate geometry, composition, and committee arrays must align."
+            )
+        if candidate_ids is not None and (
+            len(set(candidate_ids)) != p
+            or any(not isinstance(cid, str) or not cid for cid in candidate_ids)
+        ):
+            raise ActiveLearningSelectionError(
+                "Candidate identifiers must be unique nonempty strings."
+            )
         self.pool.clear()
 
         for idx in range(p):
             cid = candidate_ids[idx] if candidate_ids is not None else f"cand_{idx:04d}"
+            if np.iscomplexobj(geometries[idx]):
+                raise ActiveLearningSelectionError("Candidate geometry must be real.")
             coords = np.asarray(geometries[idx], dtype=np.float64)
             z = list(atomic_numbers[idx])
             e_m = list(committee_energies[idx])
-            f_m = np.asarray(committee_forces[idx], dtype=np.float64)
+            f_m = committee_forces[idx]
 
             var_e = compute_qbc_energy_variance(e_m)
             max_f_std = compute_max_force_epistemic_std(f_m)
+            if np.shape(f_m)[1] != len(z):
+                raise ActiveLearningSelectionError(
+                    "Committee forces must align with candidate atoms."
+                )
             rot_consts = compute_rotational_constants(coords, z)
 
             candidate = CandidateGeometry(
@@ -340,6 +437,17 @@ class ActiveLearningOrchestrator:
                 max_force_std=max_f_std,
                 rotational_constants=rot_consts,
                 state=ActiveLearningState.UNLABELED,
+                metadata={
+                    "rotational_constants_kind": "rigid_rotor_at_input_geometry",
+                    "rotational_unavailable_axes": [
+                        axis
+                        for axis, value in zip(("A", "B", "C"), rot_consts)
+                        if value is None
+                    ],
+                    "advisory_only": True,
+                    "eligible_for_scientific_pruning": False,
+                    "scientific_qualification": "not_established",
+                },
             )
             self.pool.append(candidate)
 
@@ -359,7 +467,13 @@ class ActiveLearningOrchestrator:
 
             if cand.max_force_std > th_f or per_atom_e_var > th_e:
                 cand.state = ActiveLearningState.CANDIDATE_SELECTED
-                cand.assigned_tier = route_qm_tier(cand.max_force_std)
+                try:
+                    cand.assigned_tier = route_qm_tier(cand.max_force_std)
+                    cand.metadata["anchor_plan_status"] = "planned_unqualified"
+                except ActiveLearningSelectionError as error:
+                    cand.assigned_tier = None
+                    cand.metadata["anchor_plan_status"] = "blocked"
+                    cand.metadata["anchor_plan_blockers"] = error.diagnostics
                 triggered.append(cand)
 
         # 2. Sort descending by uncertainty score alpha_F^std
@@ -386,11 +500,23 @@ class ActiveLearningOrchestrator:
                     break
 
                 # Stage B: Rotational Constant Invariance
-                if check_stage_b_rotational_redundancy(
+                assessment = assess_stage_b_rotational_redundancy(
                     cand.rotational_constants,
                     selected.rotational_constants,
                     threshold=rot_th,
-                ):
+                )
+                cand.metadata.setdefault("rotational_comparisons", []).append(
+                    {
+                        "candidate_id": selected.candidate_id,
+                        "complete": assessment.complete,
+                        "redundant": assessment.redundant,
+                        "required_axes": list(assessment.required_axes),
+                        "unavailable_required_axes": list(
+                            assessment.unavailable_required_axes
+                        ),
+                    }
+                )
+                if assessment.complete and assessment.redundant is True:
                     is_redundant = True
                     break
 
@@ -413,6 +539,8 @@ class ActiveLearningOrchestrator:
             "version": "1.0.0",
             "batch_capacity": self.config.batch_capacity_k,
             "selected_count": len(self.selected_batch),
+            "advisory_only": True,
+            "scientific_qualification": "not_established",
             "candidates": [
                 {
                     "candidate_id": c.candidate_id,
@@ -422,6 +550,7 @@ class ActiveLearningOrchestrator:
                     "max_force_std": c.max_force_std,
                     "assigned_tier": c.assigned_tier,
                     "rotational_constants": list(c.rotational_constants),
+                    "metadata": c.metadata,
                     "state": ActiveLearningState.MANIFEST_EMITTED.value,
                 }
                 for c in self.selected_batch
@@ -431,7 +560,9 @@ class ActiveLearningOrchestrator:
         manifest_path = staging_dir / manifest_filename
         tmp_path = staging_dir / f"{manifest_filename}.tmp"
 
-        payload_bytes = json.dumps(manifest_data, indent=2).encode("utf-8")
+        payload_bytes = json.dumps(manifest_data, indent=2, allow_nan=False).encode(
+            "utf-8"
+        )
         sha256_hash = hashlib.sha256(payload_bytes).hexdigest()
 
         # Atomic serialization: write .tmp -> fsync -> replace
@@ -444,7 +575,9 @@ class ActiveLearningOrchestrator:
 
         # Accompanying SHA-256 digest file
         digest_path = manifest_path.with_suffix(manifest_path.suffix + ".sha256")
-        digest_path.write_text(f"{sha256_hash}  {manifest_path.name}\n", encoding="utf-8")
+        digest_path.write_text(
+            f"{sha256_hash}  {manifest_path.name}\n", encoding="utf-8"
+        )
 
         # Update candidate state transitions
         for c in self.selected_batch:
@@ -475,8 +608,15 @@ class ActiveLearner:
         If sigma_E > threshold_sigma_mev (10.0 meV):
             Action: 'QUERY_ANCHOR' (query_anchor: True)
         """
-        if not np.isfinite(sigma_e_mev) or sigma_e_mev < 0 or not np.isfinite(threshold_sigma_mev) or threshold_sigma_mev < 0:
-            raise ActiveLearningSelectionError("Uncertainty and threshold must be finite and nonnegative.")
+        if (
+            not np.isfinite(sigma_e_mev)
+            or sigma_e_mev < 0
+            or not np.isfinite(threshold_sigma_mev)
+            or threshold_sigma_mev < 0
+        ):
+            raise ActiveLearningSelectionError(
+                "Uncertainty and threshold must be finite and nonnegative."
+            )
         query_anchor = bool(sigma_e_mev > threshold_sigma_mev)
         action = "QUERY_ANCHOR" if query_anchor else "SURROGATE_PREDICT"
         return {
@@ -625,10 +765,12 @@ class ActiveLearningSampler:
     def __init__(
         self,
         threshold_sigma_mev: float = 10.0,
-        delta_ml_model: Optional[Any] = None,
+        delta_ml_model: Any | None = None,
     ) -> None:
         if not np.isfinite(threshold_sigma_mev) or threshold_sigma_mev < 0:
-            raise ActiveLearningSelectionError("Uncertainty threshold must be finite and nonnegative.")
+            raise ActiveLearningSelectionError(
+                "Uncertainty threshold must be finite and nonnegative."
+            )
         self.threshold_sigma_mev = threshold_sigma_mev
         self.delta_ml_model = delta_ml_model
 
@@ -637,24 +779,34 @@ class ActiveLearningSampler:
         candidate_geometry: Any,
         scout_energy_ha: float,
         committee_sigma_mev: float,
-        anchor_evaluator: Optional[Callable[[Any], float]] = None,
+        anchor_evaluator: Callable[[Any], float] | None = None,
     ) -> dict[str, Any]:
-        """Evaluate a single configuration through the Active Learning & Delta-ML gate.
+        """Return advisory evaluator or surrogate data with explicit evidence class.
 
-        If committee_sigma_mev > threshold_sigma_mev (10.0 meV):
-            Dispatches high-level anchor evaluation (tagged [M]).
-        Else:
-            Interpolates high-level correction via Delta-ML surrogate (tagged [E]).
+        A callback returning an energy scalar supplies no authenticated method or
+        engine provenance. Its output cannot qualify an anchor calculation.
+        Matrix policy tags describe the requested branch, not scientific evidence.
         """
+        if np.iscomplexobj(scout_energy_ha) or np.iscomplexobj(committee_sigma_mev):
+            raise ActiveLearningSelectionError(
+                "Scout energy and uncertainty must be real."
+            )
         if not np.isfinite(scout_energy_ha):
             raise ActiveLearningSelectionError("A finite scout energy is required.")
         if not np.isfinite(committee_sigma_mev) or committee_sigma_mev < 0:
-            raise ActiveLearningSelectionError("Committee uncertainty must be finite and nonnegative.")
+            raise ActiveLearningSelectionError(
+                "Committee uncertainty must be finite and nonnegative."
+            )
         gate_tripped = bool(committee_sigma_mev > self.threshold_sigma_mev)
 
         if gate_tripped:
             if anchor_evaluator is not None:
-                anchor_energy = float(anchor_evaluator(candidate_geometry))
+                anchor_energy = anchor_evaluator(candidate_geometry)
+                if np.iscomplexobj(anchor_energy) or np.ndim(anchor_energy) != 0:
+                    raise ActiveLearningSelectionError(
+                        "Evaluator must return a real scalar energy."
+                    )
+                anchor_energy = float(anchor_energy)
             else:
                 raise ActiveLearningSelectionError(
                     "High-level anchor required, but no anchor evaluator is configured; scout result remains unchanged."
@@ -662,18 +814,30 @@ class ActiveLearningSampler:
             provenance = "[M]"
             final_energy = anchor_energy
             action = "QUERY_ANCHOR"
+            energy_kind = "external_evaluator_unverified"
+            delta_e = None
         else:
-            if self.delta_ml_model is None or not callable(getattr(self.delta_ml_model, "predict", None)):
+            if self.delta_ml_model is None or not callable(
+                getattr(self.delta_ml_model, "predict", None)
+            ):
                 raise ActiveLearningSelectionError(
                     "Delta-ML prediction unavailable: a trained predictor is required; no zero correction is substituted."
                 )
-            delta_e = float(self.delta_ml_model.predict(candidate_geometry))
+            delta_e = self.delta_ml_model.predict(candidate_geometry)
+            if np.iscomplexobj(delta_e) or np.ndim(delta_e) != 0:
+                raise ActiveLearningSelectionError(
+                    "Predictor must return a real scalar correction."
+                )
+            delta_e = float(delta_e)
             final_energy = scout_energy_ha + delta_e
             provenance = "[E]"
             action = "SURROGATE_PREDICT"
+            energy_kind = "surrogate_prediction"
 
         if not np.isfinite(final_energy):
-            raise ActiveLearningSelectionError("Evaluator returned a non-finite energy.")
+            raise ActiveLearningSelectionError(
+                "Evaluator returned a non-finite energy."
+            )
         return {
             "action": action,
             "query_anchor": gate_tripped,
@@ -683,29 +847,37 @@ class ActiveLearningSampler:
             "threshold_mev": float(self.threshold_sigma_mev),
             "energy_hartree": float(final_energy),
             "provenance": provenance,
+            "provenance_scope": "method_matrix_policy_tag_only",
+            "energy_kind": energy_kind,
+            "evidence_class": energy_kind,
+            "method_identity": None,
+            "accuracy_qualified": False,
+            "used_for_final_scientific_observables": False,
+            "scout_energy_hartree": float(scout_energy_ha),
+            "surrogate_correction_hartree": delta_e,
         }
 
     def sample_pes_grid(
         self,
         candidates: Sequence[dict[str, Any]],
-        anchor_evaluator: Optional[Callable[[Any], float]] = None,
+        anchor_evaluator: Callable[[Any], float] | None = None,
     ) -> list[dict[str, Any]]:
-        """Run active learning committee sampling across a candidate PES grid."""
+        """Evaluate declared PES candidates; never generate substitute anchor data."""
         results = []
         for cand in candidates:
             scout_energy = cand.get("scout_energy", cand.get("energy_hartree"))
             sigma = cand.get("sigma_mev", cand.get("uncertainty_mev"))
             if scout_energy is None or sigma is None or cand.get("coordinates") is None:
-                raise ActiveLearningSelectionError("Each candidate requires coordinates, scout energy, and measured committee uncertainty.")
+                raise ActiveLearningSelectionError(
+                    "Each candidate requires coordinates, scout energy, and measured committee uncertainty."
+                )
             res = self.evaluate_configuration(
                 candidate_geometry=cand.get("coordinates"),
-                scout_energy_ha=float(scout_energy),
-                committee_sigma_mev=float(sigma),
+                scout_energy_ha=scout_energy,
+                committee_sigma_mev=sigma,
                 anchor_evaluator=anchor_evaluator,
             )
             cand_result = dict(cand)
             cand_result.update(res)
             results.append(cand_result)
         return results
-
-

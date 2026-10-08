@@ -576,7 +576,7 @@
         "tests/test_persistence_integrity.py",
         "tests/test_pipeline.py"
       ],
-      "remaining_work": "Storage integrity and rapid refinement do not qualify scans. Real periodic/reverse branch calculations, target-level anchors and stationary-point checks remain required."
+      "remaining_work": "Implement an approved atom-indexed scan contract with coordinate units, periodic domains, sampling, fixed/relaxed coordinates, state/constraints, initial-guess policy and finite budget. Enumerate actual unique points without an unproved symmetry divisor; dispatch and retain genuine fixed/relaxed evaluations and forward/reverse challenge cases. A relaxed constrained scan requires its own supported optimizer and curvature evidence."
     },
     {
       "id": "TORQ-PES-002",
@@ -595,7 +595,7 @@
         "tests/test_persistence_integrity.py",
         "tests/test_pipeline.py"
       ],
-      "remaining_work": "Storage integrity and rapid refinement do not qualify scans. Real periodic/reverse branch calculations, target-level anchors and stationary-point checks remain required."
+      "remaining_work": "Implement immutable surface/point identities tied to one declared recipe, state and source. Record forward/reverse lineage and actual electronic-state/branch diagnostics; keep failed points failed, with no implicit zero or unlabelled interpolation. Mixed-level surfaces require an explicit composite/delta definition, and boundary/interior coverage requires new genuine physical challenge calculations."
     },
     {
       "id": "TORQ-PES-003",
@@ -614,7 +614,7 @@
         "tests/test_persistence_integrity.py",
         "tests/test_pipeline.py"
       ],
-      "remaining_work": "Storage integrity and rapid refinement do not qualify scans. Real periodic/reverse branch calculations, target-level anchors and stationary-point checks remain required."
+      "remaining_work": "Connect scan/ML/path extrema to the reversible candidate ledger and approved target-recipe optimization/Hessian workflow. Keep candidates distinct from verified minima/TSs; preserve atom/state/constraint provenance and request review for scope changes. Verified TS claims still require genuine mapped endpoint connectivity/IRC or an independently justified alternative; finite scans do not prove global completeness."
     },
     {
       "id": "TORQ-PES-004",
@@ -669,7 +669,7 @@
       "test_references": [
         "tests/test_surrogate_integrity.py"
       ],
-      "remaining_work": "Advisory models cannot become physical observations or automatic pruning. Independent missed-basin, out-of-domain and calibration benchmarks are outstanding."
+      "remaining_work": "Implement the bounded approved seed/physical-anchor/optional-surrogate/acquisition/physical-evaluation/challenge/stop loop with immutable point/model provenance, grouped validation splits and actual budget accounting. Distinguish criteria_met, budget_exhausted, insufficient_coverage and failed. Advisory ML cannot become physical observations, automatic pruning or a completeness certificate; basin recall, applicability and uncertainty calibration require independent genuine campaigns."
     },
     {
       "id": "TORQ-PES-007",
@@ -1132,20 +1132,24 @@
     {
       "id": "TORQ-OPS-005",
       "title": "HDF5 ownership",
-      "classification": "missing_implementation",
+      "classification": "partial_supported_scope",
       "acceptance_ids": [
         "V-STORAGE",
         "V-HPC"
       ],
       "source_references": [
+        "cochem/storage/fenced_pes.py",
+        "cochem/orchestration/campaign.py",
+        "cochem/storage/FENCED_PES_PROTOCOL.md",
         "src/cochem_torq/artifacts.py",
         "cochem/storage/cochem_core_pes_store.py"
       ],
       "test_references": [
+        "tests/test_fenced_pes_integrity.py",
         "tests/test_persistence_integrity.py",
-        "tests/test_ecosystem_integration.py"
+        "tests/test_campaign_coordinator.py"
       ],
-      "remaining_work": "Fence merger admission/publication against current coordinator attempts; plain file locks plus matching manifests do not establish current-lease authority or interrupted-merge recovery."
+      "remaining_work": "The local coordinator-fenced HDF5 contract now seals independent supplied/mathematical samples, verifies private source snapshots and current committed receipts, publishes under one live approved owner with atomic no-replace versioning, and supports preserved-byte crash recovery only under the same current authority. It does not yet implement a native engine-to-PES sampling bridge or establish source-schema interoperability, deployed NFS/filter/locking/durability or cross-host recovery qualification. Local integrity/process checks do not establish molecular PES accuracy, and final source-bound full gate evidence remains pending."
     },
     {
       "id": "TORQ-OPS-006",
@@ -1727,7 +1731,7 @@
         "software"
       ],
       "evidence_ids": [],
-      "reason": "Immutable shards and committed-prefix safeguards exist; coordinator-fenced merger admission and interrupted/recovery/platform contracts remain incomplete."
+      "reason": "Immutable shards and a coordinator-fenced HDF5 sole-merger contract now verify current committed source admission, preserved source/sample identities, atomic no-replace publication and same-owner orphan recovery. Genuine local files/processes exercise integrity and ownership only. Native engine-to-PES integration, source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and final source-bound full gate evidence remain outstanding."
     },
     {
       "id": "V-CONSUMER",
@@ -1846,7 +1850,7 @@
     "environment_configuration_calls": 2,
     "scope": "Narrow AST policy only; not a general scientific-authenticity or no-fabrication certification."
   },
-  "reviewed_working_tree": "Review includes uncommitted release-candidate implementation after reviewed_source_commit; source-bound final execution evidence is pending the final frozen tree.",
+  "reviewed_working_tree": "Review includes the release-candidate implementation and subsequent integrity corrections. Final frozen-source execution evidence and canonical deployed qualification remain pending; historical source/test pointers are not acceptance outcomes.",
   "release_scope": {
     "full_srs_release_ready": false,
     "bounded_student_release_qualification": "pending final frozen-source gates and canonical deployed user journey",

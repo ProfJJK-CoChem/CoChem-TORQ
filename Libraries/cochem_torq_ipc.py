@@ -790,7 +790,9 @@ def orphaned_ipc_cleaner(
     Returns:
         Number of resources cleaned up.
     """
-    logger.info("Orphaned IPC Cleaner invoked (signum=%s)", signum)
+    # Interpreter-exit handlers can outlive logging streams (including pytest
+    # captures). Avoid an unconditional announcement when no cleanup occurred;
+    # cleanup_all still records genuine resource errors and performs every action.
     count = _GLOBAL_IPC_REGISTRY.cleanup_all(aggressive=True)
     if signum is not None:
         # Re-raise standard interrupt behavior if triggered by signal

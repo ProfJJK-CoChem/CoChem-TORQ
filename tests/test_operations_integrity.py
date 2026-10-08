@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import multiprocessing as mp
+import os
+import time
 from hashlib import sha256
 
 import pytest
@@ -11,6 +13,7 @@ from cochem_torq.artifacts import file_digest, verify_shard
 from cochem_torq.domain import CalculationRequest, canonical_json, read_json
 from cochem_torq.operations import (
     ArtifactBackpressureError,
+    ArtifactObservationError,
     ArtifactQuotaPolicy,
     admit_artifact_work,
     artifact_usage,
@@ -32,6 +35,19 @@ def _reservation_owner(root, connection):
     ):
         connection.send("real local reservation active")
         connection.recv()
+
+
+def _checkpoint_replacer(root, connection, stop):
+    """Perform real atomic checkpoint replacements in a separate OS process."""
+    count = 0
+    while not stop.is_set():
+        count += 1
+        temporary = root / "result.json.checkpoint"
+        temporary.write_bytes(canonical_json({"filesystem_write_counter": count}))
+        os.replace(temporary, root / "result.json")
+        if count == 1:
+            connection.send(count)
+    connection.send(count)
 
 
 def test_actual_file_bytes_and_budget_exhaustion(tmp_path):
@@ -128,14 +144,92 @@ def test_aborted_owner_releases_reservation_without_work_claim(tmp_path):
     assert not list((tmp_path / ".torq-reservations").iterdir())
 
 
-def test_file_count_and_symlinks_fail_closed(tmp_path):
+@pytest.mark.parametrize("mutable_scratch", [False, True])
+def test_file_count_and_symlinks_fail_closed(tmp_path, mutable_scratch):
     (tmp_path / "one").write_bytes(b"actual accounting data")
     (tmp_path / "two").write_bytes(b"actual accounting data")
     with pytest.raises(ArtifactBackpressureError, match="file-count"):
-        artifact_usage(tmp_path, max_files=1)
+        artifact_usage(tmp_path, max_files=1, mutable_scratch=mutable_scratch)
     (tmp_path / "link").symlink_to(tmp_path / "one")
     with pytest.raises(ValueError, match="symlinks"):
-        artifact_usage(tmp_path)
+        artifact_usage(tmp_path, mutable_scratch=mutable_scratch)
+
+
+def test_real_checkpoint_churn_is_rescanned_or_explicitly_unobservable(tmp_path):
+    for index in range(800):
+        (tmp_path / f"retained-{index}").write_bytes(bytes(range(256)))
+    context = mp.get_context("spawn")
+    parent, child = context.Pipe()
+    stop = context.Event()
+    process = context.Process(target=_checkpoint_replacer, args=(tmp_path, child, stop))
+    process.start()
+    observed_disappearance = False
+    successful_scans = 0
+    try:
+        assert parent.poll(15) and parent.recv() == 1
+        deadline = time.monotonic() + 6
+        for _ in range(200):
+            try:
+                usage = enforce_artifact_budget(
+                    tmp_path, baseline_bytes=0, max_growth_bytes=1024**2
+                )
+            except ArtifactObservationError as error:
+                assert len(error.observed_scans) == 3
+                assert all(
+                    scan["disappeared_entries"] > 0 for scan in error.observed_scans
+                )
+                observed_disappearance = True
+            else:
+                successful_scans += 1
+                assert usage["owned_bytes"] >= 800 * 256
+                assert usage["measurement_kind"] == "non_atomic_directory_observation"
+                assert usage["exact_peak_usage_available"] is False
+                assert 1 <= usage["scan_attempts"] <= 3
+                observed_disappearance |= usage["disappeared_entries_observed"] > 0
+            if successful_scans and observed_disappearance:
+                break
+            if time.monotonic() >= deadline:
+                break
+        assert successful_scans > 0
+        assert observed_disappearance, (
+            "The genuine filesystem writer must exercise churn"
+        )
+    finally:
+        stop.set()
+        process.join(10)
+        if process.is_alive():
+            process.kill()
+            process.join(5)
+        parent.close()
+        child.close()
+    assert process.exitcode == 0
+    final = artifact_usage(tmp_path)
+    assert final["disappeared_entries_observed"] == 0
+    assert final["owned_bytes"] == sum(
+        path.stat().st_size for path in tmp_path.iterdir()
+    )
+
+
+def test_live_observed_overbudget_still_rejects_during_checkpoint_churn(tmp_path):
+    (tmp_path / "retained-native-data").write_bytes(bytes(range(256)) * 256)
+    context = mp.get_context("spawn")
+    parent, child = context.Pipe()
+    stop = context.Event()
+    process = context.Process(target=_checkpoint_replacer, args=(tmp_path, child, stop))
+    process.start()
+    try:
+        assert parent.poll(15) and parent.recv() == 1
+        with pytest.raises(ArtifactBackpressureError, match="actual artifact"):
+            enforce_artifact_budget(tmp_path, baseline_bytes=0, max_growth_bytes=4096)
+    finally:
+        stop.set()
+        process.join(10)
+        if process.is_alive():
+            process.kill()
+            process.join(5)
+        parent.close()
+        child.close()
+    assert process.exitcode == 0
 
 
 @pytest.mark.parametrize("value", [True, -1, 1.5])

@@ -1,5 +1,6 @@
 """Exact routing and genuine native restart bytes; no manufactured engine outputs."""
 
+import shutil
 from hashlib import sha256
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from cochem_torq.capabilities import (
     prepare_initial_guess,
     register_restart_artifact,
 )
+from cochem_torq.domain import canonical_json, read_json
 from cochem_torq.registry import (
     profile_capabilities,
     resolve_exact_capability,
@@ -132,6 +134,117 @@ def genuine_native(tmp_path_factory):
     assert result["status"] == "complete", result["errors"]
     assert result["scf"]["converged"] and result["stability"]["status"] == "stable"
     return directory
+
+
+@pytest.fixture(scope="module")
+def genuine_optimization(genuine_native, tmp_path_factory):
+    from cochem_torq.engines.pyscf_backend import PySCFBackend
+
+    directory = tmp_path_factory.mktemp("cochem_exec_capability_optimization")
+    request = read_json(genuine_native / "request.json")
+    request["molecule"]["geometry_bohr"] = [
+        [0.0, 0.0, -0.8],
+        [0.0, 0.0, 0.8],
+    ]
+    result = PySCFBackend().optimize(request, directory)
+    assert result["status"] == "complete", result["errors"]
+    assert result["optimization"]["converged"]
+    assert result["optimization"]["final_gradient_verified"]
+    assert result["geometry_bohr"] != request["molecule"]["geometry_bohr"]
+    return directory
+
+
+@pytest.mark.real_engine
+def test_actual_optimization_qualifies_its_exact_outer_and_final_native_case(
+    genuine_optimization, tmp_path
+):
+    exact = definition("optimization")
+    record = locally_validate_capability(exact, genuine_optimization)
+    receipt = authorize_capability(
+        record,
+        purpose="production",
+        native_request_sha256=record.evidence.native_request_sha256,
+    )
+    assert (
+        receipt["qualification_scope"] == "exact_native_request_numerical_integration"
+    )
+    assert not receipt["chemical_accuracy_established"]
+    artifact = register_restart_artifact(
+        genuine_optimization,
+        "final/wavefunction.chk",
+        tmp_path / "final-sealed.chk",
+        artifact_kind="wavefunction",
+        recipe_sha256=exact.recipe_sha256,
+    )
+    actual = read_json(genuine_optimization / "final/result.json")
+    assert [list(row) for row in artifact.fingerprint.geometry_bohr] == actual[
+        "geometry_bohr"
+    ]
+    # Both checkpoints are genuine, but the initial one cannot be relabeled
+    # with the geometry/state fingerprint of the optimized final calculation.
+    with pytest.raises(ValueError, match="checkpoint geometry/state/basis differs"):
+        register_restart_artifact(
+            genuine_optimization,
+            "initial/wavefunction.chk",
+            tmp_path / "incorrectly-labeled-initial.chk",
+            artifact_kind="wavefunction",
+            recipe_sha256=exact.recipe_sha256,
+        )
+    assert not (tmp_path / "incorrectly-labeled-initial.chk").exists()
+
+
+def _record_corrupted_native_inventory(directory):
+    """Record actual deliberately damaged bytes; never create engine observations."""
+    manifest = read_json(directory / "manifest.json")
+    manifest["artifacts"] = [
+        {
+            "path": path.relative_to(directory).as_posix(),
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256(path.read_bytes()).hexdigest(),
+        }
+        for path in sorted(directory.rglob("*"))
+        if path.is_file()
+        and path.name != "manifest.json"
+        and "scratch" not in path.relative_to(directory).parts
+    ]
+    (directory / "manifest.json").write_bytes(canonical_json(manifest))
+
+
+@pytest.mark.real_engine
+@pytest.mark.parametrize(
+    ("damage", "message"),
+    [
+        ("different_genuine_final", "retained final native evidence"),
+        ("omitted_child_inventory", "retained final native evidence"),
+        ("different_genuine_initial_request", "geometry/state definitions differ"),
+        ("truncated_actual_trajectory", "convergence/trajectory is unestablished"),
+    ],
+)
+def test_optimization_cannot_qualify_mismatched_nested_native_provenance(
+    genuine_optimization, genuine_native, tmp_path, damage, message
+):
+    damaged = tmp_path / "deliberately-corrupted-genuine-optimization"
+    shutil.copytree(genuine_optimization, damaged)
+    if damage == "different_genuine_final":
+        shutil.rmtree(damaged / "final")
+        shutil.copytree(genuine_native, damaged / "final")
+    elif damage == "omitted_child_inventory":
+        path = damaged / "final/manifest.json"
+        manifest = read_json(path)
+        manifest["artifacts"] = [
+            entry
+            for entry in manifest["artifacts"]
+            if entry["path"] != "wavefunction.chk"
+        ]
+        path.write_bytes(canonical_json(manifest))
+    elif damage == "different_genuine_initial_request":
+        shutil.copyfile(genuine_native / "request.json", damaged / "request.json")
+    else:
+        path = damaged / "optimization-trajectory.json"
+        path.write_bytes(canonical_json(read_json(path)[:1]))
+    _record_corrupted_native_inventory(damaged)
+    with pytest.raises(ValueError, match=message):
+        locally_validate_capability(definition("optimization"), damaged)
 
 
 @pytest.mark.real_engine

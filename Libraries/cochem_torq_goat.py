@@ -131,20 +131,33 @@ def get_dynamic_atomic_mass(symbol: str) -> float:
     """Resolve the selected isotope mass; abundance-weighted weights are not rotors."""
     from Libraries.cochem_isotopes import isotope_mass
 
-    return isotope_mass(symbol.strip().rstrip(":"))
+    label = symbol.strip().rstrip(":")
+    label = label.upper() if label.upper() in ("D", "T") else label
+    return _positive_tabulated_property(isotope_mass(label), label, "isotope_mass")
+
+
+def _positive_tabulated_property(value: Any, symbol: str, name: str) -> float:
+    """Reject missing/invalid named properties instead of guessing radii or masses."""
+    if value is None or isinstance(value, bool):
+        raise ValueError(f"Mendeleev {name} is unavailable for {symbol}.")
+    result = float(value)
+    if not math.isfinite(result) or result <= 0:
+        raise ValueError(f"Mendeleev {name} is not finite and positive for {symbol}.")
+    return result
 
 
 @functools.lru_cache(maxsize=256)
 def get_dynamic_isotopic_mass(symbol: str, mass_number: Optional[int] = None) -> float:
-    """Dynamically retrieves isotopic mass via mendeleev."""
-    clean_sym = symbol.strip().rstrip(":").capitalize()
-    el = mendeleev_element(clean_sym)
+    """Resolve the actual requested isotope; missing masses remain unavailable."""
+    from Libraries.cochem_isotopes import isotope_mass
+
     if mass_number is None:
         return get_dynamic_atomic_mass(symbol)
-    for iso in el.isotopes:
-        if iso.mass_number == mass_number:
-            return float(iso.mass)
-    return get_dynamic_atomic_mass(symbol)
+    if type(mass_number) is not int or mass_number <= 0:
+        raise ValueError("An isotope mass number must be a positive integer.")
+    el = mendeleev_element(symbol.strip().rstrip(":").capitalize())
+    label = f"{mass_number}{el.symbol}"
+    return _positive_tabulated_property(isotope_mass(label), el.symbol, "isotope_mass")
 
 
 @functools.lru_cache(maxsize=256)
@@ -152,11 +165,9 @@ def get_dynamic_covalent_radius(symbol: str) -> float:
     """Dynamically retrieves Pyykko single-bond covalent radius in Angstroms via mendeleev."""
     clean_sym = symbol.strip().rstrip(":").capitalize()
     el = mendeleev_element(clean_sym)
-    if el.covalent_radius_pyykko is not None:
-        return float(el.covalent_radius_pyykko) / 100.0
-    if el.covalent_radius is not None:
-        return float(el.covalent_radius) / 100.0
-    return 1.40
+    return _positive_tabulated_property(
+        el.covalent_radius_pyykko, el.symbol, "covalent_radius_pyykko"
+    ) / 100.0
 
 
 @functools.lru_cache(maxsize=256)
@@ -164,11 +175,7 @@ def get_dynamic_vdw_radius(symbol: str) -> float:
     """Dynamically retrieves van der Waals radius in Angstroms via mendeleev."""
     clean_sym = symbol.strip().rstrip(":").capitalize()
     el = mendeleev_element(clean_sym)
-    if el.vdw_radius is not None:
-        return float(el.vdw_radius) / 100.0
-    if el.vdw_radius_alvarez is not None:
-        return float(el.vdw_radius_alvarez) / 100.0
-    return 1.70
+    return _positive_tabulated_property(el.vdw_radius, el.symbol, "vdw_radius") / 100.0
 
 
 # =============================================================================

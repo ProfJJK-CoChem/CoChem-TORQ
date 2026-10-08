@@ -155,15 +155,7 @@ def _native_bundle(directory: Path) -> tuple[dict, dict]:
                 "Native artifact bytes differ from their retained inventory."
             )
     names = {entry["path"] for entry in entries}
-    if (
-        not {
-            "request.json",
-            "result.json",
-            "basis-definition.json",
-            "engine-installation.json",
-        }
-        <= names
-    ):
+    if not {"request.json", "result.json"} <= names:
         raise ValueError(
             "Native request/result/basis/installation provenance is incomplete."
         )
@@ -176,12 +168,30 @@ def _native_bundle(directory: Path) -> tuple[dict, dict]:
         or result.get("stability", {}).get("status") != "stable"
     ):
         raise ValueError("A completed, converged, stable native result is required.")
+    provenance = directory
+    if "optimization" in result:
+        provenance = _optimization_final_bundle(directory, request, result, entries)
+    elif request.get("molecule") != result.get("molecule") or result.get(
+        "geometry_bohr"
+    ) != request.get("molecule", {}).get("geometry_bohr"):
+        raise ValueError("Native single-point geometry/state differs from its request.")
+    prefix = "final/" if provenance != directory else ""
+    if (
+        not {
+            f"{prefix}basis-definition.json",
+            f"{prefix}engine-installation.json",
+        }
+        <= names
+    ):
+        raise ValueError(
+            "Native request/result/basis/installation provenance is incomplete."
+        )
     if result.get("basis_definition_sha256") != _file_sha256(
-        directory / "basis-definition.json"
+        provenance / "basis-definition.json"
     ):
         raise ValueError("Native basis identity does not match the actual definitions.")
     if result.get("engine_installation_sha256") != read_json(
-        directory / "engine-installation.json"
+        provenance / "engine-installation.json"
     ).get("digest"):
         raise ValueError("Native installation identity is inconsistent.")
     if request.get("method") != result.get("method") or request.get(
@@ -189,6 +199,106 @@ def _native_bundle(directory: Path) -> tuple[dict, dict]:
     ) != result.get("settings"):
         raise ValueError("The retained native request and result definitions differ.")
     return request, result
+
+
+def _optimization_final_bundle(
+    directory: Path, request: dict, result: dict, outer_entries: list[dict]
+) -> Path:
+    """Bind actual optimizer evidence to its separately sealed final calculation."""
+    names = {entry["path"] for entry in outer_entries}
+    if (
+        not {
+            "final/request.json",
+            "final/result.json",
+            "final/basis-definition.json",
+            "final/engine-installation.json",
+            "optimization-trajectory.json",
+            "geometric.log",
+        }
+        <= names
+    ):
+        raise ValueError("Native optimization final provenance is incomplete.")
+    final = directory / "final"
+    final_request, final_result = _native_bundle(final)
+    # Native outer manifests retain each child's raw files, but the current
+    # native format omits nested manifest files. Compare their inventories to
+    # the parent-sealed bytes rather than inventing a retained manifest digest.
+    nested = read_json(final / "manifest.json")["artifacts"]
+    expected = sorted(
+        ({**entry, "path": f"final/{entry['path']}"} for entry in nested),
+        key=lambda entry: entry["path"],
+    )
+    observed = sorted(
+        (entry for entry in outer_entries if entry["path"].startswith("final/")),
+        key=lambda entry: entry["path"],
+    )
+    parsed = dict(result)
+    optimization = parsed.pop("optimization")
+    if expected != observed or parsed != final_result:
+        raise ValueError(
+            "Outer optimization differs from its retained final native evidence."
+        )
+    initial_molecule = dict(request["molecule"])
+    final_molecule = dict(final_request["molecule"])
+    initial_geometry = initial_molecule.pop("geometry_bohr")
+    final_geometry = final_molecule.pop("geometry_bohr")
+    if (
+        not isinstance(optimization, dict)
+        or initial_molecule != final_molecule
+        or final_geometry != result["geometry_bohr"]
+        or optimization.get("initial_geometry_bohr") != initial_geometry
+        or request["method"] != final_request["method"]
+        or request["settings"] != final_request["settings"]
+        or request["optimization"] != final_request["optimization"]
+        or set(final_request["properties"]) != set(request["properties"]) | {"gradient"}
+    ):
+        raise ValueError(
+            "Optimization initial/final geometry/state definitions differ."
+        )
+    import numpy as np
+
+    parameters = optimization.get("parameters", {})
+    required = {
+        "maxsteps",
+        "convergence_energy",
+        "convergence_grms",
+        "convergence_gmax",
+        "convergence_drms",
+        "convergence_dmax",
+    }
+    trajectory = read_json(directory / "optimization-trajectory.json")
+    gradient = np.asarray(result["gradient_hartree_bohr"], dtype=float)
+    if (
+        optimization.get("engine") != "geomeTRIC"
+        or optimization.get("converged") is not True
+        or optimization.get("final_gradient_verified") is not True
+        or not isinstance(parameters, dict)
+        or set(parameters) != required
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not np.isfinite(value)
+            or value <= 0
+            for value in parameters.values()
+        )
+        or type(parameters["maxsteps"]) is not int
+        or parameters["maxsteps"] > 300
+        or any(
+            parameters.get(name) != value
+            for name, value in request["optimization"].items()
+        )
+        or gradient.shape != (len(result["molecule"]["symbols"]), 3)
+        or not np.isfinite(gradient).all()
+        or float(np.sqrt(np.mean(gradient * gradient))) > parameters["convergence_grms"]
+        or float(np.max(np.abs(gradient))) > parameters["convergence_gmax"]
+        or not isinstance(trajectory, list)
+        or not trajectory
+        or not isinstance(trajectory[-1], dict)
+        or optimization.get("evaluations") != len(trajectory)
+        or trajectory[-1].get("geometry_bohr") != final_geometry
+    ):
+        raise ValueError("Actual optimization convergence/trajectory is unestablished.")
+    return final
 
 
 def _match_native_tuple(definition: CapabilityTuple, result: dict) -> None:
@@ -396,6 +506,10 @@ def _require_current_native_installation(result: dict) -> None:
         raise ValueError(
             "The observed current dispersion installation is incompatible."
         )
+    if result.get("optimization") is not None and version("geometric") != result[
+        "optimization"
+    ].get("version"):
+        raise ValueError("The observed current optimizer installation is incompatible.")
 
 
 class RestartFingerprint(Contract):
@@ -609,8 +723,8 @@ def register_restart_artifact(
             "The restart input is absent from the authentic native inventory."
         )
     original = _relative_file(root, relative_path)
-    _check_restart_kind(original, artifact_kind)
     fingerprint = restart_fingerprint(root, recipe_sha256=recipe_sha256)
+    _check_restart_kind(original, artifact_kind, fingerprint=fingerprint)
     identity = _file_sha256(original)
     destination = Path(sealed_path).absolute()
     _copy_new(original, destination, identity, mode=0o440)
@@ -627,7 +741,9 @@ def register_restart_artifact(
     )
 
 
-def _check_restart_kind(path: Path, artifact_kind: str) -> None:
+def _check_restart_kind(
+    path: Path, artifact_kind: str, *, fingerprint: RestartFingerprint | None = None
+) -> None:
     if artifact_kind == "wavefunction":
         if path.name != "wavefunction.chk":
             raise ValueError(
@@ -645,6 +761,33 @@ def _check_restart_kind(path: Path, artifact_kind: str) -> None:
             raise ValueError(
                 "The actual checkpoint lacks native molecule/orbital data."
             )
+        if fingerprint is not None:
+            import json
+
+            import numpy as np
+
+            basis_bytes = (
+                json.dumps(molecule._basis, indent=2, sort_keys=True, allow_nan=False)
+                + "\n"
+            ).encode()
+            if (
+                tuple(molecule.atom_symbol(index) for index in range(molecule.natm))
+                != fingerprint.symbols
+                or molecule.charge != fingerprint.charge
+                or molecule.spin + 1 != fingerprint.multiplicity
+                or not np.allclose(
+                    molecule.atom_coords(unit="Bohr"),
+                    fingerprint.geometry_bohr,
+                    rtol=0,
+                    atol=1e-12,
+                )
+                or sha256(basis_bytes).hexdigest()
+                != fingerprint.basis_definition_sha256
+            ):
+                raise ValueError(
+                    "Native checkpoint geometry/state/basis differs from its "
+                    "declared final restart fingerprint."
+                )
     elif artifact_kind == "hessian":
         if path.name != "hessian-hartree-bohr2.npy":
             raise ValueError("The registered Hessian must be an actual native array.")
@@ -660,6 +803,11 @@ def _check_restart_kind(path: Path, artifact_kind: str) -> None:
             raise ValueError(
                 "The native Hessian must be a finite float64 square array."
             )
+        if fingerprint is not None and data.shape != (
+            3 * len(fingerprint.symbols),
+            3 * len(fingerprint.symbols),
+        ):
+            raise ValueError("Native Hessian dimensions differ from the fingerprint.")
     else:
         raise NotImplementedError(
             "This artifact kind has no qualified native registration adapter."
@@ -698,7 +846,9 @@ def assess_restart_reuse(
         raise ValueError(
             "The retained original is absent from the native provenance bundle."
         )
-    _check_restart_kind(Path(artifact.original_path), artifact.artifact_kind)
+    _check_restart_kind(
+        Path(artifact.original_path), artifact.artifact_kind, fingerprint=actual
+    )
     for name in ("original_path", "sealed_path"):
         path = _actual_file(Path(getattr(artifact, name)))
         if (

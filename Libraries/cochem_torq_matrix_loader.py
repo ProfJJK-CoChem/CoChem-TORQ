@@ -26,6 +26,7 @@ import functools
 import hashlib
 import json
 import logging
+import math
 import os
 import platform
 import tempfile
@@ -366,52 +367,50 @@ def get_atomic_mass(symbol: str) -> float:
         Standard atomic mass in Da (g/mol).
     """
     el = _get_mendeleev_element(symbol)
-    if el.atomic_weight is not None:
-        return float(el.atomic_weight)
-    if el.mass is not None:
-        return float(el.mass)
-    if el.isotopes:
-        return float(el.isotopes[0].mass or el.isotopes[0].mass_number)
-    raise ValueError(f"No atomic mass available in mendeleev for '{symbol}'.")
+    return _positive_tabulated_property(el.atomic_weight, el.symbol, "atomic_weight")
+
+
+def _positive_tabulated_property(value: Any, symbol: str, name: str) -> float:
+    """Require the named database property; never substitute another definition."""
+    if value is None or isinstance(value, bool):
+        raise ValueError(f"Mendeleev {name} is unavailable for {symbol}.")
+    result = float(value)
+    if not math.isfinite(result) or result <= 0:
+        raise ValueError(f"Mendeleev {name} is not finite and positive for {symbol}.")
+    return result
 
 
 def get_isotopic_mass(symbol: str, mass_number: Optional[int] = None) -> float:
-    """Retrieve exact isotopic mass dynamically from Mendeleev.
+    """Retrieve a tabulated isotope mass without substituting atomic weights.
 
     Args:
         symbol: Chemical element symbol (e.g. 'C', 'H').
         mass_number: Isotope nucleon number (e.g. 13 for C-13, 2 for Deuterium).
 
     Returns:
-        Exact isotopic mass in Da.
+        Tabulated isotope mass in Da; unspecified isotopes use natural abundance.
     """
+    from Libraries.cochem_isotopes import isotope_mass
+
+    if mass_number is not None and (type(mass_number) is not int or mass_number <= 0):
+        raise ValueError("An isotope mass number must be a positive integer.")
     el = _get_mendeleev_element(symbol)
-    if mass_number is None:
-        return get_atomic_mass(symbol)
-    for iso in el.isotopes:
-        if iso.mass_number == mass_number:
-            if iso.mass is not None:
-                return float(iso.mass)
-            return float(iso.mass_number)
-    return get_atomic_mass(symbol)
+    label = el.symbol if mass_number is None else f"{mass_number}{el.symbol}"
+    return _positive_tabulated_property(isotope_mass(label), el.symbol, "isotope_mass")
 
 
 def get_covalent_radius(symbol: str) -> float:
     """Retrieve Pyykkö single-bond covalent radius in Angstroms dynamically from Mendeleev."""
     el = _get_mendeleev_element(symbol)
-    if el.covalent_radius_pyykko is not None:
-        return float(el.covalent_radius_pyykko) / 100.0
-    if el.covalent_radius is not None:
-        return float(el.covalent_radius) / 100.0
-    return 1.40
+    return _positive_tabulated_property(
+        el.covalent_radius_pyykko, el.symbol, "covalent_radius_pyykko"
+    ) / 100.0
 
 
 def get_vdw_radius(symbol: str) -> float:
     """Retrieve van der Waals radius in Angstroms dynamically from Mendeleev."""
     el = _get_mendeleev_element(symbol)
-    if el.vdw_radius is not None:
-        return float(el.vdw_radius) / 100.0
-    return 2.00
+    return _positive_tabulated_property(el.vdw_radius, el.symbol, "vdw_radius") / 100.0
 
 
 def validate_element_symbols(symbols: Sequence[str]) -> List[str]:

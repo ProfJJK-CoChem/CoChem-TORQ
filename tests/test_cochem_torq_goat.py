@@ -132,6 +132,23 @@ def test_dynamic_mendeleev_radii() -> None:
     assert 1.60 < c_vdw < 1.85, f"Unexpected C vdW radius: {c_vdw}"
 
 
+def test_isotope_and_radius_unavailability_is_not_substituted():
+    from mendeleev import element
+
+    carbon = element("C")
+    assert get_dynamic_covalent_radius("C") == carbon.covalent_radius_pyykko / 100
+    assert get_dynamic_vdw_radius("C") == carbon.vdw_radius / 100
+    assert all(isotope.mass_number != 9999 for isotope in carbon.isotopes)
+    with pytest.raises(ValueError, match="No tabulated mass"):
+        get_dynamic_isotopic_mass("C", 9999)
+    assert not any(isotope.abundance for isotope in element("Tc").isotopes)
+    with pytest.raises(ValueError, match="Specify an isotope"):
+        get_dynamic_isotopic_mass("Tc")
+    assert element("Rf").vdw_radius is None
+    with pytest.raises(ValueError, match="vdw_radius is unavailable"):
+        get_dynamic_vdw_radius("Rf")
+
+
 # =============================================================================
 # 2. Rigid Rotor & Rotational Constants Tests
 # =============================================================================

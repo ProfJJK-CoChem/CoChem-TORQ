@@ -43,52 +43,17 @@ FLOAT32_NOISE_FLOOR_EH: float = 4.0e-6
 FLOAT32_NOISE_FLOOR_EV: float = FLOAT32_NOISE_FLOOR_EH * HARTREE_TO_EV
 FLOAT32_NOISE_FLOOR_KCAL_MOL: float = FLOAT32_NOISE_FLOOR_EV * EV_TO_KCAL_MOL
 
-# Standard Pyykkö covalent single-bond radii in Ångströms (fallback table)
-COVALENT_RADII: dict[str, float] = {
-    "H": 0.32,
-    "He": 0.46,
-    "Li": 1.33,
-    "Be": 1.02,
-    "B": 0.85,
-    "C": 0.75,
-    "N": 0.71,
-    "O": 0.63,
-    "F": 0.64,
-    "Ne": 0.67,
-    "Na": 1.55,
-    "Mg": 1.39,
-    "Al": 1.26,
-    "Si": 1.16,
-    "P": 1.11,
-    "S": 1.03,
-    "Cl": 0.99,
-    "Ar": 0.96,
-    "K": 1.96,
-    "Ca": 1.71,
-    "Br": 1.14,
-    "I": 1.33,
-}
+
+def get_covalent_radius_record(symbol: str) -> dict[str, Any]:
+    """Use the same named Pyykkö database definition and provenance as quench."""
+    from Libraries.cochem_torq_quench import get_covalent_radius_record as resolve
+
+    return resolve(symbol)
 
 
 def get_covalent_radius(symbol: str) -> float:
-    """
-    Dynamically retrieve Pyykkö covalent single-bond radius in Ångströms via Mendeleev.
-    Falls back to standard Pyykkö table if Mendeleev is unavailable.
-    """
-    try:
-        import mendeleev
-
-        elem = mendeleev.element(symbol)
-        rad_pm = getattr(elem, "covalent_radius_pyykko", None) or getattr(
-            elem, "covalent_radius", None
-        )
-        if rad_pm is not None:
-            return float(rad_pm) / 100.0
-    except Exception:
-        pass
-    if symbol in COVALENT_RADII:
-        return COVALENT_RADII[symbol]
-    raise ValueError(f"Covalent radius unavailable for {symbol!r}.")
+    """Require a genuine finite positive named Pyykkö radius, without substitution."""
+    return float(get_covalent_radius_record(symbol)["radius_angstrom"])
 
 
 def partition_molecular_graph(

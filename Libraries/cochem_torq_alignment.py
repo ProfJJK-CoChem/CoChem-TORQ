@@ -170,68 +170,50 @@ class CoChemPathManager:
 # Exact CIAAW Mono-Isotopic Masses (u / Da)
 # ============================================================================
 
+def _real_finite_array(value: Any, name: str) -> np.ndarray:
+    raw = np.asarray(value)
+    objects = np.asarray(value, dtype=object)
+    if np.iscomplexobj(raw) or any(
+        isinstance(item, (bool, np.bool_)) for item in objects.flat
+    ):
+        raise ValueError(
+            f"{name} must contain finite real numbers, not complex or boolean values."
+        )
+    result = np.asarray(value, dtype=np.float64)
+    if not np.all(np.isfinite(result)):
+        raise ValueError(f"{name} must contain finite real numbers.")
+    if name == "Masses" and np.any(result <= 0):
+        raise ValueError("Individual masses must be strictly positive.")
+    return result
+
+
 def enforce_ciaaw_masses(symbols: Sequence[str]) -> np.ndarray:
+    """Resolve tabulated isotope masses using the shared explicit isotope policy.
+
+    The historical function name is retained for compatibility. The installed
+    Mendeleev table is the actual provider; these measured masses have uncertainty
+    and are not asserted to be exact constants or independently verified CIAAW
+    reference values. Missing natural abundance requires an explicit isotope.
     """
-    Maps atomic elemental or isotopic symbols to exact CIAAW mono-isotopic masses.
+    from Libraries.cochem_isotopes import isotope_mass
 
-    Uses the mendeleev package exclusively for all isotopic mass lookups.
-
-    :param symbols: List or sequence of atomic symbols (e.g. ['C', 'H', 'H', 'H', 'F']).
-    :return: 1D numpy array of dtype float64 containing exact masses in atomic mass units (Da / u).
-    :raises ValueError: If an unrecognized symbol or invalid element is provided.
-    """
-    if not symbols:
-        return np.empty(0, dtype=np.float64)
-
-    masses: list[float] = []
-    import mendeleev
-    import re
-
-    for raw_sym in symbols:
-        clean = raw_sym.strip()
+    masses = []
+    for symbol in symbols:
+        clean = symbol.strip()
         if not clean:
             raise ValueError("Empty or blank atomic symbol provided.")
-
-        # Handle D and T aliases
-        if clean.upper() == "D":
-            clean = "2H"
-        elif clean.upper() == "T":
-            clean = "3H"
-
-        match = re.match(r'^(\d+)?([A-Za-z]+)$', clean)
-        if not match:
-            raise ValueError(
-                f"Unrecognized or invalid atomic symbol '{raw_sym}' cannot be mapped to CIAAW mass."
-            )
-        
-        mass_num_str = match.group(1)
-        element_sym = match.group(2)
-        element_sym = element_sym[0].upper() + element_sym[1:].lower()
-
+        if clean.upper() in ("D", "T"):
+            clean = clean.upper()
         try:
-            el = mendeleev.element(element_sym)
-            if mass_num_str:
-                mass_num = int(mass_num_str)
-                iso = next((i for i in el.isotopes if i.mass_number == mass_num), None)
-                if iso is not None and iso.mass is not None:
-                    masses.append(float(iso.mass))
-                else:
-                    raise ValueError(f"Isotope {raw_sym} not found.")
-            else:
-                most_abundant = max(
-                    el.isotopes,
-                    key=lambda iso: (iso.abundance if iso.abundance is not None else 0.0, iso.mass_number),
-                )
-                if most_abundant.mass is not None:
-                    masses.append(float(most_abundant.mass))
-                else:
-                    masses.append(float(el.atomic_weight))
-        except Exception as err:
+            mass = isotope_mass(clean)
+        except ValueError as error:
             raise ValueError(
-                f"Unrecognized or invalid atomic symbol '{raw_sym}' cannot be mapped to CIAAW mass."
-            ) from err
-
-    return np.array(masses, dtype=np.float64)
+                f"Unrecognized or invalid atomic symbol {symbol!r}: {error}"
+            ) from error
+        if not math.isfinite(mass) or mass <= 0:
+            raise ValueError(f"Tabulated isotope mass is not finite and positive: {symbol!r}")
+        masses.append(mass)
+    return np.asarray(masses, dtype=np.float64)
 
 
 # ============================================================================
@@ -258,8 +240,8 @@ def translate_com_to_origin(
              and com_vector has shape (3,).
     :raises ValueError: If geometry/mass shape mismatch occurs or COM residual exceeds tolerance.
     """
-    geo = np.asarray(geometry, dtype=np.float64)
-    masses = np.asarray(exact_masses, dtype=np.float64)
+    geo = _real_finite_array(geometry, "Geometry")
+    masses = _real_finite_array(exact_masses, "Masses")
 
     if geo.ndim != 2 or geo.shape[1] != 3:
         raise ValueError(f"Geometry must be a 2D array of shape (N, 3), got {geo.shape}")
@@ -310,8 +292,8 @@ def compute_inertia_tensor(
     :param exact_masses: 1D array of exact atomic masses of length N in Da.
     :return: 3x3 symmetric Moment of Inertia Tensor as a float64 numpy array.
     """
-    geo = np.asarray(geometry, dtype=np.float64)
-    masses = np.asarray(exact_masses, dtype=np.float64)
+    geo = _real_finite_array(geometry, "Geometry")
+    masses = _real_finite_array(exact_masses, "Masses")
 
     if geo.ndim != 2 or geo.shape[1] != 3:
         raise ValueError(f"Geometry must be of shape (N, 3), got {geo.shape}")
@@ -376,7 +358,7 @@ def diagonalize_principal_axes(
              - rotation_matrix: shape (3, 3) with det(R) = +1.0
     """
     geo_centered, _ = translate_com_to_origin(geometry, exact_masses)
-    masses = np.asarray(exact_masses, dtype=np.float64)
+    masses = _real_finite_array(exact_masses, "Masses")
 
     # Compute initial inertia tensor
     inertia_tensor = compute_inertia_tensor(geo_centered, masses)
@@ -489,7 +471,7 @@ def compute_rotational_constants(
 
 def compute_ray_asymmetry_parameter(
     rotational_constants: Tuple[float, float, float] | np.ndarray | Sequence[float],
-) -> float:
+) -> float | None:
     """
     Computes Ray's asymmetry parameter (kappa) describing the degree of molecular asymmetry.
 
@@ -501,10 +483,10 @@ def compute_ray_asymmetry_parameter(
     - Oblate symmetric top limit: kappa = +1.0 (A = B)
     - Most asymmetric top: kappa = 0.0 (B = (A + C) / 2)
     - Linear molecule (A -> inf, B = C): kappa = -1.0
-    - Spherical top (A = B = C): kappa = 0.0
+    - Spherical top (A = B = C): undefined (None).
 
     :param rotational_constants: 3-element tuple or array of (A, B, C).
-    :return: Ray's kappa as a float in the range [-1.0, 1.0].
+    :return: Ray's kappa in [-1.0, 1.0], or None for a spherical top.
     """
     rc = [float(v) for v in rotational_constants]
     if len(rc) != 3:
@@ -512,24 +494,20 @@ def compute_ray_asymmetry_parameter(
 
     a, b, c = rc[0], rc[1], rc[2]
 
-    # Linear rotor limit: A is infinite or extremely large
-    if math.isinf(a) or a > 1.0e12:
-        return -1.0
-
-    # Spherical top: A == B == C
-    denom = a - c
-    if abs(denom) < 1.0e-10:
-        return 0.0
-
-    kappa = (2.0 * b - a - c) / denom
-
-    # Clamp numerical boundary precision
-    if kappa < -1.0 and kappa >= -1.0000001:
-        kappa = -1.0
-    elif kappa > 1.0 and kappa <= 1.0000001:
-        kappa = 1.0
-
-    return float(kappa)
+    if any(math.isnan(value) or value <= 0 for value in rc):
+        raise ValueError("Rotational constants must be positive and cannot contain NaN.")
+    if math.isinf(a):
+        if a > 0 and math.isfinite(b) and math.isfinite(c) and b == c:
+            return -1.0  # Explicit analytic linear-rotor limit, not a finite A.
+        raise ValueError("The linear-rotor limit requires positive finite B = C.")
+    if not all(math.isfinite(value) for value in rc) or not a >= b >= c:
+        raise ValueError("Finite rotational constants must be ordered A >= B >= C.")
+    if a == c:
+        return None
+    # This algebraic form avoids overflowing 2*B and preserves actual finite
+    # near-spherical and very-large-A values instead of substituting a limit.
+    denominator = a - c
+    return float((b - c) / denominator - (a - b) / denominator)
 
 
 def compute_inertial_defect(
@@ -735,7 +713,7 @@ class EckartAlignmentResult(BaseModel):
     com_vector: Tuple[float, float, float] = Field(
         ..., description="Original Center of Mass translation vector (r_COM) in Angstroms."
     )
-    ray_kappa: float = Field(
+    ray_kappa: float | None = Field(
         ..., description="Ray's asymmetry parameter kappa = (2B - A - C) / (A - C)."
     )
     inertial_defect: float = Field(
@@ -744,11 +722,11 @@ class EckartAlignmentResult(BaseModel):
     rotor_type: str = Field(
         ..., description="Canonical spectroscopic rotor classification."
     )
-    symbols: list[str] = Field(
-        ..., description="List of atomic symbols in coordinate order."
+    symbols: list[str] | None = Field(
+        ..., description="Supplied atomic symbols, or None when only masses were supplied."
     )
     exact_masses: list[float] = Field(
-        ..., description="List of exact CIAAW mono-isotopic masses in Da."
+        ..., description="Masses actually used in Da; their source is retained in metadata."
     )
     det_r: float = Field(
         ..., description="Determinant of the rotation matrix (strictly +1.0)."
@@ -810,8 +788,9 @@ class EckartAligner:
     ) -> None:
         self.symbols: Optional[list[str]] = [s.strip() for s in symbols] if symbols is not None else None
         self.masses: Optional[np.ndarray]
+        self._caller_supplied_masses = masses is not None
         if masses is not None:
-            self.masses = np.asarray(masses, dtype=np.float64)
+            self.masses = _real_finite_array(masses, "Masses")
         elif self.symbols is not None:
             self.masses = enforce_ciaaw_masses(self.symbols)
         else:
@@ -834,17 +813,26 @@ class EckartAligner:
         :param metadata: Optional auxiliary metadata dictionary.
         :return: EckartAlignmentResult model instance.
         """
-        geo_arr = np.asarray(geometry, dtype=np.float64)
+        geo_arr = _real_finite_array(geometry, "Geometry")
         if geo_arr.ndim != 2 or geo_arr.shape[1] != 3:
             raise ValueError(f"Geometry must have shape (N, 3), got {geo_arr.shape}")
 
         syms = [s.strip() for s in symbols] if symbols is not None else self.symbols
         if exact_masses is not None:
-            mass_arr = np.asarray(exact_masses, dtype=np.float64)
-        elif self.masses is not None and (syms is None or len(syms) == len(self.masses)):
+            mass_arr = _real_finite_array(exact_masses, "Masses")
+            mass_source = "caller_supplied"
+        elif symbols is not None:
+            mass_arr = enforce_ciaaw_masses(syms)
+            mass_source = "Mendeleev_isotope_database"
+        elif self.masses is not None:
             mass_arr = self.masses
+            mass_source = (
+                "caller_supplied" if self._caller_supplied_masses
+                else "Mendeleev_isotope_database"
+            )
         elif syms is not None:
             mass_arr = enforce_ciaaw_masses(syms)
+            mass_source = "Mendeleev_isotope_database"
         else:
             raise ValueError("Atomic symbols or exact masses must be provided for mass-weighted alignment.")
 
@@ -878,6 +866,29 @@ class EckartAligner:
         rotor_type = classify_rotor_type(principal_moments)
 
         det_r = float(np.linalg.det(rotation_matrix))
+        from Libraries.cochem_isotopes import isotope_record
+
+        isotope_records = (
+            [
+                isotope_record(symbol.upper() if symbol.upper() in ("D", "T") else symbol)
+                for symbol in syms
+            ] if mass_source == "Mendeleev_isotope_database" else None
+        )
+        if isotope_records is not None and not np.array_equal(
+            mass_arr, [record["mass_u"] for record in isotope_records]
+        ):
+            raise ValueError("Used masses differ from declared isotope database records.")
+        factual_metadata = {
+            **(metadata or {}),
+            "mass_source": mass_source,
+            "isotope_records": isotope_records,
+            "symbols_available": syms is not None,
+            "ray_kappa_status": (
+                "undefined_for_spherical_top" if kappa is None
+                else "linear_rotor_limit" if math.isinf(rc_mhz[0])
+                else "derived_from_finite_rotational_constants"
+            ),
+        }
 
         return EckartAlignmentResult(
             aligned_geometry=[[float(v) for v in row] for row in aligned_geo],
@@ -887,14 +898,14 @@ class EckartAligner:
             rotational_constants_cm1=rc_cm1,
             rotation_matrix=[[float(v) for v in row] for row in rotation_matrix],
             com_vector=(float(com_vector[0]), float(com_vector[1]), float(com_vector[2])),
-            ray_kappa=float(kappa),
+            ray_kappa=kappa,
             inertial_defect=float(delta),
             rotor_type=rotor_type,
-            symbols=syms if syms is not None else [f"X{i+1}" for i in range(len(mass_arr))],
+            symbols=syms,
             exact_masses=[float(m) for m in mass_arr],
             det_r=det_r,
             provenance=self.provenance_tag,
-            metadata=metadata or {},
+            metadata=factual_metadata,
         )
 
     @classmethod

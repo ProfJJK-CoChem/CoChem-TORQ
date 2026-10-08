@@ -31,6 +31,17 @@ class ArtifactBackpressureError(RuntimeError):
     """The actual local artifact store cannot admit the requested work."""
 
 
+class ArtifactObservationError(ArtifactBackpressureError):
+    """Mutable scratch could not produce a complete bounded observation."""
+
+    def __init__(self, scans: list[dict[str, int]]) -> None:
+        super().__init__(
+            "Mutable scratch inventory did not stabilize within three scans; "
+            "unobserved file sizes and exact peak usage remain unknown."
+        )
+        self.observed_scans = tuple(dict(scan) for scan in scans)
+
+
 @dataclass(frozen=True)
 class ArtifactQuotaPolicy:
     max_owned_bytes: int = 1024 * 1024 * 1024
@@ -59,32 +70,92 @@ def _root(path: str | Path, *, create: bool = False) -> Path:
     return target
 
 
-def artifact_usage(root: str | Path, *, max_files: int = 100_000) -> dict[str, Any]:
-    """Count actual regular-file bytes, rejecting links and special files."""
+def artifact_usage(
+    root: str | Path,
+    *,
+    max_files: int = 100_000,
+    mutable_scratch: bool = False,
+    max_owned_bytes: int | None = None,
+) -> dict[str, Any]:
+    """Observe regular-file bytes without claiming an atomic snapshot or peak.
+
+    Static inventories stay strict. Live scratch may lose a checkpoint between
+    directory enumeration and stat; only that explicit disappearance triggers
+    up to three rescans. Permission errors, links and special files still reject.
+    A persistently incomplete inventory fails closed instead of assigning zero
+    bytes to files that were never measured.
+    """
     target = _root(root)
     if type(max_files) is not int or max_files < 1:
         raise ValueError("max_files must be a positive integer.")
-    size = count = 0
-    for current, directories, files in os.walk(target, followlinks=False):
-        for name in directories + files:
-            path = Path(current) / name
-            info = path.lstat()
-            if not stat.S_ISREG(info.st_mode) and not stat.S_ISDIR(info.st_mode):
-                raise ValueError(
-                    "Artifact accounting forbids symlinks and special files."
-                )
-            if stat.S_ISREG(info.st_mode):
-                size += info.st_size
-                count += 1
-                if count > max_files:
-                    raise ArtifactBackpressureError(
-                        "Artifact file-count quota is exhausted."
+    if type(mutable_scratch) is not bool:
+        raise ValueError("mutable_scratch must be an explicit boolean.")
+    if max_owned_bytes is not None and (
+        type(max_owned_bytes) is not int or max_owned_bytes < 0
+    ):
+        raise ValueError("max_owned_bytes must be a nonnegative integer or None.")
+    scans: list[dict[str, int]] = []
+    for attempt in range(3 if mutable_scratch else 1):
+        size = count = disappeared = 0
+
+        def directory_error(error: OSError) -> None:
+            nonlocal disappeared
+            if mutable_scratch and isinstance(error, FileNotFoundError):
+                disappeared += 1
+                return
+            raise error
+
+        # Directory descriptors anchor each stat to the directory actually
+        # opened by fwalk, including when path components are renamed.
+        for _, directories, files, descriptor in os.fwalk(
+            target, follow_symlinks=False, onerror=directory_error
+        ):
+            for name in directories + files:
+                try:
+                    info = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+                except FileNotFoundError:
+                    if not mutable_scratch:
+                        raise
+                    disappeared += 1
+                    continue
+                if not stat.S_ISREG(info.st_mode) and not stat.S_ISDIR(info.st_mode):
+                    raise ValueError(
+                        "Artifact accounting forbids symlinks and special files."
                     )
-    return {
-        "owned_bytes": size,
-        "files": count,
-        "free_bytes": shutil.disk_usage(target).free,
-    }
+                if stat.S_ISREG(info.st_mode):
+                    size += info.st_size
+                    count += 1
+                    if count > max_files:
+                        raise ArtifactBackpressureError(
+                            "Artifact file-count quota is exhausted."
+                        )
+                    if max_owned_bytes is not None and size > max_owned_bytes:
+                        raise ArtifactBackpressureError(
+                            "The worker exceeded its actual artifact output budget."
+                        )
+        scans.append(
+            {
+                "owned_bytes": size,
+                "files": count,
+                "disappeared_entries": disappeared,
+            }
+        )
+        if not disappeared:
+            return {
+                "owned_bytes": size,
+                "files": count,
+                "free_bytes": shutil.disk_usage(target).free,
+                "measurement_kind": "non_atomic_directory_observation",
+                "exact_peak_usage_available": False,
+                "scan_attempts": attempt + 1,
+                "disappeared_entries_observed": sum(
+                    scan["disappeared_entries"] for scan in scans
+                ),
+                "maximum_observed_scan_bytes": max(
+                    scan["owned_bytes"] for scan in scans
+                ),
+            }
+    raise ArtifactObservationError(scans)
 
 
 @contextmanager
@@ -245,12 +316,11 @@ def enforce_artifact_budget(
         for value in (baseline_bytes, max_growth_bytes)
     ):
         raise ValueError("Artifact growth limits must be nonnegative integers.")
-    usage = artifact_usage(root)
-    if usage["owned_bytes"] > baseline_bytes + max_growth_bytes:
-        raise ArtifactBackpressureError(
-            "The worker exceeded its actual artifact output budget."
-        )
-    return usage
+    return artifact_usage(
+        root,
+        mutable_scratch=True,
+        max_owned_bytes=baseline_bytes + max_growth_bytes,
+    )
 
 
 def _expected_digest(value: str) -> None:

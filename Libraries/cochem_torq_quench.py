@@ -6,7 +6,7 @@ caused by severe atomic overlap during large-amplitude torsional rotations.
 
 Authoritative Standards:
 - Method Matrix: Stage 2.0 - 2.1 Steric Clash Detection & Soft Quench
-- Pyykkö & Atsumi (2008) / Alvarez (2008) Covalent Radii Standards
+- Explicitly named Mendeleev covalent_radius_pyykko definition
 - Mendeleev Mandate: Dynamic atomic mass and covalent radius resolution
 - Anti-Spoofing Protocol v2 Compliance (No mocks, authentic physics)
 """
@@ -28,85 +28,73 @@ except ImportError:
 
 logger = logging.getLogger("CoChem-TORQ.Quench")
 
-# Standard Pyykkö Covalent Single-Bond Radii in Ångströms (Fallback Lookup Table)
-COVALENT_RADII_ANG: dict[str, float] = {
-    "H": 0.31,
-    "He": 0.28,
-    "Li": 1.28,
-    "Be": 0.96,
-    "B": 0.84,
-    "C": 0.76,
-    "N": 0.71,
-    "O": 0.66,
-    "F": 0.57,
-    "Ne": 0.58,
-    "Na": 1.66,
-    "Mg": 1.41,
-    "Al": 1.21,
-    "Si": 1.11,
-    "P": 1.07,
-    "S": 1.05,
-    "Cl": 1.02,
-    "Ar": 1.06,
-    "K": 2.03,
-    "Ca": 1.76,
-    "Sc": 1.48,
-    "Ti": 1.36,
-    "V": 1.34,
-    "Cr": 1.22,
-    "Mn": 1.19,
-    "Fe": 1.16,
-    "Co": 1.11,
-    "Ni": 1.10,
-    "Cu": 1.12,
-    "Zn": 1.18,
-    "Ga": 1.24,
-    "Ge": 1.21,
-    "As": 1.21,
-    "Se": 1.16,
-    "Br": 1.20,
-    "Kr": 1.17,
-    "Rb": 2.10,
-    "Sr": 1.85,
-    "Y": 1.63,
-    "Zr": 1.48,
-    "Nb": 1.37,
-    "Mo": 1.36,
-    "Tc": 1.26,
-    "Ru": 1.26,
-    "Rh": 1.25,
-    "Pd": 1.25,
-    "Ag": 1.28,
-    "Cd": 1.36,
-    "In": 1.42,
-    "Sn": 1.40,
-    "Sb": 1.40,
-    "Te": 1.36,
-    "I": 1.39,
-    "Xe": 1.31,
-}
+
+def _validate_pyykko_radius(radius_pm: Any, symbol: str) -> float:
+    """Validate a supplied named-property value; absence cannot become a radius."""
+    if radius_pm is None:
+        raise ValueError(f"Named Pyykkö covalent radius unavailable for {symbol!r}")
+    if isinstance(radius_pm, (bool, complex, np.complexfloating)):
+        raise ValueError("Named Pyykkö radius must be a real positive numeric value")
+    value = float(radius_pm)
+    if not np.isfinite(value) or value <= 0:
+        raise ValueError(
+            f"Named Pyykkö covalent radius must be finite and positive for {symbol!r}"
+        )
+    return value
 
 
 @functools.lru_cache(maxsize=128)
+def _pyykko_radius_data(symbol: str) -> tuple[str, int, float, str, str]:
+    """Query one named radius definition from the actual installed database."""
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("A nonempty element symbol is required for a Pyykkö radius")
+    if element is None:
+        raise RuntimeError("Mendeleev is required for named Pyykkö radius lookup")
+    clean_symbol = symbol.strip().capitalize()
+    observed = element(clean_symbol)
+    radius_pm = _validate_pyykko_radius(observed.covalent_radius_pyykko, clean_symbol)
+    from Libraries.cochem_isotopes import _database_source
+
+    distribution_version, database_digest = _database_source()
+    return (
+        observed.symbol,
+        int(observed.atomic_number),
+        radius_pm,
+        distribution_version,
+        database_digest,
+    )
+
+
+def get_covalent_radius_record(symbol: str) -> dict[str, Any]:
+    """Return a genuine named Pyykkö radius with database identity and units.
+
+    A generic covalent radius uses a different definition. Missing records or
+    provider failures remain unavailable; no static table or guessed radius is
+    substituted. The database field does not supply uncertainty estimates.
+    """
+    name, atomic_number, radius_pm, distribution_version, database_digest = (
+        _pyykko_radius_data(symbol)
+    )
+    return {
+        "schema_version": "cochem-pyykko-radius/1",
+        "element": name,
+        "atomic_number": atomic_number,
+        "property": "covalent_radius_pyykko",
+        "database_value_pm": radius_pm,
+        "radius_angstrom": radius_pm / 100.0,
+        "uncertainty_angstrom": None,
+        "uncertainty_status": "not_provided_by_named_database_field",
+        "source": {
+            "database": "Mendeleev elements.db",
+            "distribution_version": distribution_version,
+            "database_sha256": database_digest,
+        },
+    }
+
+
 def get_covalent_radius(symbol: str) -> float:
-    """
-    Dynamically retrieve covalent single-bond radius in Ångströms via Mendeleev.
-    Falls back to authoritative Pyykkö / Alvarez table if Mendeleev is unavailable.
-    """
-    clean_sym = symbol.strip().capitalize()
-    if element is not None:
-        try:
-            elem = element(clean_sym)
-            rad_pm = getattr(elem, "covalent_radius_pyykko", None) or getattr(
-                elem, "covalent_radius", None
-            )
-            if rad_pm is not None:
-                return float(rad_pm) / 100.0
-        except Exception:
-            pass
-    if clean_sym in COVALENT_RADII_ANG:
-        return COVALENT_RADII_ANG[clean_sym]
-    raise ValueError(f"Covalent radius unavailable for {symbol!r}.")
+    """Return the explicitly named database radius; never change its definition."""
+    return float(get_covalent_radius_record(symbol)["radius_angstrom"])
 
 
 @functools.lru_cache(maxsize=128)
@@ -411,14 +399,27 @@ def format_to_qcschema_v1(
     geometry is converted to Bohr; this helper does not perform a calculation.
     """
     from scipy.constants import physical_constants
+
     coords = np.asarray(coordinates, dtype=np.float64)
-    if coords.shape != (len(symbols), 3) or not len(symbols) or not np.isfinite(coords).all():
+    if (
+        coords.shape != (len(symbols), 3)
+        or not len(symbols)
+        or not np.isfinite(coords).all()
+    ):
         raise ValueError("A nonempty finite molecular geometry is required.")
     if energy is None or not np.isfinite(energy):
         raise ValueError("A calculated finite energy in Hartree is required.")
-    if not method or not provenance or not all(provenance.get(k) for k in ("creator", "version", "routine")):
+    if (
+        not method
+        or not provenance
+        or not all(provenance.get(k) for k in ("creator", "version", "routine"))
+    ):
         raise ValueError("The actual method and engine provenance are required.")
-    if molecular_charge is None or molecular_multiplicity is None or molecular_multiplicity < 1:
+    if (
+        molecular_charge is None
+        or molecular_multiplicity is None
+        or molecular_multiplicity < 1
+    ):
         raise ValueError("The molecular charge and spin multiplicity are required.")
     bohr_angstrom = physical_constants["Bohr radius"][0] * 1e10
     coords_list = (coords / bohr_angstrom).flatten().tolist()
@@ -462,7 +463,8 @@ class ConformalMDQuencher:
         hdf5_store_path: str | Path | None = None,
         check_interval: int = 5,
         force_uncertainty_threshold: float = 0.50,
-        energy_evaluator: Callable[[Sequence[str], np.ndarray], dict[str, Any]] | None = None,
+        energy_evaluator: Callable[[Sequence[str], np.ndarray], dict[str, Any]]
+        | None = None,
     ) -> None:
         self.energy_evaluator = energy_evaluator
         self.conformal_predictor = conformal_predictor
@@ -486,15 +488,20 @@ class ConformalMDQuencher:
         """Evaluate MD step with conformal bounds, triggering rollback and quench if uncertainty exceeded."""
         coords = np.asarray(coordinates, dtype=np.float64)
         syms = [str(s).capitalize() for s in symbols]
-        if self.last_checkpoint_symbols is not None and syms != self.last_checkpoint_symbols:
-            raise ValueError("Cannot roll back a trajectory with a changed molecular identity.")
+        if (
+            self.last_checkpoint_symbols is not None
+            and syms != self.last_checkpoint_symbols
+        ):
+            raise ValueError(
+                "Cannot roll back a trajectory with a changed molecular identity."
+            )
 
         # Initial checkpoint if not set
         if self.last_checkpoint_coords is None:
             self.last_checkpoint_coords = np.copy(coords)
             self.last_checkpoint_symbols = list(syms)
 
-        should_check = (step_idx % self.check_interval == 0)
+        should_check = step_idx % self.check_interval == 0
 
         uncertainty_exceeded = False
         if should_check:
@@ -506,6 +513,7 @@ class ConformalMDQuencher:
             # 2. Check epistemic force uncertainty and conformal bounds
             if forces_sigma is not None:
                 import torch
+
                 if isinstance(forces_sigma, torch.Tensor):
                     max_f_sig = float(torch.max(forces_sigma).item())
                 else:
@@ -514,8 +522,12 @@ class ConformalMDQuencher:
                 if max_f_sig > self.force_uncertainty_threshold:
                     uncertainty_exceeded = True
 
-                if self.conformal_predictor is not None and getattr(self.conformal_predictor, "is_calibrated", False):
-                    q_force = getattr(self.conformal_predictor, "q_hat_force", float("inf"))
+                if self.conformal_predictor is not None and getattr(
+                    self.conformal_predictor, "is_calibrated", False
+                ):
+                    q_force = getattr(
+                        self.conformal_predictor, "q_hat_force", float("inf")
+                    )
                     eps_f = getattr(self.conformal_predictor, "eps_f", 1e-4)
                     conformal_half_width = q_force * (max_f_sig + eps_f)
                     if conformal_half_width > self.force_uncertainty_threshold:
@@ -544,14 +556,23 @@ class ConformalMDQuencher:
                     "step_idx": step_idx,
                 }
             evaluation = self.energy_evaluator(syms, np.copy(quenched_coords))
-            evaluated_coords = np.asarray(evaluation.get("coordinates_angstrom"), dtype=np.float64)
-            if (evaluation.get("success") is not True or evaluation.get("symbols") != syms
-                    or evaluated_coords.shape != quenched_coords.shape
-                    or not np.array_equal(evaluated_coords, quenched_coords)):
-                raise ValueError("Quench evaluator must return a successful result for the exact quenched geometry and symbols.")
+            evaluated_coords = np.asarray(
+                evaluation.get("coordinates_angstrom"), dtype=np.float64
+            )
+            if (
+                evaluation.get("success") is not True
+                or evaluation.get("symbols") != syms
+                or evaluated_coords.shape != quenched_coords.shape
+                or not np.array_equal(evaluated_coords, quenched_coords)
+            ):
+                raise ValueError(
+                    "Quench evaluator must return a successful result for the exact quenched geometry and symbols."
+                )
             qcschema = format_to_qcschema_v1(
-                symbols=syms, coordinates=quenched_coords,
-                energy=evaluation.get("energy_hartree"), method=evaluation.get("method"),
+                symbols=syms,
+                coordinates=quenched_coords,
+                energy=evaluation.get("energy_hartree"),
+                method=evaluation.get("method"),
                 provenance=evaluation.get("provenance"),
                 molecular_charge=evaluation.get("molecular_charge"),
                 molecular_multiplicity=evaluation.get("molecular_multiplicity"),
@@ -563,6 +584,7 @@ class ConformalMDQuencher:
                     import json
 
                     import h5py
+
                     self.hdf5_store_path.parent.mkdir(parents=True, exist_ok=True)
                     if not self.hdf5_store_path.exists():
                         with h5py.File(self.hdf5_store_path, "w", libver="latest") as f:
@@ -586,7 +608,9 @@ class ConformalMDQuencher:
                         ds.flush()
                         f.flush()
                 except Exception as h5_err:
-                    raise RuntimeError(f"Quench result persistence failed: {h5_err}") from h5_err
+                    raise RuntimeError(
+                        f"Quench result persistence failed: {h5_err}"
+                    ) from h5_err
 
             return {
                 "action": "QUENCH_AND_ROLLBACK",
@@ -605,7 +629,6 @@ class ConformalMDQuencher:
 
 
 __all__ = [
-    "COVALENT_RADII_ANG",
     "ConformalMDQuencher",
     "TorqQuenchGovernor",
     "detect_covalent_clashes",
@@ -614,4 +637,5 @@ __all__ = [
     "format_to_qcschema_v1",
     "get_atomic_mass",
     "get_covalent_radius",
+    "get_covalent_radius_record",
 ]

@@ -151,10 +151,7 @@ def test_quench_governor_class() -> None:
     assert res["final_clash_count"] == 0
 
     jres = gov.jiggle_quench(coords, jiggle_amplitude=0.02, max_steps=50)
-    assert (
-        jres["final_clash_count"] < jres["initial_clash_count"]
-        or jres["converged"]
-    )
+    assert jres["final_clash_count"] < jres["initial_clash_count"] or jres["converged"]
 
 
 def test_dimension_mismatch_validation() -> None:
@@ -168,26 +165,59 @@ def test_dimension_mismatch_validation() -> None:
 def test_anti_spoofing_ast_integrity() -> None:
     """AST audit to verify zero mocks, stubs, or empty pass blocks."""
     quench_file = (
-        Path(__file__).resolve().parent.parent
-        / "Libraries"
-        / "cochem_torq_quench.py"
+        Path(__file__).resolve().parent.parent / "Libraries" / "cochem_torq_quench.py"
     )
     assert quench_file.exists()
     tree = ast.parse(quench_file.read_text(encoding="utf-8"))
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Raise):
-            if (
-                isinstance(node.exc, ast.Name)
-                and node.exc.id == "NotImplementedError"
-            ):
+            if isinstance(node.exc, ast.Name) and node.exc.id == "NotImplementedError":
                 pytest.fail("Found forbidden NotImplementedError")
             if (
                 isinstance(node.exc, ast.Call)
-                and getattr(node.exc.func, "id", None)
-                == "NotImplementedError"
+                and getattr(node.exc.func, "id", None) == "NotImplementedError"
             ):
                 pytest.fail("Found forbidden NotImplementedError call")
         if isinstance(node, ast.FunctionDef):
             if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
                 pytest.fail(f"Found empty pass block in function {node.name}")
+
+
+@pytest.mark.parametrize("symbol", ["H", "C", "O", "Fe", "Og"])
+def test_named_pyykko_radius_matches_actual_database_and_retains_identity(symbol):
+    """Genuine provider lookup with actual version, file digest and named units."""
+    import hashlib
+    from importlib.metadata import version
+
+    from mendeleev import element
+    from mendeleev.db import get_package_dbpath
+
+    from Libraries.cochem_torq_quench import get_covalent_radius_record
+
+    actual = element(symbol)
+    record = get_covalent_radius_record(symbol)
+    assert record["property"] == "covalent_radius_pyykko"
+    assert record["database_value_pm"] == float(actual.covalent_radius_pyykko)
+    assert record["radius_angstrom"] == float(actual.covalent_radius_pyykko) / 100.0
+    assert get_covalent_radius(symbol) == record["radius_angstrom"]
+    assert record["uncertainty_angstrom"] is None
+    assert record["source"]["distribution_version"] == version("mendeleev")
+    assert (
+        record["source"]["database_sha256"]
+        == hashlib.sha256(Path(get_package_dbpath()).read_bytes()).hexdigest()
+    )
+
+
+@pytest.mark.parametrize("value", [None, 0.0, -1.0, np.nan, np.inf, True, 1j])
+def test_absent_or_invalid_named_radius_never_gets_a_substitute(value):
+    """Pure numeric/absence contract checks; no provider is replaced or emulated."""
+    from Libraries.cochem_torq_quench import _validate_pyykko_radius
+
+    with pytest.raises(ValueError, match="Named Pyykkö"):
+        _validate_pyykko_radius(value, "C")
+
+
+def test_unknown_element_has_no_hardcoded_radius():
+    with pytest.raises(ValueError):
+        get_covalent_radius("UnknownElement")

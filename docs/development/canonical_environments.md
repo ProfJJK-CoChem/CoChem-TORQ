@@ -310,3 +310,31 @@ unsupported versions require an explicit migration. Real-process checks and
 backups of a genuinely calculated H2 shard exercise these contracts. They do not
 establish hosted operational acceptance until the modified implementation runs
 there.
+
+The complete-repository regression job complements the focused core, CPU,
+native-engine, calculation-image, sibling-consumer and interface gates. It
+installs the three existing hash-locked Python 3.12 runtime profiles, the exact
+30 additions in
+[`requirements-release-validation-py312.txt`](../../ci_tools/requirements-release-validation-py312.txt),
+and CPU PyTorch `2.14.1+cpu`. BASE and TOPOS remain in their own pinned
+environments. Every repository test runs without marker or name exclusions;
+an empty report, any skip, a failing test, a timeout, or a source change during
+execution prevents qualification. This is a repository regression gate; the
+separate full-SRS audit retains unresolved implementation, platform and
+independent scientific qualification requirements.
+
+[`run_repository_regression.py`](../../ci_tools/run_repository_regression.py)
+records the actual environment, complete reviewable source digest before and
+after execution, JUnit outcomes and report digests. Raw pytest logs and trace
+bodies remain in its private directory because deliberate security tests can
+create credentials. The uploaded public JUnit preserves actual test names,
+outcomes and durations while excluding captured output and trace bodies. Native
+artifact upload is limited to verified complete PySCF inventories from the
+current adapter source. The curator verifies every declared byte hash and size,
+rejects linked or unsafe paths and credential material, and copies no unlisted
+files. Directories explicitly named as corruption, mutation or fabricated-data
+controls are excluded from this artifact selection and counted in its report;
+their tests still execute. Hashes establish byte integrity, not independent
+authentication of a scientific observation. The bounded selection is explicitly
+reported; it never represents the
+entire test temporary directory or an independent accuracy benchmark.

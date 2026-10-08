@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import multiprocessing
 import os
@@ -514,7 +515,9 @@ def test_classified_retries_use_new_attempts_and_stop_after_two_additional_attem
                 "validated",
                 authority=approved["authority"],
                 actor=ACTOR,
-                reason="Retained exact model after observed controlled process failure.",
+                reason=(
+                    "Retained exact model after observed controlled process failure."
+                ),
             )
         child = subprocess.Popen(
             [sys.executable, "-c", "import sys; sys.stdin.buffer.read(); sys.exit(7)"],
@@ -544,7 +547,9 @@ def test_classified_retries_use_new_attempts_and_stop_after_two_additional_attem
                 },
                 MeasuredUsage(
                     wall_seconds=time.monotonic() - started,
-                    measurement_source="observed parent monotonic; terminated-child CPU unavailable",
+                    measurement_source=(
+                        "observed parent monotonic; terminated-child CPU unavailable"
+                    ),
                 ),
                 write_observed_failure,
                 state="failed",
@@ -635,6 +640,193 @@ def test_database_and_live_sqlite_sidecars_are_private(tmp_path):
     store.close()
 
 
+@pytest.mark.parametrize("expiration", ["lease", "approval"])
+def test_publication_callback_cannot_commit_after_actual_authority_expiration(
+    tmp_path, expiration
+):
+    started = time.monotonic()
+    approval_deadline = time.time() + (1.5 if expiration == "approval" else 60)
+    store, approved = fixture_campaign(tmp_path, expires_at_unix=approval_deadline)
+    _, draft = task_attempt(store, approved)
+    attempt = running(
+        store,
+        approved,
+        draft,
+        heartbeat_seconds=0.05,
+        lease_seconds=1.0 if expiration == "lease" else 60,
+    )
+    attempt = advance_worker(store, attempt, "collecting")
+    attempt = advance_worker(store, attempt, "validating")
+    deadline = attempt["lease_expires"] if expiration == "lease" else approval_deadline
+    artifact = tmp_path / "actual-publication-time.json"
+
+    def actual_filesystem_publication():
+        entered_at = time.time()
+        assert entered_at < deadline
+        # Observe real time passing inside publication; neither clocks nor
+        # engines are replaced by a test double.
+        time.sleep(max(0.0, deadline - time.time()) + 0.05)
+        artifact.write_text(
+            json.dumps({"entered_at": entered_at, "written_at": time.time()})
+        )
+
+    try:
+        with pytest.raises(AuthorityError, match="expired"):
+            store.publish(
+                attempt["id"],
+                attempt["revision"],
+                {"kind": "software", "filename": artifact.name},
+                MeasuredUsage(
+                    wall_seconds=time.monotonic() - started,
+                    measurement_source="observed setup time before publication",
+                ),
+                actual_filesystem_publication,
+                state="succeeded",
+                lease_token=attempt["lease_token"],
+                lease_generation=attempt["lease_generation"],
+                actor=ACTOR,
+            )
+        observation = json.loads(artifact.read_text())
+        assert observation["entered_at"] < deadline < observation["written_at"]
+        # Filesystem writes cannot be rolled back with SQLite. Retain those
+        # authentic bytes, but reject success and keep resources unreconciled.
+        retained = store.attempt(attempt["id"])
+        assert retained["state"] == "validating"
+        assert retained["revision"] == attempt["revision"]
+        assert retained["result_json"] is None
+        assert store.accounting(approved["campaign_id"])[0]["state"] == "reserved"
+        assert not any(
+            event["kind"] == "transition"
+            and json.loads(event["details_json"])["to"] == "succeeded"
+            for event in store.events(approved["campaign_id"])
+        )
+        store.connection.execute("BEGIN")
+        try:
+            with pytest.raises(AuthorityError, match="publication transaction"):
+                store.committed_attempt_for_admission(
+                    attempt["id"], expected_revision=attempt["revision"]
+                )
+        finally:
+            store.connection.execute("ROLLBACK")
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize(
+    ("source_state", "supersede"),
+    [("succeeded", False), ("partial", False), ("failed", False), ("partial", True)],
+)
+def test_merger_admission_checks_committed_latest_source_in_same_transaction(
+    tmp_path, source_state, supersede
+):
+    started_wall, started_cpu = time.monotonic(), time.process_time()
+    store, approved = fixture_campaign(tmp_path, permitted_retries=1)
+    task, draft = task_attempt(store, approved, "actual source arithmetic")
+    source_attempt = running(store, approved, draft)
+    source_attempt = advance_worker(store, source_attempt, "collecting")
+    source_attempt = advance_worker(store, source_attempt, "validating")
+    original = tmp_path / "source-arithmetic.txt"
+    original.write_text(str(sum(range(101))))
+    published_source = tmp_path / "published-source-arithmetic.txt"
+    source_result = {
+        "evidence_class": "software_process_check",
+        "filename": published_source.name,
+        "sha256": hashlib.sha256(original.read_bytes()).hexdigest(),
+    }
+    source_record = store.publish(
+        source_attempt["id"],
+        source_attempt["revision"],
+        source_result,
+        observed_usage(started_wall, started_cpu),
+        lambda: original.rename(published_source),
+        state=source_state,
+        lease_token=source_attempt["lease_token"],
+        lease_generation=source_attempt["lease_generation"],
+        actor=ACTOR,
+    )
+    if supersede:
+        resumed = store.new_attempt(
+            task["task_id"],
+            authority=approved["authority"],
+            actor=ACTOR,
+            parent_attempt_id=source_record["id"],
+            compatibility_digest=task["task_key"],
+        )
+        assert resumed["id"] != source_record["id"]
+    with pytest.raises(AuthorityError, match="publication transaction"):
+        store.committed_attempt_for_admission(
+            source_record["id"], expected_revision=source_record["revision"]
+        )
+    store.connection.execute("BEGIN")
+    try:
+        with pytest.raises(AuthorityError, match="publication transaction"):
+            store.committed_attempt_for_admission(
+                source_record["id"], expected_revision=source_record["revision"]
+            )
+    finally:
+        store.connection.execute("ROLLBACK")
+    _, merger_draft = task_attempt(store, approved, "actual merger admission")
+    merger = running(store, approved, merger_draft)
+    merger = advance_worker(store, merger, "collecting")
+    merger = advance_worker(store, merger, "validating")
+    merged = tmp_path / "actual-admission-inspection.json"
+
+    def inspect_committed_source():
+        with pytest.raises(AuthorityError, match="Recursive"):
+            store.publish(
+                merger["id"],
+                merger["revision"],
+                {"evidence_class": "software_process_check"},
+                observed_usage(started_wall, started_cpu),
+                inspect_committed_source,
+                state="succeeded",
+                lease_token=merger["lease_token"],
+                lease_generation=merger["lease_generation"],
+                actor=ACTOR,
+            )
+        with pytest.raises(RevisionConflict):
+            store.committed_attempt_for_admission(
+                source_record["id"], expected_revision=source_record["revision"] - 1
+            )
+        options = {"expected_revision": source_record["revision"]}
+        admissible = source_state in {"succeeded", "partial"} and not supersede
+        if source_state != "succeeded":
+            with pytest.raises(AuthorityError, match="committed result"):
+                store.committed_attempt_for_admission(source_record["id"], **options)
+        if admissible:
+            retained = store.committed_attempt_for_admission(
+                source_record["id"], allow_partial=True, **options
+            )
+            assert retained["result"] == source_result
+            assert retained["lease_generation"] == source_attempt["lease_generation"]
+            assert retained["campaign_id"] == approved["campaign_id"]
+            merged.write_text(json.dumps(retained))
+        else:
+            with pytest.raises(AuthorityError, match="committed result"):
+                store.committed_attempt_for_admission(
+                    source_record["id"], allow_partial=True, **options
+                )
+            merged.write_text(json.dumps({"admitted": False, "state": source_state}))
+
+    try:
+        record = store.publish(
+            merger["id"],
+            merger["revision"],
+            {"evidence_class": "software_process_check", "filename": merged.name},
+            observed_usage(started_wall, started_cpu),
+            inspect_committed_source,
+            state="succeeded",
+            lease_token=merger["lease_token"],
+            lease_generation=merger["lease_generation"],
+            actor=ACTOR,
+        )
+        assert record["state"] == "succeeded" and merged.is_file()
+        assert published_source.read_text() == "5050"
+        assert store.attempt(source_record["id"]) == source_record
+    finally:
+        store.close()
+
+
 def test_actual_immediate_exit_is_recorded_and_settled_without_inventing_process_birth(
     tmp_path,
 ):
@@ -666,11 +858,15 @@ def test_actual_immediate_exit_is_recorded_and_settled_without_inventing_process
         cancelled["id"],
         MeasuredUsage(
             wall_seconds=time.monotonic() - started,
-            measurement_source="actual Popen/wait/monotonic observation; CPU unavailable",
+            measurement_source=(
+                "actual Popen/wait/monotonic observation; CPU unavailable"
+            ),
         ),
         authority=approved["authority"],
         actor=ACTOR,
-        reason="Reconciled the actual exited child without claiming scientific execution.",
+        reason=(
+            "Reconciled the actual exited child without claiming scientific execution."
+        ),
     )
     reservation = store.accounting(approved["campaign_id"])[0]
     assert reservation["state"] == "settled" and reservation["charged_wall"] > 0

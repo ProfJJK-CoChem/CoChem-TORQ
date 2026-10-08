@@ -364,3 +364,23 @@ def test_rank_statistics_reject_undefined_or_missing_evidence(tmp_path: Path) ->
         triage.audit_rank_inversion(
             [item["relative_energy_kcal_mol"] for item in observed]
         )
+
+
+@pytest.mark.parametrize("symbol", ["H", "O", "Fe", "Og"])
+def test_mace_and_quench_share_the_actual_named_radius_definition(symbol):
+    from mendeleev import element
+
+    from Libraries.cochem_torq_mace import get_covalent_radius_record
+    from Libraries.cochem_torq_quench import get_covalent_radius_record as quench_record
+
+    actual = element(symbol)
+    record = get_covalent_radius_record(symbol)
+    assert record == quench_record(symbol)
+    assert record["property"] == "covalent_radius_pyykko"
+    assert get_covalent_radius(symbol) == float(actual.covalent_radius_pyykko) / 100.0
+    assert len(record["source"]["database_sha256"]) == 64
+
+
+def test_mace_does_not_guess_a_radius_for_unknown_elements():
+    with pytest.raises(ValueError):
+        get_covalent_radius("UnknownElement")

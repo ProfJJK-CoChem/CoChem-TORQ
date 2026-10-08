@@ -137,6 +137,7 @@ class CampaignCoordinator:
     """
 
     def __init__(self, path: str | Path):
+        self._publication_callback_active = False
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.is_symlink():
@@ -999,6 +1000,8 @@ class CampaignCoordinator:
         attempt. Recovery must verify/reconcile it; no false success is committed.
         """
         usage = MeasuredUsage.model_validate(usage)
+        if self._publication_callback_active:
+            raise AuthorityError("Recursive coordinator publication is forbidden.")
         if not isinstance(result, dict) or not result:
             raise CampaignError(
                 "Publication requires a validated, identified result manifest."
@@ -1011,7 +1014,17 @@ class CampaignCoordinator:
                 raise CampaignError(
                     "Collect and validate genuine artifacts before publication."
                 )
-            publication()
+            self._publication_callback_active = True
+            try:
+                publication()
+            finally:
+                self._publication_callback_active = False
+            # Publication can perform arbitrarily slow real filesystem work.
+            # Its callback may have written authentic bytes, but those bytes
+            # cannot become authoritative after the approval or lease expires.
+            # A rejected transaction leaves them for explicit reconciliation.
+            self._approved(task["campaign_id"])
+            self._lease(row, lease_token, lease_generation)
             overrun = self._settle(row, task, usage, actor)
             if overrun and state == "succeeded":
                 state = "partial"
@@ -1118,6 +1131,65 @@ class CampaignCoordinator:
         if row is None:
             raise CampaignError("Attempt is absent.")
         return {key: row[key] for key in row.keys() if key != "lease_hash"}
+
+    def committed_attempt_for_admission(
+        self,
+        attempt_id: str,
+        *,
+        expected_revision: int,
+        allow_partial: bool = False,
+    ) -> dict:
+        """Fence a committed source inside the merger's publication transaction.
+
+        Completed source leases may legitimately expire. Admission instead
+        requires a settled, committed result from the latest task attempt and
+        its current generation. The caller must compare the returned result
+        identities with its genuine source artifact before publication.
+        """
+        if not (self.connection.in_transaction and self._publication_callback_active):
+            raise AuthorityError(
+                "Source admission requires the active coordinator publication "
+                "transaction."
+            )
+        if type(allow_partial) is not bool:
+            raise CampaignError("Partial-source admission requires an explicit bool.")
+        row, task = self._current(attempt_id, expected_revision)
+        latest = self.connection.execute(
+            "SELECT id FROM campaign_attempts WHERE task_id=? "
+            "ORDER BY number DESC LIMIT 1",
+            (task["id"],),
+        ).fetchone()
+        permitted = {"succeeded", "partial"} if allow_partial else {"succeeded"}
+        reservation = self.connection.execute(
+            "SELECT state FROM campaign_reservations WHERE attempt_id=?",
+            (attempt_id,),
+        ).fetchone()
+        if (
+            row["state"] not in permitted
+            or latest is None
+            or latest["id"] != attempt_id
+            or row["generation"] <= 0
+            or row["generation"] != task["next_generation"]
+            or reservation is None
+            or reservation["state"] != "settled"
+            or not row["result_json"]
+        ):
+            raise AuthorityError(
+                "Source attempt is not a current, settled, committed result "
+                "under the explicit admission policy."
+            )
+        result = json.loads(row["result_json"])
+        if not isinstance(result, dict) or not result:
+            raise CampaignError("Committed source result must be an identity object.")
+        return {
+            "attempt_id": row["id"],
+            "task_id": task["id"],
+            "campaign_id": task["campaign_id"],
+            "revision": row["revision"],
+            "lease_generation": row["generation"],
+            "state": row["state"],
+            "result": result,
+        }
 
     def events(self, campaign_id: str) -> list[dict]:
         return [

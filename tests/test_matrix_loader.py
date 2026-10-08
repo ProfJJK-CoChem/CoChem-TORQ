@@ -115,9 +115,30 @@ class TestMendeleevDynamicProperties:
         h2_mass = get_isotopic_mass("H", 2)
         assert 2.014 < h2_mass < 2.015
 
-        # Query without mass number returns standard mass
-        h_std = get_isotopic_mass("H")
-        assert abs(h_std - get_atomic_mass("H")) < 1e-6
+        # An unspecified isotope selects the natural-abundance isotope, not
+        # the abundance-weighted standard atomic weight.
+        assert get_isotopic_mass("H") == get_isotopic_mass("H", 1)
+        assert get_isotopic_mass("H") != get_atomic_mass("H")
+
+    def test_missing_requested_isotope_or_natural_default_is_unavailable(self):
+        from mendeleev import element
+
+        assert all(isotope.mass_number != 9999 for isotope in element("C").isotopes)
+        with pytest.raises(ValueError, match="No tabulated mass"):
+            get_isotopic_mass("C", 9999)
+        assert not any(isotope.abundance for isotope in element("Tc").isotopes)
+        with pytest.raises(ValueError, match="Specify an isotope"):
+            get_isotopic_mass("Tc")
+
+    def test_named_radii_match_real_database_and_missing_vdw_is_unavailable(self):
+        from mendeleev import element
+
+        carbon = element("C")
+        assert get_covalent_radius("C") == carbon.covalent_radius_pyykko / 100
+        assert get_vdw_radius("C") == carbon.vdw_radius / 100
+        assert element("Rf").vdw_radius is None
+        with pytest.raises(ValueError, match="vdw_radius is unavailable"):
+            get_vdw_radius("Rf")
 
     def test_dynamic_covalent_and_vdw_radii(self) -> None:
         """Verify Pyykkö covalent and van der Waals radii queries in Angstroms."""

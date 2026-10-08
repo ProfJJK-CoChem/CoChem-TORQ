@@ -335,7 +335,7 @@ def test_translate_com_validation_errors() -> None:
     with pytest.raises(ValueError, match="Geometry array cannot be empty"):
         translate_com_to_origin(np.empty((0, 3)), np.empty(0))
 
-    with pytest.raises(ValueError, match="Total molecular mass must be strictly positive"):
+    with pytest.raises(ValueError, match="Individual masses must be strictly positive"):
         zero_mass_geom = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         translate_com_to_origin(zero_mass_geom, np.array([0.0, 0.0]))
 
@@ -574,7 +574,7 @@ def test_linear_rotor_co2(co2_geometry: tuple[list[str], np.ndarray]) -> None:
 def test_spherical_top_methane(methane_geometry: tuple[list[str], np.ndarray]) -> None:
     """
     Verifies spherical top properties for methane (CH4):
-    Ia == Ib == Ic, rotor_type == 'spherical_top', Ray's kappa == 0.0. [D]
+    Ia == Ib == Ic, rotor_type == 'spherical_top', Ray's kappa is undefined. [D]
     """
     syms, coords = methane_geometry
     masses = enforce_ciaaw_masses(syms)
@@ -593,7 +593,70 @@ def test_spherical_top_methane(methane_geometry: tuple[list[str], np.ndarray]) -
     assert np.isclose(b_mhz, c_mhz, rtol=1e-6)
 
     kappa = compute_ray_asymmetry_parameter((a_mhz, b_mhz, c_mhz))
-    assert kappa == 0.0
+    assert kappa is None
+    result = EckartAligner(symbols=syms).align(coords)
+    assert result.ray_kappa is None
+    assert result.to_dict()["ray_kappa"] is None
+    assert result.metadata["ray_kappa_status"] == "undefined_for_spherical_top"
+
+
+def test_ray_parameter_does_not_invent_zero_or_large_a_linear_limits():
+    assert compute_ray_asymmetry_parameter((1.0, 1.0, 1.0)) is None
+    # Scaling all rotational constants cannot change a dimensionless kappa.
+    values = (3.0, 2.5, 1.0)
+    assert compute_ray_asymmetry_parameter(values) == 0.5
+    assert compute_ray_asymmetry_parameter(tuple(value * 1e15 for value in values)) == 0.5
+    for values in ((float("nan"), 2.0, 1.0), (-1.0, 2.0, 1.0), (2.0, 3.0, 1.0)):
+        with pytest.raises(ValueError):
+            compute_ray_asymmetry_parameter(values)
+
+
+def test_alignment_missing_natural_isotope_has_no_atomic_weight_substitution():
+    from mendeleev import element
+
+    assert not any(isotope.abundance for isotope in element("Tc").isotopes)
+    with pytest.raises(ValueError, match="Specify an isotope"):
+        enforce_ciaaw_masses(["Tc"])
+    assert enforce_ciaaw_masses(["99Tc"])[0] == next(
+        isotope.mass for isotope in element("Tc").isotopes if isotope.mass_number == 99
+    )
+
+
+def test_alignment_symbol_override_refreshes_real_isotope_masses(water_geometry):
+    symbols, coordinates = water_geometry
+    aligner = EckartAligner(symbols=symbols)
+    original = aligner.align(coordinates)
+    isotope = aligner.align(coordinates, symbols=["O", "D", "D"])
+    assert isotope.exact_masses == enforce_ciaaw_masses(["O", "D", "D"]).tolist()
+    assert isotope.rotational_constants_mhz != original.rotational_constants_mhz
+    assert isotope.metadata["isotope_records"][1]["label"] == "2H"
+
+
+def test_supplied_masses_do_not_fabricate_element_symbols(water_geometry):
+    symbols, coordinates = water_geometry
+    result = EckartAligner(masses=enforce_ciaaw_masses(symbols)).align(coordinates)
+    assert result.symbols is None
+    assert result.metadata["mass_source"] == "caller_supplied"
+    assert result.metadata["isotope_records"] is None
+
+
+@pytest.mark.parametrize("bad_mass", [complex(1, 1), float("nan"), -1.0, True])
+def test_alignment_cannot_convert_invalid_masses_into_physical_data(water_geometry, bad_mass):
+    symbols, coordinates = water_geometry
+    masses = enforce_ciaaw_masses(symbols).tolist()
+    masses[1] = bad_mass
+    with pytest.raises(ValueError):
+        EckartAligner(masses=masses).align(coordinates)
+    with pytest.raises(ValueError):
+        compute_inertia_tensor(coordinates, masses)
+
+
+def test_alignment_rejects_complex_geometry_before_discarding_its_imaginary_part(water_geometry):
+    symbols, coordinates = water_geometry
+    complex_coordinates = coordinates.astype(complex)
+    complex_coordinates[1, 0] += 1j
+    with pytest.raises(ValueError, match="complex"):
+        EckartAligner(symbols=symbols).align(complex_coordinates)
 
 
 def test_prolate_symmetric_top_methyl_chloride(methyl_chloride_geometry: tuple[list[str], np.ndarray]) -> None:
