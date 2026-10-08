@@ -436,7 +436,7 @@ class CandidateLedger:
         from .registry import get_profile
 
         model = CalculationRequest.model_validate(request)
-        definition = {
+        definition: dict[str, Any] = {
             "schema_version": "cochem.torq.candidate/1",
             "candidate_id": _uuid(
                 candidate_id if candidate_id is not None else uuid4()

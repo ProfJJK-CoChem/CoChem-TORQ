@@ -7,14 +7,23 @@ import json
 import os
 import sys
 import time
+from collections.abc import Sequence
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
+from typing import Any, NoReturn
 
 from .domain import CalculationRequest, PrerequisiteError, canonical_json, read_json
 
 
-def _emit(value, *, structured=False, status=None, request_id=None, errors=None):
+def _emit(
+    value: object,
+    *,
+    structured: bool = False,
+    status: str | None = None,
+    request_id: str | None = None,
+    errors: list[dict[str, Any]] | None = None,
+) -> None:
     if structured:
         value = {
             "schema_version": "cochem.torq.cli-response/1",
@@ -33,11 +42,11 @@ def _emit(value, *, structured=False, status=None, request_id=None, errors=None)
 
 
 class _ArgumentParser(argparse.ArgumentParser):
-    def error(self, message):
+    def error(self, message: str) -> NoReturn:
         raise ValueError(message)
 
 
-def _write_new(path, value):
+def _write_new(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("xb") as stream:
         stream.write(canonical_json(value) + b"\n")
@@ -45,7 +54,7 @@ def _write_new(path, value):
         os.fsync(stream.fileno())
 
 
-def _parser():
+def _parser() -> argparse.ArgumentParser:
     parser = _ArgumentParser(
         prog="cochem-torq",
         description=(
@@ -207,12 +216,23 @@ def _parser():
     return parser
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     structured = "--json" in (argv if argv is not None else sys.argv[1:])
-    request_id = None
+    request_id: str | None = None
 
-    def emit(value, **kwargs):
-        _emit(value, structured=structured, request_id=request_id, **kwargs)
+    def emit(
+        value: object,
+        *,
+        status: str | None = None,
+        errors: list[dict[str, Any]] | None = None,
+    ) -> None:
+        _emit(
+            value,
+            structured=structured,
+            request_id=request_id,
+            status=status,
+            errors=errors,
+        )
 
     try:
         arguments = _parser().parse_args(argv)
@@ -532,13 +552,13 @@ def main(argv=None) -> int:
         elif arguments.command == "interaction":
             from .energetics import evaluate_interaction
 
-            result = evaluate_interaction(
+            interaction_result = evaluate_interaction(
                 read_json(arguments.request), arguments.output_dir
             )
             emit(
-                result.model_dump(mode="json")
-                if hasattr(result, "model_dump")
-                else result
+                interaction_result.model_dump(mode="json")
+                if hasattr(interaction_result, "model_dump")
+                else interaction_result
             )
         elif arguments.command == "backup":
             from .operations import backup_shard

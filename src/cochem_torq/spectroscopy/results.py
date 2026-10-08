@@ -19,8 +19,10 @@ from pydantic import (
     StrictInt,
     model_validator,
 )
+from typing_extensions import Self
 
-from .harmonic import HARTREE_CM1, artifact_digest, finite_array
+from ..units import HARTREE_CM1
+from .harmonic import artifact_digest, finite_array
 
 # Published angular-momentum symbols match the existing catalog payload.
 # ruff: noqa: N815
@@ -63,7 +65,7 @@ class ScientificContext(_Payload):
     parent_artifact_sha256: list[Sha256] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def identities(self):
+    def identities(self) -> Self:
         from ..domain import Molecule, digest
 
         count = len(self.symbols)
@@ -80,7 +82,7 @@ class ScientificContext(_Payload):
             symbols=self.symbols,
             geometry_bohr=self.geometry_bohr,
             atom_ids=self.atom_ids,
-            isotopes=self.isotope_numbers,
+            isotopes=[number for number in self.isotope_numbers],
             charge=self.charge,
             multiplicity=self.multiplicity,
         )
@@ -193,7 +195,7 @@ def make_scientific_context(
         if principal_axes_columns is None
         else finite_array(principal_axes_columns, (3, 3))
     )
-    frame_type = (
+    frame_type: Literal["cartesian_input", "principal_inertia"] = (
         "cartesian_input" if principal_axes_columns is None else "principal_inertia"
     )
     atom_ids = molecule.get("atom_ids")
@@ -258,7 +260,7 @@ class ForceFieldData(_Payload):
     quartic_scope: Literal["full"]
 
     @model_validator(mode="after")
-    def force_constants(self):
+    def force_constants(self) -> Self:
         count = self.scientific_context.mode_count
         if (
             count < 1
@@ -371,7 +373,7 @@ class ResonanceAnalysisData(_Payload):
     protocol_sha256: Sha256
 
     @model_validator(mode="after")
-    def state_dimensions(self):
+    def state_dimensions(self) -> Self:
         if self.protocol_sha256 != self.scientific_context.protocol_sha256:
             raise ValueError("Resonance protocol differs from its scientific context.")
         for resonance in self.resonances:
@@ -397,7 +399,7 @@ class VibrationalVPT2Data(_Payload):
     independent_scientific_qualification: Literal[False]
 
     @model_validator(mode="after")
-    def corrected_states(self):
+    def corrected_states(self) -> Self:
         count = self.scientific_context.mode_count
         if (
             count < 1
@@ -466,7 +468,7 @@ class RigidRotorCatalogData(_Payload):
     dipole_origin: Literal["center_of_mass"]
 
     @model_validator(mode="after")
-    def quantum_numbers(self):
+    def quantum_numbers(self) -> Self:
         if self.scientific_context.frame_type != "principal_inertia":
             raise ValueError(
                 "Catalog must identify the dipole/rotational principal frame."

@@ -35,7 +35,7 @@ class Approval(Contract):
     )
 
     @model_validator(mode="after")
-    def timestamps(self):
+    def timestamps(self) -> Approval:
         if (
             not self.actor.strip()
             or self.approved_at.utcoffset() is None
@@ -58,7 +58,7 @@ class ApprovedPlan(Contract):
     source_identity: dict[str, Any]
 
     @model_validator(mode="after")
-    def binding(self):
+    def binding(self) -> ApprovedPlan:
         plan = dict(self.plan)
         if (
             not isinstance(plan.get("request"), dict)
@@ -256,7 +256,7 @@ def doctor(
         "local_validation",
     }:
         raise ValueError("Unknown execution environment.")
-    versions = {}
+    versions: dict[str, str | None] = {}
     for name in (
         "cochem-torq",
         "pydantic",

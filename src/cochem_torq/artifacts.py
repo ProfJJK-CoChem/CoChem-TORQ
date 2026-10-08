@@ -172,7 +172,7 @@ def seal_shard(
         or not (directory / "request.json").is_file()
     ):
         raise ValueError("A shard requires its authentic request and typed result.")
-    manifest = {
+    manifest: dict[str, Any] = {
         "schema_version": "cochem.torq.shard/1",
         "serialization_profile": CANONICALIZATION_PROFILE,
         "request_id": request_id,
@@ -216,6 +216,8 @@ def verify_shard(
     if directory.is_symlink() or (directory / "manifest.json").is_symlink():
         raise ValueError("Artifact roots and manifests cannot be symlinks.")
     manifest = read_json(directory / "manifest.json")
+    if not isinstance(manifest, dict):
+        raise ValueError("Shard manifest must be a JSON object.")
     if manifest.get("schema_version") != "cochem.torq.shard/1":
         raise ValueError("Unsupported shard schema.")
     profile = manifest.get("serialization_profile", LEGACY_CANONICALIZATION_PROFILE)

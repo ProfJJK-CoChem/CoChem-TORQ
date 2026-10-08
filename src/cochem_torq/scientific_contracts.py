@@ -8,10 +8,12 @@ experiment, replace curation or establish independent predictive validation.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypedDict
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, model_validator
+from typing_extensions import Self
 
 Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Name = Annotated[str, Field(min_length=1, max_length=256, pattern=r"\S")]
@@ -56,7 +58,7 @@ class ObservableTarget(ScientificContract):
     rationale: Name
 
     @model_validator(mode="after")
-    def target_units(self):
+    def target_units(self) -> Self:
         if self.target_kind == "relative_error" and self.unit not in {
             "ppm",
             "dimensionless",
@@ -73,7 +75,7 @@ class SpectralRange(ScientificContract):
     unit: Literal["MHz", "GHz", "cm^-1"]
 
     @model_validator(mode="after")
-    def increasing(self):
+    def increasing(self) -> Self:
         if self.maximum <= self.minimum:
             raise ValueError("The declared spectral range must increase.")
         return self
@@ -92,7 +94,7 @@ class ReferenceSource(ScientificContract):
     reference_kind: Literal["experimental_molecular_record"]
 
     @model_validator(mode="after")
-    def curation(self):
+    def curation(self) -> Self:
         if self.curated_at.utcoffset() is None:
             raise ValueError("Reference curation requires an aware timestamp.")
         text = (
@@ -135,7 +137,7 @@ class ExperimentalAnchor(ScientificContract):
     data_usage: Literal["inference", "calibration", "validation"]
 
     @model_validator(mode="after")
-    def explicit_uncertainty(self):
+    def explicit_uncertainty(self) -> Self:
         if self.value.unit != self.uncertainty.unit or self.uncertainty.value <= 0:
             raise ValueError(
                 "Experimental molecular uncertainty must be positive in "
@@ -161,7 +163,7 @@ class ProductDeclaration(ScientificContract):
     difference_definition: Name | None = None
 
     @model_validator(mode="after")
-    def product_semantics(self):
+    def product_semantics(self) -> Self:
         if len(set(self.observables)) != len(self.observables) or len(
             set(self.anchor_ids)
         ) != len(self.anchor_ids):
@@ -206,7 +208,7 @@ class FamilyAssignment(ScientificContract):
     shared_reference_source_ids: tuple[Sha256, ...] = ()
 
     @model_validator(mode="after")
-    def unique_members(self):
+    def unique_members(self) -> Self:
         if len(set(self.parent_ids)) != len(self.parent_ids) or len(
             set(self.shared_reference_source_ids)
         ) != len(self.shared_reference_source_ids):
@@ -230,8 +232,10 @@ class BenchmarkSplit(ScientificContract):
     inspected_validation_parent_ids: tuple[Name, ...] = ()
 
     @model_validator(mode="after")
-    def leakage_controls(self):
-        families, parents, source_partitions = set(), {}, {}
+    def leakage_controls(self) -> Self:
+        families: set[str] = set()
+        parents: dict[str, Partition] = {}
+        source_partitions: dict[str, Partition] = {}
         for assignment in self.assignments:
             if assignment.family_id in families:
                 raise ValueError(
@@ -294,7 +298,7 @@ class ErrorComponent(ScientificContract):
     evidence_sha256: Sha256 | None = None
 
     @model_validator(mode="after")
-    def unknown_is_not_zero(self):
+    def unknown_is_not_zero(self) -> Self:
         if self.kind == "unknown":
             if self.value is not None or self.reason is None:
                 raise ValueError("Unknown error components remain null with a reason.")
@@ -325,7 +329,7 @@ class ErrorBudget(ScientificContract):
     qualification_status: Literal["uncalibrated"] = "uncalibrated"
 
     @model_validator(mode="after")
-    def separate_sources(self):
+    def separate_sources(self) -> Self:
         sources = tuple(component.source for component in self.components)
         if set(sources) != ERROR_SOURCES or any(
             component.unit != self.unit for component in self.components
@@ -398,7 +402,7 @@ class ScientificGoal(ScientificContract):
     accuracy_status: Literal["unqualified"] = "unqualified"
 
     @model_validator(mode="after")
-    def declared_scope(self):
+    def declared_scope(self) -> Self:
         product_classes = [product.product_class for product in self.products]
         anchors = {anchor.anchor_id: anchor for anchor in self.anchors}
         if len(set(product_classes)) != len(product_classes) or len(anchors) != len(
@@ -421,7 +425,7 @@ class ScientificGoal(ScientificContract):
             raise ValueError(
                 "Goal observables and declared product observables must agree."
             )
-        referenced_anchors = set()
+        referenced_anchors: set[str] = set()
         for product in self.products:
             if set(product.observables) - declared:
                 raise ValueError("Every product observable must belong to the goal.")
@@ -536,8 +540,8 @@ class ScientificGoal(ScientificContract):
         return self
 
 
-def checked_covariance(values, *, size: int) -> np.ndarray:
-    matrix = np.asarray(values, dtype=float)
+def checked_covariance(values: ArrayLike, *, size: int) -> NDArray[np.float64]:
+    matrix = np.asarray(values, dtype=np.float64)
     if matrix.shape != (size, size) or not np.isfinite(matrix).all():
         raise ValueError(
             "Covariance must be a finite square matrix matching parameter count."
@@ -565,18 +569,27 @@ def checked_covariance(values, *, size: int) -> np.ndarray:
                 raise ValueError(
                     "Covariance normalization exceeds finite numeric range."
                 ) from exc
-        if np.any(np.abs(correlation) > 1 + tolerance) or np.linalg.eigvalsh(
-            correlation
-        ).min(initial=0) < -tolerance * max(1, size):
+        if np.any(np.abs(correlation) > 1 + tolerance) or min(
+            0.0, float(np.min(np.linalg.eigvalsh(correlation)))
+        ) < (-tolerance * max(1, size)):
             raise ValueError(
                 "Covariance must be positive semidefinite in every parameter scale."
             )
     return matrix
 
 
+class LinearUncertaintyPropagation(TypedDict):
+    variance: float
+    standard_uncertainty: float
+    linearization_domain: str
+    coverage_status: Literal["uncalibrated"]
+    propagation: Literal["first_order_J_Sigma_JT"]
+    numerical_roundoff_clipped: bool
+
+
 def propagate_linear_uncertainty(
-    jacobian, covariance, *, linearization_domain: str
-) -> dict:
+    jacobian: ArrayLike, covariance: ArrayLike, *, linearization_domain: str
+) -> LinearUncertaintyPropagation:
     """Apply J Sigma J^T; this mathematical propagation does not calibrate coverage."""
     if not linearization_domain.strip():
         raise ValueError("Uncertainty propagation requires its linearization domain.")

@@ -18,16 +18,21 @@ from __future__ import annotations
 import json
 import platform
 import re
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from pyscf.gto.mole import Mole
+    from pyscf.mp.mp2 import MP2
+    from pyscf.scf.hf import SCF
 
 
 class BackendInputError(ValueError):
@@ -71,7 +76,7 @@ def _json(path: Path, data: Any) -> None:
 
 def _mapping(value: Any) -> dict[str, Any]:
     if hasattr(value, "model_dump"):
-        return value.model_dump(mode="json")
+        return dict(value.model_dump(mode="json"))
     if not isinstance(value, Mapping):
         raise BackendInputError("Request must be a mapping or a typed model.")
     return dict(value)
@@ -258,7 +263,7 @@ def _normalize(request: Any) -> dict[str, Any]:
 
 
 @contextmanager
-def _environment(settings: Mapping[str, Any], directory: Path):
+def _environment(settings: Mapping[str, Any], directory: Path) -> Iterator[None]:
     from pyscf import lib
 
     old_threads = lib.num_threads()
@@ -274,7 +279,7 @@ def _environment(settings: Mapping[str, Any], directory: Path):
         lib.param.TMPDIR = old_tmp
 
 
-def _build(data: dict[str, Any], directory: Path):
+def _build(data: dict[str, Any], directory: Path) -> tuple[Mole, SCF, SCF | MP2, float]:
     from pyscf import dft, gto, mp, scf
 
     molecule, method, settings = data["molecule"], data["method"], data["settings"]

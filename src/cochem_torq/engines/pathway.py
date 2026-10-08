@@ -15,6 +15,7 @@ from typing import Any, Literal
 
 import numpy as np
 from pydantic import Field, StrictBool, StrictFloat, StrictInt, model_validator
+from typing_extensions import Self
 
 from ..domain import Contract, Molecule
 from .diagnostics import electronic_diagnostics, stationary_point_diagnostics
@@ -44,7 +45,7 @@ class PathwayRequest(Contract):
     displacement_max_bohr: StrictFloat = Field(default=0.15, gt=0, le=0.5)
 
     @model_validator(mode="after")
-    def bounded_state(self):
+    def bounded_state(self) -> Self:
         data = _normalize(
             {
                 "molecule": self.molecule,
@@ -94,7 +95,7 @@ class PathwayResult(Contract):
     manifest_sha256: str | None = None
 
     @model_validator(mode="after")
-    def candidate_only(self):
+    def candidate_only(self) -> Self:
         if self.irc.get("status") != "unavailable" or not self.irc.get("reason"):
             raise ValueError("This candidate workflow cannot certify an IRC.")
         if self.status == "available":
@@ -123,7 +124,7 @@ def _masses(molecule: Molecule) -> list[float]:
 
 
 def locate_saddle_candidate(
-    request: PathwayRequest | dict, workspace: str | Path
+    request: PathwayRequest | dict[str, Any], workspace: str | Path
 ) -> dict[str, Any]:
     """Run actual geomeTRIC TS optimization and independently verify curvature.
 
@@ -180,7 +181,7 @@ def locate_saddle_candidate(
     backend = PySCFBackend()
     mol = None
 
-    def callback(envs: dict[str, Any]):
+    def callback(envs: dict[str, Any]) -> None:
         trajectory.append(
             {
                 "evaluation": int(envs["self"].cycle),

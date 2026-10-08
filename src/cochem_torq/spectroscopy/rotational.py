@@ -90,10 +90,11 @@ def apply_rotation_vibration_correction(
     )
     if np.any(weight < 1) or np.any(weight != np.floor(weight)):
         raise ValueError("Mode degeneracies must be positive integers.")
-    constants = tuple(
+    values = tuple(
         None if constant is None else float(constant - np.dot(weight, arrays[axis]) / 2)
         for axis, constant in zip(("A", "B", "C"), rotor.constants_mhz)
     )
+    constants = (values[0], values[1], values[2])
     if any(value is not None and value <= 0 for value in constants):
         raise ValueError("Vibration-corrected constants must be positive.")
     return GroundStateRotor(
@@ -149,7 +150,7 @@ def wigner_3j(j1: int, j2: int, j3: int, m1: int, m2: int, m3: int) -> float:
             * factorial(j3 - j1 - m2 + z)
         )
         total += (-1) ** z / denominator
-    return (-1) ** (j1 - j2 - m3) * sqrt(float(triangle * norm)) * total
+    return float((-1) ** (j1 - j2 - m3) * sqrt(float(triangle * norm)) * total)
 
 
 @dataclass(frozen=True)
@@ -220,7 +221,7 @@ def rigid_rotor_levels(
         raise ValueError("A linear rotor requires equal B and C.")
     result = []
     for J in range(J_max + 1):
-        if linear:
+        if a is None:
             result.append(
                 RotationalLevel(J, 0, float(b * J * (J + 1)), (0,), finite_array([1.0]))
             )

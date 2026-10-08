@@ -13,6 +13,7 @@ from typing import Any, Literal
 
 import numpy as np
 from pydantic import Field, StrictFloat, StrictInt, model_validator
+from typing_extensions import Self
 
 from .domain import ATOMIC_NUMBERS, Contract, Molecule
 from .engines.counterpoise import GhostPySCFBackend
@@ -41,7 +42,7 @@ class Fragment(Contract):
     multiplicity: StrictInt = Field(ge=1)
 
     @model_validator(mode="after")
-    def distinct_atoms(self):
+    def distinct_atoms(self) -> Self:
         if len(set(self.atom_ids)) != len(self.atom_ids):
             raise ValueError("A fragment cannot repeat atom IDs.")
         if self.fragment_id == "complex":
@@ -55,7 +56,7 @@ class RRHOSettings(Contract):
     rotational_symmetry_numbers: dict[str, StrictInt]
 
     @model_validator(mode="after")
-    def positive_symmetry(self):
+    def positive_symmetry(self) -> Self:
         if any(value < 1 for value in self.rotational_symmetry_numbers.values()):
             raise ValueError(
                 "Rotational symmetry numbers must be explicit positive integers."
@@ -83,7 +84,7 @@ class InteractionRequest(Contract):
     )
 
     @model_validator(mode="after")
-    def fragment_partition(self):
+    def fragment_partition(self) -> Self:
         if not self.molecule.atom_ids:
             raise ValueError(
                 "Explicit stable molecule atom IDs are required for fragment "
@@ -164,7 +165,7 @@ class EnergyQuantity(Contract):
     reason: str | None = None
 
     @model_validator(mode="after")
-    def truthful_value(self):
+    def truthful_value(self) -> Self:
         if self.status == "available" and (
             self.value_hartree is None or self.reason is not None
         ):
@@ -204,7 +205,7 @@ class InteractionResult(Contract):
     artifacts: dict[str, Any] | None = None
 
     @model_validator(mode="after")
-    def consistent_identities(self):
+    def consistent_identities(self) -> Self:
         if self.status == "failed":
             if not self.errors:
                 raise ValueError(
@@ -216,6 +217,13 @@ class InteractionResult(Contract):
                 "An available interaction requires accepted components "
                 "and its defined energy."
             )
+
+        def available_value(name: str) -> float:
+            quantity = self.quantities[name]
+            if quantity.status != "available" or quantity.value_hartree is None:
+                raise ValueError("An available identity requires actual energy values.")
+            return quantity.value_hartree
+
         identities = [
             (
                 "interaction_counterpoise",
@@ -231,11 +239,8 @@ class InteractionResult(Contract):
                 key in self.quantities and self.quantities[key].status == "available"
                 for key in [target, first, second]
             ):
-                value = (
-                    self.quantities[first].value_hartree
-                    + sign * self.quantities[second].value_hartree
-                )
-                if abs(self.quantities[target].value_hartree - value) > 1e-9:
+                value = available_value(first) + sign * available_value(second)
+                if abs(available_value(target) - value) > 1e-9:
                     raise ValueError(
                         "Available interaction energy identities are inconsistent."
                     )
@@ -244,10 +249,7 @@ class InteractionResult(Contract):
             for key in ["De", "binding_electronic"]
         ):
             if (
-                abs(
-                    self.quantities["De"].value_hartree
-                    + self.quantities["binding_electronic"].value_hartree
-                )
+                abs(available_value("De") + available_value("binding_electronic"))
                 > 1e-9
             ):
                 raise ValueError("De and electronic binding must have opposite signs.")
@@ -255,15 +257,18 @@ class InteractionResult(Contract):
 
 
 def _fragment_molecule(molecule: Molecule, fragment: Fragment) -> Molecule:
+    atom_ids = molecule.atom_ids
+    if not atom_ids:
+        raise BackendInputError(
+            "Fragment calculations require explicit molecule atom IDs."
+        )
     indices = [
-        index
-        for index, atom_id in enumerate(molecule.atom_ids or [])
-        if atom_id in fragment.atom_ids
+        index for index, atom_id in enumerate(atom_ids) if atom_id in fragment.atom_ids
     ]
     return Molecule(
         symbols=[molecule.symbols[i] for i in indices],
         geometry_bohr=[molecule.geometry_bohr[i] for i in indices],
-        atom_ids=[molecule.atom_ids[i] for i in indices],
+        atom_ids=[atom_ids[i] for i in indices],
         isotopes=[molecule.isotopes[i] for i in indices]
         if molecule.isotopes is not None
         else None,
@@ -333,8 +338,8 @@ def _isotope_records(molecule: Molecule) -> list[dict[str, Any]]:
 
 
 def _minimum(
-    component: dict, molecule: Molecule, request: InteractionRequest
-) -> tuple[HarmonicResult, dict]:
+    component: dict[str, Any], molecule: Molecule, request: InteractionRequest
+) -> tuple[HarmonicResult, dict[str, Any]]:
     _accepted_energy(component, "optimized endpoint")
     optimization = component.get("optimization", {})
     if (
@@ -483,8 +488,16 @@ def rrho_thermochemistry(
     }
 
 
+def _minimum_zpe(harmonic: HarmonicResult) -> float:
+    if harmonic.harmonic_zpe_hartree is None:
+        raise BackendCalculationError(
+            "A minimum requires actual harmonic zero-point energy."
+        )
+    return harmonic.harmonic_zpe_hartree
+
+
 def evaluate_interaction(
-    request: InteractionRequest | dict, workspace: str | Path
+    request: InteractionRequest | dict[str, Any], workspace: str | Path
 ) -> InteractionResult:
     """Execute every real component for the explicitly selected energy model."""
     if not isinstance(request, InteractionRequest):
@@ -529,7 +542,7 @@ def evaluate_interaction(
         "adapter_source_sha256": _SOURCE_SHA256,
     }
 
-    def quantity(name: str, value: float, definition: str, parents: list[str]):
+    def quantity(name: str, value: float, definition: str, parents: list[str]) -> None:
         result["quantities"][name] = EnergyQuantity(
             status="available",
             value_hartree=float(value),
@@ -537,13 +550,18 @@ def evaluate_interaction(
             parents=parents,
         ).model_dump(mode="json")
 
-    def unavailable(name: str, definition: str, reason: str):
+    def unavailable(name: str, definition: str, reason: str) -> None:
         result["quantities"][name] = EnergyQuantity(
             status="unavailable", definition=definition, reason=reason, parents=[]
         ).model_dump(mode="json")
 
     try:
         molecule = request.molecule
+        atom_ids = molecule.atom_ids
+        if not atom_ids:
+            raise BackendInputError(
+                "Interaction calculations require explicit atom IDs."
+            )
         core_request = {
             "molecule": molecule,
             "method": request.method,
@@ -591,9 +609,7 @@ def evaluate_interaction(
             native_energies.append(_accepted_energy(component, component_id))
             native_ids.append(component_id)
             indices = [
-                i
-                for i, atom_id in enumerate(molecule.atom_ids)
-                if atom_id in fragment.atom_ids
+                i for i, atom_id in enumerate(atom_ids) if atom_id in fragment.atom_ids
             ]
             raw_gradient[indices] -= np.asarray(component["gradient_hartree_bohr"])
             if relaxed:
@@ -732,9 +748,8 @@ def evaluate_interaction(
                 ),
                 ["complex", *relaxed_ids],
             )
-            zpe_difference = harmonic_results["complex"].harmonic_zpe_hartree - sum(
-                harmonic_results[f.fragment_id].harmonic_zpe_hartree
-                for f in request.fragments
+            zpe_difference = _minimum_zpe(harmonic_results["complex"]) - sum(
+                _minimum_zpe(harmonic_results[f.fragment_id]) for f in request.fragments
             )
             quantity(
                 "zpe_binding_correction",

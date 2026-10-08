@@ -190,6 +190,29 @@ jobs:
         run: |
           python ci_tools/qualify_pyscf_image.py --output "$RUNNER_TEMP/torq-qualification" \
             --image-identity hosted-runner-python-env --source-commit "$GITHUB_SHA"
+      - name: Prepare bounded public native evidence without fixture credentials
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from ci_tools.run_repository_regression import curate_engine_evidence, sanitize_junit
+          root = Path(os.environ['RUNNER_TEMP'])
+          public = root / 'torq-native-public'
+          public.mkdir()
+          source = root / 'torq-native-tests'
+          summary = {
+              'scope': 'verified current-adapter PySCF inventories and actual scrubbed test outcomes',
+              'source_directory_present': source.is_dir(),
+              'native_evidence': curate_engine_evidence(source, public / 'native-evidence', Path.cwd()),
+              'junit': None,
+              'independent_scientific_qualification': False,
+          }
+          report = root / 'torq-native-tests-report.xml'
+          if report.is_file():
+              summary['junit'] = sanitize_junit(report, public / 'junit.xml')
+          (public / 'retention-summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+          PY
       - name: Retain genuine engine evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -197,8 +220,7 @@ jobs:
           name: torq-real-engine-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/torq-qualification/
-            ${{ runner.temp }}/torq-native-tests/
-            ${{ runner.temp }}/torq-native-tests-report.xml
+            ${{ runner.temp }}/torq-native-public/
           if-no-files-found: error
           retention-days: 30
 
@@ -486,6 +508,7 @@ jobs:
         run: |
           python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
           python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m mypy src/cochem_torq --follow-imports=silent --ignore-missing-imports
           if python ci_tools/run_repository_regression.py --output "$RUNNER_TEMP/torq-complete-regression" --basetemp "$RUNNER_TEMP/cochem_exec_complete-regression" --timeout 1800; then
             :
           else

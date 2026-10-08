@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
 from math import isfinite
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import numpy as np
@@ -21,6 +22,9 @@ import numpy as np
 from Libraries.cochem_isotopes import isotope_mass
 
 from .units import BOHR_ANGSTROM
+
+if TYPE_CHECKING:
+    from .candidate_ledger import CandidateLedger
 
 BOHR_TO_ANGSTROM = BOHR_ANGSTROM
 
@@ -157,7 +161,7 @@ def input_mass_frame(molecule: dict[str, Any]) -> MassFrame:
     return MassFrame(symbols, centered @ rotation, masses, center, moments, rotation)
 
 
-def inspect_downloaded_results(paths: list[str | Path]) -> list[dict[str, Any]]:
+def inspect_downloaded_results(paths: Sequence[str | Path]) -> list[dict[str, Any]]:
     """Show genuine scientific stage states after verifying each sealed shard."""
     from cochem_torq.artifacts import verify_shard
     from cochem_torq.domain import StageResult, read_json
@@ -248,7 +252,7 @@ class StudentSession:
             self.results_directory.parent / "candidate-selection.sqlite"
         )
 
-    def _candidate_store(self):
+    def _candidate_store(self) -> CandidateLedger:
         from .candidate_ledger import CandidateLedger
 
         return CandidateLedger(self.candidate_ledger_path)
@@ -338,7 +342,12 @@ class StudentSession:
         if action not in {"retain", "exclude", "restore"}:
             raise ValueError("Select retain, exclude or restore explicitly.")
         with self._candidate_store() as ledger:
-            candidate = getattr(ledger, action)(
+            selection_operations = {
+                "retain": ledger.retain,
+                "exclude": ledger.exclude,
+                "restore": ledger.restore,
+            }
+            candidate = selection_operations[action](
                 candidate_id,
                 expected_revision=revision,
                 actor=actor,
@@ -559,7 +568,9 @@ def _display_frame(frame: MassFrame, azimuth: float, elevation: float) -> None:
     )
     axis.set_box_aspect((1, 1, 1))
     axis.view_init(elev=elevation, azim=azimuth)
-    display(figure)
+    # IPython's unannotated callable is narrowed to this actual invocation.
+    display_figure = cast(Callable[[object], None], display)
+    display_figure(figure)
     plt.close(figure)
 
 
@@ -571,6 +582,8 @@ def launch_student_app(
     """Return an interactive Jupyter widget without submitting or calculating."""
     import ipywidgets as widgets
     from IPython.display import clear_output
+
+    clear_display = cast(Callable[[bool], None], clear_output)
 
     session = StudentSession(results_directory)
     source_kind = widgets.Dropdown(
@@ -790,14 +803,14 @@ def launch_student_app(
 
     def show(value: Any) -> None:
         with output:
-            clear_output(wait=True)
+            clear_display(True)
             print(
                 json.dumps(value, indent=2, default=str, allow_nan=False)
                 if isinstance(value, (dict, list))
                 else value
             )
 
-    def action(callback: Any) -> None:
+    def action(callback: Callable[[], object]) -> None:
         try:
             show(callback())
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
@@ -808,7 +821,7 @@ def launch_student_app(
     def redraw(*_: Any) -> None:
         if session.request:
             with preview:
-                clear_output(wait=True)
+                clear_display(True)
                 _display_frame(
                     input_mass_frame(session.request["molecule"]),
                     azimuth.value,
@@ -996,7 +1009,7 @@ def launch_student_app(
         session.clear_request()
         update_lifecycle()
         with preview:
-            clear_output(wait=True)
+            clear_display(True)
         show("Inputs changed. Import, review and approve the revised request.")
 
     for control in (

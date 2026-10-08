@@ -13,7 +13,7 @@ import re
 from builtins import property as computed_property
 from hashlib import sha256
 from pathlib import Path, PurePosixPath
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, StrictFloat, StrictInt, model_validator
 
@@ -41,7 +41,7 @@ class CapabilityTuple(Contract):
     recipe_sha256: str = Field(pattern=SHA_PATTERN)
 
     @model_validator(mode="after")
-    def derivative_identity(self):
+    def derivative_identity(self) -> CapabilityTuple:
         routes = {
             "energy": {"none"},
             "gradient": {"analytic"},
@@ -85,7 +85,7 @@ class CapabilityRecord(Contract):
     evidence: LocalCapabilityEvidence | None = None
 
     @model_validator(mode="after")
-    def evidence_binding(self):
+    def evidence_binding(self) -> CapabilityRecord:
         if self.availability == "locally_validated":
             if (
                 self.evidence is None
@@ -131,7 +131,7 @@ def _relative_file(root: Path, relative: str) -> Path:
     return _actual_file(root / relative)
 
 
-def _native_bundle(directory: Path) -> tuple[dict, dict]:
+def _native_bundle(directory: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     directory = directory.absolute()
     manifest = read_json(_actual_file(directory / "manifest.json"))
     if manifest.get("schema_version") != "cochem-torq.engine-artifacts.v1":
@@ -161,6 +161,8 @@ def _native_bundle(directory: Path) -> tuple[dict, dict]:
         )
     request = read_json(directory / "request.json")
     result = read_json(directory / "result.json")
+    if not isinstance(request, dict) or not isinstance(result, dict):
+        raise ValueError("Native request/result evidence requires JSON objects.")
     if (
         result.get("schema_version") != "cochem-torq.pyscf-result.v1"
         or result.get("status") != "complete"
@@ -202,7 +204,10 @@ def _native_bundle(directory: Path) -> tuple[dict, dict]:
 
 
 def _optimization_final_bundle(
-    directory: Path, request: dict, result: dict, outer_entries: list[dict]
+    directory: Path,
+    request: dict[str, Any],
+    result: dict[str, Any],
+    outer_entries: list[dict[str, Any]],
 ) -> Path:
     """Bind actual optimizer evidence to its separately sealed final calculation."""
     names = {entry["path"] for entry in outer_entries}
@@ -301,7 +306,7 @@ def _optimization_final_bundle(
     return final
 
 
-def _match_native_tuple(definition: CapabilityTuple, result: dict) -> None:
+def _match_native_tuple(definition: CapabilityTuple, result: dict[str, Any]) -> None:
     method = result["method"]
     named_method = method["name"] + ("-d4" if method.get("dispersion") == "d4" else "")
     hardware = result["platform"]
@@ -426,7 +431,7 @@ def authorize_capability(
     *,
     purpose: Purpose,
     native_request_sha256: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Authorize only the selected exact status/scope, with no method substitutions."""
     record = CapabilityRecord.model_validate(record.model_dump(mode="json"))
     if purpose not in {"controlled_validation", "production"}:
@@ -444,6 +449,8 @@ def authorize_capability(
             f"{record.availability} tuples do not authorize {purpose} dispatch."
         )
     evidence = record.evidence
+    if evidence is None:
+        raise ValueError("Local validation requires evidence for this exact tuple.")
     from .application import source_identity
 
     if evidence.source_code_sha256 != source_identity()["code_sha256"]:
@@ -487,7 +494,7 @@ def authorize_capability(
     }
 
 
-def _require_current_native_installation(result: dict) -> None:
+def _require_current_native_installation(result: dict[str, Any]) -> None:
     from importlib.metadata import version
 
     from .engines.pyscf_backend import _engine_fingerprint
@@ -540,7 +547,7 @@ class RestartFingerprint(Contract):
     numerical_settings_json: str
 
     @model_validator(mode="after")
-    def atomic_and_numerical_identity(self):
+    def atomic_and_numerical_identity(self) -> RestartFingerprint:
         Molecule(
             symbols=list(self.symbols),
             geometry_bohr=[list(row) for row in self.geometry_bohr],
@@ -620,7 +627,7 @@ class ReusePolicy(Contract):
     ] = ()
 
     @model_validator(mode="after")
-    def exact_final_policy(self):
+    def exact_final_policy(self) -> ReusePolicy:
         if len(set(self.allowed_initial_guess_changes)) != len(
             self.allowed_initial_guess_changes
         ):
@@ -816,7 +823,7 @@ def _check_restart_kind(
 
 def assess_restart_reuse(
     artifact: RestartArtifact, target: RestartFingerprint, policy: ReusePolicy
-) -> dict:
+) -> dict[str, Any]:
     artifact = RestartArtifact.model_validate(artifact.model_dump(mode="json"))
     target = RestartFingerprint.model_validate(target.model_dump(mode="json"))
     policy = ReusePolicy.model_validate(policy.model_dump(mode="json"))
@@ -904,7 +911,7 @@ def prepare_initial_guess(
     output_path: str | Path,
     *,
     policy: ReusePolicy,
-) -> dict:
+) -> dict[str, Any]:
     if policy.purpose != "initial_guess":
         raise ValueError(
             "Prepare a separate working copy only under an initial-guess policy."

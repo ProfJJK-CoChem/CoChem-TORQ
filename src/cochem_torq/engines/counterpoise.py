@@ -105,8 +105,8 @@ class GhostPySCFBackend:
         return _seal(directory, record)
 
     def _evaluate(
-        self, data: dict, directory: Path, active: list[int], charge: int
-    ) -> dict:
+        self, data: dict[str, Any], directory: Path, active: list[int], charge: int
+    ) -> dict[str, Any]:
         import pyscf
         from pyscf import dft, gto, mp, scf
         from pyscf.dft import libxc

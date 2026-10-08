@@ -20,6 +20,7 @@ from typing import Any, Literal
 import numpy as np
 import scipy
 import scipy.constants as scipy_constants
+from numpy.typing import NDArray
 
 CONSTANTS_PROFILE = "cochem.constants.codata-2022-torq-compatible/1"
 CODATA_RELEASE = "2022"
@@ -233,7 +234,7 @@ def unit_definition(unit: str) -> UnitDefinition:
     return UNITS[unit]
 
 
-def real_values(value: Any) -> np.ndarray:
+def real_values(value: Any) -> NDArray[np.float64]:
     """Float64 values backed by immutable bytes; reject silent type coercions."""
 
     def reject_mixed_types(item: Any) -> None:
@@ -265,7 +266,10 @@ def real_values(value: Any) -> np.ndarray:
         raise UnitError("Values must be representable as real float64") from exc
     if not np.isfinite(array).all():
         raise UnitError("Physical values must be finite")
-    return np.frombuffer(array.tobytes(), dtype=np.float64).reshape(array.shape)
+    immutable: NDArray[np.float64] = np.frombuffer(
+        array.tobytes(), dtype=np.float64
+    ).reshape(array.shape)
+    return immutable
 
 
 Equivalence = Literal["molar", "spectroscopic"] | None

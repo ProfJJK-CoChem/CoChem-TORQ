@@ -16,8 +16,9 @@ from math import factorial, isfinite, sqrt
 
 import numpy as np
 
+from ..units import HARTREE_CM1
 from .forcefield import ForceField
-from .harmonic import HARTREE_CM1, finite_array
+from .harmonic import finite_array
 
 State = tuple[int, ...]
 

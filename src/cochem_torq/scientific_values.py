@@ -13,6 +13,7 @@ from pydantic import (
     StrictInt,
     model_validator,
 )
+from typing_extensions import Self
 
 
 class PhysicalValue(BaseModel):
@@ -63,7 +64,7 @@ class StationaryGeometry(PhysicalValue):
     stationary_character: str
 
     @model_validator(mode="after")
-    def dimensions(self):
+    def dimensions(self) -> Self:
         if np.asarray(self.geometry_bohr).shape != (len(self.symbols), 3):
             raise ValueError(
                 "Optimized geometry dimensions differ from its atomic identity."
@@ -83,7 +84,7 @@ class RotationalConstants(PhysicalValue):
     observable: str
 
     @model_validator(mode="after")
-    def inertia_and_axes(self):
+    def inertia_and_axes(self) -> Self:
         axes = np.asarray(self.principal_axes_columns)
         if (
             axes.shape != (3, 3)
@@ -123,7 +124,7 @@ class HarmonicData(PhysicalValue):
     convention: str
 
     @model_validator(mode="after")
-    def normal_mode_dimensions(self):
+    def normal_mode_dimensions(self) -> Self:
         atoms, modes = len(self.coordinates_bohr), len(self.frequencies_cm1)
         if (
             np.asarray(self.coordinates_bohr).shape != (atoms, 3)
@@ -170,7 +171,7 @@ class HarmonicData(PhysicalValue):
         return self
 
 
-VALUE_SCHEMAS = {
+VALUE_SCHEMAS: dict[str, type[PhysicalValue]] = {
     "electronic_energy": ElectronicEnergy,
     "stationary_geometry": StationaryGeometry,
     "re": StationaryGeometry,

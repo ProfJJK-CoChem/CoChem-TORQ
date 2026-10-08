@@ -10,9 +10,8 @@ from itertools import combinations_with_replacement, permutations, product
 
 import numpy as np
 
+from ..units import ATOMIC_MASS_ELECTRON, HARTREE_CM1
 from .harmonic import (
-    ATOMIC_MASS_ELECTRON,
-    HARTREE_CM1,
     HarmonicResult,
     artifact_digest,
     finite_array,
@@ -177,6 +176,7 @@ def build_force_field(
                 energy = returned.energy_hartree
             else:
                 energy = returned
+            original_energy = energy
             if (
                 isinstance(energy, (bool, np.bool_))
                 or np.iscomplexobj(energy)
@@ -186,9 +186,9 @@ def build_force_field(
                 raise ValueError(
                     "Displaced evaluator must return finite converged hartree energy."
                 )
-            cache[q] = float(energy)
+            cache[q] = float(original_energy)
             records[q] = DisplacementEnergy(
-                q, float(energy), artifact_digest(coordinates), source_sha256
+                q, float(original_energy), artifact_digest(coordinates), source_sha256
             )
         return cache[q]
 
@@ -253,7 +253,7 @@ def build_force_field(
         finite_array(quartic),
         finite_array(cubic_coarse),
         finite_array(quartic_coarse),
-        tuple(steps),
+        (steps[0], steps[1]),
         reference_energy,
         bool(converged),
         absolute_tolerance_hartree,

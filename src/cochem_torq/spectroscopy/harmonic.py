@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..units import (
     ATOMIC_MASS_ELECTRON,
@@ -25,7 +26,9 @@ from ..units import (
 )
 
 
-def finite_array(value: Any, shape: tuple[int, ...] | None = None) -> np.ndarray:
+def finite_array(
+    value: Any, shape: tuple[int, ...] | None = None
+) -> NDArray[np.float64]:
     if np.iscomplexobj(value):
         raise ValueError(
             "Physical arrays must be real; imaginary parts cannot be discarded."
@@ -112,7 +115,8 @@ def equilibrium_rotor(coordinates_bohr: Any, masses_u: Any) -> EquilibriumRotor:
     if np.linalg.det(axes) < 0:
         axes[:, 2] *= -1
     factor = h / (8 * pi * pi * atomic_mass * BOHR_METRE**2 * 1e6)
-    constants = tuple(float(factor / x) if x > 0 else None for x in moments)
+    values = tuple(float(factor / x) if x > 0 else None for x in moments)
+    constants = (values[0], values[1], values[2])
     return EquilibriumRotor(
         constants,
         finite_array(moments),

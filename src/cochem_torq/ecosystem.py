@@ -66,8 +66,11 @@ def _canonical_json(value: Any) -> bytes:
 
 
 def _sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
     with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            hasher.update(block)
+    return hasher.hexdigest()
 
 
 def _read_json(path: Path) -> dict[str, Any]:

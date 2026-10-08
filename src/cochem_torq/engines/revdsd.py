@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 from uuid import uuid4
 
 import numpy as np
@@ -26,6 +26,16 @@ class RecipeNotQualifiedError(ValueError):
 
 class ResearchCalculationError(RuntimeError):
     """A calculation did not supply a scientifically usable research result."""
+
+
+class _ResearchSettings(TypedDict):
+    basis: str
+    grid_level: int
+    scf_energy_tolerance: float
+    scf_gradient_tolerance: float
+    max_cycle: int
+    max_memory_mb: int
+    threads: int
 
 
 EXACT_REVDSD_GAPS = (
@@ -268,7 +278,7 @@ class ExperimentalDoubleHybrid:
         ):
             raise ValueError("Calculation limits must be positive integers")
         self.recipe = recipe
-        self.settings = {
+        self.settings: _ResearchSettings = {
             "basis": basis,
             "grid_level": grid_level,
             "scf_energy_tolerance": scf_energy_tolerance,
@@ -641,12 +651,12 @@ class ExperimentalDoubleHybrid:
             matrices, gradients = [], []
             for step in steps:
                 matrix = np.empty((dimension, dimension))
-                gradient = np.empty(dimension)
+                coordinate_gradient = np.empty(dimension)
                 for q in range(dimension):
                     plus = energy_at(((q, step),))
                     minus = energy_at(((q, -step),))
                     matrix[q, q] = (plus - 2 * reference_energy + minus) / step**2
-                    gradient[q] = (plus - minus) / (2 * step)
+                    coordinate_gradient[q] = (plus - minus) / (2 * step)
                     for r in range(q):
                         mixed = 0.0
                         for sq, sr in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
@@ -654,10 +664,12 @@ class ExperimentalDoubleHybrid:
                                 sq * sr * energy_at(((q, sq * step), (r, sr * step)))
                             )
                         matrix[q, r] = matrix[r, q] = mixed / (4 * step**2)
-                if not np.all(np.isfinite(matrix)) or not np.all(np.isfinite(gradient)):
+                if not np.all(np.isfinite(matrix)) or not np.all(
+                    np.isfinite(coordinate_gradient)
+                ):
                     raise ResearchCalculationError("Nonfinite numerical derivative")
                 matrices.append(matrix)
-                gradients.append(gradient.reshape(coords.shape))
+                gradients.append(coordinate_gradient.reshape(coords.shape))
             chosen = int(np.argmin(steps))
             matrix, gradient = matrices[chosen], gradients[chosen]
             centered = coords - coords.mean(axis=0)

@@ -9,11 +9,12 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
@@ -31,6 +32,9 @@ from .domain import (
 from .domain import SPECTROSCOPY_STAGES as STAGES
 from .registry import get_profile
 
+if TYPE_CHECKING:
+    from .service import ApprovedPlan
+
 _ADVANCED = {
     "anharmonic_force_field",
     "vpt2",
@@ -40,7 +44,7 @@ _ADVANCED = {
 
 
 def _plain(value: Any) -> Any:
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _plain(asdict(value))
     if isinstance(value, np.ndarray):
         return value.tolist()
@@ -293,27 +297,37 @@ def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[st
 
 
 def _stage(
-    status: str,
+    status: Literal["available", "blocked", "unavailable", "failed"],
     observable: str,
-    value=None,
-    reason=None,
-    parents=(),
-    flags=(),
-    absence_kind=None,
+    value: Any = None,
+    reason: str | None = None,
+    parents: Sequence[str] = (),
+    flags: Sequence[str] = (),
+    absence_kind: Literal[
+        "not_requested", "unsupported", "not_applicable", "failed", "not_computed"
+    ]
+    | None = None,
 ) -> dict[str, Any]:
+    resolved_absence: (
+        Literal[
+            "not_requested", "unsupported", "not_applicable", "failed", "not_computed"
+        ]
+        | None
+    )
+    if status == "available":
+        resolved_absence = None
+    elif absence_kind is not None:
+        resolved_absence = absence_kind
+    elif status == "failed":
+        resolved_absence = "failed"
+    else:
+        resolved_absence = "not_computed"
     return StageResult(
         status=status,
         observable=observable,
         value=_plain(value),
         reason=reason,
-        absence_kind=None
-        if status == "available"
-        else absence_kind
-        or {
-            "blocked": "not_computed",
-            "failed": "failed",
-            "unavailable": "not_computed",
-        }[status],
+        absence_kind=resolved_absence,
         parents=list(parents),
         quality_flags=list(flags),
     ).model_dump(mode="json")
@@ -384,7 +398,7 @@ def _qcschema(
     directory: Path,
     *,
     optimization: dict[str, Any],
-):
+) -> None:
     """Validate the actual single-point derivative at the optimized coordinates."""
     from qcelemental.models import AtomicResult
 
@@ -465,7 +479,7 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
         ["dipole"] if profile["method"] != "mp2" else []
     )
     want_hessian = any(task["id"] == "harmonic" for task in validated["plan"]["tasks"])
-    backend_request = {
+    backend_request: dict[str, Any] = {
         "molecule": request.molecule.model_dump(mode="json"),
         "method": {
             key: profile[key]
@@ -913,7 +927,12 @@ def execute_request(
         return _execute_admitted_request(checked, model, destination, approved)
 
 
-def _execute_admitted_request(checked, model, destination, approved):
+def _execute_admitted_request(
+    checked: dict[str, Any],
+    model: CalculationRequest,
+    destination: Path,
+    approved: ApprovedPlan,
+) -> dict[str, Any]:
     import psutil
 
     from cochem.orchestration.campaign import (
@@ -1167,7 +1186,7 @@ def _execute_admitted_request(checked, model, destination, approved):
                 "log retained."
             )
             result = (
-                read_json(staging / "result.json")
+                _read_worker_result(staging / "result.json")
                 if (staging / "result.json").is_file()
                 else _empty_result(model, checked["recipe"], reason)
             )
@@ -1190,7 +1209,7 @@ def _execute_admitted_request(checked, model, destination, approved):
                 }
             )
             (staging / "result.json").write_bytes(canonical_json(result) + b"\n")
-        result = read_json(staging / "result.json")
+        result = _read_worker_result(staging / "result.json")
         wall_seconds = time.monotonic() - started
         measured_peak_scratch_bytes = max(
             measured_peak_scratch_bytes, artifact_usage(staging)["owned_bytes"]
@@ -1335,7 +1354,14 @@ def _execute_admitted_request(checked, model, destination, approved):
             queue.close()
 
 
-def _stop_owned_process(process: subprocess.Popen) -> None:
+def _read_worker_result(path: Path) -> dict[str, Any]:
+    result = read_json(path)
+    if not isinstance(result, dict):
+        raise ValueError("The actual worker result must be a JSON object.")
+    return result
+
+
+def _stop_owned_process(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
     try:

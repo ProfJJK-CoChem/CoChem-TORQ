@@ -150,7 +150,9 @@ def _source_snapshot(
     return sources, records
 
 
-def _native_records(shard: Path, manifest: dict, result: dict) -> list[dict[str, Any]]:
+def _native_records(
+    shard: Path, manifest: dict[str, Any], result: dict[str, Any]
+) -> list[dict[str, Any]]:
     records = []
     for key in ("native_result", "harmonic_native_result"):
         native = result.get(key)
@@ -221,7 +223,9 @@ def _native_records(shard: Path, manifest: dict, result: dict) -> list[dict[str,
     return records
 
 
-def _summary(shard: Path, manifest: dict, result: dict) -> dict[str, Any]:
+def _summary(
+    shard: Path, manifest: dict[str, Any], result: dict[str, Any]
+) -> dict[str, Any]:
     request = read_json(shard / "request.json")
     ledger = {
         name: {
@@ -312,7 +316,7 @@ def _summary(shard: Path, manifest: dict, result: dict) -> dict[str, Any]:
     }
 
 
-def _copy_file(source: Path, destination: Path, expected: dict) -> None:
+def _copy_file(source: Path, destination: Path, expected: dict[str, Any]) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     descriptor = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
     with os.fdopen(descriptor, "rb") as original, destination.open("xb") as copied:
@@ -351,6 +355,8 @@ def verify_publication_bundle(
             "Publication manifest differs from the independently retained SHA-256."
         )
     manifest = read_json(root / "publication-manifest.json")
+    if not isinstance(manifest, dict):
+        raise ValueError("Publication manifest must be a JSON object.")
     if manifest.get("schema_version") != _SCHEMA:
         raise ValueError("Unsupported publication bundle schema.")
     listed = manifest.get("files")

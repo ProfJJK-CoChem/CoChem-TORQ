@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
-from typing import Any, Literal
+from os import PathLike
+from typing import Any, Literal, NoReturn
 from uuid import UUID, uuid4
 
 import numpy as np
@@ -17,6 +18,7 @@ from pydantic import (
     StrictInt,
     model_validator,
 )
+from typing_extensions import Self
 
 from .scientific_contracts import ScientificGoal
 
@@ -57,7 +59,7 @@ SPECTROSCOPY_STAGES = (
     "ground_state_constants",
     "identification_catalog",
 )
-CANONICALIZATION_PROFILE = "RFC8785"
+CANONICALIZATION_PROFILE: Literal["RFC8785"] = "RFC8785"
 LEGACY_CANONICALIZATION_PROFILE = "cochem.sorted-json/1"
 
 
@@ -78,7 +80,7 @@ class Molecule(Contract):
     isotopes: list[StrictInt | None] | None = None
 
     @model_validator(mode="after")
-    def molecular_identity(self):
+    def molecular_identity(self) -> Self:
         if any(symbol not in ATOMIC_NUMBERS for symbol in self.symbols):
             raise ValueError(
                 "Use canonical element symbols; isotope mass numbers "
@@ -145,7 +147,7 @@ class CalculationRequest(Contract):
     scientific_goal: ScientificGoal | None = None
 
     @model_validator(mode="after")
-    def known_products(self):
+    def known_products(self) -> Self:
         if set(self.products) - PRODUCTS or len(self.products) != len(
             set(self.products)
         ):
@@ -174,7 +176,7 @@ class StageResult(Contract):
     )
 
     @model_validator(mode="after")
-    def truthful_value(self):
+    def truthful_value(self) -> Self:
         if self.status == "available":
             if (
                 self.value is None
@@ -187,17 +189,19 @@ class StageResult(Contract):
             canonical_json(self.value)
             from .scientific_values import VALUE_SCHEMAS
 
-            schema = VALUE_SCHEMAS.get(self.observable)
-            if schema is None:
+            schema_candidate: object = VALUE_SCHEMAS.get(self.observable)
+            if schema_candidate is None:
                 from .spectroscopy.results import ADVANCED_VALUE_SCHEMAS
 
-                schema = ADVANCED_VALUE_SCHEMAS.get(self.observable)
-            if schema is None:
+                schema_candidate = ADVANCED_VALUE_SCHEMAS.get(self.observable)
+            if not isinstance(schema_candidate, type) or not issubclass(
+                schema_candidate, BaseModel
+            ):
                 raise ValueError(
                     "An available scientific observable requires "
                     "a registered typed schema."
                 )
-            schema.model_validate(self.value)
+            schema_candidate.model_validate(self.value)
         elif self.value is not None or not self.reason:
             raise ValueError(
                 "An unavailable stage requires a reason and forbids substitute values."
@@ -269,13 +273,13 @@ def _resolved_isotope_evidence(
                 if number is not None
                 else "most_abundant_naturally_occurring_isotope"
             )
-            or type(mass) not in (int, float)
+            or (type(mass) is not int and type(mass) is not float)
             or not np.isfinite(mass)
             or mass <= 0
             or (
                 uncertainty is not None
                 and (
-                    type(uncertainty) not in (int, float)
+                    (type(uncertainty) is not int and type(uncertainty) is not float)
                     or not np.isfinite(uncertainty)
                     or uncertainty < 0
                 )
@@ -446,16 +450,16 @@ def scientific_cache_key(
     )
 
 
-def read_json(path) -> Any:
-    def unique(pairs):
-        result = {}
+def read_json(path: str | PathLike[str]) -> Any:
+    def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         for key, value in pairs:
             if key in result:
                 raise ValueError(f"Duplicate JSON field: {key}")
             result[key] = value
         return result
 
-    def nonfinite(value):
+    def nonfinite(value: str) -> NoReturn:
         raise ValueError(f"Nonfinite JSON number: {value}")
 
     from pathlib import Path

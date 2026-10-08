@@ -34,7 +34,7 @@ class GitHubActions:
         repository: str,
         ref: str = "main",
         state_directory: str | Path | None = None,
-    ):
+    ) -> None:
         if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
             raise ValueError("Specify a GitHub owner/repository.")
         if (
@@ -49,7 +49,7 @@ class GitHubActions:
         )
 
     @classmethod
-    def from_environment(cls):
+    def from_environment(cls) -> GitHubActions:
         return cls(
             os.environ.get(
                 "COCHEM_TORQ_GITHUB_REPOSITORY",
@@ -164,6 +164,8 @@ class GitHubActions:
             if existing_path.is_symlink():
                 raise ValueError("Submission receipts cannot be symlinks.")
             existing = read_json(existing_path)
+            if not isinstance(existing, dict):
+                raise GitHubAccessError("The retained submission receipt is malformed.")
             if (
                 key_digest
                 and existing.get("idempotency_key_sha256") == key_digest

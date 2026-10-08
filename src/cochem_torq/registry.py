@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .capabilities import CapabilityRecord, CapabilityTuple
 
 from .domain import digest
 
-_BASE = {
+_BASE: dict[str, Any] = {
     "engine": "PySCF",
     "engine_version": "2.14.0",
     "reference": "restricted",
@@ -38,7 +42,7 @@ _BASE = {
     ],
     "accuracy": "uncalibrated; no laboratory/astronomical identification claim",
 }
-_PROFILES = {
+_PROFILES: dict[str, dict[str, Any]] = {
     "hf-sto-3g-education": {
         **_BASE,
         "id": "hf-sto-3g-education",
@@ -189,7 +193,7 @@ def list_method_profiles() -> list[dict[str, Any]]:
     return [get_profile(identifier) for identifier in _PROFILES]
 
 
-def profile_capabilities(identifier: str):
+def profile_capabilities(identifier: str) -> tuple[CapabilityRecord, ...]:
     """Immutable exact experimental tuples for implemented native CPU routes.
 
     These declarations authorize controlled validation, never automatic production
@@ -236,7 +240,9 @@ def profile_capabilities(identifier: str):
     return tuple(records)
 
 
-def resolve_exact_capability(definition):
+def resolve_exact_capability(
+    definition: CapabilityTuple | dict[str, Any],
+) -> CapabilityRecord:
     """An unlisted tuple is unknown; a similar recipe cannot establish support."""
     from .capabilities import CapabilityRecord, CapabilityTuple
 
@@ -254,7 +260,9 @@ def resolve_exact_capability(definition):
     )
 
 
-def route_profile_capabilities(identifier: str, products, *, execution: str):
+def route_profile_capabilities(
+    identifier: str, products: Iterable[str], *, execution: str
+) -> dict[str, Any]:
     """Resolve exact native dependencies before the worker can dispatch."""
     from .capabilities import authorize_capability, observed_cpu_hardware
 

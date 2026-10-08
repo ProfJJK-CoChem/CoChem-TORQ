@@ -41,7 +41,7 @@ from .spectroscopy.results import (
 
 
 def _plain(value: Any) -> Any:
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _plain(asdict(value))
     if isinstance(value, np.ndarray):
         return value.tolist()
@@ -179,7 +179,7 @@ def execute_anharmonic_validation(
     configuration = profile["anharmonic"]
     if configuration["max_modes"] != 3:
         raise ValueError("The recipe and bounded runner mode scopes disagree.")
-    protocol = {
+    protocol: dict[str, Any] = {
         "steps_dimensionless": configuration["steps_dimensionless"],
         "max_energy_evaluations": configuration["max_evaluations"],
         "absolute_derivative_tolerance_hartree": configuration[
@@ -236,7 +236,7 @@ def execute_anharmonic_validation(
     protocol["isotope_provenance"] = isotope_records
     protocol["runner_source_sha256"] = sha256(Path(__file__).read_bytes()).hexdigest()
     protocol_digest = digest(protocol)
-    stages = {
+    stages: dict[str, dict[str, Any]] = {
         name: {
             "status": "blocked",
             "value": None,
@@ -244,7 +244,7 @@ def execute_anharmonic_validation(
         }
         for name in ("anharmonic_force_field", "resonance_analysis", "vibrational_vpt2")
     }
-    result = {
+    result: dict[str, Any] = {
         "schema_version": "cochem.torq.anharmonic-validation/1",
         "status": "experimental_unqualified",
         "outcome": "running",
