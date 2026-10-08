@@ -1,0 +1,46 @@
+{
+  "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+  "build_source_snapshot": "/workspace/torq-review/rc-release-final-build-source",
+  "build_source_snapshot_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "full_srs_release_ready": false,
+  "main_environment_ready": true,
+  "main_installed_python_files_byte_verified": 232,
+  "mypy": {
+    "arguments": [
+      "src/cochem_torq",
+      "--follow-imports=silent",
+      "--ignore-missing-imports"
+    ],
+    "configured_strict": true,
+    "source_files": 36,
+    "status": "passed"
+  },
+  "packaged_python_files_byte_verified": 232,
+  "recorded_at": "2026-10-08T05:49:36.098198+00:00",
+  "ruff": {
+    "check": "passed",
+    "format": "passed",
+    "scope": [
+      "src/cochem_torq",
+      "cochem/orchestration/campaign.py",
+      "cochem/storage/fenced_pes.py",
+      "ci_tools/validate_release_evidence.py",
+      "ci_tools/run_repository_regression.py"
+    ],
+    "scoped_files": 42
+  },
+  "scope": "Actual frozen-source static checks, fresh archive build and exact main installed wheel; clean core replays pending",
+  "source_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+  "source_tree_sha256_after": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "source_tree_sha256_before": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "source_unchanged": true,
+  "wheel": "/workspace/torq-review/rc-release-final-dist/cochem_torq-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557",
+  "workflow_syntax": {
+    "bash_programs_checked": 41,
+    "embedded_python_programs": 6,
+    "report": "/workspace/torq-review/rc-canonical-workflow-syntax.json",
+    "status": "passed"
+  },
+  "workspace_free_bytes": 3042885632
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "check": "repository_metadata",
+    "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ",
+    "method": "GET",
+    "exit_code": 0,
+    "status": "200",
+    "message": null,
+    "available": true,
+    "recorded_at": "2026-10-08T05:49:42.853080+00:00",
+    "default_branch": "main"
+  },
+  {
+    "check": "default_calculation_workflow",
+    "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ/actions/workflows/calculation.yml",
+    "method": "GET",
+    "exit_code": 1,
+    "status": "404",
+    "message": "Not Found",
+    "available": false,
+    "recorded_at": "2026-10-08T05:49:43.228974+00:00",
+    "workflow_state": null
+  },
+  {
+    "check": "default_calculation_workflow_contents",
+    "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ/contents/.github/workflows/calculation.yml?ref=main",
+    "method": "GET",
+    "exit_code": 1,
+    "status": "404",
+    "message": "Not Found",
+    "available": false,
+    "recorded_at": "2026-10-08T05:49:43.616177+00:00"
+  },
+  {
+    "check": "repository_codespace_machines",
+    "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ/codespaces/machines",
+    "method": "GET",
+    "exit_code": 1,
+    "status": "403",
+    "message": "Resource not accessible by integration",
+    "available": false,
+    "recorded_at": "2026-10-08T05:49:44.010654+00:00"
+  }
+]

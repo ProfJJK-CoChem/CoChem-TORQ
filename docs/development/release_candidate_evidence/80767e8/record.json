@@ -1,0 +1,64 @@
+{
+  "schema_version": "cochem.torq.release-execution-record/1",
+  "scope": "80767e8 tested baseline; subsequent implementations require new evidence",
+  "git_commit": "80767e843cd60688d383eefddfa584d63e9f19b5",
+  "source_tree_sha256": "56754994707b5107f953ff33bb8327034d895a000bd534d7ed57f3a0b3db9cd9",
+  "application_code_sha256": "607b1bbc02c60c6c2229f0ca087ea9093a0a1703fb66305bb879f4833d719090",
+  "complete_repository": {
+    "tests": 2085,
+    "passed": 2085,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "source_unchanged": true
+  },
+  "full_srs_release_ready": false,
+  "scientific_identification_qualified": false,
+  "hosted_current_commit": "blocked before any steps by GitHub Billing & plans",
+  "files": [
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/complete-summary.json",
+      "sha256": "972a23e83a9d9f37b74b91a07b6f95e9bd2d40bb2fa87aeb4ff1ecd3d14e6a2f"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/complete-junit.xml",
+      "sha256": "9d64faa56a055e60a0d891d8d6c5566eec311b4291ab900cfaa0a35e39de2703"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/complete-environment.json",
+      "sha256": "cc6b445e3af3779fb26fefe0a3edd84648e80dd525bbb0f66663ededaa51df88"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/complete-audit.json",
+      "sha256": "c9dfae6e5d9e79b4fce12a9e515bff78e6d2017bc1ce57ce032e9ea5b642f7bd"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/core-py310-summary.json",
+      "sha256": "178be6a1991d5d78414f3d6ac3fd1ae61d56cd4df8cea54d0e2392d5df9c7f03"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/core-py312-summary.json",
+      "sha256": "788d9e7ee7735c0c6be872d3d402a8df2d3e70e57319d423d1efcfed2ef46950"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/static-and-wheel-checks.json",
+      "sha256": "7f12887e1e45473d432ddc85b394aac121416638bf054b8d833b5324a8cb5c14"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/hosted-jobs.json",
+      "sha256": "ef2f6c339606d430696e3e0f24419aef41e6eec1a389a7b7d45c617e11722e60"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/hosted-annotations.json",
+      "sha256": "aa7df0102f95f583c8f861b8c8572e1da7b4bf739534dfb19ac80abcab888d78"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/local-image-build-runtime-block.json",
+      "sha256": "3c2e8c133af357f3fad35a46cf2b32f2e897a922ca1e651af5aefe928a53563e"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/80767e8/ecosystem-evidence.json",
+      "sha256": "b27420309b6c9511590ec5bb02fc5e5c71ee2417945443475b526ec5cc29dbce"
+    }
+  ]
+}

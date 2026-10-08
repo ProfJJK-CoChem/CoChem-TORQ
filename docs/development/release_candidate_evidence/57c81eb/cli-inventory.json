@@ -1,0 +1,1032 @@
+[
+  {
+    "path": ".refinement.publication.lock",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": ".scan.scan-campaign.sqlite",
+    "sha256": "ef97422855a747925c841eed5af7e2228f88965f5cc52669c36cbd1396924231",
+    "size_bytes": 98304
+  },
+  {
+    "path": ".torq-artifact-quota.lock",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": ".torq-campaign.sqlite",
+    "sha256": "a768984153307ff1113e0b452d231870c8abee38ee260c0342e34bc04a8e64b0",
+    "size_bytes": 57344
+  },
+  {
+    "path": "README.md",
+    "sha256": "c49438b0dfbc4b04b8f0cd4bf1ad15182cbd1890d391036fba7dd44564827011",
+    "size_bytes": 437
+  },
+  {
+    "path": "adaptive-approved.json",
+    "sha256": "62094d3da62bc242b484772a2df4eca6e9c930f4497fc8e8776009376e1254ac",
+    "size_bytes": 7359
+  },
+  {
+    "path": "adaptive-plan.json",
+    "sha256": "ab793e7941e914bb03939ee54b25dcb06ab38dc93e2d00f23a4b9d59e36dcd18",
+    "size_bytes": 6807
+  },
+  {
+    "path": "candidate-request.json",
+    "sha256": "9c81d0d677421fba4633ed9dea10e8d387afed9f693448adf934a24636c8a060",
+    "size_bytes": 1260
+  },
+  {
+    "path": "commands/01-geometry-compare/command.json",
+    "sha256": "50418016c56cc656831cd3acafd9dd0d4c155e4a306a9196e5be55a9de4b490f",
+    "size_bytes": 765
+  },
+  {
+    "path": "commands/01-geometry-compare/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/01-geometry-compare/stdout.json",
+    "sha256": "f4ab588164aafbeb032c11eff8617491afa516b99ff3aa0b2988dff198cfeeee",
+    "size_bytes": 4401
+  },
+  {
+    "path": "commands/02-symmetry-proposal/command.json",
+    "sha256": "07b0df083f6d70286af3a93e65150041241e04f975a5ed7e7bb9d19024c7f108",
+    "size_bytes": 677
+  },
+  {
+    "path": "commands/02-symmetry-proposal/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/02-symmetry-proposal/stdout.json",
+    "sha256": "420bad4e770f2f787497e7a4af7b82c50d35f18ec84bf5e95291f503ce2471e1",
+    "size_bytes": 9054
+  },
+  {
+    "path": "commands/03-plan-adaptive/command.json",
+    "sha256": "203d581ffbefdfcef21849115b53b746885aaf50afaa025092e6164af8dd4803",
+    "size_bytes": 603
+  },
+  {
+    "path": "commands/03-plan-adaptive/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/03-plan-adaptive/stdout.json",
+    "sha256": "f74d26b20df8c7cde0e77ef98ed5992fef2a3278af9fa88218f1045a068b7360",
+    "size_bytes": 10720
+  },
+  {
+    "path": "commands/04-approve-adaptive/command.json",
+    "sha256": "8be59aadea0749374f2704cd39cebf929d011226cbf2889add0bb57369401f51",
+    "size_bytes": 626
+  },
+  {
+    "path": "commands/04-approve-adaptive/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/04-approve-adaptive/stdout.json",
+    "sha256": "b9141f6c8fcf32cd5666621daae11bf95a6df54f29ba90fce7e0a9715d6114b4",
+    "size_bytes": 11380
+  },
+  {
+    "path": "commands/05-execute-adaptive/command.json",
+    "sha256": "3caac7c8ac09539239bf85d726d71a28965175969aedbb829dd5b6714bcf9a9a",
+    "size_bytes": 653
+  },
+  {
+    "path": "commands/05-execute-adaptive/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/05-execute-adaptive/stdout.json",
+    "sha256": "d5baeb6ba9eb6fe8552c9bb600ddb1b28a50210a35bab94bfef91a0651b2ed2f",
+    "size_bytes": 410
+  },
+  {
+    "path": "commands/06-inspect-candidate/command.json",
+    "sha256": "f64f347f09534ce8e54976477fed3f1ab729cd630f757360c2b942ae6d9f9811",
+    "size_bytes": 563
+  },
+  {
+    "path": "commands/06-inspect-candidate/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/06-inspect-candidate/stdout.json",
+    "sha256": "f591dc9d9680a8c3db32fff1f05e5caf36c2e640d220acce4c892806b4101368",
+    "size_bytes": 10669
+  },
+  {
+    "path": "commands/07-candidate-request/command.json",
+    "sha256": "0ab52387bb46681a7c94903cdfc595fbb3c52de631fa81ec0720527165d3459b",
+    "size_bytes": 622
+  },
+  {
+    "path": "commands/07-candidate-request/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/07-candidate-request/stdout.json",
+    "sha256": "6cfdff56cf75433b38da83caa2a11482a2a9a0adc30e3b60d282e7ce33390341",
+    "size_bytes": 2083
+  },
+  {
+    "path": "commands/08-plan-refinement/command.json",
+    "sha256": "793cb9e8277439c7c7e0f5bb19ea095d7e3b199b8037da6aefc85444e045c4f9",
+    "size_bytes": 601
+  },
+  {
+    "path": "commands/08-plan-refinement/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/08-plan-refinement/stdout.json",
+    "sha256": "fbf5a6dbfb14f1ce02aa59fd64de3361309177980bec8e555bd90cd1dded0440",
+    "size_bytes": 9785
+  },
+  {
+    "path": "commands/09-approve-refinement/command.json",
+    "sha256": "3d373cabd7317118b10f1bc74ba7efd0e3985dc943f5cdd66a4e64d2885100d1",
+    "size_bytes": 633
+  },
+  {
+    "path": "commands/09-approve-refinement/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/09-approve-refinement/stdout.json",
+    "sha256": "493986d4ed1117a1f6bed96d166e536e689c6a9d49a53325a434fa5caf7b1acb",
+    "size_bytes": 10449
+  },
+  {
+    "path": "commands/10-refine-quarantine-rejected/command.json",
+    "sha256": "af8e098be1f5876f2e61422db581e0c6d60635874a371b09dc0e8a47777cdf7d",
+    "size_bytes": 981
+  },
+  {
+    "path": "commands/10-refine-quarantine-rejected/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/10-refine-quarantine-rejected/stdout.json",
+    "sha256": "923b211bf312f6779e71865a86ce202b4f2b138f7a08fc8b7d7ebdab3a3dee63",
+    "size_bytes": 521
+  },
+  {
+    "path": "commands/11-retain-candidate/command.json",
+    "sha256": "517c5adaf99f4ce762fecd5929b3aaa6825ee7d536243078bf97b75a1d5db82c",
+    "size_bytes": 718
+  },
+  {
+    "path": "commands/11-retain-candidate/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/11-retain-candidate/stdout.json",
+    "sha256": "49b2fb8479759a874763e7a83af4fa1a1f9a5a7f33292f6c56a2b4b1d4b80589",
+    "size_bytes": 6479
+  },
+  {
+    "path": "commands/12-stale-retain-rejected/command.json",
+    "sha256": "230b5c6ce850f7822f759d50cf6b9299747659c9f054076f0f3f2367e46a2528",
+    "size_bytes": 679
+  },
+  {
+    "path": "commands/12-stale-retain-rejected/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/12-stale-retain-rejected/stdout.json",
+    "sha256": "e11b18ec0175b122fc588bbea72337ae1d85450b334c0091ef236c52a7f30749",
+    "size_bytes": 459
+  },
+  {
+    "path": "commands/13-refine-candidate/command.json",
+    "sha256": "e1f8e7c31a5bc2e32c560f33b7814fa04d119d3fb9c674500cfe9f357706a620",
+    "size_bytes": 958
+  },
+  {
+    "path": "commands/13-refine-candidate/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/13-refine-candidate/stdout.json",
+    "sha256": "1d5229b2b989dd575cddbfc4c58d36e69074f11ad34b234cba8deed3635e7232",
+    "size_bytes": 847
+  },
+  {
+    "path": "commands/14-inspect-original-candidate/command.json",
+    "sha256": "02a537bcbf15eaf747deba5d4185fd873dad4b5a51f9b9d39d1416ef9144f48d",
+    "size_bytes": 571
+  },
+  {
+    "path": "commands/14-inspect-original-candidate/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/14-inspect-original-candidate/stdout.json",
+    "sha256": "d984b2586f487c2a7cab22b09d8de3bbbc0b1e4c4323bcce1e082af8dab5ecef",
+    "size_bytes": 12426
+  },
+  {
+    "path": "commands/15-inspect-verified-result/command.json",
+    "sha256": "405575ef1ec4f85143763ed29f6fb33c6cb68b9d4eb58d708bc32cb1367331e4",
+    "size_bytes": 567
+  },
+  {
+    "path": "commands/15-inspect-verified-result/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/15-inspect-verified-result/stdout.json",
+    "sha256": "832662d9fad98e39a391919cda563408a59dc642239394bc6e02bfae0e87faca",
+    "size_bytes": 31690
+  },
+  {
+    "path": "commands/16-verify-immutable-refinement/command.json",
+    "sha256": "c320039196a318bf06ea5998b5fc57e82a6f07070419c016457f3a917edcc4e8",
+    "size_bytes": 473
+  },
+  {
+    "path": "commands/16-verify-immutable-refinement/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "commands/16-verify-immutable-refinement/stdout.json",
+    "sha256": "8a31600bc9b057659d63754c7f9c5dee8f536aceb956696cfc5dc22c8aa7b13d",
+    "size_bytes": 354
+  },
+  {
+    "path": "driver-output.log",
+    "sha256": "bcfdde56df2dbf21be43a2f713ee01f3a686be11ea33ea15c4bbc904ecd6a61e",
+    "size_bytes": 732
+  },
+  {
+    "path": "driver.py",
+    "sha256": "9d8f1556ed8551d0b5c2a1b7ae14c5fb4381a4ae12ed7a2af77ca69477412433",
+    "size_bytes": 14859
+  },
+  {
+    "path": "geometry-comparison.json",
+    "sha256": "f06d705ef2df33c1a50427c617389e71e4df5e5df19eb9333334e70849be0ed0",
+    "size_bytes": 2550
+  },
+  {
+    "path": "inputs/adaptive-request.json",
+    "sha256": "76e2fb07087fb2db0651e9c59c5fdf1fcb3f2686890857b6ecb9efae3132b7b5",
+    "size_bytes": 5242
+  },
+  {
+    "path": "inputs/comparison-policy.json",
+    "sha256": "bf161fc5a064257fe8f7df48e99d62b6e4a50499418a145338da73a91b385ecb",
+    "size_bytes": 200
+  },
+  {
+    "path": "inputs/input-declaration.json",
+    "sha256": "b5b6c5dadb03042017c01bdba4542c411550f192b391a0e3e3e10527c5954488",
+    "size_bytes": 349
+  },
+  {
+    "path": "inputs/source-geometry.json",
+    "sha256": "9fca0e7e0f552abe40b1ba9a8fe5bb240a393973f1025541241dd0f9edbe5eac",
+    "size_bytes": 801
+  },
+  {
+    "path": "inputs/symmetry-policy.json",
+    "sha256": "a68d0a611b0e9a9ddefaa2639e9c6fdb6575a502376b363a0d35f049dca766dc",
+    "size_bytes": 152
+  },
+  {
+    "path": "inputs/target-geometry.json",
+    "sha256": "505286c55cf774693a01a8644e99597270202f1808b355b92709ce84fdd27669",
+    "size_bytes": 861
+  },
+  {
+    "path": "inventory.json",
+    "sha256": "9e6b70163709148c89cdb54f6e96b607db5476ccbc562edc1cee75964c5bc438",
+    "size_bytes": 29524
+  },
+  {
+    "path": "receipt.json",
+    "sha256": "c6e5205d970bed3fda9210ec4a3a8d1dd4e9c04044df7179593ee995f2b17688",
+    "size_bytes": 12473
+  },
+  {
+    "path": "refinement/atomic-result.json",
+    "sha256": "2bb66a12c9cbfe31cbdf284ce69903bd116a7f7afccdc37e21eb0642e571885e",
+    "size_bytes": 2277
+  },
+  {
+    "path": "refinement/engine/final/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "refinement/engine/final/dipole-debye.npy",
+    "sha256": "2dfae0cce60c73d1d42c78e8ac247e7d5b17500b74554935c43ee7ba8666b6eb",
+    "size_bytes": 152
+  },
+  {
+    "path": "refinement/engine/final/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "refinement/engine/final/geometry-bohr.npy",
+    "sha256": "e0fabf0e3eaba8ae411ea20875c414669a00d9ffbe17266e70f50266ae4a4ccf",
+    "size_bytes": 176
+  },
+  {
+    "path": "refinement/engine/final/gradient-hartree-bohr.npy",
+    "sha256": "4adcd13c672d1effe055c18776fc2df711ed0ed1c243f8b88ba0c8df5187f944",
+    "size_bytes": 176
+  },
+  {
+    "path": "refinement/engine/final/manifest.json",
+    "sha256": "0f91ca221b3c30f54211b280b9298455a7ab5daced6f2a50c6ad5c1027fa5d87",
+    "size_bytes": 1488
+  },
+  {
+    "path": "refinement/engine/final/pyscf.log",
+    "sha256": "9dc6ca3af74343c50c8b8b7632d153cee5d443fe9afaeea84bc951de03223a5d",
+    "size_bytes": 34537
+  },
+  {
+    "path": "refinement/engine/final/request.json",
+    "sha256": "db62900462fd17208add04e99ca2aabdbf5cb462d126d3a06a66da5808d5e69d",
+    "size_bytes": 988
+  },
+  {
+    "path": "refinement/engine/final/result.json",
+    "sha256": "cbc5d46ac1c0c459adaf9e4902404b61cd53da9b091c214d0cc415d70b3deab1",
+    "size_bytes": 2683
+  },
+  {
+    "path": "refinement/engine/final/wavefunction.chk",
+    "sha256": "8d8338f950f8e5c623d3cf45858ebefcc3837300ecc0588fa8a7064e5333cf5b",
+    "size_bytes": 10528
+  },
+  {
+    "path": "refinement/engine/geometric.log",
+    "sha256": "289104b69649130df6deb4151656de571874a3620b65b1fe138eab63838713cc",
+    "size_bytes": 8042
+  },
+  {
+    "path": "refinement/engine/initial/pyscf.log",
+    "sha256": "752ae4bbfff4d12f731c3b4ed84e1b649e4ae5492fcd08e27db2652d8ad05892",
+    "size_bytes": 46344
+  },
+  {
+    "path": "refinement/engine/initial/wavefunction.chk",
+    "sha256": "56fb6ec84f77c54bb40d04c26195ad344c1c1aab8c19058c14e1b0bcf3ff9abd",
+    "size_bytes": 10528
+  },
+  {
+    "path": "refinement/engine/launcher.log",
+    "sha256": "00172d347b6dc3492fb233c80483adaf6e9b98fc267f0b9ad619c177eb0465ac",
+    "size_bytes": 226
+  },
+  {
+    "path": "refinement/engine/manifest.json",
+    "sha256": "5b2c293a85a8a344fd4239cccbe09e4ddacc5a8af19144707c1a3817ad5f3527",
+    "size_bytes": 2809
+  },
+  {
+    "path": "refinement/engine/optimization-trajectory.json",
+    "sha256": "6aaea7efbfac63a2da161bb30ac5dc16f1608ba365e253b219bca338156b0227",
+    "size_bytes": 2487
+  },
+  {
+    "path": "refinement/engine/optimization-wavefunction.chk",
+    "sha256": "6c3d16f780f19cb78ce82ba602b29a75f9d15d185d8e9e4975f7530a86173cb3",
+    "size_bytes": 31456
+  },
+  {
+    "path": "refinement/engine/request.json",
+    "sha256": "198ad2cdf1be7aae123a388045db8c14f5a13c121e89ed783ba929fbeeb4f8bd",
+    "size_bytes": 957
+  },
+  {
+    "path": "refinement/engine/result.json",
+    "sha256": "f3df076ae06c981d25cf1604b5101a8bc107db5f1d228f07c0bf16e3a9ddfa9b",
+    "size_bytes": 3379
+  },
+  {
+    "path": "refinement/harmonic-engine/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "refinement/harmonic-engine/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "refinement/harmonic-engine/geometry-bohr.npy",
+    "sha256": "e0fabf0e3eaba8ae411ea20875c414669a00d9ffbe17266e70f50266ae4a4ccf",
+    "size_bytes": 176
+  },
+  {
+    "path": "refinement/harmonic-engine/gradient-hartree-bohr.npy",
+    "sha256": "4adcd13c672d1effe055c18776fc2df711ed0ed1c243f8b88ba0c8df5187f944",
+    "size_bytes": 176
+  },
+  {
+    "path": "refinement/harmonic-engine/hessian-hartree-bohr2.npy",
+    "sha256": "b4248fe7908d8a7f390345e75793b4f897198ddc8ba68d1fb514c3762dc90e9a",
+    "size_bytes": 416
+  },
+  {
+    "path": "refinement/harmonic-engine/launcher.log",
+    "sha256": "698fe8a64df7c8e288fce9a77aefa1269660e209ecdc10aacb119f3a6b802e40",
+    "size_bytes": 115
+  },
+  {
+    "path": "refinement/harmonic-engine/manifest.json",
+    "sha256": "7fe78c16241de5d38464714614d1fcc1e908396b85e33bc4d18844557f4e467e",
+    "size_bytes": 1648
+  },
+  {
+    "path": "refinement/harmonic-engine/pyscf.log",
+    "sha256": "91d3a43c6a75f2e5fcf0366b99b1aacf86254ab3dc7f1287bfedc21db11fb1bc",
+    "size_bytes": 34540
+  },
+  {
+    "path": "refinement/harmonic-engine/request.json",
+    "sha256": "0ce7715fa2791f0f4ad4c7139d67d07d86e957bbcb962baf32edf123fecbe259",
+    "size_bytes": 989
+  },
+  {
+    "path": "refinement/harmonic-engine/result.json",
+    "sha256": "c6f4f7e2b7889472d0a86c4fe2e136d62c82d9d096ae6941060c4cdb969b93ec",
+    "size_bytes": 3481
+  },
+  {
+    "path": "refinement/harmonic-engine/wavefunction.chk",
+    "sha256": "8d8338f950f8e5c623d3cf45858ebefcc3837300ecc0588fa8a7064e5333cf5b",
+    "size_bytes": 10528
+  },
+  {
+    "path": "refinement/manifest.json",
+    "sha256": "1743dd48b212f1f3704499b63ad6b2ad04ef424c922b396f94567d48a7748d69",
+    "size_bytes": 7792
+  },
+  {
+    "path": "refinement/request.json",
+    "sha256": "9c81d0d677421fba4633ed9dea10e8d387afed9f693448adf934a24636c8a060",
+    "size_bytes": 1260
+  },
+  {
+    "path": "refinement/result.json",
+    "sha256": "f8ecb979adb2dbb78dba4b9abfad411e0d691f1ce414a502c49d30b6db41979d",
+    "size_bytes": 26948
+  },
+  {
+    "path": "refinement/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "refinement-approved.json",
+    "sha256": "766e2e158b2e59b587491fd033f7a7b0a4b61d9544f4ebd743a439da0ecc8bba",
+    "size_bytes": 7147
+  },
+  {
+    "path": "refinement-plan.json",
+    "sha256": "a93f3c9bb53a526ffee5b31743391764491305333ccba073e20eb8713a05f443",
+    "size_bytes": 6595
+  },
+  {
+    "path": "scan/adaptive-result.json",
+    "sha256": "e9f37410ca7111b1c168b8c449f2debc38001d2f495d693bcc67132a1c8c0452",
+    "size_bytes": 21775
+  },
+  {
+    "path": "scan/approved-plan.json",
+    "sha256": "62094d3da62bc242b484772a2df4eca6e9c930f4497fc8e8776009376e1254ac",
+    "size_bytes": 7359
+  },
+  {
+    "path": "scan/campaign-accounting.json",
+    "sha256": "272038bc4907333e98892100b840edefadfa8560f3f43076462e9de7b2a0357c",
+    "size_bytes": 3380
+  },
+  {
+    "path": "scan/campaign-events.json",
+    "sha256": "1f060507e59b2ebb2f3cf6e48bf44ccbac26accfa5c2715f8795dc619e3bf56b",
+    "size_bytes": 28428
+  },
+  {
+    "path": "scan/candidate-ledger.sqlite",
+    "sha256": "fd4125d2e0e26364334c59e960d266d7d980c58f0e61ca538658d518a174c232",
+    "size_bytes": 49152
+  },
+  {
+    "path": "scan/candidate-requests/a5faa42b-8dac-5e04-a735-4599f6c88988.json",
+    "sha256": "9c81d0d677421fba4633ed9dea10e8d387afed9f693448adf934a24636c8a060",
+    "size_bytes": 1260
+  },
+  {
+    "path": "scan/candidates/a5faa42b-8dac-5e04-a735-4599f6c88988.json",
+    "sha256": "0945f165d88a4f1cad1027defaa96e03c52a24139edca4ffea571f6f9b6db928",
+    "size_bytes": 2566
+  },
+  {
+    "path": "scan/points/point-0000/backend-request.json",
+    "sha256": "a835aab99a5e0b7f293c09b09fb044f2309dbde8b2fa7fd5f2664d5cca9b668a",
+    "size_bytes": 417
+  },
+  {
+    "path": "scan/points/point-0000/dispatch-permit.json",
+    "sha256": "8c4e16768f0fafc01c7616249a8f195c2d822bbd7ad1d86e42bb3e48af7eb3c9",
+    "size_bytes": 234
+  },
+  {
+    "path": "scan/points/point-0000/native/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "scan/points/point-0000/native/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "scan/points/point-0000/native/geometry-bohr.npy",
+    "sha256": "c6e59680545b8f04b8334a5e30b2ff360d9f48f2b7da755004ad9b01a8e94074",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0000/native/gradient-hartree-bohr.npy",
+    "sha256": "76f4bd1302d1688e4916d0b78e90a23b857734e299fab36a7cfd619ff10af733",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0000/native/launcher.log",
+    "sha256": "1ac0961b7414646570594f9359152a7e755ba9a6d6598088af1d5561654d78c0",
+    "size_bytes": 100
+  },
+  {
+    "path": "scan/points/point-0000/native/manifest.json",
+    "sha256": "98c34ffc44b184b3c2fbbc0af0cf2d1a762cf0bf1a40fafd4fa76d52b5af9e49",
+    "size_bytes": 1484
+  },
+  {
+    "path": "scan/points/point-0000/native/pyscf.log",
+    "sha256": "c62404f1530c3b001916977afaa37ad20715211607abb2b84122e8b9a0de0783",
+    "size_bytes": 60959
+  },
+  {
+    "path": "scan/points/point-0000/native/request.json",
+    "sha256": "ee865b1039dccf51e34e083a50e42868c10d77cb548c2ffb5ba588e3b1aadef0",
+    "size_bytes": 943
+  },
+  {
+    "path": "scan/points/point-0000/native/result.json",
+    "sha256": "321b86290f10da0dfb3d806bf70bebd27a349dab353c333b9528d75b3363616d",
+    "size_bytes": 2396
+  },
+  {
+    "path": "scan/points/point-0000/native/wavefunction.chk",
+    "sha256": "2daca800fb05b286d338f59e31b3a86e15f90e3d8b473215234ba395784e7d75",
+    "size_bytes": 10528
+  },
+  {
+    "path": "scan/points/point-0000/point-definition.json",
+    "sha256": "8aaa9c7c1153120e6fc2a8bd21f92f08cb3fe09a24a2989d7f895e1f41377279",
+    "size_bytes": 542
+  },
+  {
+    "path": "scan/points/point-0000/point-result.json",
+    "sha256": "a1e4721087f30ccbd7dff1ef8c33b70373b58eca1c6ac442cd8d15ea864b7bfa",
+    "size_bytes": 1783
+  },
+  {
+    "path": "scan/points/point-0000/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "scan/points/point-0001/backend-request.json",
+    "sha256": "866098d66e2b0f26f7d0db9eb38dfca791066692270cc18b40c32c2551226911",
+    "size_bytes": 419
+  },
+  {
+    "path": "scan/points/point-0001/dispatch-permit.json",
+    "sha256": "3b92335ab006ca0cd189f75e586173d2765362f2b1556f2bdec8f4abe2cd2030",
+    "size_bytes": 234
+  },
+  {
+    "path": "scan/points/point-0001/native/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "scan/points/point-0001/native/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "scan/points/point-0001/native/geometry-bohr.npy",
+    "sha256": "364f8da8405fcc2e9e4c8e15adc2a982d10a5958b42f044397ac68cc9580b7e8",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0001/native/gradient-hartree-bohr.npy",
+    "sha256": "553a813ff4876919d0fb5034490f5aa46ed541346d668a397aa9d57202ceb7f7",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0001/native/launcher.log",
+    "sha256": "5a34b4f2f5440fd263cb1cf52e41693ae9d1124ad5f279515f1c9247435857da",
+    "size_bytes": 100
+  },
+  {
+    "path": "scan/points/point-0001/native/manifest.json",
+    "sha256": "8da94f68e4921df8a2c750f875bfa0bb734b65dacc635118354d83e0201e0961",
+    "size_bytes": 1484
+  },
+  {
+    "path": "scan/points/point-0001/native/pyscf.log",
+    "sha256": "1d0c975d323768195d0c833eef1fa95946749f37a911d49a065f12b56ec22e10",
+    "size_bytes": 60982
+  },
+  {
+    "path": "scan/points/point-0001/native/request.json",
+    "sha256": "e23b4314ff74428d1a7831d7758d69114958f6f972ba2f0c34920d9bd651b1af",
+    "size_bytes": 943
+  },
+  {
+    "path": "scan/points/point-0001/native/result.json",
+    "sha256": "79666bfaf3aa1f963bcb4e08db2489878060f14eb3ba2ce45a4223505a6c439c",
+    "size_bytes": 2396
+  },
+  {
+    "path": "scan/points/point-0001/native/wavefunction.chk",
+    "sha256": "c3ec4fc053ee72ba3a5c190d66cfe2e5682dc63b902a1657e24fde094286b53d",
+    "size_bytes": 10528
+  },
+  {
+    "path": "scan/points/point-0001/point-definition.json",
+    "sha256": "36f7122d687d81adfc60a240d7032afaacb4ca995237cf6cdf9f4a211d125d76",
+    "size_bytes": 584
+  },
+  {
+    "path": "scan/points/point-0001/point-result.json",
+    "sha256": "8c8dde054b4dbe91acd3dc375bffa19cc51bbb34e9f7493054b57ac55c8dccf9",
+    "size_bytes": 1826
+  },
+  {
+    "path": "scan/points/point-0001/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "scan/points/point-0002/backend-request.json",
+    "sha256": "928ba746d9dcdbcdd7e640c11e9d0513da478f94b30cfa3d687cbc9a877d37c4",
+    "size_bytes": 419
+  },
+  {
+    "path": "scan/points/point-0002/dispatch-permit.json",
+    "sha256": "663ea2848914dc7b55ebdf1db83758f8aa454b48834897f4714724b446eb7095",
+    "size_bytes": 234
+  },
+  {
+    "path": "scan/points/point-0002/native/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "scan/points/point-0002/native/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "scan/points/point-0002/native/geometry-bohr.npy",
+    "sha256": "99e4165a97300b5f9142756db64a675811e5fcdf0f5db28b0755b481f3ba6b78",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0002/native/gradient-hartree-bohr.npy",
+    "sha256": "d68101d95dafc6ef93473d88b445c95d7c33db27bf79a202549fa716bbc0628c",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0002/native/launcher.log",
+    "sha256": "6b6c16fecff7869b0e0b7b4dcc1984df85480207e33b7a10dc09be633a3eaf3b",
+    "size_bytes": 100
+  },
+  {
+    "path": "scan/points/point-0002/native/manifest.json",
+    "sha256": "891985ea7a5fd51afcb82883a52c55c5f39317b5293a0ff47002b9628c79a4d1",
+    "size_bytes": 1484
+  },
+  {
+    "path": "scan/points/point-0002/native/pyscf.log",
+    "sha256": "f421a7d5fb48377dd367b0bd9e9d380a18f75e32e5ec9f3d5ca071ae5205e105",
+    "size_bytes": 60975
+  },
+  {
+    "path": "scan/points/point-0002/native/request.json",
+    "sha256": "c21ffffb078a8cf121b8e0127a83fd19525151cd4b171ef135cbfd473af804d5",
+    "size_bytes": 943
+  },
+  {
+    "path": "scan/points/point-0002/native/result.json",
+    "sha256": "54677b7e2125f6bec8c58006dab7ef4afde2e722af4f35c905a4c1067cb74c47",
+    "size_bytes": 2416
+  },
+  {
+    "path": "scan/points/point-0002/native/wavefunction.chk",
+    "sha256": "56fb6ec84f77c54bb40d04c26195ad344c1c1aab8c19058c14e1b0bcf3ff9abd",
+    "size_bytes": 10528
+  },
+  {
+    "path": "scan/points/point-0002/point-definition.json",
+    "sha256": "262250cd32b1c753a5eb4a4400ce8398716ac9ed2c3aba452edfc8809c6eb49c",
+    "size_bytes": 630
+  },
+  {
+    "path": "scan/points/point-0002/point-result.json",
+    "sha256": "731398b8cfc50db9ebcfb6d68cc1e6482bda626d1352cb4eab1e18e32d8a51ac",
+    "size_bytes": 1873
+  },
+  {
+    "path": "scan/points/point-0002/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "scan/points/point-0003/backend-request.json",
+    "sha256": "a835aab99a5e0b7f293c09b09fb044f2309dbde8b2fa7fd5f2664d5cca9b668a",
+    "size_bytes": 417
+  },
+  {
+    "path": "scan/points/point-0003/dispatch-permit.json",
+    "sha256": "00a4b30541242635ef859f8026250f5c292d6b2801267f96bb6f94c81df98ace",
+    "size_bytes": 234
+  },
+  {
+    "path": "scan/points/point-0003/native/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "scan/points/point-0003/native/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "scan/points/point-0003/native/geometry-bohr.npy",
+    "sha256": "c6e59680545b8f04b8334a5e30b2ff360d9f48f2b7da755004ad9b01a8e94074",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0003/native/gradient-hartree-bohr.npy",
+    "sha256": "76f4bd1302d1688e4916d0b78e90a23b857734e299fab36a7cfd619ff10af733",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0003/native/launcher.log",
+    "sha256": "96ca8af9fb6b5a946bff146ece2b7e0b6e810bcec7f5ac263ec04cade5ce8cdd",
+    "size_bytes": 100
+  },
+  {
+    "path": "scan/points/point-0003/native/manifest.json",
+    "sha256": "bf2d76ff52a642ff47a77c271eecb5f5d6aa33afc0e34df308a80cf80c25a4df",
+    "size_bytes": 1484
+  },
+  {
+    "path": "scan/points/point-0003/native/pyscf.log",
+    "sha256": "c6265b2bd319bcb1a73cdec68c0976d54e30a0a0db4623b6ea79aa05327a4662",
+    "size_bytes": 60959
+  },
+  {
+    "path": "scan/points/point-0003/native/request.json",
+    "sha256": "ee865b1039dccf51e34e083a50e42868c10d77cb548c2ffb5ba588e3b1aadef0",
+    "size_bytes": 943
+  },
+  {
+    "path": "scan/points/point-0003/native/result.json",
+    "sha256": "321b86290f10da0dfb3d806bf70bebd27a349dab353c333b9528d75b3363616d",
+    "size_bytes": 2396
+  },
+  {
+    "path": "scan/points/point-0003/native/wavefunction.chk",
+    "sha256": "2daca800fb05b286d338f59e31b3a86e15f90e3d8b473215234ba395784e7d75",
+    "size_bytes": 10528
+  },
+  {
+    "path": "scan/points/point-0003/point-definition.json",
+    "sha256": "eb19b4c621a63d27f9b3b231de0ce775b0cbbf0aff1626938ccfe798813ec13a",
+    "size_bytes": 654
+  },
+  {
+    "path": "scan/points/point-0003/point-result.json",
+    "sha256": "c6809c96c109f533a628834e2a408535a079a558666ace32945064fb83166eef",
+    "size_bytes": 1890
+  },
+  {
+    "path": "scan/points/point-0003/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "scan/points/point-0004/backend-request.json",
+    "sha256": "866098d66e2b0f26f7d0db9eb38dfca791066692270cc18b40c32c2551226911",
+    "size_bytes": 419
+  },
+  {
+    "path": "scan/points/point-0004/dispatch-permit.json",
+    "sha256": "65a16b7968acd4890b17e0d43597a9311c69897917c24d9611f9fe8076fba8a1",
+    "size_bytes": 234
+  },
+  {
+    "path": "scan/points/point-0004/native/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "scan/points/point-0004/native/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "scan/points/point-0004/native/geometry-bohr.npy",
+    "sha256": "364f8da8405fcc2e9e4c8e15adc2a982d10a5958b42f044397ac68cc9580b7e8",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0004/native/gradient-hartree-bohr.npy",
+    "sha256": "553a813ff4876919d0fb5034490f5aa46ed541346d668a397aa9d57202ceb7f7",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0004/native/launcher.log",
+    "sha256": "55d5702a2fc2f69dbdcf21857b534a67bed37115c317968befbb69835513f851",
+    "size_bytes": 100
+  },
+  {
+    "path": "scan/points/point-0004/native/manifest.json",
+    "sha256": "f163056a0f3f8d3b18833b12ba495ca5fa4f4f4db78912958abe7f073d5ff60b",
+    "size_bytes": 1484
+  },
+  {
+    "path": "scan/points/point-0004/native/pyscf.log",
+    "sha256": "70e6dd50e4cfbda8afbf7a5898fddce9d138f4e38bdb25f42208f38d8ca2922e",
+    "size_bytes": 60982
+  },
+  {
+    "path": "scan/points/point-0004/native/request.json",
+    "sha256": "e23b4314ff74428d1a7831d7758d69114958f6f972ba2f0c34920d9bd651b1af",
+    "size_bytes": 943
+  },
+  {
+    "path": "scan/points/point-0004/native/result.json",
+    "sha256": "79666bfaf3aa1f963bcb4e08db2489878060f14eb3ba2ce45a4223505a6c439c",
+    "size_bytes": 2396
+  },
+  {
+    "path": "scan/points/point-0004/native/wavefunction.chk",
+    "sha256": "c3ec4fc053ee72ba3a5c190d66cfe2e5682dc63b902a1657e24fde094286b53d",
+    "size_bytes": 10528
+  },
+  {
+    "path": "scan/points/point-0004/point-definition.json",
+    "sha256": "ed80e0a8dad95380bacc85c79d5598d0b4b6c3682a87b171b40ea334123d04ff",
+    "size_bytes": 658
+  },
+  {
+    "path": "scan/points/point-0004/point-result.json",
+    "sha256": "d7e15743c1d232c90a1185e9405cc93beac31786fb86a71a8995b0599596835d",
+    "size_bytes": 1900
+  },
+  {
+    "path": "scan/points/point-0004/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "scan/points/point-0005/backend-request.json",
+    "sha256": "9f81f57308822101669167ddfabc3a9ef4a0f8c806e46f748c5f14b9cdf529b4",
+    "size_bytes": 419
+  },
+  {
+    "path": "scan/points/point-0005/dispatch-permit.json",
+    "sha256": "34da88c4e63a383ecd7f244878c659263935aeaf81c6e437792db6877d1df6f4",
+    "size_bytes": 234
+  },
+  {
+    "path": "scan/points/point-0005/native/basis-definition.json",
+    "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83",
+    "size_bytes": 204
+  },
+  {
+    "path": "scan/points/point-0005/native/engine-installation.json",
+    "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+    "size_bytes": 67206
+  },
+  {
+    "path": "scan/points/point-0005/native/geometry-bohr.npy",
+    "sha256": "4548248ff5b84b1e8bfa8bbcc165766f914c881cec444f19918f7ff5a8037cc4",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0005/native/gradient-hartree-bohr.npy",
+    "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877",
+    "size_bytes": 176
+  },
+  {
+    "path": "scan/points/point-0005/native/launcher.log",
+    "sha256": "3fcfbf4343327bebd9640f86efe5bc1ad6f39ae2444fc2e1fd9b7816d0385def",
+    "size_bytes": 100
+  },
+  {
+    "path": "scan/points/point-0005/native/manifest.json",
+    "sha256": "3eeb29a59b1f01629285eb74f917729786c91ce9bf0d2bdd253f7294293ce183",
+    "size_bytes": 1484
+  },
+  {
+    "path": "scan/points/point-0005/native/pyscf.log",
+    "sha256": "12f0bf78de6a7d7427ff286a080e89b80f10b942321366b21e1f539a0eaf7811",
+    "size_bytes": 60974
+  },
+  {
+    "path": "scan/points/point-0005/native/request.json",
+    "sha256": "8ce161776f7a1ffab78164f9c38597e872eb6e253db887060783a0f0c8f4d088",
+    "size_bytes": 943
+  },
+  {
+    "path": "scan/points/point-0005/native/result.json",
+    "sha256": "9b89455ecb4e733cf1c4280ce761b890da3000644c4003bfdb09e0b41ddbe1b1",
+    "size_bytes": 2398
+  },
+  {
+    "path": "scan/points/point-0005/native/wavefunction.chk",
+    "sha256": "24ecc2f2d4efa620ba30f38bfc01d0956506e842d86fcf03f5f01e1e116ccf0d",
+    "size_bytes": 10528
+  },
+  {
+    "path": "scan/points/point-0005/point-definition.json",
+    "sha256": "3d5c1f7e1f37c4880f63094f1006bad61738302ac3496f008a5d994f4a51c5fb",
+    "size_bytes": 658
+  },
+  {
+    "path": "scan/points/point-0005/point-result.json",
+    "sha256": "efe900cb5fb23144915a0010f692568e6c29f3e831bfd72103f8d3fd0242743e",
+    "size_bytes": 1896
+  },
+  {
+    "path": "scan/points/point-0005/worker.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "size_bytes": 0
+  },
+  {
+    "path": "scan/request.json",
+    "sha256": "f15ce41e664a040557d1afb1ec4915d94b1bef1cee46221c81268a2a92604108",
+    "size_bytes": 3593
+  },
+  {
+    "path": "scan/result.json",
+    "sha256": "c5d48feca1c1f6f6a0817cc79797c603ac0e2cfdfb7bd07f813759154bc8b5e4",
+    "size_bytes": 14875
+  },
+  {
+    "path": "stationary-verification.json",
+    "sha256": "a1b97ac7572caa36282d96df8687448d1b4322c702024686e1397331d99c5a85",
+    "size_bytes": 610
+  },
+  {
+    "path": "summary.json",
+    "sha256": "ad114106b923a637d96b531ed2cc149e98d227ccf9054501fc97fcb893900914",
+    "size_bytes": 1228
+  },
+  {
+    "path": "symmetry-proposal.json",
+    "sha256": "a7ce460dee44eb0a8148d6969d8703549379fc99c2436663cc7848f88c9de648",
+    "size_bytes": 5191
+  }
+]

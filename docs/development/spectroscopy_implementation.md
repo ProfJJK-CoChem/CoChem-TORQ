@@ -15,6 +15,7 @@ never relabeled an SPCAT prediction or a calibrated identification catalog.
 | Harmonic analysis | Cartesian Hessian in hartree/bohr²; mass weighting in electron masses; SVD translation/rotation projection; symmetric eigensolution; complete signed frequencies. | Diatomic reduced-mass reference, nonlinear 3N−6/linear 3N−5 limits, mode mass normalization and rotated-Hessian covariance. Symmetry and external residuals remain visible. |
 | Isotopologues | Recompute COM, external projection, modes and frequencies using the same Born–Oppenheimer Cartesian Hessian and explicit changed isotope masses. | H2/D2 reduced-mass ratio. This approximation excludes isotope-specific electronic corrections. |
 | Harmonic ZPE | Half the sum of positive atomic-unit frequencies for a completely stable internal Hessian. | Independent oscillator limit. An imaginary/zero mode blocks the semirigid ZPE product instead of being deleted or floored. |
+| Geometric rovibrational precursors | Coriolis-zeta mode cross products and analytic first/second derivatives of the full geometric inertia tensor with respect to mass-weighted Q, in retained fixed equilibrium axes. | Genuine H2/water modes, direct two-scale inertia displacements, independent component contractions, isotope/frame/phase covariance and strict input/readback rejection. These are derived geometric mathematics; full operator, alpha, B0 and distortion remain typed unavailable. |
 | Cubic/quartic field | Actual evaluator energies at dimensionless normal-coordinate displacements, centered derivatives through fourth order, complete permutation-symmetric tensors, two displacement scales, fixed convergence gate and task budget. | One- and three-mode polynomial derivatives, full mixed-index factorial multiplicities, genuine HF/STO-3G displaced SCFs. Numerical derivatives are explicitly numerical. |
 | Resonance diagnostics | Exact finite harmonic-oscillator polynomial matrix elements; detuning and coupling/detuning criteria; explicit Fermi/Darling–Dennison/general vibrational labels. | A mathematically specified Fermi pair; real H2 field exceeds the chosen conservative coupling gate and is retained while the next stage is blocked. Coriolis resonances are unavailable. |
 | Vibrational VPT2 | Quartic first order plus cubic second order, using exact finite sums over oscillator states connected by the cubic operator. | Independent closed-form one-dimensional oscillator shifts and independently diagonalized oscillator Hamiltonian. Rotation-vibration interactions, Coriolis and curvilinear kinetic terms are excluded; `rotation_vibration_available=False`. |
@@ -116,6 +117,71 @@ declared gate and its measured residual is reported. The external-motion
 residual is reported separately, since projection alone cannot certify a
 stationary geometry or invariance of an inaccurate Hessian.
 
+## Geometric rovibrational precursors
+
+[rovibrational.py](../../src/cochem_torq/spectroscopy/rovibrational.py) provides
+`build_rovibrational_precursors(harmonic, rotor, context, ...)`. Inputs must be
+actual `HarmonicResult`, `EquilibriumRotor` and `ScientificContext` records with
+matching geometry, isotope masses/source, mode order/basis, right-handed frame,
+recipe/protocol and retained parent identities. The invoking workflow must
+verify original parent bytes; a digest or context declaration alone does not
+authenticate a physical calculation.
+
+```python
+from cochem_torq.spectroscopy.rovibrational import build_rovibrational_precursors
+
+# harmonic, rotor and context are matching retained, validated upstream records.
+# Do not manufacture a context or parent identity to fill missing input evidence.
+precursors = build_rovibrational_precursors(
+    harmonic, rotor, context,
+    orthogonality_tolerance=1e-10,
+    maximum_harmonic_external_residual=1e-5,
+    inertia_degeneracy_relative_tolerance=1e-8,
+    mode_degeneracy_relative_tolerance=1e-8,
+)
+```
+
+This stage uses mass-weighted `Q` in `bohr*sqrt(electron_mass)`, distinct from
+the dimensionless force-field `q`. With `r(Q)=r_e+M^(-1/2)LQ`, its dimensionless
+Coriolis convention is
+`zeta[axis,k,l]=sum_atom cross(L_atom_k,L_atom_l)[axis]`.
+The inertia unit is `electron_mass*bohr^2`; first and second derivatives have
+units `bohr*sqrt(electron_mass)` and dimensionless, respectively.
+Axes remain in the retained equilibrium gauge at displaced coordinates.
+These are derivatives of the full tensor, not derivatives of re-diagonalized
+principal moments or an adiabatically rotating axis frame.
+
+Strict readback recomputes the tensor identities and geometry/frame/mode
+declarations. Positive frequencies, mass orthonormality, COM/Eckart constraints,
+proper axes and harmonic external residual gates are checked. Degenerate mode
+and inertia subspaces, linear zero axes and quality flags remain visible;
+arbitrary mode signs or degenerate gauges cannot acquire physical significance
+through relabeling. The schema is `cochem.torq.rovibrational-precursors/1`, its
+evidence class is `derived_geometric_mathematics`, and independent scientific
+qualification and identification readiness are false.
+
+Every record explicitly lists these higher products as unavailable with null
+values and reasons: `rovibrational_kinetic_operator`, `rotation_vibration_alpha`,
+`vibration_corrected_constants`, `centrifugal_distortion` and
+`full_rovibrational_vpt2`. Geometric zeta is not an implemented rovibrational
+Hamiltonian or a completed Coriolis-resonance model. Neither these tensors nor
+an averaged inertia can silently produce alpha, B0 or distortion.
+
+The scoped actual [precursor suite](../../tests/test_rovibrational_precursors.py)
+passed **92 checks with zero failures/errors/skips** using genuine H2/water
+optimized modes, authentic isotope records and preserved native identities.
+It includes independent direct inertia displacement/contraction checks and
+adversarial readback, source/frame/mode/geometry rejection. This local
+mathematical/native-input evidence is included in the completed
+[source-bound regression record](release_candidate_evidence/57c81eb/record.json),
+which reports 2,486 passing repository tests with zero failures/errors/skips.
+Neither result establishes an independent molecular accuracy benchmark.
+`TORQ-VIB-003` remains missing its full implementation, and V-VPT2 remains blocked.
+
+See [geometry/PES validation](pes_and_geometry_validation.md) for separately
+approved candidate optimization/Hessian workflows; a grid geometry never becomes
+an observed equilibrium structure by entering this precursor API.
+
 ## Rotational screening API
 
 ```python
@@ -189,18 +255,21 @@ geomeTRIC dependencies installed:
 python -m pytest tests/test_spectroscopy_physics.py
 ```
 
-The observed cloud run passed 18 tests, including genuine RHF/STO-3G H2
+The historical cloud run passed 18 tests, including genuine RHF/STO-3G H2
 optimization, analytic Cartesian Hessian, seven displaced converged SCFs, a
 two-scale cubic/quartic field and Hessian/energy-curvature consistency. This is
-software/numerical wiring evidence for that bounded recipe. HF/STO-3G is not a
+software/numerical wiring evidence for that earlier tested recipe/source
+snapshot; it does not qualify subsequent source changes. HF/STO-3G is not a
 high-accuracy spectroscopy method. Its conservative coupling gate blocks
 nonresonant VPT2; the test verifies retention of the valid force field and the
 truthful blocked correction rather than widening the criterion to manufacture
-success. Engine absence explicitly skips the optional live evidence test and
-does not establish release qualification.
+success. That historical optional test could skip its live case when an engine
+was absent; such a skip provides no execution evidence. Mandatory native release
+lanes require genuine installed dependencies and nonempty zero-skip results.
 
 The full SRS V-VPT2 gate still requires authenticated independent molecular
-force-field comparisons, Coriolis/rotation-vibration interactions, alpha and
+force-field comparisons, a complete rovibrational operator and
+Coriolis/rotation-vibration interactions, alpha and
 distortion validation. V-SPCAT/V-BENCH require a genuine qualified effective
 Hamiltonian/backend, statistical conventions, independent measured transitions
 and calibrated transition uncertainties. None of these gates follows from

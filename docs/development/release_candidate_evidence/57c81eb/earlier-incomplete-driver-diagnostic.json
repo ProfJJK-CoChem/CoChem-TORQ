@@ -1,0 +1,23 @@
+{
+  "schema_version": "cochem.torq.incomplete-driver-diagnostic/1",
+  "recorded_at": "2026-10-08T04:44:02.852329+00:00",
+  "actual_junit": {
+    "tests": 2274,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "raw_report_sha256": "5a9037810f7f1028654504c5fef9c9a42f27cebd293f19a7afaf630ed0ae7d07",
+    "public_report_sha256": "077cd8fdb6aeb989f2555f9a81e6d1e25faa02848691ae41de2e8bd2bd087a3e",
+    "public_report_policy": "actual outcomes and durations; trace/output bodies excluded"
+  },
+  "actual_pytest_log_summary": "2274 passed in 981.87s (0:16:21)",
+  "source_tree_sha256_observed_after_recovery": "841f94b110f1164ae9f188d222ee7a9b3e486e271df9259dcacbb7ddbb84b75c",
+  "driver_exit_status_observed": false,
+  "driver_exit_code": null,
+  "original_final_receipt_written": false,
+  "cause": "Supervisor completion not observed; no retained driver exception or exit status.",
+  "complete_driver_qualification": false,
+  "raw_evidence_preserved": true,
+  "replacement_run": "/workspace/torq-review/rc-expanded-durable-complete",
+  "scope": "Genuine executed testcase outcomes only; no fabricated driver status or completed artifact/source receipt."
+}

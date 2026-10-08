@@ -1,0 +1,88 @@
+{
+  "application_code_sha256": "607b1bbc02c60c6c2229f0ca087ea9093a0a1703fb66305bb879f4833d719090",
+  "built_image": {
+    "architecture": "amd64",
+    "build_exit_code": 0,
+    "build_timeout_seconds": 600,
+    "id": "sha256:2d32a76e0c1635de97f757c8f2749c968d3d2fa322d56e5ac9c4b3129529fa8a",
+    "observed_successful_package_install_versions": {
+      "CoChem-TORQ": "0.1.0",
+      "dftd4": "3.7.0",
+      "geometric": "1.1.1",
+      "h5py": "3.16.0",
+      "numpy": "2.5.3",
+      "pydantic": "2.13.5",
+      "pyscf": "2.14.0",
+      "scipy": "1.18.1"
+    },
+    "os": "linux",
+    "pip_check_no_broken_requirements_observed": true,
+    "size_bytes": 1372671983,
+    "tag": "cochem-torq-pyscf:rc-80767e8",
+    "user": "student"
+  },
+  "cleanup": {
+    "authorization": "Parent explicitly authorized removal of only this new image, four helper-owned container names, and identifiable unshared cache records created by this build.",
+    "exact_build_cache_ids_removed": [
+      "6con9brpcet8n05292942semf",
+      "1esp68fgjzn9bnyspt3yq4k8i",
+      "nyionf3to6ecz8q7870iuxqn4"
+    ],
+    "historical_cache_pruned": false,
+    "image_removed": true,
+    "owned_container_names": [
+      "torq-rc807-prepare",
+      "torq-rc807-native",
+      "torq-rc807-water",
+      "torq-rc807-verify"
+    ],
+    "remaining_owned_containers": [],
+    "workspace_free_bytes_after": 3199373312
+  },
+  "docker_storage_driver": "vfs",
+  "docker_version": "28.4.0",
+  "full_srs_release_ready": false,
+  "interface_image_qualification": "not_started_storage_block",
+  "private_log_metadata": {
+    "build.log": {
+      "bytes": 14753,
+      "exists": true,
+      "explicit_no_space_error": false,
+      "sha256": "4c5efeadf831f8dbcc422ee44b7beeb035cfdfc86fa392e8fb81eca51dd2d2af"
+    },
+    "prepare.log": {
+      "bytes": 0,
+      "exists": true,
+      "explicit_no_space_error": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "recorded_at": "2026-10-08T03:19:16.067957+00:00",
+  "runtime": {
+    "actual_runtime_versions_observed": false,
+    "approved_water_calculation": "uncompleted",
+    "helper_sha256": "00d75cce9fdfb235691df50f62b6e5a7e2822619269867df23e4d7ccb4c8d8fa",
+    "native_derivative_qualification": "uncompleted",
+    "prepare_attempted": true,
+    "prepare_exit_code": null,
+    "reason": "Container prepare invocation exhausted workspace storage; helper could not write captured output or its result report (OSError errno 28). Runtime numerical qualification and approved water calculation were not completed.",
+    "requested_limits": {
+      "cpus": 2,
+      "memory_bytes": 3221225472,
+      "network": "none",
+      "numerical_threads": 1,
+      "pids": 256,
+      "read_only": true,
+      "stage_timeout_seconds": 180,
+      "tmpfs_bytes": 1073741824
+    },
+    "sealed_result_verification": "uncompleted",
+    "status": "blocked_by_host_storage_exhaustion"
+  },
+  "runtime_qualified": false,
+  "schema_version": "cochem.torq.local-container-build-and-storage-block/1",
+  "scope": "Actual locally built calculation image; runtime qualification incomplete; no hosted or Codespaces qualification",
+  "source_commit": "80767e843cd60688d383eefddfa584d63e9f19b5",
+  "source_tree_sha256_after": "56754994707b5107f953ff33bb8327034d895a000bd534d7ed57f3a0b3db9cd9",
+  "source_tree_sha256_before": "56754994707b5107f953ff33bb8327034d895a000bd534d7ed57f3a0b3db9cd9"
+}

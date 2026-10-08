@@ -1,0 +1,18 @@
+{
+  "frozen_source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "installed_application_source_identity": {
+    "code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+    "declared_engine_image": null,
+    "declared_workflow_commit": null,
+    "distribution": "CoChem-TORQ",
+    "git_commit": null,
+    "working_tree_dirty": null
+  },
+  "installed_bytes_match_verified_wheel": true,
+  "installed_package_path": "/workspace/.venvs/cochem-torq/lib/python3.12/site-packages/cochem_torq/__init__.py",
+  "installed_python_files_verified": 232,
+  "recorded_at": "2026-10-08T05:49:35.848489+00:00",
+  "scope": "Actual isolated installed-wheel Python byte proof; no hosted or complete-SRS qualification",
+  "wheel": "/workspace/torq-review/rc-release-final-dist/cochem_torq-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
+}

@@ -1,0 +1,145 @@
+{
+  "manifest_baseline_commit": "9031ca6443be299cce9318ac5e02ae04d4591029",
+  "manifest_sha256": "de723a10dad6fc0f102df8db50d6384ded3328ecd0237f32d816d49e8b5681d0",
+  "installed_BASE_SDK_commit": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+  "SDK_python": "/workspace/.environment/cochem-student/Modules/base/1a3c633f6cb0c6256223298ed95d71196ffc3689/env/bin/python",
+  "SDK_interface_file": "/workspace/.environment/cochem-student/Modules/base/1a3c633f6cb0c6256223298ed95d71196ffc3689/env/lib/python3.12/site-packages/cochem_base/interfaces/module_execution.py",
+  "SDK_interface_sha256": "b310744eec5c9ce27aae8a1b1fd80a41310cdf68b4c615346c52e96c962d01ce",
+  "installed_TORQ_source_binding": "/workspace/torq-review/base-typed-80767e8-installed-source.json",
+  "modules": [
+    {
+      "module_id": "torq",
+      "revision": "80767e843cd60688d383eefddfa584d63e9f19b5",
+      "status": "installed",
+      "source_sha256": "b3b2e62af5d0f3b686fbf85ad593b65a6a88ef2d7241878591710728afaacec1",
+      "source_tree_oid": "16b2857d0c1b86dfbe129fdbe5c14e8f2dd8ad4d",
+      "installed_files_sha256": "b7be1619e453bb658853a9cabb3ed60f11f40104347c1a0c8a5b84703ccc749c",
+      "environment_sha256": "7eff423681674c08353f2909050fd3c8b95a052ba499823f789b32432ba6728d",
+      "manifest_spec_sha256": "b13219cceba140b25cb530297a940cac9d32367b5e21bfe01b0f7a0cd940068d",
+      "built_wheel_sha256": "ee263627b5c0c8fdeebd8b2ceee9f7f24fe458720881c356813ba6b7d5b9af2f",
+      "pip_check": {
+        "passed": true
+      },
+      "execution_result": "/workspace/torq-review/base-typed-80767e8-water/torq/execution/result.json"
+    },
+    {
+      "module_id": "topos",
+      "revision": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+      "status": "installed",
+      "source_sha256": "ffa86b586bff64ee404484177a5b0e0fb382e94517b4ff82adda97a9bd42e429",
+      "source_tree_oid": "d2c7dc6bf7be7745f72a41236c6ca19ad8d464d0",
+      "installed_files_sha256": "6333cf31ef2d03efa45d02b1170f9ba3370ca711b6606576f5afc15edb031d69",
+      "environment_sha256": "71bf6837d4eded0abc16f3c709c5e10780f0e0ffb0ea8a7dbff1efdd3dd3b7c9",
+      "manifest_spec_sha256": "1497fcab4e465cdae0625e33f7718ee0d083bf13480ec1d596cc9bdea8a32421",
+      "built_wheel_sha256": "b643514baeea22e1263cfe6c77fb2908ebf83b617954b6b818b3b45eff2a6605",
+      "pip_check": {
+        "passed": true
+      },
+      "execution_result": "/workspace/torq-review/base-typed-80767e8-water/topos/execution/result.json"
+    }
+  ],
+  "scope": "Real installed water geometry analysis and integrity; molecular-method accuracy not established",
+  "hosted_dispatch": "Not repeated: actual existing GitHub billing block remains unresolved; no new hosted execution claim",
+  "manifest_commit": "66d6255e4a4505966aa14e097594854a6b49d187",
+  "manifest_branch": "codex/pin-torq-student-integration",
+  "observed_automatic_checks": {
+    "check_runs": [
+      {
+        "completed_at": "2026-10-08T03:04:49Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37720993218/job/113128347500",
+        "id": 113128347500,
+        "name": "Bounded public CI complete",
+        "started_at": "2026-10-08T03:04:50Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T03:04:49Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37720993218/job/113128347331",
+        "id": 113128347331,
+        "name": "Bounded free-engine, derivative replay and dashboard acceptance",
+        "started_at": "2026-10-08T03:04:50Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T03:04:49Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37720993218/job/113128346792",
+        "id": 113128346792,
+        "name": "Installed wheel (${{ matrix.os }})",
+        "started_at": "2026-10-08T03:04:50Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T03:04:49Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37720993218/job/113128346782",
+        "id": 113128346782,
+        "name": "CI controls (${{ matrix.os }})",
+        "started_at": "2026-10-08T03:04:50Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T03:04:49Z",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37720993218/job/113128337487",
+        "id": 113128337487,
+        "name": "Source integrity and complete legacy inventory",
+        "started_at": "2026-10-08T03:04:47Z",
+        "status": "completed"
+      }
+    ],
+    "total_count": 5
+  },
+  "automatic_run_id": 37720993218,
+  "automatic_jobs": {
+    "jobs": [
+      {
+        "conclusion": "failure",
+        "id": 113128337487,
+        "name": "Source integrity and complete legacy inventory",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113128346782,
+        "name": "CI controls (${{ matrix.os }})",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113128346792,
+        "name": "Installed wheel (${{ matrix.os }})",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113128347331,
+        "name": "Bounded free-engine, derivative replay and dashboard acceptance",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113128347500,
+        "name": "Bounded public CI complete",
+        "status": "completed",
+        "steps": []
+      }
+    ]
+  },
+  "automatic_annotations": [
+    {
+      "annotation_level": "failure",
+      "end_line": 1,
+      "message": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+      "path": ".github",
+      "start_line": 1,
+      "title": ""
+    }
+  ]
+}

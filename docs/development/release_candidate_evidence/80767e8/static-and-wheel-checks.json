@@ -1,0 +1,43 @@
+{
+  "scope": "Definitive frozen typed modern application and clean installed-wheel core qualification",
+  "recorded_at": "2026-10-08T03:03:29.291630+00:00",
+  "source_tree_sha256": "56754994707b5107f953ff33bb8327034d895a000bd534d7ed57f3a0b3db9cd9",
+  "wheel_proof": "/workspace/torq-review/rc-typed-final-wheel-source.json",
+  "checks": {
+    "yaml_bash_programs": 41,
+    "embedded_python_programs": 6,
+    "ruff_files_checked_and_formatted": 38,
+    "mypy_files": 32,
+    "mypy_command": "python -m mypy src/cochem_torq --follow-imports=silent --ignore-missing-imports",
+    "all_passed": true
+  },
+  "core_replays": {
+    "py310": {
+      "passed": true,
+      "counts": {
+        "executed": 627,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 627
+      },
+      "source_stable": true,
+      "summary": "/workspace/torq-review/rc-core-wheel-py310-typed-final/summary.json"
+    },
+    "py312": {
+      "passed": true,
+      "counts": {
+        "executed": 627,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 627
+      },
+      "source_stable": true,
+      "summary": "/workspace/torq-review/rc-core-wheel-py312-typed-final/summary.json"
+    }
+  },
+  "full_repository_run": "Parent-owned; separate actual report required",
+  "full_srs_release_ready": false,
+  "latest_hosted_ci": "Unrun: previously observed billing/spending-limit block before job steps"
+}

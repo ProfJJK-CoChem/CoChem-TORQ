@@ -51,6 +51,12 @@ diagnose the current identity. Dispatch needs Actions write access to the select
 repository; viewing/downloading results needs Actions read access. A failed
 authorization remains a visible error and never triggers a local calculation.
 
+Course repositories can set `COCHEM_TORQ_GITHUB_REPOSITORY=OWNER/REPOSITORY` and
+`COCHEM_TORQ_CALCULATION_REF` (default `main`). The approved local scientific
+source must match the immutable commit selected for dispatch; changing the source
+or request requires a new plan review and approval. A blocking workflow or access
+check does not authorize a replacement local calculation.
+
 Useful lifecycle commands:
 
 ```sh
@@ -124,10 +130,11 @@ The submission receipt binds the request UUID and a private idempotency key to
 the reviewed plan and exact source; uncertain dispatch outcomes remain visible.
 An unavailable dispatch endpoint never starts a local replacement calculation.
 
-The public limits are 12 atoms from H through Ne, a closed-shell singlet,
-1–2 CPU cores, 256–2048 MB of requested electronic-structure memory, and at most
-600 seconds of chemistry execution. The container additionally enforces two CPU
-cores, 3 GiB total memory, 256 processes, no network access, a read-only image and
+The public limits are 1–12 atoms from H through Ne, a closed-shell singlet,
+absolute charge at most 4, 1–2 CPU cores, 256–2048 MB of requested
+electronic-structure memory, and at most 600 seconds of chemistry execution.
+The container additionally enforces two CPU cores, 3 GiB total memory,
+256 processes, no network access, a read-only image and
 a bounded temporary filesystem. A subprocess wall-time limit and an outer
 container limit are both applied. Each workflow attempt has separately named
 containers and cleans them up if interrupted.
@@ -195,7 +202,78 @@ docker build --secret id=proxy_ca,src=/etc/ssl/certs/ca-certificates.crt \
   -f docker/engines/pyscf/Dockerfile -t torq-pyscf:review .
 ```
 
-## Release checks and current evidence
+## Release checks and recorded evidence
+
+The current frozen source is TORQ commit
+`57c81eb7d699c6717926eeaab25ba0a0a59ca0f9`, with complete source SHA-256
+`28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b`.
+Its application SHA-256 is
+`29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d`.
+The reviewed wheel SHA-256 is
+`d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557`.
+The complete local repository run passed **2486 tests, zero failures/errors/skips**,
+without marker or name exclusions, in 1122.272 seconds. Pytest, the inventory audit
+and the supervising runner all exited zero; the source digest before and after
+was identical. The [source-bound evidence index](release_candidate_evidence/57c81eb/record.json)
+retains the [complete driver receipt](release_candidate_evidence/57c81eb/complete-summary.json)
+and [supervisor completion](release_candidate_evidence/57c81eb/driver-completion.json).
+See the [aggregate results](release_candidate_check_results.json) and
+[readiness report](release_candidate_readiness.md) for the remaining release gates.
+
+The selected local clean installed-wheel core contracts passed **880 tests each**
+on Python 3.10 and 3.12, with zero failures/errors/skips and 56 deliberate
+native/ML/ecosystem marker deselections per interpreter. Source remained
+unchanged. These are selected software lanes, not a full-suite count.
+The reviewed wheel contains 232 byte-verified Python files; the actual local
+Jupyter check verified all 240 packaged files except installer-rewritten
+`dist-info/RECORD`. Ruff/format checks passed within the 42-file modern
+application/coordinator/storage/evidence-tool scope, and configured strict mypy
+passed for 36 modern application source files. This is not a repository-wide
+legacy lint or typing pass. Legacy GOAT/CREST CLI boundaries have separate
+syntax/undefined-name and focused integrity checks; strict typing of legacy
+path/topology adapters remains unqualified.
+
+The actual local public CLI journey passed 16 command gates. It retained six
+genuine H2 scan calls and a separately approved target optimization with six
+optimizer evaluations plus an actual Hessian, registering a separate verified
+model-minimum record. The finite-design stop was `criteria_met`, while the surface
+remained `partial` with one uncomputed design node; neither outcome establishes
+global completeness or research accuracy. Authenticated local Jupyter
+start/check/stop retrieved the reviewed notebook with HTTP 200, rejected the
+unauthenticated request with HTTP 403 and stopped the exact owned process.
+This is local interface evidence, not a live Codespace or container lifecycle.
+
+The genuine BASE manifest at `fd93301136729913c494ce9b9500c6c96e45f931`
+installed TORQ `57c81eb` and TOPOS
+`6a01b0f2adb7cff02edda6e339facf3d6f93904d` through isolated BASE SDK
+`1a3c633f6cb0c6256223298ed95d71196ffc3689`. Installed TORQ Python bytes matched
+the reviewed wheel; actual supplied-water geometry handoffs and post-job
+source/environment/dependency integrity passed. TORQ computed supplied-geometry
+inertia/rotor properties, and TOPOS computed its declared connectivity heuristic;
+these handoffs do not establish optimized geometry, quantum energy or accuracy.
+
+Current hosted TORQ run
+[`37734312418`](https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37734312418)
+records eight failed jobs with **zero executed steps** because of GitHub billing.
+BASE run
+[`37734371892`](https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37734371892)
+records one failure and four skips, also with zero steps, for the same blocker.
+These are blocked execution records, not failing scientific tests or passing
+hosted qualification.
+
+Current calculation and interface image builds and runtimes remain **unrun**:
+the available VFS disk reserve was below the planned image qualification budget
+of more than 6 GiB. The earlier `80767e8` calculation image built locally, but
+container creation exhausted disk before runtime qualification; its owned image
+and Docker cache were removed while raw evidence was retained. That is historical
+evidence. Earlier image successes below cannot qualify the current frozen source.
+
+The default-branch `calculation.yml` lookup returns HTTP 404. Codespaces machine
+selection returns HTTP 403, `Resource not accessible by integration`; no live
+Codespace was provisioned. Default-branch activation, actual student dispatch,
+artifact-byte retrieval and the deployed import/approve/submit/status/cancel/
+download/export journey remain outstanding. Full-SRS release readiness remains
+**false**, and no publication or identification qualification is asserted.
 
 `integrity.yml` retains the earlier software-integrity jobs and adds mandatory
 real PySCF energy/derivative/optimization checks, genuine pinned sibling-producer
@@ -214,8 +292,9 @@ nonempty JUnit reports with zero skips, failures or errors. Optional ONNX export
 and runtime capabilities are separate: an absent optional dependency leaves that
 capability unqualified and cannot qualify a scientific profile.
 
-The self-contained `real-student-engine` job qualifies native scientific methods
-without requiring private sibling access. The separately required
+The self-contained `real-student-engine` job checks actual native method and
+derivative experiments within their tested scope without requiring private
+sibling access. The separately required
 `real-ecosystem-consumers` job runs all 33 ecosystem tests, including two genuine
 TORQ-calculation → BASE-consumer checks, and fails when source authorization is
 unavailable. The interface lane explicitly deselects
@@ -235,15 +314,20 @@ identity and verification evidence. Its water request has two cores, 2048 MiB
 application memory and a 600-second deadline; Docker enforces two cores and
 3 GiB total memory. It requires no private sibling credential.
 
-Local validation has built the calculation and interface Docker images, executed
-real H2 native derivative qualification offline in the calculation container,
+The following local image and hosted results describe earlier tested source
+snapshots. Their original identities and numerical records are retained for
+provenance. Current image and hosted acceptance require their own completed
+execution receipts; these older measurements do not provide that acceptance.
+
+Historical local validation built the calculation and interface Docker images,
+executed real H2 native derivative qualification offline in the calculation container,
 installed both pinned sibling distributions through BASE's actual isolated
 installer, and started/read/stopped the authenticated Jupyter notebook. The
 software request-transport suite passed 16 tests. Numerical H2 maximum errors
 were approximately `2.58e-9` hartree/bohr for the gradient and `8.35e-9`
 hartree/bohr² for the Hessian against the specified finite differences.
 
-The actual offline water worker completed geometry optimization, projected
+The historical offline water worker completed geometry optimization, projected
 harmonic characterization, equilibrium constants and the requested rigid-rotor
 teaching catalog; all 34 files in its sealed result inventory were verified
 against the typed stage contracts and their recorded byte hashes. Optimization
@@ -251,7 +335,7 @@ and harmonic characterization retain separate native engine directories. The
 actual vibrational Hessian was positive definite after removing six external
 modes, and its external-invariance residual was `1.21e-7` relative. This
 establishes a local model minimum; it does not establish experimental accuracy.
-The authenticated notebook lifecycle also passed inside the final non-root
+The authenticated notebook lifecycle also passed inside the historical non-root
 interface image, whose genuine GitHub CLI version is recorded. Actual isolated
 BASE/TOPOS producer/consumer interoperability passed 33 checks with zero skips.
 See the machine-readable
@@ -260,7 +344,7 @@ See the machine-readable
 the tested source snapshot; later application changes require another image
 build and its own execution checks.
 
-Hosted Actions integrity run
+Historical hosted Actions integrity run
 [`37701912649`](https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37701912649)
 passed all seven jobs at TORQ commit
 `c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7`. Actual image build, native derivative
@@ -271,15 +355,16 @@ authenticated notebook and stopped its owned server. The separate ecosystem job
 also ran the genuine reverse scientific consumers. App token minting was
 unselected; the successful existing credential route requires no new secret.
 
-BASE's companion
+The historical BASE companion run
 [`37702143257`](https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37702143257)
 passed at `8bd9925902e0771383c7fa1ade5296a630877b69`, with genuine installation
 and module geometry operations using the reviewed TORQ pin. Earlier failed runs
 remain explicitly historical in the evidence. New modified source must pass its
 own hosted run; these successes do not qualify later edits or the complete SRS.
 
-The actual API supplies seven TORQ artifacts and one BASE artifact with immutable
-IDs, digests and expiry times. Downloading their bytes from this managed session
+The historical API observation recorded seven TORQ artifacts and one BASE
+artifact with immutable IDs, digests and expiry times. Downloading their bytes
+from this managed session
 remains blocked by network policy at the Azure result-storage redirect. The
 exact observed host `productionresultssa12.blob.core.windows.net` was added to
 the environment draft while preserving existing destinations; saving the draft
@@ -288,13 +373,13 @@ successful steps and actual artifact metadata. Independent download/digest
 checks remain unrun. No signed redirect or credential is stored in the
 repository evidence.
 
-The default-branch workflow registry still lacks `calculation.yml`; the actual
+The current default-branch workflow registry lacks `calculation.yml`; the actual
 student client rejects submission before dispatch or creation of a receipt. A
 successful PR integrity run does not activate the public endpoint. Repository
 Codespaces machine selection still returns HTTP 403, `Resource not accessible
 by integration`, while reading the user's Codespaces list succeeds and returns
 zero instances. No live Codespace was provisioned. Public submit/cancel/resume
-and live-platform acceptance therefore remain separate outstanding gates. See
+and live-platform acceptance therefore remain outstanding gates. See
 the [hosted evidence](hosted-actions-check-results.json) and the broader
 [student release report](student-release-check-results.json).
 
@@ -338,3 +423,55 @@ their tests still execute. Hashes establish byte integrity, not independent
 authentication of a scientific observation. The bounded selection is explicitly
 reported; it never represents the
 entire test temporary directory or an independent accuracy benchmark.
+
+## Legacy ingestion and search boundaries
+
+Explicitly requested isotope masses must exist in the authentic database; an
+absent isotope cannot acquire a standard atomic weight or integer mass-number
+estimate. Legacy ingestion separately labels requested isotope masses, actual
+standard weights for unspecified selection and declared supplied masses, rejecting
+contradictions. Path/IPC helpers preserve that distinction. Modern rotational
+calculations retain their own isotope-selection/source contract.
+
+TORQ's legacy radius-based topology records are unverified geometric proposals,
+and cascade descriptions are planning-only inputs rejected before runtime defaults.
+GOAT/CREST screening metrics retain candidates whose graph/stereo/electronic-state
+identity is unknown. Populations and conformational entropy of such unresolved
+candidate pools remain unavailable; separately declared-state mathematics does
+not qualify a molecular ensemble. Named radius fields, actual masses or numerical
+RMSD alone cannot establish chemical identity or global search completeness.
+
+## Legacy mobile geometry proposals
+
+Transition-metal mobile assembly is outside the public H-through-Ne calculation
+profile. It creates an explicitly unqualified geometric proposal. Every
+`LigandAttachment` must declare an integer `formal_charge` before assembly;
+an omitted charge permits inspection only. Names and atomic composition cannot
+establish charge. Whole-complex electron count and supplied multiplicity are
+validated using all actual atom identities and declared charges. These checks
+preserve the caller's electronic-state declaration without independently
+determining that state.
+
+Formal group-minus-oxidation bookkeeping retains its raw value. The d-shell
+count is unavailable outside the model's 0–10 applicability range, and actual
+electronic populations remain unavailable. Pyykkö single-bond radius sums
+propose initial distances without establishing equilibrium bond lengths.
+Contact cutoffs use the named Mendeleev `vdw_radius` field; this does not assert
+a homogeneous Bondi radius dataset.
+
+Result and contact schemas use version 2. `vdw_contact_threshold` replaces
+the incorrect historical `bondi_threshold` name. When no eligible contact pair
+is evaluated, distance and cutoff remain null. The legacy-named
+`infer_ligand_charge` returns an explicit declaration and raises when it is absent.
+Assembly results and HDF5 metadata identify the geometry as an initial proposal,
+scientific qualification as false, quantum calculation as false and UFF energy
+as unavailable. Original historical archives retain their bytes and cannot be
+promoted into new scientific qualification by interpreting their old fields.
+
+Standalone constrained UFF requires `molecule=<actual RDKit graph>` with explicit
+atoms in the supplied coordinate order, complete parameters and genuine optimizer
+convergence. Its returned finite energy is the classical UFF model energy at the
+returned coordinates; it does not certify a quantum energy or a minimum. Without
+a declared graph, UFF retains the geometric proposal and unavailable energy.
+Unresolved assembly contact conflicts fail with a reason rather than constructing
+a graph or substituting a calculation.

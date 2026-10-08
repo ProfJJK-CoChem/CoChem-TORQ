@@ -1,0 +1,257 @@
+{
+  "recorded_at": "2026-10-08T05:54:01.518251+00:00",
+  "manifest_commit": "fd93301136729913c494ce9b9500c6c96e45f931",
+  "manifest_branch": "codex/pin-torq-student-integration",
+  "manifest_sha256": "f2b8483ddc450b26636246589e3863ef364fcddb1ca69ebdbb6485f538b075a0",
+  "installed_BASE_SDK_commit": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+  "SDK_python": "/workspace/.environment/cochem-student/Modules/base/1a3c633f6cb0c6256223298ed95d71196ffc3689/env/bin/python",
+  "SDK_interface_file": "/workspace/.environment/cochem-student/Modules/base/1a3c633f6cb0c6256223298ed95d71196ffc3689/env/lib/python3.12/site-packages/cochem_base/interfaces/module_execution.py",
+  "SDK_interface_sha256": "b310744eec5c9ce27aae8a1b1fd80a41310cdf68b4c615346c52e96c962d01ce",
+  "installed_TORQ_source_binding": "/workspace/torq-review/base-release-final-installed-source.json",
+  "scientific_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+  "release_complete_source_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "retained_reviewed_wheel": "/workspace/torq-review/rc-release-final-dist/cochem_torq-0.1.0-py3-none-any.whl",
+  "retained_reviewed_wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557",
+  "installed_python_files_verified": 232,
+  "installed_python_bytes_match_retained_reviewed_wheel": true,
+  "canonical_built_wheel_archive_retention": "Canonical installer discards its temporary built-wheel archive; original digest is retained in the installation receipt. The independently retained reviewed release-final wheel has 232 byte-identical installed Python payload files.",
+  "free_disk_bytes_after_jobs": 3021029376,
+  "disk_preflight": "/workspace/torq-review/base-release-final-disk-preflight.json",
+  "verified_cached_dependency_wheels": "/workspace/torq-review/base-mass-fixed-final-verified-wheel-cache.json",
+  "modules": [
+    {
+      "module_id": "torq",
+      "revision": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+      "status": "installed",
+      "source_sha256": "75daaafd9f8839201ca1e7e19125538ce094be87e212160948aa23ad01c61ae2",
+      "source_tree_oid": "5e1a6c6feae81101757a8bb7286614ddd85b7d7b",
+      "installed_files_sha256": "258557c88ae3fee6b25017d759ef75fb4f97c7e84c6633f37285aeb9d86faf35",
+      "environment_sha256": "962a9c9ec9c02963238e3c938cd74e80d4521d52d896326a483a68e701435952",
+      "manifest_spec_sha256": "5901bb864e81cc5177e54674bb285a7ddbd9ec90b5101adf824c4f869f1a2f65",
+      "built_wheel_sha256": "0cfbc5fcc7c1bfb7e6b005ddf6931b18efcad00cd2ac3d720ac565aa66b0fbb9",
+      "pip_check": {
+        "passed": true
+      },
+      "execution_result": "/workspace/torq-review/base-release-final-water/torq/execution/result.json",
+      "execution_result_sha256": "dd7285ef99e978fe24068df35ce2b5053bb48442349ac913397de34d87d83277",
+      "input_sha256": "739c6ea4388365edda2c92d2fd2ecba3a06309698df2cc879e59629521ca13af",
+      "scientific_accuracy_established": false,
+      "scope": "Rigid-geometry center of mass, principal inertia, principal-axis (Eckart) alignment and rotor properties of the supplied geometry. No optimization, electronic energy, vibrational correction, or measured spectral constants.",
+      "observed_geometry_properties": {
+        "principal_moments": [
+          0.4552476049889268,
+          1.1599541241869369,
+          1.6152017291758636
+        ],
+        "rotational_constants_mhz": [
+          1110118.9833775077,
+          435688.789666225,
+          312889.095712655
+        ],
+        "rotor_type": "asymmetric_top",
+        "symbols": [
+          "O",
+          "H",
+          "H"
+        ],
+        "exact_masses": [
+          15.99491461926,
+          1.007825031898,
+          1.007825031898
+        ]
+      }
+    },
+    {
+      "module_id": "topos",
+      "revision": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+      "status": "installed",
+      "source_sha256": "ffa86b586bff64ee404484177a5b0e0fb382e94517b4ff82adda97a9bd42e429",
+      "source_tree_oid": "d2c7dc6bf7be7745f72a41236c6ca19ad8d464d0",
+      "installed_files_sha256": "6333cf31ef2d03efa45d02b1170f9ba3370ca711b6606576f5afc15edb031d69",
+      "environment_sha256": "71bf6837d4eded0abc16f3c709c5e10780f0e0ffb0ea8a7dbff1efdd3dd3b7c9",
+      "manifest_spec_sha256": "1497fcab4e465cdae0625e33f7718ee0d083bf13480ec1d596cc9bdea8a32421",
+      "built_wheel_sha256": "b643514baeea22e1263cfe6c77fb2908ebf83b617954b6b818b3b45eff2a6605",
+      "pip_check": {
+        "passed": true
+      },
+      "execution_result": "/workspace/torq-review/base-release-final-water/topos/execution/result.json",
+      "execution_result_sha256": "c45f53b13c93c67827126512b1deda0e5ded827e30ec315dd5336d1e1388ac78",
+      "input_sha256": "739c6ea4388365edda2c92d2fd2ecba3a06309698df2cc879e59629521ca13af",
+      "scientific_accuracy_established": false,
+      "scope": "Geometry connectivity heuristic using the pinned TOPOS empirical covalent radii and approximate dispersion weights; a topology hash and fragment flag are reported. This operation does not calculate energies, prove chemical bonding, run conformer searches, or validate scientific prediction accuracy.",
+      "observed_connectivity_properties": {
+        "status": "success",
+        "topology_hash": "CCO_mono_2711cf8f",
+        "is_complex": false,
+        "atom_count": 3,
+        "source_file": "artifact.xyz"
+      }
+    }
+  ],
+  "source_environment_dependency_integrity_after_real_jobs": "Exact equality of genuine install, pre-job verify and post-job verify receipt arrays",
+  "scope": "Real installed water geometry-analysis producer/consumer handoffs and source/environment/dependency integrity. Molecular-method accuracy is not established by these operations.",
+  "water_artifact_inventory": [
+    {
+      "path": "topos/execution/execution.log",
+      "sha256": "6c201040cb72480099db67ac0a6d993d6b665f9d5d118e24a80459b561ec4cb2",
+      "size_bytes": 106
+    },
+    {
+      "path": "topos/execution/operation.json",
+      "sha256": "76d45028de90023ab5094b3fa457f52bd780502f333d47ea9479ed6dfa14fde6",
+      "size_bytes": 864
+    },
+    {
+      "path": "topos/execution/result.json",
+      "sha256": "c45f53b13c93c67827126512b1deda0e5ded827e30ec315dd5336d1e1388ac78",
+      "size_bytes": 3032
+    },
+    {
+      "path": "topos/handoff/artifact.xyz",
+      "sha256": "739c6ea4388365edda2c92d2fd2ecba3a06309698df2cc879e59629521ca13af",
+      "size_bytes": 164
+    },
+    {
+      "path": "topos/handoff/handoff.json",
+      "sha256": "db5eb9ab95a037c22c3acbf475f656a266859d517ded56877c4e6dbc3f65ebb4",
+      "size_bytes": 1068
+    },
+    {
+      "path": "torq/execution/execution.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "torq/execution/operation.json",
+      "sha256": "83b153e88144bbc775e9f4d4adf311bb46219f5a5e65fe0f473f4f285c96bc96",
+      "size_bytes": 4353
+    },
+    {
+      "path": "torq/execution/result.json",
+      "sha256": "dd7285ef99e978fe24068df35ce2b5053bb48442349ac913397de34d87d83277",
+      "size_bytes": 9778
+    },
+    {
+      "path": "torq/handoff/artifact.xyz",
+      "sha256": "739c6ea4388365edda2c92d2fd2ecba3a06309698df2cc879e59629521ca13af",
+      "size_bytes": 164
+    },
+    {
+      "path": "torq/handoff/handoff.json",
+      "sha256": "56bf4a63d8a247bb02708e6c0acea70434d92211769780763788cf89fc9cea0b",
+      "size_bytes": 1088
+    }
+  ],
+  "retired_historical_environment_records": [
+    "/workspace/torq-review/base-typed-80767e8-retirement.json",
+    "/workspace/torq-review/base-expanded-74ffc8b-retirement.json",
+    "/workspace/torq-review/base-mass-fixed-final-retirement.json"
+  ],
+  "hosted_dispatch": "Not manually repeated while the actual existing GitHub billing block remains unresolved. Automatic push CI is genuinely unstarted.",
+  "observed_automatic_checks": {
+    "check_runs": [
+      {
+        "completed_at": "2026-10-08T05:50:07Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37734371892/job/113170482584",
+        "id": 113170482584,
+        "name": "Bounded public CI complete",
+        "started_at": "2026-10-08T05:50:07Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T05:50:07Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37734371892/job/113170481915",
+        "id": 113170481915,
+        "name": "Bounded free-engine, derivative replay and dashboard acceptance",
+        "started_at": "2026-10-08T05:50:07Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T05:50:07Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37734371892/job/113170481842",
+        "id": 113170481842,
+        "name": "Installed wheel (${{ matrix.os }})",
+        "started_at": "2026-10-08T05:50:07Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T05:50:07Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37734371892/job/113170481656",
+        "id": 113170481656,
+        "name": "CI controls (${{ matrix.os }})",
+        "started_at": "2026-10-08T05:50:07Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-08T05:50:07Z",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37734371892/job/113170472835",
+        "id": 113170472835,
+        "name": "Source integrity and complete legacy inventory",
+        "started_at": "2026-10-08T05:50:05Z",
+        "status": "completed"
+      }
+    ],
+    "total_count": 5
+  },
+  "automatic_run_id": 37734371892,
+  "automatic_jobs": {
+    "jobs": [
+      {
+        "conclusion": "failure",
+        "id": 113170472835,
+        "name": "Source integrity and complete legacy inventory",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113170481656,
+        "name": "CI controls (${{ matrix.os }})",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113170481842,
+        "name": "Installed wheel (${{ matrix.os }})",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113170481915,
+        "name": "Bounded free-engine, derivative replay and dashboard acceptance",
+        "status": "completed",
+        "steps": []
+      },
+      {
+        "conclusion": "skipped",
+        "id": 113170482584,
+        "name": "Bounded public CI complete",
+        "status": "completed",
+        "steps": []
+      }
+    ]
+  },
+  "automatic_annotations": [
+    {
+      "annotation_level": "failure",
+      "end_line": 1,
+      "message": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+      "path": ".github",
+      "start_line": 1,
+      "title": ""
+    }
+  ],
+  "pull_request": {
+    "headRefName": "codex/pin-torq-student-integration",
+    "headRefOid": "fd93301136729913c494ce9b9500c6c96e45f931",
+    "state": "OPEN",
+    "url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/pull/8"
+  }
+}

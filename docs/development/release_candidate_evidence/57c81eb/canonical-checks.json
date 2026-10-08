@@ -1,0 +1,162 @@
+{
+  "all_selected_local_core_gates_passed": true,
+  "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+  "artifact_sha256": {
+    "/workspace/torq-review/rc-core-wheel-py310-release-final/installed-imports.log": "7cd4e687b344d495992cd0e6b97ef2cf1030e0c02d5e02a487f5fd52f81f5a71",
+    "/workspace/torq-review/rc-core-wheel-py310-release-final/junit.xml": "458020956ad627e219bc29e30cf46e3ad227ea2a0db0ced228c395c766a7531b",
+    "/workspace/torq-review/rc-core-wheel-py310-release-final/no-skips-gate.log": "79380746ab143fd496a96cd09f0803e8b716e8b3c54c5163bcb38ba9a295fa4f",
+    "/workspace/torq-review/rc-core-wheel-py310-release-final/pip-check.log": "c3268310ba52e0c22ac6d9cb111b1d2263f4dedbc2cb88d10255c94ab04b07c2",
+    "/workspace/torq-review/rc-core-wheel-py310-release-final/summary.json": "ec755432b05ad70e4e2260f89b3b766d56530446ac622b25656edc83a887934c",
+    "/workspace/torq-review/rc-core-wheel-py310-release-final/tests.log": "af7af0aebd5e77bf01c40b53ede5fc187c5be27175e94602e8c03775f7cafd83",
+    "/workspace/torq-review/rc-core-wheel-py312-release-final/installed-imports.log": "735d8f9e7bb8a8e87998a84a94d4f54a9053fd901ae45c0498fea2e1d5c0101d",
+    "/workspace/torq-review/rc-core-wheel-py312-release-final/junit.xml": "ee1e9a1ffbbb18570cbe97b5f697cf543951bef2cc59342c1f4a13f66f872f2f",
+    "/workspace/torq-review/rc-core-wheel-py312-release-final/no-skips-gate.log": "79380746ab143fd496a96cd09f0803e8b716e8b3c54c5163bcb38ba9a295fa4f",
+    "/workspace/torq-review/rc-core-wheel-py312-release-final/pip-check.log": "e374c0f851cccb0fbc27d6618458b86a1b5e0cb7b4e9ad22a62cc5b73a950698",
+    "/workspace/torq-review/rc-core-wheel-py312-release-final/summary.json": "2ee883bac5106ed70c8c095ee980b640ad54052d080ef9487fed1cee2b3e47f7",
+    "/workspace/torq-review/rc-core-wheel-py312-release-final/tests.log": "35ee0561086f164cbc1ed24b2b0e531c3f57220f3f55348fdbf464a9aa3b7416",
+    "/workspace/torq-review/rc-release-final-main-installed-wheel.json": "7101d37246c8698ad7537b5c11af74f23db5099e4bafe04efa26c7dd0090b16f",
+    "/workspace/torq-review/rc-release-final-static-main-receipt.json": "eb602398935fed1963cd607c71b5473241f92db2c5711716f5936b442aee7259",
+    "/workspace/torq-review/rc-release-final-wheel-source.json": "a9a17eedf4ffe12f935d3e242d437534c2f8348cc6d9736a48e1ea47fe6af1b0",
+    "/workspace/torq-review/rc-release-final-workflow-syntax-full.json": "9d09f83cbc7bb60142a9fcbff4997663a0de1552d284775dbd82090b5e4a683f"
+  },
+  "core_replays": {
+    "py310": {
+      "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+      "counts": {
+        "error": 0,
+        "executed": 880,
+        "failure": 0,
+        "passed": 880,
+        "skipped": 0
+      },
+      "duration_seconds": 207.24,
+      "explicit_marker_deselections": 56,
+      "installed_package_path": "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/cochem_torq/__init__.py",
+      "marker_expression": "not cpu_ml and not real_engine and not ecosystem",
+      "no_skips_gate": "passed",
+      "passed": true,
+      "python": "3.10.21 (main, Sep 24 2026, 17:54:40) [Clang 22.1.3 ]",
+      "report_directory": "/workspace/torq-review/rc-core-wheel-py310-release-final",
+      "runtime_package_paths": {
+        "Libraries": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/Libraries"
+        ],
+        "UI": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/UI"
+        ],
+        "cochem": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/cochem"
+        ],
+        "cochem_torq": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/cochem_torq"
+        ],
+        "core": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/core"
+        ],
+        "orchestrator": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/orchestrator"
+        ],
+        "scripts": [
+          "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/scripts"
+        ]
+      },
+      "selected_test_files": 39,
+      "source_unchanged": true,
+      "summary": "/workspace/torq-review/rc-core-wheel-py310-release-final/summary.json",
+      "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
+    },
+    "py312": {
+      "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+      "counts": {
+        "error": 0,
+        "executed": 880,
+        "failure": 0,
+        "passed": 880,
+        "skipped": 0
+      },
+      "duration_seconds": 204.11,
+      "explicit_marker_deselections": 56,
+      "installed_package_path": "/tmp/torq-wheel-check/lib/python3.12/site-packages/cochem_torq/__init__.py",
+      "marker_expression": "not cpu_ml and not real_engine and not ecosystem",
+      "no_skips_gate": "passed",
+      "passed": true,
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "report_directory": "/workspace/torq-review/rc-core-wheel-py312-release-final",
+      "runtime_package_paths": {
+        "Libraries": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/Libraries"
+        ],
+        "UI": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/UI"
+        ],
+        "cochem": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/cochem"
+        ],
+        "cochem_torq": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/cochem_torq"
+        ],
+        "core": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/core"
+        ],
+        "orchestrator": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/orchestrator"
+        ],
+        "scripts": [
+          "/tmp/torq-wheel-check/lib/python3.12/site-packages/scripts"
+        ]
+      },
+      "selected_test_files": 39,
+      "source_unchanged": true,
+      "summary": "/workspace/torq-review/rc-core-wheel-py312-release-final/summary.json",
+      "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
+    }
+  },
+  "current_container_runtime_qualification_established": false,
+  "full_srs_release_ready": false,
+  "hosted_github_actions_qualification_established": false,
+  "live_codespaces_qualification_established": false,
+  "main_environment_ready": true,
+  "main_installed_python_files_byte_verified": 232,
+  "mypy": {
+    "arguments": [
+      "src/cochem_torq",
+      "--follow-imports=silent",
+      "--ignore-missing-imports"
+    ],
+    "configured_strict": true,
+    "source_files": 36,
+    "status": "passed"
+  },
+  "packaged_python_files_byte_verified": 232,
+  "recorded_at": "2026-10-08T05:55:05.749031+00:00",
+  "repository_head_at_record": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+  "ruff": {
+    "check": "passed",
+    "format": "passed",
+    "scope": [
+      "src/cochem_torq",
+      "cochem/orchestration/campaign.py",
+      "cochem/storage/fenced_pes.py",
+      "ci_tools/validate_release_evidence.py",
+      "ci_tools/run_repository_regression.py"
+    ],
+    "scoped_files": 42
+  },
+  "schema_version": "cochem.local-canonical-wheel-qualification/1",
+  "scientific_native_and_cpu_gates": "Outside this selected core receipt; evaluated in the independently recorded complete repository run.",
+  "scope": "Frozen committed source static checks, fresh archive wheel build, MAIN isolated installed-byte proof, and local clean Python 3.10/3.12 replay of the canonical selected core contracts.",
+  "source_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+  "source_tree_sha256_after": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "source_tree_sha256_before": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "source_unchanged": true,
+  "static_main_receipt": "/workspace/torq-review/rc-release-final-static-main-receipt.json",
+  "wheel": "/workspace/torq-review/rc-release-final-dist/cochem_torq-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557",
+  "workflow_syntax": {
+    "bash_programs_checked": 41,
+    "embedded_python_programs": 6,
+    "report": "/workspace/torq-review/rc-canonical-workflow-syntax.json",
+    "status": "passed"
+  },
+  "workspace_free_bytes": 3020976128
+}

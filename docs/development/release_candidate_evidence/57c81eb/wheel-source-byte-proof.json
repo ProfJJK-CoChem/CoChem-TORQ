@@ -1,0 +1,17 @@
+{
+  "scope": "Frozen source and actual released wheel Python byte comparison",
+  "recorded_at": "2026-10-08T05:49:34.611658+00:00",
+  "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "application_source_identity": {
+    "distribution": "CoChem-TORQ",
+    "code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+    "git_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+    "working_tree_dirty": true,
+    "declared_workflow_commit": null,
+    "declared_engine_image": null
+  },
+  "wheel": "/workspace/torq-review/rc-release-final-dist/cochem_torq-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557",
+  "wheel_python_files_verified": 232,
+  "wheel_runtime_source_byte_comparison": "passed"
+}

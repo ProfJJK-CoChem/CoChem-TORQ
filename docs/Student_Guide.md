@@ -14,11 +14,22 @@ and read access to retrieve results. See the
 for setup, the private Jupyter token and lifecycle checks. Opening the interface
 does not run electronic calculations.
 
+The current `57c81eb` candidate passed all 2486 local repository tests with zero
+failures/errors/skips, plus selected installed-wheel, real candidate-refinement
+CLI and authenticated notebook checks. The [recorded results](development/release_candidate_check_results.json)
+qualify that local scope. Hosted jobs were blocked before execution
+by billing, the default-branch calculation endpoint returns 404, and Codespaces
+machine access returns 403; no live Codespace was provisioned. The canonical
+student journey remains unverified. See the
+[readiness report](development/release_candidate_readiness.md) before starting.
+
 ## Your first calculation
 
 1. Paste one XYZ structure with coordinates in Å, or paste a complete TORQ request
    JSON. Set the molecular charge and spin multiplicity explicitly. The supplied
-   geometry is an input structure until a converged optimization verifies it.
+   coordinates are an input geometry. A converged optimization produces
+   model-dependent stationary coordinates; minimum classification also requires
+   the recorded harmonic and electronic-state checks.
 2. Choose a recipe and products. The HF/STO-3G teaching recipe illustrates the
    workflow with a small basis. It does not establish spectroscopic accuracy.
    Method availability and limitations appear with the selected recipe.
@@ -163,6 +174,8 @@ the public Actions deployment or establish B₀/identification accuracy.
   many symbol/x/y/z rows. All coordinates must be finite.
 - **Unknown isotope:** use a supported element symbol or an explicit mass number
   such as `13C`. Elements without a natural-abundance default need an isotope.
+  An unavailable explicitly requested isotope stays unavailable; its mass is
+  never replaced by an ordinary atomic weight or its integer mass number.
 - **State or resource rejection:** review charge, multiplicity and your approved
   runner's limits in the validation report.
 - **Unavailable method/product:** read the reported qualification gap. Select a
@@ -170,8 +183,11 @@ the public Actions deployment or establish B₀/identification accuracy.
 - **GitHub authentication/access error:** check `gh auth status` and repository
   access in the terminal. Your account needs permission to dispatch the course
   workflow and read its artifacts.
-- **No run ID:** save the submission report. Existing run IDs can be entered
-  directly in a later session; submitting again creates a new job.
+- **No run ID or uncertain submission:** save the complete submission report and
+  retain its request UUID and idempotency key. Inspect the saved receipt and the
+  UUID-bearing Actions run before retrying. An unchanged retry returns its
+  existing receipt without dispatching another job. Create a new request and
+  approval only when you intend a separate calculation.
 - **Missing/expired artifacts:** open the real Actions run link and inspect its
   logs and retention status. A failed calculation needs its actual diagnostic,
   not a synthetic replacement result.

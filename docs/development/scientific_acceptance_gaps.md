@@ -56,7 +56,7 @@ or software test cannot activate an unqualified scientific matrix row.
 | --- | --- | --- |
 | Exact open-source revDSD | Reconcile the complete primary-source orbital-generation and energy definitions, P86/LibXC variants, OS/SS scaling, core treatment and D4 variant. Implement the exact identity, independently compare energies to an authenticated native/reference bundle, then separately qualify numerical/orbital-response gradients and higher derivatives. Custom double-hybrid research calculations cannot be renamed revDSD. | D01; TORQ-METHOD-004; V-METHOD, V-DERIV. |
 | Full matrix dispatch | Convert each enabled historical row into an unambiguous versioned recipe with exact derivative/property/engine/platform scope and measured evidence. Preserve all 140 documentary IDs, O/C tracks, R1–R9 and independent budgets. HF teaching recipes are additional reference calculations rather than proxies for matrix DFT/double-hybrid/correlated rows. | D02; method-matrix activation checklist; V-METHOD. |
-| Complete typed result/provenance service | The implemented geometry, equilibrium-inertia and harmonic payloads have strict scientific schemas and immutable dependency checks. Extend equivalent validation to all advanced force-field/rovibrational payloads, canonical units, isotope/frame identities and dependency digests; separate dipole, distortion and hyperfine properties. Availability envelopes alone cannot qualify an advanced scientific contract. | ARCH-01, ARCH-05; TORQ-SPEC-001; V-STAGES, V-SCHEMA. |
+| Complete typed result/provenance service | Geometry, inertia, harmonic, finite force-field, resonance and vibrational-only VPT2 payloads now have strict context, units, atom/isotope/frame/mode and parent bindings. Geometric Coriolis/inertia precursors add explicit readback and degeneracy checks. Complete rovibrational native outputs, engine/convergence envelopes and separate dipole-surface/distortion/hyperfine contracts still require implementation and independent qualification. Availability envelopes cannot qualify them. | ARCH-01, ARCH-05; TORQ-SPEC-001; V-STAGES, V-SCHEMA. |
 | Semirigid rovibrational VPT2 | Add the selected qualified rotation-vibration/Coriolis and kinetic-coordinate convention, complete required force constants, resonance closure and independently authenticated molecular comparisons. Validate fundamentals, alpha and relevant distortion together; vibrational-only oscillator perturbation is an explicitly narrower implementation. | D05; TORQ-VIB-003; V-VPT2. |
 | B0 and composites | Obtain authentic axis-/isotope-matched alpha or independently solved rovibrational corrections. Apply `B0=Be−½Σalpha` with the correct component/degeneracy convention. Mixed-level geometry/force-field recipes must identify both levels and demonstrate transfer applicability. A formula accepting supplied alpha is not an alpha-producing engine. | D04/D05; TORQ-SCI-004; V-VPT2, V-ISO. |
 | Effective rotational catalogs | Implement/provision and pin an actual qualified catalog backend or full effective Hamiltonian, reduction/representation and state assignment. Qualify centrifugal distortion, hyperfine where applicable, dipole/intensity definitions, nuclear-spin weights, isotopologues, truncation and frequency range. The teaching rigid rotor remains a separate product. | TORQ-SPEC-002; V-PROP, V-SPCAT, V-CONSUMER. |
@@ -68,15 +68,28 @@ or software test cannot activate an unqualified scientific matrix row.
 These accepted deliverables still need explicit scientific activation and
 consumer evidence beyond the bounded student refinement path:
 
-- Advisory ML/PES acceleration with actual training artifacts, state/domain
-  identity, independent quantum checks and search-recall validation before
-  pruning (D03). Include documented TOPOS candidate retention and exclusions.
-- Separate fully relaxed, frozen-monomer, counterpoise and composite energy
-  workflows, with fragment charge/spin definitions, real component calculations
-  and explicit `De/D0`/ZPE/free-energy identities (D04).
-- Transition-state/IRC/kinetics profiles, multireference diagnostics and bounded
-  same-model numerical recovery; changes in state/model remain review events
-  (D06), with actual representative failure cases.
+- Bounded fixed/adaptive neutral-singlet H2 scans now use genuine HF/STO-3G
+  point energies/gradients, exact approvals, coordinator budgets, independent
+  repeated-point density checks and explicit failure/stop reasons. Geometric
+  graph/isotope/stereo mapping and finite symmetry proposals preserve uncertain
+  candidates. The adaptive baseline uses declared numerical interpolation and
+  diversity, with physical challenge calculations; it does not train a learned
+  model or certify between-point error or search completeness. General relaxed,
+  periodic/coupled-coordinate scans, native density continuation, electronic
+  branch tracking and independent recall/calibration campaigns remain required
+  (D03). These explicitly local validation profiles cannot silently execute in
+  the canonical student interface.
+- Genuine frozen/relaxed monomer and ghost-basis interaction primitives already
+  preserve fragment states, component energies, deformation and `De/D0`/ZPE
+  identities. Full CP-optimized and composite workflows, consistent derivatives,
+  independent molecular validation and production activation remain required
+  (D04). A CP single point does not produce a CP-optimized structure.
+- Scan extrema now enter the reversible ledger as unverified candidates. A
+  separately reviewed target optimization/gradient/Hessian can register a new
+  verified minimum while preserving the original scan candidate. Actual
+  first-order-saddle/downhill endpoint primitives retain `ts_verified=false`;
+  genuine IRC/connectivity, kinetics and multireference/domain validation remain
+  required. State/model or constraint changes remain review events (D06).
 - Optional licensed NBO and separately named population/localization/real-space
   analyses, with authentic wavefunction/density interfaces and their own
   convergence/interpretation contracts (D07).
@@ -96,3 +109,10 @@ consumer evidence beyond the bounded student refinement path:
 Every unavailable capability remains visible. Publication-ready or complete-SRS
 release labels require the applicable preregistered acceptance evidence, not
 the mere presence of files, stage names, historical recipes or passing tests.
+
+The [bounded PES and geometry guide](pes_and_geometry_validation.md) records the
+actual executable local scope. [Rovibrational precursors](rovibrational_precursors.md)
+are exact geometric prerequisites under their stated normal-Q convention, not
+a complete rotation-vibration solver. Reference HF/GKS stability now reports
+actual internal and restricted-to-unrestricted diagnostics while retaining its
+narrow scope; it does not establish full correlated stability or exact revDSD.

@@ -1,0 +1,14 @@
+{
+  "runner_exit_code": 0,
+  "recorded_at": "2026-10-08T06:08:41.583089+00:00",
+  "command": [
+    "/workspace/.venvs/cochem-torq/bin/python",
+    "ci_tools/run_repository_regression.py",
+    "--output",
+    "/workspace/torq-review/rc-release-final-complete",
+    "--basetemp",
+    "/tmp/cochem_exec_release-final_complete",
+    "--timeout",
+    "1800"
+  ]
+}

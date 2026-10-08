@@ -1,0 +1,23 @@
+{
+  "environment_configuration_calls": 2,
+  "explicit_runtime_replacement_findings": 0,
+  "files_examined": 117,
+  "files_with_findings_or_configuration": [
+    {
+      "environment_configuration_calls": [
+        {
+          "line": 239,
+          "name": "monkeypatch.setenv"
+        },
+        {
+          "line": 430,
+          "name": "monkeypatch.setenv"
+        }
+      ],
+      "findings": [],
+      "path": "tests/test_cochem_system_config.py"
+    }
+  ],
+  "schema": "cochem.scientific-test-api-inventory/1",
+  "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety."
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": "cochem.local-interface-qualification/1",
+  "recorded_at": "2026-10-08T05:50:09.623741+00:00",
+  "status": "passed",
+  "scope": "Actual authenticated local Jupyter notebook start/check/stop from current installed wheel; no Codespaces provisioning or hosted calculation dispatch",
+  "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
+  "checkout_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+  "source_before_after_identical": true,
+  "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557",
+  "installed_wheel_python_files_byte_verified": 232,
+  "installed_packaged_files_byte_verified": 240,
+  "current_checkout_packaged_runtime_files_byte_verified": 235,
+  "installation_rewritten_record_paths": [
+    "cochem_torq-0.1.0.dist-info/RECORD"
+  ],
+  "packaged_byte_comparison_scope": "All wheel file entries except installer-rewritten dist-info/RECORD; Python, resources and distribution metadata compared exactly",
+  "application_module_path": "/workspace/.venvs/cochem-torq/lib/python3.12/site-packages/cochem_torq/application.py",
+  "lifecycle_actions": [
+    {
+      "action": "start",
+      "exit_code": 0
+    },
+    {
+      "action": "check",
+      "exit_code": 0
+    },
+    {
+      "action": "stop",
+      "exit_code": 0
+    }
+  ],
+  "observations": {
+    "configured_module_root_matches_existing_installation": true,
+    "configured_module_manifest_matches_reviewed_manifest": true,
+    "owned_process_identity_verified": true,
+    "authenticated_notebook_retrieved": true,
+    "token_mode": "0o600",
+    "authenticated_notebook_http_status": 200,
+    "authenticated_notebook_type": "notebook",
+    "notebook_cell_sources_match_reviewed_source": true,
+    "unauthenticated_notebook_http_status": 403,
+    "unauthenticated_login_redirect": false,
+    "unauthenticated_notebook_rejected": true,
+    "owned_process_stopped": true,
+    "stop_record_status": "stopped",
+    "stop_found_owned_process": true
+  },
+  "module_root": "/workspace/.environment/cochem-student/Modules",
+  "module_manifest_sha256": "e5ca95621df1ea3c1e9f7519b00b46381039238fc887e931ba50e416692d3703",
+  "private_receipt_directory_mode": "0o700",
+  "private_runtime_directory_mode": "0o700",
+  "no_dependency_installation_performed": true,
+  "live_codespaces_qualified": false,
+  "hosted_calculation_qualified": false,
+  "scientific_accuracy_established": false
+}
