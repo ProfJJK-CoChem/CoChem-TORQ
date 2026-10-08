@@ -14,9 +14,10 @@ CoChem_Artifacts/
 *.arrow
 *.feather
 # Runtime landscapes; keep landscape implementation, tests and guides trackable.
-landscape*.sqlite*
-landscape*.json
+*landscape*.sqlite*
+*landscape*.json
 *landscape*.npz
+*landscape*.bin
 
 # 3. Registry & Provenance Quarantines
 cochem_system_config.json

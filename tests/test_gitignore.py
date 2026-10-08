@@ -40,7 +40,17 @@ REQUIRED_DIRECTORIES = [
 
 EXPECTED_SECTIONS = {
     "Section 1": ["CoChem_Artifacts/", "*/CoChem_Artifacts/*", "~/CoChem_Artifacts/*"],
-    "Section 2": ["*.h5", "*.hdf5", "*.parquet", "*.arrow", "*.feather", "*landscape*"],
+    "Section 2": [
+        "*.h5",
+        "*.hdf5",
+        "*.parquet",
+        "*.arrow",
+        "*.feather",
+        "*landscape*.sqlite*",
+        "*landscape*.json",
+        "*landscape*.npz",
+        "*landscape*.bin",
+    ],
     "Section 3": ["cochem_system_config.json", "fit_provenance.json", "*_state.json"],
     "Section 4": [
         "*.gbw",
@@ -155,6 +165,28 @@ def test_gitignore_all_patterns_present(gitignore_lines: list[str]) -> None:
         ("buffers/ipc_stream.arrow", True, "Arrow memory IPC table"),
         ("cache/tensor_dump.feather", True, "Feather serialized buffer"),
         ("outputs/pes_landscape_grid.bin", True, "Potential energy landscape artifact"),
+        ("outputs/pes_landscape.sqlite", True, "Private landscape database"),
+        ("outputs/pes_landscape.sqlite-wal", True, "Private landscape WAL"),
+        ("outputs/pes_landscape.sqlite-shm", True, "Private landscape shared memory"),
+        ("outputs/pes_landscape_summary.json", True, "Private landscape JSON"),
+        ("outputs/pes_landscape_points.npz", True, "Private landscape array archive"),
+        ("src/cochem_torq/landscape_inspection.py", False, "Landscape implementation"),
+        ("tests/test_landscape_inspection.py", False, "Landscape integrity tests"),
+        ("docs/development/landscape_inspection.md", False, "Landscape guide"),
+        (".env", True, "Local credential bindings"),
+        (".env.local", True, "Local credential override"),
+        (".env.example", False, "Explicit credential-free template exception"),
+        (".env.template", False, "Explicit credential-free template exception"),
+        (".netrc", True, "Private client authentication"),
+        ("credentials-student.json", True, "Private credential document"),
+        ("licensed_assets/cfour_bundle/license.key", True, "Private licensed assets"),
+        ("vendor-assets/orca_bundle/license.key", True, "Private vendor assets"),
+        ("downloads/orca_6_linux.zip", True, "Private ORCA zip distribution"),
+        ("downloads/ORCA-6.tar.xz", True, "Private ORCA tar distribution"),
+        ("downloads/orca_bundle.tgz", True, "Private ORCA tgz distribution"),
+        ("downloads/CFOUR-licensed.zip", True, "Private CFOUR zip distribution"),
+        ("downloads/cfour_linux.tar.gz", True, "Private CFOUR tar distribution"),
+        ("downloads/CFOUR_lnx.tgz", True, "Private CFOUR tgz distribution"),
         ("cochem_system_config.json", True, "Root system configuration state"),
         ("fit_provenance.json", True, "Optimizer fit provenance record"),
         ("checkpoints/stage1_state.json", True, "State JSON checkpoint"),
@@ -208,8 +240,8 @@ def test_gitignore_matching_semantics(
     )
 
 
-def test_gitignore_zero_banned_tokens(gitignore_text: str) -> None:
-    """Verify that .gitignore contains no placeholder or spoof tokens."""
+def _assert_no_banned_tokens(gitignore_text: str) -> None:
+    """Permit only exact reviewed template lines; reject other spoof tokens."""
     banned_tokens = [
         "m" + "ock",
         "e" + "xample",
@@ -220,8 +252,32 @@ def test_gitignore_zero_banned_tokens(gitignore_text: str) -> None:
         "s" + "ample",
         "# " + "TODO" + ": implement",
     ]
-    lower_content = gitignore_text.lower()
+    allowed_template_lines = {"!.env.example", "!.env.template"}
+    lower_content = "\n".join(
+        line
+        for line in gitignore_text.splitlines()
+        if line not in allowed_template_lines
+    ).lower()
     for token in banned_tokens:
         assert token.lower() not in lower_content, (
             f"Banned token '{token}' detected in .gitignore"
         )
+
+
+def test_gitignore_zero_banned_tokens(gitignore_text: str) -> None:
+    """Verify the real file retains rejection outside exact template exceptions."""
+    _assert_no_banned_tokens(gitignore_text)
+
+
+@pytest.mark.parametrize("line", ["!.env.example", "!.env.template"])
+def test_reviewed_template_pattern_spelling_is_allowed(line: str) -> None:
+    _assert_no_banned_tokens(line)
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["!.env.example.backup", " !.env.example", "!.env.example # comment", "# fake"],
+)
+def test_template_exception_does_not_permit_other_banned_content(line: str) -> None:
+    with pytest.raises(AssertionError, match="Banned token"):
+        _assert_no_banned_tokens(line)
