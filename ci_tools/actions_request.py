@@ -251,11 +251,14 @@ if __name__ == "__main__":
             "The workflow source differs from the immutable commit "
             "approved at submission"
         )
+    scientific_commit = os.environ.get("TORQ_SCIENTIFIC_SOURCE_SHA", expected_commit)
+    if not re.fullmatch(r"[0-9a-f]{40}", scientific_commit):
+        raise ValueError("The scientific worker requires an immutable source commit")
     approval_raw, approval = decode_approval(
         os.environ["TORQ_APPROVED_PLAN_B64"],
         os.environ["TORQ_APPROVED_PLAN_SHA256"],
         request,
-        source_commit=expected_commit,
+        source_commit=scientific_commit,
     )
     write_request(args.output, raw, request, source_commit=os.environ["GITHUB_SHA"])
     with args.approved_plan_output.open("xb") as stream:

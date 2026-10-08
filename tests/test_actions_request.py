@@ -8,6 +8,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
+import subprocess
+import sys
 import uuid
 from pathlib import Path
 
@@ -97,6 +100,76 @@ def test_exact_reviewed_plan_and_budget_survive_hosted_transport():
             approved["plan"]["request"],
             source_commit=commit,
         )
+
+
+def test_separate_scientific_source_transport_preserves_controller_and_raw_bytes(
+    tmp_path,
+):
+    from cochem_torq.application import source_identity
+    from cochem_torq.domain import canonical_json
+    from cochem_torq.service import approve_plan, plan_request
+
+    raw, identifier = request_bytes()
+    request = json.loads(raw)
+    approval = approve_plan(plan_request(request), actor="separate source transport")
+    raw = canonical_json(approval["plan"]["request"])
+    raw_approval = canonical_json(approval)
+    controller = "b" * 40
+    scientific = source_identity()["git_commit"] or "a" * 40
+    environment = dict(
+        os.environ,
+        TORQ_REQUEST_B64=base64.b64encode(raw).decode(),
+        TORQ_REQUEST_SHA256=hashlib.sha256(raw).hexdigest(),
+        TORQ_REQUEST_ID=identifier,
+        TORQ_ENGINE="pyscf",
+        TORQ_EXPECTED_SOURCE_SHA=controller,
+        GITHUB_SHA=controller,
+        TORQ_SCIENTIFIC_SOURCE_SHA=scientific,
+        TORQ_APPROVED_PLAN_B64=base64.b64encode(raw_approval).decode(),
+        TORQ_APPROVED_PLAN_SHA256=hashlib.sha256(raw_approval).hexdigest(),
+    )
+    output, approved_output = tmp_path / "request.json", tmp_path / "approved-plan.json"
+    script = Path(__file__).resolve().parents[1] / "ci_tools/actions_request.py"
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(script),
+            "--output",
+            str(output),
+            "--approved-plan-output",
+            str(approved_output),
+        ],
+        env=environment,
+        capture_output=True,
+        timeout=20,
+    )
+    assert process.returncode == 0, process.stderr
+    assert output.read_bytes() == raw
+    assert approved_output.read_bytes() == raw_approval
+    assert (
+        json.loads(output.with_suffix(".transport.json").read_text())["source_commit"]
+        == controller
+    )
+    environment["TORQ_SCIENTIFIC_SOURCE_SHA"] = "not-a-commit"
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(script),
+            "--output",
+            str(tmp_path / "bad.json"),
+            "--approved-plan-output",
+            str(tmp_path / "bad-approval.json"),
+        ],
+        env=environment,
+        capture_output=True,
+        timeout=20,
+    )
+    assert process.returncode != 0
+    assert not (tmp_path / "bad.json").exists()
 
 
 def test_changed_digest_rejected():

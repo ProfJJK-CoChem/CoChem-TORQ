@@ -235,7 +235,10 @@ def test_unrecorded_foreign_schema_manifest_cannot_hide_from_inventory(tmp_path)
         )
 
 
-def test_real_concurrent_export_processes_publish_only_one_immutable_target(tmp_path):
+@pytest.mark.parametrize("process_count", [2, 4])
+def test_real_concurrent_export_processes_publish_only_one_immutable_target(
+    tmp_path, process_count
+):
     source = actual_failure_shard(tmp_path / "rejected")
     target = tmp_path / "exports" / "same-destination"
     code = """
@@ -253,17 +256,66 @@ except FileExistsError:
             stderr=subprocess.PIPE,
             text=True,
         )
-        for _ in range(2)
+        for _ in range(process_count)
     ]
     try:
         outputs = [process.communicate(timeout=30) for process in processes]
-        assert sorted(process.returncode for process in processes) == [0, 17], outputs
+        assert sorted(process.returncode for process in processes) == [
+            0, *([17] * (process_count - 1))
+        ], outputs
         verify_publication_bundle(
             target,
             expected_manifest_sha256=file_digest(target / "publication-manifest.json"),
         )
         assert not list(target.parent.glob(".torq-publication-*"))
         assert not list(target.parent.glob(".torq-reservations/*"))
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+
+
+def test_real_concurrent_exports_observe_complete_shared_store_quota(tmp_path):
+    source = actual_failure_shard(tmp_path / "rejected")
+    seed = export_publication_bundle(source, tmp_path / "measurement" / "bundle")
+    store = tmp_path / "bounded-exports"
+    bound = seed["size_bytes"] + 4096  # One real bundle plus bounded control files.
+    code = """
+import sys
+from cochem_torq.operations import ArtifactBackpressureError, ArtifactQuotaPolicy
+from cochem_torq.publication import export_publication_bundle
+try:
+    export_publication_bundle(sys.argv[1], sys.argv[2],
+        policy=ArtifactQuotaPolicy(
+            max_owned_bytes=int(sys.argv[3]), minimum_free_bytes=0))
+except ArtifactBackpressureError:
+    raise SystemExit(23)
+"""
+    targets = [store / f"publication-{number}" for number in range(4)]
+    processes = [
+        subprocess.Popen(
+            [sys.executable, "-c", code, str(source), str(target), str(bound)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        for target in targets
+    ]
+    try:
+        outputs = [process.communicate(timeout=30) for process in processes]
+        assert sorted(process.returncode for process in processes) == [
+            0, 23, 23, 23
+        ], outputs
+        published = [target for target in targets if target.exists()]
+        assert len(published) == 1
+        verify_publication_bundle(
+            published[0], expected_manifest_sha256=seed["manifest_sha256"]
+        )
+        observed_bytes = sum(
+            path.stat().st_size for path in store.rglob("*") if path.is_file()
+        )
+        assert observed_bytes <= bound
+        assert not list(store.glob(".torq-publication-*"))
+        assert not list(store.glob(".torq-reservations/*"))
     finally:
         for process in processes:
             if process.poll() is None:

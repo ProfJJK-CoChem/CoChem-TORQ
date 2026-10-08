@@ -26,9 +26,11 @@ from .ecosystem import (
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE_REVISION = "83462724849f1ef0be8c70ffcad6265d6af99388"
-# Actual reviewed installer bytes at this immutable BASE source revision.
+# Reviewed published bytes after the name-only history cleanup: two credential
+# identifiers changed in redaction/build-environment handling. Installer
+# verification and the isolated geometry producer code remain unchanged.
 BASE_INSTALLER_SHA256 = (
-    "7a22fc5fe91cbae865d3781f3899b38acc69f8cd9fb66648b8ea9c3eb54d9432"
+    "fb0ccdf06c06d9b272daea1f7d3ce2280e926f8503e455187397b8f393f7d482"
 )
 
 
