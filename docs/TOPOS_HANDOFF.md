@@ -3,9 +3,22 @@
 The mandatory CoChem ecosystem can import the versioned TOPOS 0.1.0 producer
 contract without claiming that a TORQ calculation has run:
 
+The reviewed-ensemble contract uses a separate immutable modern TOPOS profile,
+currently pinned at `ef750eaaf6a990a3b9e1d65eca240ac89b6632ce` in
+[reviewed-topos-modules.json](../ci_tools/reviewed-topos-modules.json). Provision
+it outside the checkout, then run its installed TORQ consumer:
+
 ```bash
-python -m Libraries.cochem_torq_topos_handoff handoff.json imported-ensemble
+python ci_tools/setup_reviewed_topos.py --root /tmp/cochem-reviewed-topos
+/tmp/cochem-reviewed-topos/ef750eaaf6a990a3b9e1d65eca240ac89b6632ce/env/bin/python -I -m Libraries.cochem_torq_topos_handoff handoff.json imported-ensemble
 ```
+
+This profile validates retained reviewed-ensemble consumption. It preserves the
+older, separately installed geometry SDK profile and does not qualify the modern
+TOPOS calculation engine or its complete SRS. The ordinary TORQ calculation
+interpreter does not install or import modern TOPOS. Public sibling source
+retrieval uses ordinary GitHub authentication; licensed-engine delivery follows
+the private student project staging workflow.
 
 TOPOS must already have exported a reviewed, eligible ensemble. The consumer
 validates its schema, review chain, exact member geometry/state/protocol hashes,
@@ -36,16 +49,17 @@ records the source revisions, original acceptance and raw artifact hashes, and
 the preserved historical fixture's incompatibility with the current record profile.
 
 Run the focused contract tests from an ordinary temporary source snapshot whose
-path satisfies TORQ's sandbox guard. From the TORQ checkout, with the mandatory
-CoChem packages installed in the active Linux environment:
+path satisfies TORQ's sandbox guard. From the TORQ checkout, after provisioning the isolated profile above:
 
 ```bash
 cochem_test_snapshot=$(mktemp -d "${TMPDIR:-/tmp}/cochem_exec_torq_handoff.XXXXXX")
 git archive HEAD | tar -x -C "$cochem_test_snapshot"
 cd "$cochem_test_snapshot"
-python -m pytest tests/test_topos_handoff.py
+COCHEM_REVIEWED_TOPOS_ROOT=/tmp/cochem-reviewed-topos python -m pytest tests/test_topos_handoff.py
 ```
 
 This copies committed source without creating a Git worktree or changing the
-checkout. Keep the snapshot for inspection after a failure. All producer and
+checkout. Each assertion runs in the isolated producer interpreter; missing
+profiles and skipped child checks fail. A real kernel file-size limit exercises
+partial transaction write denial without replacing runtime functions. Keep the snapshot for inspection after a failure. All producer and
 consumer integrity assertions remain enabled; no sandbox opt-out is needed.

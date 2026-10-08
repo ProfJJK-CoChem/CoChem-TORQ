@@ -415,8 +415,8 @@ def main() -> int:
     parser.add_argument("--basetemp", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=1800)
     arguments = parser.parse_args()
-    if not 1 <= arguments.timeout <= 1800:
-        parser.error("Timeout must be between 1 and 1800 seconds")
+    if not 1 <= arguments.timeout <= 3600:
+        parser.error("Timeout must be between 1 and 3600 seconds")
     return run(
         arguments.repository, arguments.output, arguments.basetemp, arguments.timeout
     )

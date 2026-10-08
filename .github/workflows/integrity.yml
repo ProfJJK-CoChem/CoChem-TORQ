@@ -50,8 +50,8 @@ jobs:
           cat "$RUNNER_TEMP/torq-full-srs-audit.json"
       - name: Require application implementation lint and formatting
         run: |
-          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
-          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py ci_tools/setup_reviewed_topos.py ci_tools/provision_pickett_validation.py
+          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py ci_tools/setup_reviewed_topos.py ci_tools/provision_pickett_validation.py
       - name: Run core scientific-data and persistence regression tests
         run: |
           if python -I -c 'import sys, pytest; import cochem_torq, Libraries, cochem, core, orchestrator, UI, scripts; packages=(cochem_torq,Libraries,cochem,core,orchestrator,UI,scripts); [setattr(package,"__path__",list(package.__path__)) for package in packages]; raise SystemExit(pytest.main(sys.argv[1:]))' -q -m 'not cpu_ml and not real_engine and not ecosystem' \
@@ -172,6 +172,9 @@ jobs:
           python -m pip install 'pytest>=8,<10'
           python -m pip check
           python -c "import pyscf, geometric; from dftd4.interface import DispersionModel; from importlib.metadata import version; assert pyscf.__version__ == '2.14.0'; assert version('geometric') == '1.1.1'; assert version('dftd4') == '3.7.0'"
+      - name: Compile external Pickett executables for mandatory validation
+        run: |
+          python ci_tools/provision_pickett_validation.py --root "$RUNNER_TEMP/pickett-validation" --github-env "$GITHUB_ENV"
       - name: Require actual energies, derivatives and optimization
         run: |
           if python -m pytest -q -m 'not ecosystem' --basetemp "$RUNNER_TEMP/torq-native-tests" \
@@ -193,7 +196,7 @@ jobs:
             tests/test_energetics_integration.py tests/test_pathway_diagnostics_integration.py \
             tests/test_goal_execution_integrity.py \
             tests/test_publication_integrity.py tests/test_capability_restart_integrity.py \
-            tests/test_repository_regression_evidence.py \
+            tests/test_repository_regression_evidence.py tests/test_pickett_backend.py tests/test_pickett_provisioning.py \
             tests/test_advanced_scientific_results.py tests/torq/test_counterpoise_frozen_monomer.py; then
             python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-native-tests-report.xml"
           else
@@ -377,7 +380,6 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       COCHEM_HEADLESS: '1'
       COCHEM_MODULES_APP_CONFIGURED: ${{ vars.COCHEM_MODULES_APP_ID != '' && secrets.COCHEM_MODULES_APP_PRIVATE_KEY != '' }}
-      COCHEM_MODULES_TOKEN_CONFIGURED: ${{ secrets.COCHEM_SOURCE_READ_TOKEN != '' }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
@@ -386,12 +388,6 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Require private sibling source authorization
-        run: |
-          if [ "$COCHEM_MODULES_APP_CONFIGURED" != true ] && [ "$COCHEM_MODULES_TOKEN_CONFIGURED" != true ]; then
-            echo '::error::Private BASE/TOPOS qualification requires COCHEM_MODULES_APP_ID and COCHEM_MODULES_APP_PRIVATE_KEY, or the existing contents-read COCHEM_SOURCE_READ_TOKEN secret. TORQ GITHUB_TOKEN cannot read sibling repositories.'
-            exit 1
-          fi
       - name: Mint narrowly scoped sibling source token
         if: env.COCHEM_MODULES_APP_CONFIGURED == 'true'
         id: module-auth
@@ -429,11 +425,17 @@ jobs:
                   target.write(f'COCHEM_{module.upper()}_SOURCE={receipt["source_path"]}\n')
                   target.write(f'COCHEM_{module.upper()}_PYTHON={receipt["python_path"]}\n')
           PY
+      - name: Install isolated reviewed TOPOS consumer contract
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python ci_tools/setup_reviewed_topos.py --root "$RUNNER_TEMP/reviewed-topos"
+          echo "COCHEM_REVIEWED_TOPOS_ROOT=$RUNNER_TEMP/reviewed-topos" >> "$GITHUB_ENV"
       - name: Require every genuine sibling producer and reverse scientific consumer
         run: |
           python -m pytest -q --basetemp "$RUNNER_TEMP/torq-ecosystem-native-tests" \
             --junitxml "$RUNNER_TEMP/torq-ecosystem-native-tests-report.xml" \
-            tests/test_ecosystem_integration.py tests/test_chain.py
+            tests/test_ecosystem_integration.py tests/test_chain.py tests/test_topos_handoff.py
           python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-ecosystem-native-tests-report.xml"
       - name: Record native derivative qualification evidence
         run: |
@@ -450,12 +452,13 @@ jobs:
             ${{ runner.temp }}/torq-ecosystem-native-tests-report.xml
             ${{ runner.temp }}/cochem-student-engine/interface/environment.json
             ${{ runner.temp }}/cochem-student-engine/Modules/*/installation.json
+            ${{ runner.temp }}/reviewed-topos/*/receipt.json
           if-no-files-found: error
           retention-days: 30
 
   complete-repository-regression:
     runs-on: ubuntu-24.04
-    timeout-minutes: 36
+    timeout-minutes: 66
     env:
       COCHEM_DISABLE_SANDBOX_CHECK: '1'
       OMP_NUM_THREADS: '1'
@@ -467,7 +470,6 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       COCHEM_HEADLESS: '1'
       COCHEM_MODULES_APP_CONFIGURED: ${{ vars.COCHEM_MODULES_APP_ID != '' && secrets.COCHEM_MODULES_APP_PRIVATE_KEY != '' }}
-      COCHEM_MODULES_TOKEN_CONFIGURED: ${{ secrets.COCHEM_SOURCE_READ_TOKEN != '' }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
@@ -476,12 +478,6 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Require private sibling source authorization
-        run: |
-          if [ "$COCHEM_MODULES_APP_CONFIGURED" != true ] && [ "$COCHEM_MODULES_TOKEN_CONFIGURED" != true ]; then
-            echo '::error::Complete regression requires contents-read authorization for the pinned private BASE/TOPOS sources.'
-            exit 1
-          fi
       - name: Mint narrowly scoped sibling source token
         if: env.COCHEM_MODULES_APP_CONFIGURED == 'true'
         id: module-auth
@@ -519,12 +515,21 @@ jobs:
                   target.write(f'COCHEM_{module.upper()}_SOURCE={receipt["source_path"]}\n')
                   target.write(f'COCHEM_{module.upper()}_PYTHON={receipt["python_path"]}\n')
           PY
+      - name: Install isolated reviewed TOPOS consumer contract
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python ci_tools/setup_reviewed_topos.py --root "$RUNNER_TEMP/reviewed-topos"
+          echo "COCHEM_REVIEWED_TOPOS_ROOT=$RUNNER_TEMP/reviewed-topos" >> "$GITHUB_ENV"
+      - name: Compile external Pickett executables for mandatory validation
+        run: |
+          python ci_tools/provision_pickett_validation.py --root "$RUNNER_TEMP/pickett-validation" --github-env "$GITHUB_ENV"
       - name: Require complete source-bound regression with zero skips
         run: |
-          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
-          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py ci_tools/setup_reviewed_topos.py ci_tools/provision_pickett_validation.py
+          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py ci_tools/setup_reviewed_topos.py ci_tools/provision_pickett_validation.py
           python -m mypy src/cochem_torq --follow-imports=silent --ignore-missing-imports
-          if python ci_tools/run_repository_regression.py --output "$RUNNER_TEMP/torq-complete-regression" --basetemp "$RUNNER_TEMP/cochem_exec_complete-regression" --timeout 1800; then
+          if python ci_tools/run_repository_regression.py --output "$RUNNER_TEMP/torq-complete-regression" --basetemp "$RUNNER_TEMP/cochem_exec_complete-regression" --timeout 3600; then
             :
           else
             torq_command_status=$?
@@ -539,6 +544,7 @@ jobs:
           path: |
             ${{ runner.temp }}/torq-complete-regression/public/
             ${{ runner.temp }}/cochem-full-regression/Modules/*/installation.json
+            ${{ runner.temp }}/reviewed-topos/*/receipt.json
           if-no-files-found: error
           retention-days: 30
 
@@ -552,7 +558,6 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       COCHEM_HEADLESS: '1'
       COCHEM_MODULES_APP_CONFIGURED: ${{ vars.COCHEM_MODULES_APP_ID != '' && secrets.COCHEM_MODULES_APP_PRIVATE_KEY != '' }}
-      COCHEM_MODULES_TOKEN_CONFIGURED: ${{ secrets.COCHEM_SOURCE_READ_TOKEN != '' }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
@@ -560,12 +565,6 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0, Node 24
         with:
           python-version: '3.12'
-      - name: Require private sibling source authorization
-        run: |
-          if [ "$COCHEM_MODULES_APP_CONFIGURED" != true ] && [ "$COCHEM_MODULES_TOKEN_CONFIGURED" != true ]; then
-            echo '::error::Private BASE/TOPOS qualification requires COCHEM_MODULES_APP_ID and COCHEM_MODULES_APP_PRIVATE_KEY, or the existing contents-read COCHEM_SOURCE_READ_TOKEN secret. TORQ GITHUB_TOKEN cannot read sibling repositories.'
-            exit 1
-          fi
       - name: Mint narrowly scoped sibling source token
         if: env.COCHEM_MODULES_APP_CONFIGURED == 'true'
         id: module-auth

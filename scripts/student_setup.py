@@ -91,7 +91,7 @@ def source_git_auth(token: str | None) -> Iterator[tuple[dict[str, str], list[st
         helper = Path(temporary) / "askpass.sh"
         helper.write_text(
             '#!/bin/sh\ncase "$1" in\n'
-            '*github.com*) ;;\n*) exit 1 ;;\nesac\n'
+            "*github.com*) ;;\n*) exit 1 ;;\nesac\n"
             'case "$1" in\n*sername*) printf "%s\\n" "x-access-token" ;;\n'
             '*) printf "%s\\n" "$COCHEM_SOURCE_READ_TOKEN" ;;\nesac\n',
             encoding="utf-8",
@@ -154,10 +154,10 @@ def setup(target: Path, *, install_interface: bool = True) -> dict:
             )
             if cloned.returncode:
                 raise RuntimeError(
-                    "Unable to retrieve the pinned BASE source. BASE and TOPOS "
-                    "are private: authorize Codespaces access or provide "
-                    "COCHEM_SOURCE_READ_TOKEN with contents-read access to both "
-                    f"repositories (Git exit {cloned.returncode})."
+                    "Unable to retrieve the pinned BASE source. Check Git/network "
+                    "access; a private source profile additionally requires "
+                    "authorized Codespaces contents-read access "
+                    f"(Git exit {cloned.returncode})."
                 )
             # The partial clone may retrieve promised blobs during checkout;
             # retain source authorization until that real transfer completes.

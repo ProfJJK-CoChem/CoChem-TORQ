@@ -1,0 +1,12 @@
+{
+  "schema_version": "cochem.reviewed-topos-contract/1",
+  "scope": "Retained real-engine reviewed-ensemble consumption; no TOPOS engine execution or full-SRS qualification",
+  "repository": "ProfJJK-CoChem/CoChem-TOPOS",
+  "revision": "ef750eaaf6a990a3b9e1d65eca240ac89b6632ce",
+  "distribution": "cochem-topos",
+  "version": "0.1.0",
+  "python_minimum": "3.11",
+  "core_requirements": "ci_tools/requirements-core-py312.txt",
+  "test_requirements": ["pytest==9.1.1", "setuptools==84.0.0", "wheel==0.48.0"],
+  "required_modules": ["topos.review", "topos.storage", "topos.models", "topos.chemistry"]
+}
