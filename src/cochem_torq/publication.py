@@ -7,6 +7,8 @@ import importlib.util
 import os
 import shutil
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -341,6 +343,32 @@ def _write(path: Path, raw: bytes) -> None:
     os.chmod(path, 0o600)
 
 
+@contextmanager
+def _publication_admission(
+    target: Path, *, incoming_bytes: int, policy: ArtifactQuotaPolicy
+) -> Iterator[None]:
+    """Keep the publication store stable through admission and atomic commit.
+
+    Every owned staging tree contributes to whole-store quota observations.
+    Serialize publication writers before reservation admission so another writer
+    cannot rename or remove a sibling staging tree during a strict inventory.
+    The reservation's short-lived quota lock is a separate lock, and remains
+    responsible for bounded admission and abandoned-owner backpressure.
+    """
+    lock = target.parent / ".torq-publication.lock"
+    descriptor = os.open(lock, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "a+b") as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(
+                "Publication bundles cannot overwrite prior evidence."
+            )
+        with admit_artifact_work(
+            target.parent, incoming_bytes=incoming_bytes, policy=policy
+        ):
+            yield
+
+
 def verify_publication_bundle(
     bundle: str | Path, *, expected_manifest_sha256: str
 ) -> dict[str, Any]:
@@ -502,7 +530,7 @@ def export_publication_bundle(
     expected_manifest = sha256(manifest_bytes).hexdigest()
     budget = sum(item["size_bytes"] for item in files) + len(manifest_bytes)
     staging = None
-    with admit_artifact_work(target.parent, incoming_bytes=budget, policy=policy):
+    with _publication_admission(target, incoming_bytes=budget, policy=policy):
         try:
             staging = Path(
                 tempfile.mkdtemp(prefix=".torq-publication-", dir=target.parent)
@@ -546,30 +574,26 @@ def export_publication_bundle(
                 raise ArtifactBackpressureError(
                     "Actual publication store exhausted its artifact quota."
                 )
-            lock = target.parent / f".{target.name}.publication.lock"
-            descriptor = os.open(lock, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
-            with os.fdopen(descriptor, "a+b") as stream:
-                fcntl.flock(stream, fcntl.LOCK_EX)
-                if target.exists() or target.is_symlink():
-                    raise FileExistsError(
-                        "Publication bundles cannot overwrite prior evidence."
-                    )
-                directories = [
-                    staging,
-                    *(path for path in staging.rglob("*") if path.is_dir()),
-                ]
-                for path in reversed(directories):
-                    directory_fd = os.open(path, os.O_DIRECTORY)
-                    try:
-                        os.fsync(directory_fd)
-                    finally:
-                        os.close(directory_fd)
-                os.rename(staging, target)
-                parent_fd = os.open(target.parent, os.O_DIRECTORY)
+            if target.exists() or target.is_symlink():
+                raise FileExistsError(
+                    "Publication bundles cannot overwrite prior evidence."
+                )
+            directories = [
+                staging,
+                *(path for path in staging.rglob("*") if path.is_dir()),
+            ]
+            for path in reversed(directories):
+                directory_fd = os.open(path, os.O_DIRECTORY)
                 try:
-                    os.fsync(parent_fd)
+                    os.fsync(directory_fd)
                 finally:
-                    os.close(parent_fd)
+                    os.close(directory_fd)
+            os.rename(staging, target)
+            parent_fd = os.open(target.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(parent_fd)
+            finally:
+                os.close(parent_fd)
         finally:
             if staging is not None and staging.exists():
                 shutil.rmtree(staging)

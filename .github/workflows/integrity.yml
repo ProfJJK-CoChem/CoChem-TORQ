@@ -183,7 +183,7 @@ jobs:
             tests/test_double_hybrid_stability_integrity.py tests/test_pes_scan_integrity.py \
             tests/test_adaptive_pes_integrity.py tests/test_rovibrational_precursors.py \
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
-            tests/test_application_contracts.py tests/test_actions_request.py \
+            tests/test_application_contracts.py tests/test_actions_request.py tests/test_github_source_binding.py \
             tests/test_artifact_publication.py tests/test_anharmonic_research.py \
             tests/test_internal_coordinate_scans.py tests/test_native_pes_storage.py \
             tests/test_native_checkpoint_consumption.py tests/test_constrained_optimization.py \

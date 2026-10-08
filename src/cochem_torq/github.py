@@ -23,6 +23,7 @@ from uuid import UUID
 from .artifacts import verify_shard
 from .domain import PrerequisiteError, canonical_json, digest, read_json
 from .github_auth import private_gh_environment
+from .github_provenance import scientific_source_binding, verify_controller_artifact
 
 
 class GitHubAccessError(PrerequisiteError):
@@ -205,8 +206,12 @@ class GitHubActions:
             raise GitHubAccessError(
                 "GitHub did not provide a verifiable source commit."
             )
+        binding = scientific_source_binding(self._api, self.repository, source_sha)
         reviewed_commit = approved.source_identity.get("git_commit")
-        if reviewed_commit is not None and reviewed_commit != source_sha:
+        if (
+            reviewed_commit is not None
+            and reviewed_commit != binding["scientific_commit"]
+        ):
             raise GitHubAccessError(
                 "The selected Actions ref differs from the reviewed "
                 "implementation commit."
@@ -231,6 +236,7 @@ class GitHubActions:
             "repository": self.repository,
             "ref": self.ref,
             "source_commit": source_sha,
+            "scientific_source_binding": binding,
             "submitted_at": datetime.now(timezone.utc).isoformat(),
             "status": "dispatch_requested",
             "run_id": None,
@@ -369,6 +375,8 @@ class GitHubActions:
             "status": run["status"],
             "conclusion": run.get("conclusion"),
             "source_commit": run["head_sha"],
+            "workflow_id": run.get("workflow_id"),
+            "event": run.get("event"),
             "run_url": run["html_url"],
             "scientific_status": "inspect_verified_result_bundle",
             "display_title": run.get("display_title"),
@@ -379,6 +387,40 @@ class GitHubActions:
         if run["status"] != "completed":
             raise GitHubAccessError(
                 "The calculation workflow has not finished; results are not yet final."
+            )
+        receipt_path = self.state_directory / f"{run_id}.json"
+        if receipt_path.is_symlink():
+            raise GitHubAccessError("Submission receipts cannot be symlinks.")
+        receipt = read_json(receipt_path) if receipt_path.exists() else None
+        if receipt is not None and (
+            not isinstance(receipt, dict)
+            or receipt.get("repository") != self.repository
+            or receipt.get("source_commit") != run["source_commit"]
+            or str(receipt.get("run_id")) != run_id
+            or receipt.get("workflow_id") != run["workflow_id"]
+            or str(receipt.get("request_id")) not in (run.get("display_title") or "")
+            or run["event"] != "workflow_dispatch"
+        ):
+            raise GitHubAccessError(
+                "Submission receipt and hosted run have different "
+                "repository/source/workflow/request identities."
+            )
+        binding = scientific_source_binding(
+            self._api, self.repository, run["source_commit"]
+        )
+        if (
+            receipt
+            and "scientific_source_binding" in receipt
+            and receipt["scientific_source_binding"] != binding
+        ):
+            raise GitHubAccessError(
+                "The retained scientific source binding differs from GitHub's "
+                "immutable controller/catalog objects."
+            )
+        if binding["route"] == "native-base-controller" and not receipt:
+            raise GitHubAccessError(
+                "A separate native controller result requires this interface's "
+                "owned request and approval receipt."
             )
         target = destination.absolute() / f"run-{run_id}"
         if target.exists():
@@ -403,6 +445,7 @@ class GitHubActions:
                 ],
                 capture_output=True,
                 timeout=120,
+                env=private_gh_environment(),
             )
             if process.returncode:
                 raise GitHubAccessError(
@@ -417,16 +460,6 @@ class GitHubActions:
             if not roots:
                 raise GitHubAccessError(
                     "The workflow produced no sealed TORQ result shard."
-                )
-            receipt_path = self.state_directory / f"{run_id}.json"
-            receipt = read_json(receipt_path) if receipt_path.exists() else None
-            if receipt and (
-                receipt["repository"] != self.repository
-                or receipt["source_commit"] != run["source_commit"]
-            ):
-                raise GitHubAccessError(
-                    "Submission receipt and hosted run have different "
-                    "repository/source identities."
                 )
             for root in roots:
                 manifest = verify_shard(
@@ -446,11 +479,17 @@ class GitHubActions:
                         "reviewed source."
                     )
                 declared = manifest["source_identity"].get("declared_workflow_commit")
-                if declared != run["source_commit"]:
+                if declared != binding["scientific_commit"] or manifest[
+                    "source_identity"
+                ].get("git_commit") not in {None, binding["scientific_commit"]}:
                     raise GitHubAccessError(
-                        "Artifact provenance does not match the actual Actions "
+                        "Artifact provenance does not match the pinned scientific "
                         "source commit."
                     )
+                if binding["route"] == "native-base-controller":
+                    assert receipt is not None
+                    artifact = staging / root.relative_to(staging).parts[0]
+                    verify_controller_artifact(artifact, binding, receipt, manifest)
                 if manifest["request_id"] not in (run.get("display_title") or ""):
                     raise GitHubAccessError(
                         "Artifact request UUID does not match the hosted "
