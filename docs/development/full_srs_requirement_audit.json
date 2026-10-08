@@ -2199,6 +2199,6 @@
   "scope": "All 73 normative requirements, 41 acceptance definitions and 140 historical matrix identities remain visible. Source/test pointers are implementation coverage references, never passing execution evidence. Actual evidence must bind the complete tested source/configuration tree. The bounded experimental supplied-candidate workflow is distinct from complete full-SRS scientific or deployed student qualification.",
   "specification": {
     "path": "docs/wiki/CoChem-TORQ_Implementation_SRS.md",
-    "sha256": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536"
+    "sha256": "a4b76cc928e74f200a73315a7581082778fddb44b518e5a76073e592ff88d023"
   }
 }
