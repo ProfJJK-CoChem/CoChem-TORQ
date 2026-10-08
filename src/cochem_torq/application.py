@@ -66,6 +66,56 @@ RUNTIME_SOURCE_MODULES = (
 )
 
 
+def _source_git_repository(package_root: Path) -> Path | None:
+    """Identify the owning source checkout; installed wheels have no Git owner.
+
+    A Git directory above an environment is unrelated to the installed science
+    code. Wheel file records distinguish that installation even when its prefix
+    happens to live inside a Git repository. Source development uses TORQ's
+    explicit src layout, an owning Git toplevel and the tracked implementation.
+    """
+    from importlib.metadata import PackageNotFoundError, distribution
+
+    try:
+        installed = distribution("CoChem-TORQ")
+    except PackageNotFoundError:
+        installed = None
+    if installed is not None:
+        for member in installed.files or ():
+            if str(member) == "cochem_torq/application.py" and (
+                Path(str(installed.locate_file(member))).resolve()
+                == (package_root / "application.py").resolve()
+            ):
+                return None
+
+    repository = package_root.parent.parent
+    if (
+        package_root.parent.name != "src"
+        or not (repository / "pyproject.toml").is_file()
+        or not (repository / ".git").exists()
+    ):
+        return None
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=repository,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=True,
+    )
+    if Path(result.stdout.strip()).resolve() != repository.resolve():
+        raise RuntimeError("TORQ source is not owned by its declared checkout root.")
+    subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "src/cochem_torq/application.py"],
+        cwd=repository,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=True,
+    )
+    return repository
+
+
 def source_identity() -> dict[str, Any]:
     package_root = Path(__file__).resolve().parent
     identity: dict[str, Any] = {
@@ -97,9 +147,7 @@ def source_identity() -> dict[str, Any]:
             }
         )
     identity["code_sha256"] = digest(records)
-    repository = next(
-        (path for path in package_root.parents if (path / ".git").exists()), None
-    )
+    repository = _source_git_repository(package_root)
     if repository is not None:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],

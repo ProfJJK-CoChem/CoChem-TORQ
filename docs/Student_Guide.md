@@ -14,6 +14,14 @@ and read access to retrieve results. See the
 for setup, the private Jupyter token and lifecycle checks. Opening the interface
 does not run electronic calculations.
 
+An installed modern TORQ module also supplies `cochem-torq-ui --workspace
+/path/to/private-interface --port 8888`. It copies the packaged notebook into a
+separate workspace, preserves existing files and starts authenticated JupyterLab.
+Use the executable from TORQ's own module environment. BASE, TOPOS and the modern
+TORQ distribution contain overlapping shared package paths, so the modern TORQ
+student module must stay in its separate environment. The mandatory TOPOS kit's
+compatibility importer remains distinct from this student calculation interface.
+
 The current `57c81eb` candidate passed all 2486 local repository tests with zero
 failures/errors/skips, plus selected installed-wheel, real candidate-refinement
 CLI and authenticated notebook checks. The [recorded results](development/release_candidate_check_results.json)
@@ -119,6 +127,49 @@ Start with [the water teaching request](../examples/student/water-hf-teaching.js
 to learn the input format. Its coordinates are a starting structure, not reference
 experimental or calculated results.
 
+## Continue from an external reviewed TOPOS ensemble
+
+Choose **Reviewed TOPOS ensemble JSON** in the notebook. Enter the absolute
+Python executable path in your separately installed modern TOPOS environment.
+Upload the ensemble JSON, or enter its existing local path. Select **Inspect
+reviewed TOPOS ensemble**, choose the exact member, then select your new TORQ
+recipe, products and budget and **Import and preview**. Changing the file,
+producer interpreter or member clears the prepared request and approval.
+
+The actual installed producer verifies the complete source record, review chain,
+ensemble and member identities in a separate process. TORQ retains the original
+JSON bytes, producer observation, fresh request and content manifest under the
+private `topos-imports` directory next to your downloads. The new request preserves
+coordinates, atom IDs, isotope declarations, charge and multiplicity. Its source
+provenance separately identifies the original requested method, observed engine
+attempt, matrix row and source digests. Keep the complete import directory for
+reproducibility; its compact request does not embed the entire original ensemble.
+
+The equivalent CLI entry is:
+
+```bash
+cochem-torq import-topos-reviewed \
+  --handoff /path/to/reviewed-ensemble.json \
+  --producer-python /path/to/topos-environment/bin/python \
+  --member EXACT_MEMBER_ID --recipe hf-sto-3g-education \
+  --product geometry --cores 1 --memory-mb 2048 --wall-seconds 600 \
+  --output-dir /path/to/new-import
+cochem-torq plan --request /path/to/new-import/request.json --output /path/to/plan.json
+```
+
+Add `--expected-handoff-sha256` when selecting an already recorded handoff identity.
+The importer rejects stale identities, changed source records and existing output
+directories. Import starts no calculation and returns no consumption receipt.
+Review and approve the new plan through the ordinary student pathway.
+
+This is a geometry entry point. Original topology, fragment definitions,
+environment, constraints, energies and derivative data remain observations in
+the retained source. They do not become target calculation settings or verified
+TORQ results. The new recipe's capability and chemistry checks still apply.
+Native wavefunction checkpoint continuation uses the separately qualified API;
+arbitrary external Hessian, force-field or spectroscopy files require their own
+typed evidence adapter and are not accepted as computed stages by this importer.
+
 ## Reading scientific results
 
 The notebook's candidate table retains exclusions and their reasons. Use
@@ -183,6 +234,17 @@ the public Actions deployment or establish B₀/identification accuracy.
 - **GitHub authentication/access error:** check `gh auth status` and repository
   access in the terminal. Your account needs permission to dispatch the course
   workflow and read its artifacts.
+  In Codespaces, the native GitHub CLI uses your stored account login by default
+  rather than the injected Codespaces session. `COCHEM_PRIVATE_GH_AUTH` accepts
+  `auto`, `stored-cli` or `environment`; an explicit environment selection uses
+  injected account authentication. Actions always retains its owning project's
+  job authentication. The software never reads stored credential values.
+  BASE's separate installed TORQ interface submits to the student's private
+  project `calculation.yml`. The approved installed scientific code digest must
+  match the catalog-pinned native worker. A plan created directly from a TORQ
+  Git checkout retains that checkout's commit authority and cannot be silently
+  reassigned to a different BASE controller commit. Prepare and approve through
+  the verified separately installed interface for the BASE project pathway.
 - **No run ID or uncertain submission:** save the complete submission report and
   retain its request UUID and idempotency key. Inspect the saved receipt and the
   UUID-bearing Actions run before retrying. An unchanged retry returns its

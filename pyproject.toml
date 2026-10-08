@@ -30,6 +30,7 @@ dependencies = [
 
 [project.scripts]
 cochem-torq = "cochem_torq.cli:main"
+cochem-torq-ui = "cochem_torq.ui:main"
 
 [project.entry-points."cochem.modules"]
 torq = "cochem_torq.ecosystem:module_provider"
