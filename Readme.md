@@ -5,7 +5,7 @@ spectroscopy component of [CoChem](https://github.com/ProfJJK-CoChem).
 CoChem-BASE, TOPOS and TORQ exchange explicit molecular identities, electronic
 states and method provenance through verified files.
 
-The current student route runs genuine bounded CPU calculations: optimized
+The implemented refinement route runs genuine bounded CPU calculations: optimized
 geometry, harmonic characterization, equilibrium rotational constants and a
 labeled rigid-rotor teaching catalog. **GitHub Actions is the canonical
 calculation environment; GitHub Codespaces is the canonical interface.**
@@ -148,7 +148,7 @@ the implementation requirements. All 140 historical matrix row identities are
 preserved; a documented row does not activate a scientific profile. The
 [complete release scope audit](docs/development/student_release_scope.md),
 [scientific acceptance gaps](docs/development/scientific_acceptance_gaps.md),
-[bounded benchmark plan](benchmarks/rotational-identification/preregistration.json)
+[bounded benchmark proposal](docs/development/bounded_preregistration_proposal.md)
 and [unverified-claims register](docs/wiki/review/Unverified_Claims_Register.md)
 state what further evidence is required for publication and identification.
 

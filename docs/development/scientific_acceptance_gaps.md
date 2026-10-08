@@ -7,7 +7,7 @@ preserves valid earlier results when a requested advanced product is blocked.
 This supports bounded teaching and numerical validation. It does not establish
 complete implementation of the SRS or high-accuracy laboratory/astronomical
 identification. `experimental_accuracy_established` and `identification_ready`
-remain false.
+remain false. **Student deployment testing is ON HOLD.** Use the [published-reference product](published_reference_product.md) for current executable examples and source-specific validation, and the [agent and researcher context](agent_and_researcher_context.md) for the complete remainder and ownership.
 
 The normative sources are the [implementation SRS](../wiki/CoChem-TORQ_Implementation_SRS.md),
 [method-matrix contract](../wiki/Method_Matrix_Implementation_Contract.md),
@@ -16,6 +16,8 @@ The normative sources are the [implementation SRS](../wiki/CoChem-TORQ_Implement
 or software test cannot activate an unqualified scientific matrix row.
 
 ## What the current numerical evidence establishes
+
+Bounded nonresonant rotation-vibration/model-B0 calculations, the separate local Dirichlet variational solver, genuine external Pickett execution and fresh-SCF initial-density consumption are existing partial implementations. Their exact limits and remaining full-scope work are described in the [partial-implementation context](agent_and_researcher_context.md#existing-partial-implementations-and-precise-next-work). Their existence does not activate an unqualified method or identification profile.
 
 - Cartesian geometry and derivatives use bohr, hartree, hartree/bohr and
   hartree/bohr². Explicit isotope masses determine the COM, principal axes,
@@ -59,7 +61,7 @@ or software test cannot activate an unqualified scientific matrix row.
 | Complete typed result/provenance service | Geometry, inertia, harmonic, finite force-field, resonance and vibrational-only VPT2 payloads now have strict context, units, atom/isotope/frame/mode and parent bindings. Geometric Coriolis/inertia precursors add explicit readback and degeneracy checks. Complete rovibrational native outputs, engine/convergence envelopes and separate dipole-surface/distortion/hyperfine contracts still require implementation and independent qualification. Availability envelopes cannot qualify them. | ARCH-01, ARCH-05; TORQ-SPEC-001; V-STAGES, V-SCHEMA. |
 | Semirigid rovibrational VPT2 | Add the selected qualified rotation-vibration/Coriolis and kinetic-coordinate convention, complete required force constants, resonance closure and independently authenticated molecular comparisons. Validate fundamentals, alpha and relevant distortion together; vibrational-only oscillator perturbation is an explicitly narrower implementation. | D05; TORQ-VIB-003; V-VPT2. |
 | B0 and composites | Obtain authentic axis-/isotope-matched alpha or independently solved rovibrational corrections. Apply `B0=Be−½Σalpha` with the correct component/degeneracy convention. Mixed-level geometry/force-field recipes must identify both levels and demonstrate transfer applicability. A formula accepting supplied alpha is not an alpha-producing engine. | D04/D05; TORQ-SCI-004; V-VPT2, V-ISO. |
-| Effective rotational catalogs | Implement/provision and pin an actual qualified catalog backend or full effective Hamiltonian, reduction/representation and state assignment. Qualify centrifugal distortion, hyperfine where applicable, dipole/intensity definitions, nuclear-spin weights, isotopologues, truncation and frequency range. The teaching rigid rotor remains a separate product. | TORQ-SPEC-002; V-PROP, V-SPCAT, V-CONSUMER. |
+| Effective rotational catalogs | Build on the genuine bounded pinned external Pickett backend; complete the full qualified effective Hamiltonian, reduction/representation and state assignment. Qualify centrifugal distortion, hyperfine where applicable, dipole/intensity definitions, nuclear-spin weights, isotopologues, truncation and frequency range. The teaching rigid rotor remains a separate product. | TORQ-SPEC-002; V-PROP, V-SPCAT, V-CONSUMER. |
 | Calibrated identification uncertainty | Freeze a bounded preregistered molecular-family benchmark with authenticated reference values/uncertainties, product A/B/C identity, calibration/training/held-out separation, numerical tolerances and predictive coverage targets. Run independent molecular and transition comparisons; method differences and numerical residuals alone are not confidence intervals. | D10/D11; V-BENCH, V-UQ. |
 | LAM and fluxional species | Implement and independently validate the selected reduced/coupled kinetic operator, periodicity, boundary conditions, symmetry sectors, mode accounting and numerical convergence. Preserve semirigid successes and branch incompatible systems rather than force VPT2. | D05; TORQ-VIB-004; V-DVR. |
 
@@ -75,8 +77,10 @@ consumer evidence beyond the bounded student refinement path:
   candidates. The adaptive baseline uses declared numerical interpolation and
   diversity, with physical challenge calculations; it does not train a learned
   model or certify between-point error or search completeness. General relaxed,
-  periodic/coupled-coordinate scans, native density continuation, electronic
-  branch tracking and independent recall/calibration campaigns remain required
+  periodic/coupled-coordinate scans, general electronic branch tracking and
+  independent recall/calibration campaigns remain required. Actual fresh-SCF
+  initial-density consumption exists in the bounded checkpoint adapter; general
+  optimizer/DIIS/higher-derivative algorithm-state resume remains separate work
   (D03). These explicitly local validation profiles cannot silently execute in
   the canonical student interface.
 - Genuine frozen/relaxed monomer and ghost-basis interaction primitives already

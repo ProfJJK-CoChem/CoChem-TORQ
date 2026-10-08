@@ -75,6 +75,7 @@ jobs:
             tests/test_crest_identity_integrity.py \
             tests/test_capability_restart_integrity.py tests/test_candidate_ledger_integrity.py \
             tests/test_candidate_interface_integrity.py tests/test_publication_integrity.py \
+            tests/test_packaged_student_ui.py \
             tests/test_fenced_pes_integrity.py tests/test_repository_regression_evidence.py \
             tests/test_pes_scan_integrity.py tests/test_adaptive_pes_integrity.py \
             tests/torq/test_counterpoise_frozen_monomer.py; then

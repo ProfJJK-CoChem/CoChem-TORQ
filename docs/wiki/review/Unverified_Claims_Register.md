@@ -4,6 +4,8 @@ Reviewed 2026-10-07 against the supplied SRS/method matrix and the [preceding re
 
 The earlier statement “some vendor and literature claims remain explicitly unverified” referred to the items recorded below. **Unverified does not mean false.** Some are unsupported in the supplied evidence; others have a specific internal contradiction or an inspected source demonstrating a narrower capability. The revised implementation SRS already rejects many of the unsafe generalizations. Preserving a historical document does not reinstate its claims as normative requirements.
 
+The table below preserves this review's source-specific findings. Later [reference acquisitions](../../development/published_reference_product.md), the [revDSD component-source ledger](../../development/revdsd_component_recipe_ledger.md), and [bounded implementation milestones](../../development/agent_and_researcher_context.md#existing-partial-implementations-and-precise-next-work) update retrieval and local execution status. Acquired primary D3 supporting information does not resolve the exact target revDSD-D4 recipe; bounded native Pickett execution does not qualify general catalog accuracy.
+
 Evidence states:
 
 - **Not retrieved:** the primary text/manual was not available to this review; no truth judgment follows from access failure.

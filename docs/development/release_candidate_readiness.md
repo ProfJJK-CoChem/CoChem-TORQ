@@ -1,6 +1,8 @@
 # Release candidate readiness and exact closure gates
 
-Reviewed 2026-10-08. **The complete SRS is not yet qualified for release.** The final complete local regression at `e77e2a4` passed 3034 tests with zero failures/errors/skips, audit and supervising process exit zero, and unchanged tested source. Both final installed-wheel core lanes passed 952 tests each. The preceding complete regression at `57c81eb` and its CLI/notebook and sibling checks remain historical evidence. The deployed student journey and independent scientific qualification remain incomplete. The [aggregate results](release_candidate_check_results.json) distinguish local implementation evidence from release qualification; neither source presence nor a software regression establishes scientific accuracy.
+Reviewed 2026-10-08. **The complete SRS is not yet qualified for release, and student deployment testing is ON HOLD.** The [published-reference product and source-bound validation](published_reference_product.md#completed-local-software-validation) records the latest calculation/comparison and software evidence. The [agent and researcher context](agent_and_researcher_context.md) distinguishes unfinished agent implementation and research from concrete owner/researcher prerequisites. All **41 full-scope gates remain blocked**. A passing software suite or descriptive published-value comparison does not establish identification accuracy.
+
+The checkpoints below retain their actual source-specific history. They do not qualify later commits. At `e77e2a4`, the complete local regression passed 3034 tests with zero failures/errors/skips, audit and supervising process exit zero, and unchanged tested source. Its two installed-wheel core lanes passed 952 tests each. The preceding `57c81eb` regression and its CLI/notebook and sibling checks are historical evidence. The [recorded aggregate](release_candidate_check_results.json) retains that earlier checkpoint; it is not the latest source receipt.
 
 The later main commit
 [`5c1da3a`](https://github.com/ProfJJK-CoChem/CoChem-TORQ/commit/5c1da3a15be1dd6fe8a34c418c739391bfaed44e)
@@ -30,12 +32,12 @@ The [full-SRS audit](full_srs_requirement_audit.json) covers all **73 normative 
 
 The supplied-candidate workflow already computes genuine bounded restricted electronic structure, optimized geometry, isotope-specific equilibrium constants, harmonic results and finite-J rigid-rotor screening using actual dipoles. Other explicitly named local validation profiles compute actual numerical derivatives, bounded vibrational force fields/VPT2, ghost-basis interaction quantities and saddle/downhill endpoint candidates. New bounded geometry/PES profiles retain supplied-graph mapping, nuclear-position symmetry proposals, nonperiodic fixed valence-coordinate observations, actual prior-density continuation, adaptive physical anchors, constrained-HF residual/KKT/curvature evidence and separately approved target minimum checks. Genuine native points bridge to sole-merger HDF5 storage under current committed coordinator admission. Canonical nonresonant Watson and a separate local Dirichlet variational route retain bounded operator/applicability evidence; default HF/STO-3G water fails the reviewed coupling gate and keeps model B0/alpha/semirigid outputs unavailable. Missing later scientific stages retain earlier results and explicit reasons. Exact revDSD, general B0/rovibrational spectroscopy, calibrated identification accuracy and automated completeness claims remain disabled.
 
-The final tested code is `e77e2a47d4ef23bb4ad6db72519e656336cf0bb2`,
+The historical `e77e2a4` tested code is `e77e2a47d4ef23bb4ad6db72519e656336cf0bb2`,
 with complete source SHA-256
 `a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c`
 and application SHA-256
 `fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9`.
-Its [current complete local evidence](release_candidate_evidence/e77e2a4/aggregate.json)
+Its [historical complete local evidence](release_candidate_evidence/e77e2a4/aggregate.json)
 records **3034 passed, zero failures/errors/skips**, the actual complete-suite
 command without selected-name/marker/path exclusions, and 1743.275 seconds
 elapsed. Pytest, the audit and the owned supervising runner each exited zero,
@@ -210,9 +212,9 @@ unverified molecular populations/entropy remain unavailable. Actual declared-sta
 mathematics is separately labeled. These repairs do not qualify general chemical
 identity, conformer completeness or the historical method matrix.
 
-## Current local operations and source-bound milestones
+## Local operations and historical source-bound milestones
 
-The final Python application at `e77e2a4` retains source digest
+The Python application at the historical `e77e2a4` checkpoint retains source digest
 `fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9`.
 Seventeen genuine shared-host/native dispatch cases passed with that digest
 unchanged before and after: real competing campaigns, owned SIGKILL/waits,
@@ -250,7 +252,7 @@ The eight requirements classified as missing independent qualification are:
 - `TORQ-VIB-001`: method/state/basis-specific derivative-convergence and independent molecular frequency/reference checks for each enabled derivative profile.
 - `TORQ-VIB-005`: independent distortion/hyperfine, dipole-surface/vibrational-averaging and identification-band validity for the requested spectral properties.
 - `TORQ-SPEC-002`: independent accuracy evidence for every rung of the spectroscopic ladder and held-out observable/transition uncertainty.
-- `TORQ-UQ-002`: real reference curation, accepted numerical/predictive targets, immutable preregistration and blind held-out results. The current proposal's incomplete references/targets cannot support calibrated claims.
+- `TORQ-UQ-002`: real reference curation, accepted numerical/predictive targets, immutable preregistration and blind held-out results. The [bounded proposal](bounded_preregistration_proposal.md) now supplies concrete candidate domains and numerical target definitions; accepted preregistration, sufficient independent references, calibration and sealed blind evaluation remain outstanding.
 - `TORQ-VAL-001`: the complete named core campaign, including nonlinear/linear molecules, isotopologue pairs, a real weakly bound dimer, and actual cancellation/restart/installation-failure paths in the supported domain.
 - `TORQ-VAL-002`: genuine representative advanced cases and independently preregistered domain benchmarks for each enabled advanced profile, with failures and applicability limits retained.
 
@@ -258,7 +260,7 @@ The 140 historical matrix identities remain documented choices. Exact capability
 
 Exact open-source revDSD development follows the [DH0–DH6 protocol](../wiki/RevDSD_Spectroscopy_Protocol.md) and [implementation/source evidence](revdsd_implementation.md). Original orbital-generation, P86 variant, frozen-core and dispersion definitions still require reconciliation with the original primary recipe and independent native components. Custom double-hybrid machinery does not authorize silently selecting secondary coefficients or enabling a named exact recipe.
 
-The eight individually unavailable optional profiles are `TORQ-PES-007` kinetics/bifurcations, `TORQ-VIB-004` coupled LAM/torsion-rotation/VRT, `TORQ-ANA-001` wavefunction interchange, `TORQ-ANA-002` separately named NBO/JANPA/localization analyses, `TORQ-ANA-003` density analyses, `TORQ-EXP-002` genuine SPCAT/SPFIT, `TORQ-EXP-004` actual SpycFit HDF5 consumption, and `TORQ-DEP-003` additional GPU/Slurm/platform profiles. Each needs its own implementation, provisioning where applicable, and genuine scientific/platform gate. Optional status does not make the core rotational route optional.
+The eight optional-profile requirements still lacking complete scientific/platform qualification are `TORQ-PES-007` kinetics/bifurcations, `TORQ-VIB-004` coupled LAM/torsion-rotation/VRT, `TORQ-ANA-001` wavefunction interchange, `TORQ-ANA-002` separately named NBO/JANPA/localization analyses, `TORQ-ANA-003` density analyses, `TORQ-EXP-002` genuine SPCAT/SPFIT, `TORQ-EXP-004` actual SpycFit HDF5 consumption, and `TORQ-DEP-003` additional GPU/Slurm/platform profiles. The [bounded Pickett backend](../../src/cochem_torq/spectroscopy/pickett_backend.py) already executes genuine external SPCAT/SPFIT in its declared local scope. Each optional profile still needs its remaining implementation, provisioning where applicable, and full scientific/platform gate. Optional status does not make the core rotational route optional.
 
 ## Canonical student environment and release evidence
 
@@ -271,7 +273,7 @@ GitHub Actions is the calculation authority, and GitHub Codespaces is the interf
 5. **Final sibling lifecycle:** verify the final TORQ pin with compatible genuine BASE/TOPOS environments, actual task-service ownership where advertised, cancellation/resume semantics and consumer-side conventions. Prior sibling checks remain tied to their tested revisions.
 6. **Deployed operations/security/storage:** qualify current leases/approvals through publication, resources across campaigns, target filesystem/NFS semantics, crash/restart/reconciliation, sealed backup/restore, artifact retention/access controls and legitimate licensed-engine provisioning. Local SQLite/process/HDF5 checks alone do not qualify every deployed platform.
 
-The [current source-bound evidence index](release_candidate_evidence/e77e2a4/evidence-index.json) and [aggregate results](release_candidate_check_results.json) retain the final completed local receipts, unchanged historical/failed attempts and unresolved release gates. The [preceding completed local index](release_candidate_evidence/57c81eb/record.json) remains historical. The [canonical environment record](canonical_environments.md), [historical hosted evidence](hosted-actions-check-results.json), [historical ecosystem evidence](ecosystem-check-results.json) and [historical student release report](student-release-check-results.json) preserve earlier genuine runs and blocked requests. Do not sum overlapping test lanes or use historical image/run identities as current-source acceptance evidence.
+The [historical e77e2a4 source-bound evidence index](release_candidate_evidence/e77e2a4/evidence-index.json) and [its aggregate results](release_candidate_check_results.json) retain that checkpoint's completed local receipts, unchanged historical/failed attempts and unresolved release gates. The [preceding completed local index](release_candidate_evidence/57c81eb/record.json) remains historical. The [canonical environment record](canonical_environments.md), [historical hosted evidence](hosted-actions-check-results.json), [historical ecosystem evidence](ecosystem-check-results.json) and [historical student release report](student-release-check-results.json) preserve earlier genuine runs and blocked requests. Do not sum overlapping test lanes or use historical image/run identities as current-source acceptance evidence.
 
 ## Claims that still need primary/vendor verification
 

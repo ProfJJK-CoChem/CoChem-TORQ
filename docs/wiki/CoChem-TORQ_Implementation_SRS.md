@@ -2,7 +2,7 @@
 
 Version: 1.1, approved spectroscopy scope and integrity contracts. Reviewed source: `d7a4739a5f7d6f22ed659b32eeb4706bef16225e`; implementation repairs are tracked separately. Updated 2026-10-07, America/Chicago.
 
-This specification defines what to implement and how to establish that it works. It does not certify the current implementation, an unexecuted engine capability, or publication-level accuracy. The repository has material implementation defects; see [implementation audit](review/Architecture_Implementation_Audit.md). Significant scientific and operational choices are recorded in the [decision register](review/Decisions_and_Risks.md). Requirements for gated features are specified here so they can be implemented without mistaking a research proposal for a supported result.
+This specification defines what to implement and how to establish that it works. It does not certify the current implementation, an unexecuted engine capability, or publication-level accuracy. The [historical implementation audit](review/Architecture_Implementation_Audit.md) records defects at its reviewed baseline. Subsequent bounded repairs and current unfinished requirements are tracked in the [scientific acceptance gaps](../development/scientific_acceptance_gaps.md) and [agent and researcher context](../development/agent_and_researcher_context.md). Significant scientific and operational choices are recorded in the [decision register](review/Decisions_and_Risks.md). Requirements for gated features are specified here so they can be implemented without mistaking a research proposal for a supported result.
 
 ## 1. Document control, interpretation, and scope
 
