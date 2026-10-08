@@ -1,0 +1,117 @@
+{
+  "schema_version": "cochem.torq.request/1",
+  "serialization_profile": "RFC8785",
+  "request_id": "4c94cddd-e53f-4844-a7a5-04e458c495e5",
+  "molecule": {
+    "symbols": [
+      "O",
+      "H",
+      "H"
+    ],
+    "geometry_bohr": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.8
+      ],
+      [
+        1.7,
+        0.0,
+        -0.4
+      ]
+    ],
+    "charge": 0,
+    "multiplicity": 1,
+    "atom_ids": [
+      "water-O",
+      "water-H1",
+      "water-H2"
+    ],
+    "isotopes": null
+  },
+  "recipe": "hf-sto-3g-relaxed-internal-pes-validation",
+  "products": [
+    "pes_scan"
+  ],
+  "resources": {
+    "cores": 1,
+    "memory_mb": 1024,
+    "wall_seconds": 180
+  },
+  "catalog": {
+    "temperature_kelvin": 10.0,
+    "max_j": 5
+  },
+  "source_provenance": {
+    "pes_scan": {
+      "coordinates": [
+        {
+          "coordinate_id": "fixed-OH1",
+          "kind": "bond",
+          "atom_indices": [
+            0,
+            1
+          ],
+          "unit": "bohr",
+          "domain": {
+            "minimum": 1.5,
+            "maximum": 2.5,
+            "periodic": false
+          }
+        }
+      ],
+      "grid": [
+        [
+          1.9
+        ]
+      ],
+      "sampling_strategy": "full_grid",
+      "passes": [
+        {
+          "purpose": "forward",
+          "sample_indices": [
+            0
+          ]
+        },
+        {
+          "purpose": "reverse",
+          "sample_indices": [
+            0
+          ]
+        },
+        {
+          "purpose": "challenge",
+          "sample_indices": [
+            0
+          ]
+        }
+      ],
+      "coordinate_treatment": "relaxed",
+      "unscanned_coordinates": "constrained_relaxation",
+      "cartesian_movable_atom_indices": [
+        1,
+        2
+      ],
+      "additional_constraints": [],
+      "initial_guess_policy": "independent_pyscf_minao",
+      "budget": {
+        "max_physical_calls": 120,
+        "per_point_wall_seconds": 60
+      },
+      "energy_recheck_tolerance_hartree": 1e-09,
+      "density_recheck_tolerance": 1e-07,
+      "relaxation": {
+        "max_native_evaluations_per_point": 40,
+        "per_evaluation_wall_seconds": 10,
+        "max_optimizer_iterations": 30,
+        "geometry_recheck_tolerance_bohr": 1e-06
+      }
+    }
+  },
+  "scientific_goal": null
+}

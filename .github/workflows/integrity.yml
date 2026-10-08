@@ -187,7 +187,7 @@ jobs:
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
             tests/test_application_contracts.py tests/test_actions_request.py tests/test_github_source_binding.py \
             tests/test_artifact_publication.py tests/test_anharmonic_research.py \
-            tests/test_internal_coordinate_scans.py tests/test_native_pes_storage.py \
+            tests/test_internal_coordinate_scans.py tests/test_relaxed_internal_scans.py tests/test_native_pes_storage.py \
             tests/test_native_checkpoint_consumption.py tests/test_constrained_optimization.py \
             tests/test_constrained_service.py tests/test_scan_host_allocation.py \
             tests/test_open_shell_engine.py tests/test_open_shell_service.py \

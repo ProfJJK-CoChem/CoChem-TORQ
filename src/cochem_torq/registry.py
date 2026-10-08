@@ -249,6 +249,26 @@ _PROFILES["hf-sto-3g-constrained-pes-validation"] = {
 }
 
 
+_PROFILES["hf-sto-3g-relaxed-internal-pes-validation"] = {
+    **deepcopy(_PROFILES["hf-sto-3g-constrained-pes-validation"]),
+    "id": "hf-sto-3g-relaxed-internal-pes-validation",
+    "version": 1,
+    "label": "RHF / STO-3G bounded constrained-relaxation scan experiment",
+    "max_atoms": 3,
+    "elements": ["H", "O"],
+    "products": ["pes_scan"],
+    "constraints": (
+        "nonperiodic water internal-coordinate targets; explicit movable rows"
+    ),
+    "reason": (
+        "Controlled local water constrained-relaxation scan with original native "
+        "evaluations and independently checked constrained stationarity. "
+        "No unconstrained minimum, complete PES, calibrated molecular accuracy, "
+        "periodic motion, production activation or identification claim."
+    ),
+}
+
+
 def get_profile(identifier: str) -> dict[str, Any]:
     if identifier not in _PROFILES:
         raise ValueError(
@@ -324,6 +344,11 @@ def profile_capabilities(identifier: str) -> tuple[CapabilityRecord, ...]:
             and property_name == "dipole"
         ):
             continue
+        if (
+            identifier == "hf-sto-3g-relaxed-internal-pes-validation"
+            and property_name not in {"energy", "gradient", "optimization"}
+        ):
+            continue
         unsupported = property_name == "dipole" and profile["method"] == "mp2"
         records.append(
             CapabilityRecord(
@@ -396,6 +421,7 @@ def route_profile_capabilities(
             "hf-sto-3g-pes-validation",
             "hf-sto-3g-internal-pes-validation",
             "hf-sto-3g-constrained-pes-validation",
+            "hf-sto-3g-relaxed-internal-pes-validation",
         }
     ):
         required.add("dipole")  # The actual worker always calculates this property.
@@ -407,6 +433,7 @@ def route_profile_capabilities(
             "hf-sto-3g-pes-validation",
             "hf-sto-3g-internal-pes-validation",
             "hf-sto-3g-constrained-pes-validation",
+            "hf-sto-3g-relaxed-internal-pes-validation",
         }
     ):
         required.add("hessian")

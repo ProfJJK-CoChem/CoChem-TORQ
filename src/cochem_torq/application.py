@@ -215,6 +215,7 @@ def validate_request(
         if model.recipe not in {
             "hf-sto-3g-pes-validation",
             "hf-sto-3g-internal-pes-validation",
+            "hf-sto-3g-relaxed-internal-pes-validation",
         }:
             reasons.append(
                 "PES scans require their explicitly named local validation recipe."
@@ -225,6 +226,7 @@ def validate_request(
     elif model.recipe in {
         "hf-sto-3g-pes-validation",
         "hf-sto-3g-internal-pes-validation",
+        "hf-sto-3g-relaxed-internal-pes-validation",
     } or any(key in model.source_provenance for key in ("pes_scan", "adaptive_scan")):
         reasons.append(
             "A scan declaration requires the separate pes_scan product and recipe."

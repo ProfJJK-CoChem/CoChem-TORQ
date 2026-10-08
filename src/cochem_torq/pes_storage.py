@@ -214,6 +214,11 @@ def _validate_point(
     if str(UUID(point.point_id)) != point.point_id:
         raise ValueError("Native point identifiers must be canonical UUIDs.")
     request = _validate_approved(approved)
+    if point.geometry_status != "fixed_nonstationary_sample":
+        raise ValueError(
+            "This fixed-native HDF5 bridge cannot admit relaxed stationary points; "
+            "retain the original relaxed JSON/native artifacts."
+        )
     expected_geometry = geometry_for_sample(
         request, scan_definition(request), point.sample_index
     )

@@ -1,9 +1,9 @@
-"""Approved, bounded experimental PES observations from genuine fixed geometries.
+"""Approved, bounded experimental PES observations from genuine native calls.
 
-The first executable profile is a neutral H2 singlet bond scan at RHF/STO-3G.
-Coordinates define fixed geometries, never optimized stationary points. Ordered
-independent-restart passes can reveal discrepancies; they do not establish
-continuation-branch completeness or an experimentally accurate potential.
+Fixed-coordinate profiles retain nonstationary samples. A separately named water
+experiment uses genuine constrained energy relaxation and typed stationarity
+evidence. Ordered independent restarts can reveal discrepancies; they do not
+establish complete surfaces, equilibrium minima or experimental accuracy.
 """
 
 from __future__ import annotations
@@ -57,6 +57,7 @@ ScanPurpose = Literal[
 ]
 SCAN_RECIPE = "hf-sto-3g-pes-validation"
 INTERNAL_SCAN_RECIPE = "hf-sto-3g-internal-pes-validation"
+RELAXED_SCAN_RECIPE = "hf-sto-3g-relaxed-internal-pes-validation"
 
 
 class CoordinateDomain(Contract):
@@ -144,6 +145,18 @@ class ScanPass(Contract):
         return self
 
 
+class ScanRelaxation(Contract):
+    """An explicit finite inner algorithm ceiling, distinct from point attempts."""
+
+    schema_version: Literal["cochem.torq.scan-relaxation/1"] = (
+        "cochem.torq.scan-relaxation/1"
+    )
+    max_native_evaluations_per_point: StrictInt = Field(ge=2, le=40)
+    per_evaluation_wall_seconds: StrictInt = Field(ge=1, le=30)
+    max_optimizer_iterations: StrictInt = Field(default=30, ge=1, le=50)
+    geometry_recheck_tolerance_bohr: StrictFloat = Field(default=1e-6, gt=0, le=1e-4)
+
+
 class ScanPlan(Contract):
     schema_version: Literal["cochem.torq.pes-scan/1"] = "cochem.torq.pes-scan/1"
     coordinates: tuple[InternalCoordinate, ...] = Field(min_length=1, max_length=6)
@@ -168,6 +181,18 @@ class ScanPlan(Contract):
     energy_recheck_tolerance_hartree: StrictFloat = Field(gt=0)
     density_recheck_tolerance: StrictFloat = Field(gt=0)
     scf_max_cycle: StrictInt = Field(default=100, ge=1, le=1000)
+    relaxation: ScanRelaxation | None = None
+
+    @model_serializer(mode="wrap")
+    def preserve_fixed_scan_identity(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        result = handler(self)
+        if not isinstance(result, dict):
+            raise TypeError("Scan plans serialize as a JSON object.")
+        if self.relaxation is None:
+            result.pop("relaxation", None)
+        return result
 
     @model_validator(mode="after")
     def finite_design(self) -> Self:
@@ -220,10 +245,7 @@ class ScanPlan(Contract):
                         "Forward/reverse passes must traverse "
                         "the full declared grid in order."
                     )
-            if (
-                sum(len(item.sample_indices) for item in self.passes)
-                > self.budget.max_physical_calls
-            ):
+            if self.planned_physical_calls > self.budget.max_physical_calls:
                 raise ValueError(
                     "The actual declared physical calls exceed the scan budget."
                 )
@@ -240,6 +262,16 @@ class ScanPlan(Contract):
 
     @property
     def planned_physical_calls(self) -> int:
+        if self.sampling_strategy == "bounded_adaptive":
+            return self.budget.max_physical_calls
+        return self.planned_point_attempts * (
+            self.relaxation.max_native_evaluations_per_point
+            if self.relaxation is not None
+            else 1
+        )
+
+    @property
+    def planned_point_attempts(self) -> int:
         if self.sampling_strategy == "bounded_adaptive":
             return self.budget.max_physical_calls
         return sum(len(item.sample_indices) for item in self.passes)
@@ -259,6 +291,14 @@ def scan_blocking_reasons(
     request: CalculationRequest, scan: ScanPlan
 ) -> tuple[str, ...]:
     reasons = []
+    if request.recipe == RELAXED_SCAN_RECIPE:
+        from .relaxed_scan import relaxed_blocking_reasons
+
+        return relaxed_blocking_reasons(request, scan)
+    if scan.relaxation is not None:
+        reasons.append(
+            "Inner relaxation settings require their separate relaxed scan recipe."
+        )
     if request.recipe == INTERNAL_SCAN_RECIPE:
         if request.products != ["pes_scan"]:
             reasons.append(
@@ -367,14 +407,15 @@ def scan_plan_for_request(
             "Coordinate indices exceed the immutable request atom mapping."
         )
     if (
-        scan.planned_physical_calls * scan.budget.per_point_wall_seconds
+        scan.planned_point_attempts * scan.budget.per_point_wall_seconds
         > request.resources.wall_seconds
     ):
         raise ValueError(
             "The requested point ceilings exceed the total reviewed wall budget."
         )
     if (
-        profile.get("id") not in {SCAN_RECIPE, INTERNAL_SCAN_RECIPE}
+        profile.get("id")
+        not in {SCAN_RECIPE, INTERNAL_SCAN_RECIPE, RELAXED_SCAN_RECIPE}
         or profile.get("engine") != "PySCF"
         or profile.get("method") != "hf"
         or profile.get("basis") != "sto-3g"
@@ -401,7 +442,9 @@ def scan_plan_for_request(
                 tasks.append(
                     {
                         "id": task_id,
-                        "operation": "fixed_coordinate_energy_gradient",
+                        "operation": "constrained_coordinate_energy_relaxation"
+                        if request.recipe == RELAXED_SCAN_RECIPE
+                        else "fixed_coordinate_energy_gradient",
                         "sample_index": index,
                         "purpose": scan_pass.purpose,
                         "depends_on": [previous_task] if continuing else [],
@@ -438,12 +481,19 @@ def scan_plan_for_request(
         "physical_call_ceiling": scan.planned_physical_calls,
         "energy_reference": scan.energy_reference,
         "stationary_points_claimed": False,
-        "execution_scope": "experimental_local_fixed_coordinate_pes",
+        "execution_scope": "experimental_local_constrained_relaxed_pes"
+        if request.recipe == RELAXED_SCAN_RECIPE
+        else "experimental_local_fixed_coordinate_pes",
         "coordinate_construction": "minimum_displacement_embedding"
-        if request.recipe == INTERNAL_SCAN_RECIPE
+        if request.recipe in {INTERNAL_SCAN_RECIPE, RELAXED_SCAN_RECIPE}
         else "second_atom_fixed_bond_axis",
         "blocking_reasons": list(reasons),
     }
+    if request.recipe == RELAXED_SCAN_RECIPE:
+        plan["point_attempt_ceiling"] = scan.planned_point_attempts
+        plan["inner_solver_recipe_sha256"] = get_profile(
+            "hf-sto-3g-constrained-pes-validation"
+        )["recipe_sha256"]
     plan["plan_sha256"] = digest(plan)
     return plan
 
@@ -570,6 +620,93 @@ def _verify_host_provenance(
         raise ValueError("Host allocation provenance differs from its durable receipt.")
 
 
+class OriginalRelaxedEvaluationReceipt(Contract):
+    sequence_index: StrictInt = Field(ge=0)
+    backend_request_sha256: str = Field(pattern="^[0-9a-f]{64}$")
+    evaluation_sha256: str = Field(pattern="^[0-9a-f]{64}$")
+    launch_verified: StrictBool
+    owned_wait_verified: StrictBool
+
+
+class RelaxedPointEvidence(Contract):
+    """Typed original provenance and available constrained stationarity."""
+
+    schema_version: Literal["cochem.torq.relaxed-point-evidence/1"]
+    inner_recipe: Literal["hf-sto-3g-constrained-pes-validation"]
+    inner_recipe_sha256: str = Field(pattern="^[0-9a-f]{64}$")
+    specification_sha256: str = Field(pattern="^[0-9a-f]{64}$")
+    original_request_sha256: str | None = Field(default=None, pattern="^[0-9a-f]{64}$")
+    result_path: Literal["constrained-engine/result.json"] | None
+    result_sha256: str | None = Field(pattern="^[0-9a-f]{64}$")
+    native_evaluation_attempts: StrictInt | None = Field(ge=0)
+    native_evaluation_attempt_lower_bound: StrictInt = Field(ge=0)
+    stationary_character: Literal["constrained_stationary"] | None
+    constraint_residuals_bohr_or_radian: tuple[StrictFloat, ...] | None
+    tangent_gradient_hartree_bohr: tuple[StrictFloat, ...] | None
+    constraint_rank: StrictInt | None = Field(default=None, ge=1)
+    tangent_dimension: StrictInt | None = Field(default=None, ge=1)
+    optimizer: dict[str, Any] | None = None
+    original_evaluation_receipts: tuple[OriginalRelaxedEvaluationReceipt, ...]
+    equilibrium_geometry_claimed: Literal[False]
+    independent_scientific_qualification: Literal[False]
+
+    @model_validator(mode="after")
+    def exact_counts_and_stationarity(self) -> Self:
+        if self.native_evaluation_attempts is not None and (
+            self.native_evaluation_attempts
+            != self.native_evaluation_attempt_lower_bound
+            or self.native_evaluation_attempts != len(self.original_evaluation_receipts)
+            or any(
+                receipt.sequence_index != index
+                or not receipt.launch_verified
+                or not receipt.owned_wait_verified
+                for index, receipt in enumerate(self.original_evaluation_receipts)
+            )
+        ):
+            raise ValueError(
+                "Exact counts require every original launch and owned wait."
+            )
+        if self.stationary_character is not None:
+            if (
+                not self.native_evaluation_attempts
+                or self.original_request_sha256 is None
+                or self.result_path is None
+                or self.result_sha256 is None
+                or not self.constraint_residuals_bohr_or_radian
+                or not self.tangent_gradient_hartree_bohr
+                or self.constraint_rank != 1
+                or self.tangent_dimension != 5
+                or self.optimizer is None
+            ):
+                raise ValueError(
+                    "Stationarity requires full original constrained evidence."
+                )
+            residuals = real_values(self.constraint_residuals_bohr_or_radian)
+            tangent = real_values(self.tangent_gradient_hartree_bohr)
+            if (
+                residuals.shape != (1,)
+                or tangent.shape != (5,)
+                or np.max(np.abs(residuals)) > 1e-8
+                or np.max(np.abs(tangent)) > 1e-5
+            ):
+                raise ValueError(
+                    "Stationarity must satisfy the exact inner tolerances."
+                )
+        elif any(
+            value is not None
+            for value in (
+                self.constraint_residuals_bohr_or_radian,
+                self.tangent_gradient_hartree_bohr,
+                self.constraint_rank,
+                self.tangent_dimension,
+            )
+        ):
+            raise ValueError(
+                "Unavailable stationarity keeps its scientific values missing."
+            )
+        return self
+
+
 class ScanPointResult(Contract):
     schema_version: Literal["cochem.torq.scan-point/1"] = "cochem.torq.scan-point/1"
     point_id: str
@@ -601,12 +738,16 @@ class ScanPointResult(Contract):
     sampled_peak_memory_mb: StrictFloat | None = Field(ge=0)
     host_allocation: HostAllocationProvenance | None = None
     cpu_core_seconds: None = None
+    initial_molecule: ScanMolecule | None = None
+    relaxation_evidence: dict[str, Any] | None = None
     telemetry_scope: Literal[
         "observed_parent_wall_and_sampled_resources_exact_cpu_unavailable"
     ] = "observed_parent_wall_and_sampled_resources_exact_cpu_unavailable"
-    geometry_status: Literal["fixed_nonstationary_sample"] = (
-        "fixed_nonstationary_sample"
-    )
+    geometry_status: Literal[
+        "fixed_nonstationary_sample",
+        "constrained_stationary_sample",
+        "constrained_relaxation_unavailable",
+    ] = "fixed_nonstationary_sample"
     independent_scientific_qualification: Literal[False] = False
 
     @model_serializer(mode="wrap")
@@ -618,10 +759,46 @@ class ScanPointResult(Contract):
             raise TypeError("Scan points serialize as a JSON object.")
         if self.host_allocation is None:
             result.pop("host_allocation", None)
+        if self.initial_molecule is None:
+            result.pop("initial_molecule", None)
+        if self.relaxation_evidence is None:
+            result.pop("relaxation_evidence", None)
         return result
 
     @model_validator(mode="after")
     def no_replacement_energy(self) -> Self:
+        if self.recipe == RELAXED_SCAN_RECIPE:
+            if self.initial_molecule is None or self.relaxation_evidence is None:
+                raise ValueError(
+                    "Relaxed points require original geometry and "
+                    "inner algorithm evidence."
+                )
+            relaxed = RelaxedPointEvidence.model_validate(self.relaxation_evidence)
+            if relaxed.inner_recipe_sha256 != get_profile(relaxed.inner_recipe)[
+                "recipe_sha256"
+            ] or (self.status == "available") != (
+                relaxed.stationary_character == "constrained_stationary"
+            ):
+                raise ValueError(
+                    "Typed inner evidence must match actual point qualification."
+                )
+            expected_geometry_status = (
+                "constrained_stationary_sample"
+                if self.status == "available"
+                else "constrained_relaxation_unavailable"
+            )
+            if self.geometry_status != expected_geometry_status:
+                raise ValueError(
+                    "Relaxed point stationarity must match its actual qualification."
+                )
+        elif (
+            self.initial_molecule is not None
+            or self.relaxation_evidence is not None
+            or self.geometry_status != "fixed_nonstationary_sample"
+        ):
+            raise ValueError(
+                "Fixed scan records cannot inherit constrained stationarity."
+            )
         if self.host_allocation is not None and (
             self.host_allocation.campaign_id != self.campaign_id
             or self.host_allocation.attempt_id != self.attempt_id
@@ -671,11 +848,24 @@ class ScanComparison(Contract):
     recheck_point_id: str
     purpose: Literal["reverse", "challenge"]
     energy_difference_hartree: StrictFloat
-    density_difference_frobenius: StrictFloat
+    density_difference_frobenius: StrictFloat | None
+    geometry_difference_max_bohr: StrictFloat | None = Field(default=None, ge=0)
     inconsistent: bool
-    scope: Literal["independent_restart_energy_and_AO_density_same_geometry"] = (
-        "independent_restart_energy_and_AO_density_same_geometry"
-    )
+    scope: Literal[
+        "independent_restart_energy_and_AO_density_same_geometry",
+        "independent_constrained_restarts_same_targets_density_unavailable",
+    ] = "independent_restart_energy_and_AO_density_same_geometry"
+
+    @model_serializer(mode="wrap")
+    def preserve_fixed_comparison(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        result = handler(self)
+        if not isinstance(result, dict):
+            raise TypeError("Scan comparisons serialize as a JSON object.")
+        if self.geometry_difference_max_bohr is None:
+            result.pop("geometry_difference_max_bohr", None)
+        return result
 
 
 class ScanNode(Contract):
@@ -703,7 +893,9 @@ class ScanSurface(Contract):
     outcome: Literal["completed_declared_calls", "partial", "failed"]
     unique_planned_samples: StrictInt
     unique_physically_attempted_samples: StrictInt
-    physical_call_count: StrictInt
+    physical_call_count: StrictInt | None
+    point_attempt_count: StrictInt | None = None
+    native_evaluation_attempt_lower_bound: StrictInt | None = None
     status: Literal["complete", "partial", "failed"]
     request_id: str
     identification_ready: Literal[False] = False
@@ -719,6 +911,18 @@ class ScanSurface(Contract):
     independent_scientific_qualification: Literal[False] = False
     stop_reason: str | None = None
 
+    @model_serializer(mode="wrap")
+    def preserve_fixed_surface(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        result = handler(self)
+        if not isinstance(result, dict):
+            raise TypeError("Scan surfaces serialize as a JSON object.")
+        for key in ("point_attempt_count", "native_evaluation_attempt_lower_bound"):
+            if getattr(self, key) is None:
+                result.pop(key, None)
+        return result
+
 
 def geometry_for_sample(
     request: CalculationRequest, scan: ScanPlan, index: int
@@ -729,7 +933,7 @@ def geometry_for_sample(
     if reasons:
         raise ValueError("; ".join(reasons))
     reference = np.asarray(request.molecule.geometry_bohr, dtype=np.float64)
-    if request.recipe == INTERNAL_SCAN_RECIPE:
+    if request.recipe in {INTERNAL_SCAN_RECIPE, RELAXED_SCAN_RECIPE}:
         from .internal_coordinates import embed_fixed_coordinates
 
         construction = embed_fixed_coordinates(
@@ -969,8 +1173,10 @@ def _write_immutable(path: Path, value: Any) -> None:
 
 
 class ApprovedScanExecutor:
-    """One coordinator authority; each actual physical call has a fenced attempt.
+    """One coordinator authority and a fenced task per scheduled point attempt.
 
+    Fixed points make one native call. A constrained point owns its separately
+    bounded original native evaluation inventory under the outer point authority.
     Approval is supplied by the existing TORQ plan service. Unknown exact CPU,
     memory and scratch peaks remain null; observed samples and conservative
     reservation charges are separate records. Native engines run in owned
@@ -1080,6 +1286,7 @@ class ApprovedScanExecutor:
         purpose: ScanPurpose,
         parent_point_ids: tuple[str, ...] = (),
     ) -> ScanPointResult:
+        point_started = time.monotonic()
         from cochem.orchestration.campaign import (
             Allocation,
             BudgetExceededError,
@@ -1102,7 +1309,7 @@ class ApprovedScanExecutor:
         )
         request = self.request
         molecule = geometry_for_sample(request, self.scan, index)
-        if len(self._points) >= self.scan.planned_physical_calls:
+        if len(self._points) >= self.scan.planned_point_attempts:
             raise BudgetExceededError(
                 "The actual physical-call ceiling has been exhausted."
             )
@@ -1199,7 +1406,7 @@ class ApprovedScanExecutor:
             authority=self._receipt["authority"],
             actor=self._actor,
         )
-        backend_request = {
+        backend_request: dict[str, Any] = {
             "molecule": molecule.model_dump(mode="json"),
             "method": {
                 "name": "hf",
@@ -1241,9 +1448,17 @@ class ApprovedScanExecutor:
                 "recipe_sha256": profile["recipe_sha256"],
                 "parent_point_id": continuation_parent.point_id,
             }
+        if request.recipe == RELAXED_SCAN_RECIPE:
+            from .relaxed_scan import point_relaxation_request
+
+            backend_request["relaxed_optimization"] = point_relaxation_request(
+                request, self.scan, index
+            )
         _write(staging / "backend-request.json", backend_request)
         _write(staging / "point-definition.json", payload)
-        started = time.monotonic()
+        started = (
+            point_started if request.recipe == RELAXED_SCAN_RECIPE else time.monotonic()
+        )
         memory_samples: list[float] = []
         scratch_samples: list[int] = []
         failure: str | None = None
@@ -1260,6 +1475,9 @@ class ApprovedScanExecutor:
                     memory_mb=request.resources.memory_mb,
                     scratch_mb=(checked.approval.max_scratch_bytes + 1024**2 - 1)
                     // 1024**2,
+                    child_inventory_scope="constrained-evaluation-v1"
+                    if request.recipe == RELAXED_SCAN_RECIPE
+                    else "single_owned_worker",
                 ),
                 lease_seconds=60.0,
             )
@@ -1356,7 +1574,31 @@ class ApprovedScanExecutor:
                         self._stop(process)
                         break
                     try:
-                        memory = psutil.Process(process.pid).memory_info().rss / 1024**2
+                        owned = psutil.Process(process.pid)
+                        members = (
+                            [owned, *owned.children(recursive=True)]
+                            if request.recipe == RELAXED_SCAN_RECIPE
+                            else [owned]
+                        )
+                        samples = []
+                        for member in members:
+                            try:
+                                samples.append(member.memory_info().rss)
+                            except psutil.NoSuchProcess:
+                                pass
+                            except psutil.AccessDenied:
+                                if request.recipe == RELAXED_SCAN_RECIPE:
+                                    failure = (
+                                        "Owned descendant RSS is inaccessible; "
+                                        "aggregate containment cannot be verified."
+                                    )
+                                    self._stop(process)
+                                    break
+                        if failure is not None:
+                            break
+                        if not samples:
+                            raise psutil.NoSuchProcess(process.pid)
+                        memory = sum(samples) / 1024**2
                         memory_samples.append(memory)
                         if memory > checked.approval.max_memory_mb:
                             failure = (
@@ -1365,8 +1607,16 @@ class ApprovedScanExecutor:
                             )
                             self._stop(process)
                             break
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    except psutil.NoSuchProcess:
                         pass  # No observation is added; exact peak remains unavailable.
+                    except psutil.AccessDenied:
+                        if request.recipe == RELAXED_SCAN_RECIPE:
+                            failure = (
+                                "Owned descendant inventory is inaccessible; "
+                                "aggregate containment cannot be verified."
+                            )
+                            self._stop(process)
+                            break
                     try:
                         usage = enforce_artifact_budget(
                             self.workspace,
@@ -1476,9 +1726,32 @@ class ApprovedScanExecutor:
                 "A physical observation cannot be published "
                 "without an actual worker lease."
             )
-        evidence = _native_scan_evidence(
-            staging / "native", molecule, execution_failure=failure
-        )
+        relaxed_metadata = None
+        original_molecule = molecule
+        native_relative = "native/manifest.json"
+        if request.recipe == RELAXED_SCAN_RECIPE:
+            from .relaxed_scan import collect_relaxed_point
+
+            if host_provenance is None:
+                raise RuntimeError(
+                    "Relaxed collection requires actual bound host provenance."
+                )
+            molecule, evidence, relaxed_metadata, native_relative = (
+                collect_relaxed_point(
+                    staging,
+                    molecule,
+                    backend_request["relaxed_optimization"],
+                    execution_failure=failure,
+                    owner_pid=host_provenance.worker_pid,
+                    owner_create_time=host_provenance.worker_create_time,
+                    deadline_monotonic=started
+                    + self.scan.budget.per_point_wall_seconds,
+                )
+            )
+        else:
+            evidence = _native_scan_evidence(
+                staging / "native", molecule, execution_failure=failure
+            )
         if continuation_parent is not None and evidence.status == "available":
             native_record, _ = _verify_native(staging / "native")
             consumed = native_record.get("checkpoint_consumption")
@@ -1520,7 +1793,8 @@ class ApprovedScanExecutor:
                 "reason": failure,
                 "recipe": request.recipe,
                 "source_identity_sha256": digest(checked.source_identity),
-                "native_manifest_path": f"points/{name}/native/manifest.json"
+                "molecule": molecule.model_dump(mode="json"),
+                "native_manifest_path": f"points/{name}/{native_relative}"
                 if native_digest is not None
                 else None,
                 "native_manifest_sha256": native_digest,
@@ -1537,6 +1811,17 @@ class ApprovedScanExecutor:
                 "sampled_peak_memory_mb": max(memory_samples)
                 if memory_samples
                 else None,
+                **(
+                    {
+                        "initial_molecule": original_molecule.model_dump(mode="json"),
+                        "relaxation_evidence": relaxed_metadata,
+                        "geometry_status": "constrained_stationary_sample"
+                        if failure is None and electronic is not None
+                        else "constrained_relaxation_unavailable",
+                    }
+                    if request.recipe == RELAXED_SCAN_RECIPE
+                    else {}
+                ),
                 "host_allocation": host_provenance.model_dump(mode="json")
                 if host_provenance is not None
                 else None,
@@ -1690,12 +1975,30 @@ class ApprovedScanExecutor:
                         energy_difference = (
                             point.energy_hartree - representative.energy_hartree
                         )
-                        density_difference = float(
-                            np.linalg.norm(
-                                np.asarray(point.density.matrix)
-                                - np.asarray(representative.density.matrix)
+                        geometry_difference = None
+                        same_geometry = point.molecule == representative.molecule
+                        if request.recipe == RELAXED_SCAN_RECIPE:
+                            geometry_difference = float(
+                                np.max(
+                                    np.abs(
+                                        np.asarray(point.molecule.geometry_bohr)
+                                        - np.asarray(
+                                            representative.molecule.geometry_bohr
+                                        )
+                                    )
+                                )
                             )
+                        density_difference = (
+                            float(
+                                np.linalg.norm(
+                                    np.asarray(point.density.matrix)
+                                    - np.asarray(representative.density.matrix)
+                                )
+                            )
+                            if same_geometry
+                            else None
                         )
+
                         comparisons.append(
                             ScanComparison(
                                 sample_index=index,
@@ -1704,21 +2007,50 @@ class ApprovedScanExecutor:
                                 purpose=point.purpose,
                                 energy_difference_hartree=energy_difference,
                                 density_difference_frobenius=density_difference,
+                                geometry_difference_max_bohr=geometry_difference,
+                                scope="independent_restart_energy_and_AO_density_same_geometry"
+                                if same_geometry
+                                else (
+                                    "independent_constrained_restarts_same_targets_"
+                                    "density_unavailable"
+                                ),
                                 inconsistent=abs(energy_difference)
                                 > self.scan.energy_recheck_tolerance_hartree
-                                or density_difference
-                                > self.scan.density_recheck_tolerance
+                                or (
+                                    density_difference is not None
+                                    and density_difference
+                                    > self.scan.density_recheck_tolerance
+                                )
+                                or (
+                                    geometry_difference is not None
+                                    and self.scan.relaxation is not None
+                                    and geometry_difference
+                                    > (
+                                        self.scan.relaxation.geometry_recheck_tolerance_bohr
+                                    )
+                                )
                                 or point.density.electron_count
                                 != representative.density.electron_count,
                             )
                         )
         complete = (
-            len(self._points) == self.scan.planned_physical_calls
+            len(self._points) == self.scan.planned_point_attempts
             and all(point.status == "available" for point in self._points)
             and all(node.status == "available" for node in nodes)
             and not any(item.inconsistent for item in comparisons)
         )
         any_available = any(point.status == "available" for point in self._points)
+        native_counts = [
+            point.relaxation_evidence["native_evaluation_attempts"]
+            if point.relaxation_evidence is not None
+            else None
+            for point in self._points
+        ]
+        exact_native_count = (
+            sum(count for count in native_counts if isinstance(count, int))
+            if all(type(count) is int for count in native_counts)
+            else None
+        )
         surface = ScanSurface(
             scan=self.scan,
             scan_sha256=approved.plan["scan_sha256"],
@@ -1739,7 +2071,19 @@ class ApprovedScanExecutor:
             unique_physically_attempted_samples=len(
                 {point.sample_index for point in self._points}
             ),
-            physical_call_count=len(self._points),
+            physical_call_count=exact_native_count
+            if request.recipe == RELAXED_SCAN_RECIPE
+            else len(self._points),
+            point_attempt_count=len(self._points)
+            if request.recipe == RELAXED_SCAN_RECIPE
+            else None,
+            native_evaluation_attempt_lower_bound=sum(
+                point.relaxation_evidence["native_evaluation_attempt_lower_bound"]
+                for point in self._points
+                if point.relaxation_evidence is not None
+            )
+            if request.recipe == RELAXED_SCAN_RECIPE
+            else None,
             status="complete" if complete else "partial" if any_available else "failed",
             request_id=str(request.request_id),
             stop_reason=self._stop_reason,
@@ -1875,6 +2219,10 @@ def _native_worker(request_path: Path, directory: Path, permit_path: Path) -> in
     probe = PySCFBackend.probe()
     if not probe.get("available") or probe.get("version") != "2.14.0":
         raise RuntimeError("The actual pinned PySCF 2.14.0 engine is required.")
+    if "relaxed_optimization" in request:
+        from .relaxed_scan import execute_relaxed_point_worker
+
+        return execute_relaxed_point_worker(request, directory.parent)
     initial_guess = request.get("initial_guess")
     if initial_guess is None:
         result = PySCFBackend().evaluate(request, directory)
