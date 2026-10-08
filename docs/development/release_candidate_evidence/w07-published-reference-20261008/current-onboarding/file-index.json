@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "host-allocation-junit.xml",
+      "bytes": 6902,
+      "sha256": "8648e9ff9723705554d506267e11ba34572407ceb6cb7bb5a8d3cdebeb61d16c"
+    },
+    {
+      "path": "software-interface-junit.xml",
+      "bytes": 9109,
+      "sha256": "a4c6305ab2f8adaba962d6311be299918ec10a5763f759a56a6188782918e2df"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 9927,
+      "sha256": "2812620ca173c147285383c369c1a81c280786d3e6a5625d1744dd2e584d204a"
+    }
+  ]
+}

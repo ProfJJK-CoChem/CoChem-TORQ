@@ -1,0 +1,57 @@
+{
+  "downloads": {
+    "core310": {
+      "actual_original_stderr_bytes": 0,
+      "actual_original_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_original_stdout_bytes": 1259236,
+      "actual_original_stdout_sha256": "eb8ef723ee618ba6173d9d9ca707cd17dabb7b49f4bbcd7ab5f1e3ba31847cde",
+      "actual_original_tool_exit_code": 0,
+      "actual_tool_result_chunk_id": "a123ea",
+      "actual_tool_wall_seconds": 0.665384314,
+      "artifact_id": 11583808301,
+      "artifact_name": "wheel-python-3.10",
+      "command_json_sha256": "7667cd0b0a3a4c06b331e372e71182b7bbda069379268789cb3f02236d64fb0b",
+      "execution_evidence_origin": "Actual tools.exec_command completion, not digest-derived exit status",
+      "original_download_receipt_sha256": "e3b7e2d6885829f15f459675005543e0d529fdfb10d9f601c9df526ca1820b6d",
+      "stdout_matches_verified_archive_bytes": true,
+      "transfer_scope": "Fresh short-lived managed direct command; no imposed process-side size/time cap claimed. Subsequent safe archive inspection is bounded."
+    },
+    "core312": {
+      "actual_original_stderr_bytes": 0,
+      "actual_original_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_original_stdout_bytes": 1259296,
+      "actual_original_stdout_sha256": "8d906378f7b88879caced2b4a875ab9e34a27b3e710f7d39a452e5fe744a1791",
+      "actual_original_tool_exit_code": 0,
+      "actual_tool_result_chunk_id": "c80c5e",
+      "actual_tool_wall_seconds": 0.683606966,
+      "artifact_id": 11584502291,
+      "artifact_name": "wheel-python-3.12",
+      "command_json_sha256": "ceae89702c633b6aa0cd74327c59401043c829553fd6d57f52bd484826fded32",
+      "execution_evidence_origin": "Actual tools.exec_command completion, not digest-derived exit status",
+      "original_download_receipt_sha256": "dff7ac1559e6ad808a65198002ce3d321c5e4f6e7e115ff374aed09e8f3aa0df",
+      "stdout_matches_verified_archive_bytes": true,
+      "transfer_scope": "Fresh short-lived managed direct command; no imposed process-side size/time cap claimed. Subsequent safe archive inspection is bounded."
+    },
+    "full": {
+      "actual_original_stderr_bytes": 0,
+      "actual_original_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_original_stdout_bytes": 3148772,
+      "actual_original_stdout_sha256": "a38fc883496a5e9c775cd0318e6f0567463769c91c961f2e04e01482930f6446",
+      "actual_original_tool_exit_code": 0,
+      "actual_tool_result_chunk_id": "5daa77",
+      "actual_tool_wall_seconds": 0.837325241,
+      "artifact_id": 11584623695,
+      "artifact_name": "torq-complete-regression-37856692326-1",
+      "command_json_sha256": "c636e698593e84888500595b367bf371e2141d7eab6cf448e9c491ec7186353e",
+      "execution_evidence_origin": "Actual tools.exec_command completion, not digest-derived exit status",
+      "original_download_receipt_sha256": "6d0a875cb18bf74b7433b860ef497423c4d2d39b9253a015d2c0f5737e0a3738",
+      "stdout_matches_verified_archive_bytes": true,
+      "transfer_scope": "Fresh short-lived managed direct command; no imposed process-side size/time cap claimed. Subsequent safe archive inspection is bounded."
+    }
+  },
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "original_execution_exits_come_from_actual_managed_tool_completions": true,
+  "run_id": 37856692326,
+  "schema_version": "cochem.actual-direct-download-command-provenance/1",
+  "signed_redirect_urls_auth_headers_and_private_command_paths_excluded": true
+}

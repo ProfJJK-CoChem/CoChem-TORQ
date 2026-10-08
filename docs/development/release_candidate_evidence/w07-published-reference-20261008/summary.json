@@ -1,0 +1,46 @@
+{
+  "schema_version": "cochem.current-published-reference-evidence/1",
+  "tested_source_commit": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "scientific_application_sha256": "680f1415ee5e10867709c8d6c67f26f169c2c098d16b81ef0a6ef2331b65e1be",
+  "components": {
+    "hosted-verified": {
+      "original_index_sha256": "3c548f6ce6b6c63dd94aacc6c3ba884e97ab0a7d20fac4a9f23caa28ce867140",
+      "indexed_files": 12,
+      "original_index_preserved": true
+    },
+    "hosted-download-followup": {
+      "original_index_sha256": "97a901267d15b86a7e66f5e22003b18f273a593349c7f92c3d5c627cfa95720b",
+      "indexed_files": 4,
+      "original_index_preserved": true
+    },
+    "hosted-initial-download-history": {
+      "original_index_sha256": "ef19c469cd097653af91e058827eb11a1560acf806e5eb424a3b64bd6edf190a",
+      "indexed_files": 5,
+      "original_index_preserved": true
+    },
+    "w07-native": {
+      "original_index_sha256": "4fa2858d55f4f0cbc3bd482513b3bebcd1b741e166cb40f921610051e480c179",
+      "indexed_files": 4,
+      "original_index_preserved": true
+    },
+    "w07-failed-history": {
+      "original_index_sha256": "9704ab666402b15b808c50eca1a56e34fb23348f9e883f32ea788095aaa71813",
+      "indexed_files": 4,
+      "original_index_preserved": true
+    },
+    "current-static": {
+      "original_index_sha256": "5fa688905012b387c908e7032a58a03cbf23130c038d18af9662465960f0ba7d",
+      "indexed_files": 4,
+      "original_index_preserved": true
+    },
+    "current-onboarding": {
+      "original_index_sha256": "54130bf6cbe23be5adfd4b63e3d0956200121920c4ae00c6a4df84e67f58c061",
+      "indexed_files": 3,
+      "original_index_preserved": true
+    }
+  },
+  "full_srs_qualification": false,
+  "student_deployment": "on_hold",
+  "scope": "Byte-preserving composition of genuine source-bound independently verified hosted full/core originals, bounded W07 native checks, original failures, fresh managed successful download follow-up, current static/software/SDK observations. Earlier download-cause and activation inference is superseded by the successful follow-up. Counts from overlapping scopes are never summed."
+}

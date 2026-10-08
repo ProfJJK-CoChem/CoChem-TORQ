@@ -1,0 +1,25 @@
+{
+  "schema_version": "cochem.public-evidence-file-index/1",
+  "files": [
+    {
+      "path": "summary.json",
+      "bytes": 1659,
+      "sha256": "269db87d2795f780aa278b4f30178d0900c7e740e55a006643f99cdc34942c84"
+    },
+    {
+      "path": "policy-observation.json",
+      "bytes": 924,
+      "sha256": "29f0fba7e35362bb2d244c44a7ba7f23daa5e4e52d322303fb2105a00914228b"
+    },
+    {
+      "path": "test-policy-inventory.json",
+      "bytes": 675,
+      "sha256": "0a6dd27a4b5feffe8db1ff62712ca09026e362bd1fef42773a255d44bcdaf02d"
+    },
+    {
+      "path": "audit-coverage.json",
+      "bytes": 16243,
+      "sha256": "01c314a1744d16c759fa6ae66878c417ebaae2e5a085b9dfef6819cb69ccf18a"
+    }
+  ]
+}

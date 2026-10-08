@@ -1,0 +1,52 @@
+{
+  "benchmark_acceptance": false,
+  "geometry_bohr_as_printed": [
+    [
+      "N",
+      "0.000538830000",
+      "0.000000000000",
+      "0.129095460000"
+    ],
+    [
+      "H",
+      "-0.890229660000",
+      "1.529856130000",
+      "-0.596877300000"
+    ],
+    [
+      "H",
+      "1.772972570000",
+      "0.000000000000",
+      "-0.599942880000"
+    ],
+    [
+      "H",
+      "-0.890229660000",
+      "-1.529856130000",
+      "-0.596877300000"
+    ]
+  ],
+  "masses_amu_as_printed": [
+    "14.003074004430",
+    "1.007825032230",
+    "1.007825032230",
+    "1.007825032230"
+  ],
+  "original_private_verified_source_receipt_sha256": "3f99736ad1f9f8eec9036d6ecf42627e6113197a1ff815a98ac87bc44ea7f84f",
+  "source_engine": "Psi4",
+  "source_engine_version": null,
+  "source_molecule_id": 2,
+  "source_notebook_sha256": "6358808518e39b6cae4b8375518b784838359b2daa76afc3b3e6d34f9f142427",
+  "source_record_id": 1847316,
+  "source_stdout_sha256": "e8e721e3443e7acdc585c9a88595b18dacb2837bfb404ceb0594b57065d8b4e3",
+  "source_uncertainty": null,
+  "source_url": "https://github.com/MolSSI/QCArchiveExamples/blob/60ee49a3dc881cd64d42840a2a5f3bf31f7b049f/cookbook/molecule_records.ipynb",
+  "source_values_hartree_as_printed": {
+    "double_hybrid_total_energy": "-56.5380912967599372",
+    "mp2_correlation_energy": "-0.2870381570429541",
+    "mp2_opposite_spin_energy": "-0.2226985414819575",
+    "mp2_same_spin_energy": "-0.0643396155609966",
+    "orbital_scf_energy": "-56.4605909943583413",
+    "scaled_mp2_correlation": "-0.0775003024015976"
+  }
+}

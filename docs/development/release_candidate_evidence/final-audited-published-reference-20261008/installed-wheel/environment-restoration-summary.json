@@ -1,0 +1,28 @@
+{
+  "schema_version": "cochem.core-validation-environment-restoration/1",
+  "recorded_at": "2026-10-08T21:03:38.683283+00:00",
+  "requirements_file": "ci_tools/requirements-core-py312.txt",
+  "requirements_file_sha256": "773c0c03895406e7ae6116b1d2565032eaeb4032c0a0f8fe7745ab20c9a85159",
+  "dependency_installation": "New venv, hash-required declared core dependencies, uv symlink mode into existing package cache. Cached dependency files are shared; no independent cache recreation claimed. Actual TORQ product files will be installed by copy mode.",
+  "additional_validation_packages": {
+    "pytest": "9.1.1",
+    "ruff": "0.16.10",
+    "build": "1.6.1",
+    "pip": "25.2"
+  },
+  "tmp_free_bytes_before": 999763968,
+  "tmp_free_bytes_after": 844861440,
+  "minimum_scratch_reserve_bytes": 268435456,
+  "scientific_qualification": false,
+  "passed": true,
+  "original_receipt_sha256": "44d2993a458664346ebd6efdc406b392e5918a2ff29dc105273fbb87937a3e34",
+  "actual_step_exit_codes": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "global_free_space_observations_are_not_attributed_to_environment_size": true,
+  "restoration_scope": "Historical original setup receipt; existing tiny environment reused for the current corrected wheel replay.",
+  "environment_restored_in_current_replay": false
+}

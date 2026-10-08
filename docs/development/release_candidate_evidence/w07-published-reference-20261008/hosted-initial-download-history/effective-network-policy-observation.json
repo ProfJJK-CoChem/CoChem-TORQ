@@ -1,0 +1,12 @@
+{
+  "activation_performed": false,
+  "network_policy_bypass_performed": false,
+  "network_policy_mode": "restricted",
+  "network_policy_state": "unknown",
+  "observations_current": true,
+  "observed_phase": "running",
+  "recorded_at": "2026-10-08 23:30:32 UTC",
+  "redirect_hostname": "productionresultssa5.blob.core.windows.net",
+  "redirect_hostname_effectively_allowed": false,
+  "schema_version": "cochem.actual-effective-network-policy-observation/1"
+}

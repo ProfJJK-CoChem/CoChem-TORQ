@@ -1,0 +1,14 @@
+{
+  "schema_version": "cochem.corrected-wheel-payload-equivalence/1",
+  "previous_wheel_sha256": "c056860386bd475894235d0927d59b8999d496c297140af7b7109f22abe4f089",
+  "corrected_wheel_sha256": "7af72776494348426d681376da04e9f69eb83460b91706e1649f7de4e9817b66",
+  "previous_source_tree_sha256": "09cee06551d7ddcf05c9a734f23731260e10d32fb45c68909ba5b1606bb1eaca",
+  "corrected_source_tree_sha256": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "all_260_prior_python_package_payloads_byte_identical": true,
+  "only_additional_packaged_python_file": "UI/__init__.py",
+  "additional_file_bytes": 66,
+  "additional_file_sha256": "46021ac5580caabc742e1b11bc1080d48ea2db3971e3aa56f705fa689722f30d",
+  "packaged_notebook_byte_identical": true,
+  "packaged_notebook_bytes": 2541,
+  "no_new_scientific_validation_implied": true
+}

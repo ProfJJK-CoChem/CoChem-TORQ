@@ -1,0 +1,55 @@
+{
+  "schema_version": "cochem.public-evidence-file-index/1",
+  "files": [
+    {
+      "path": "core-retry-preflight.json",
+      "bytes": 442,
+      "sha256": "25cc8c2d2cbb78e80e683d24ab7273c53a9179d526630526cb3c82bdd8d43acc"
+    },
+    {
+      "path": "environment-restoration-summary.json",
+      "bytes": 1283,
+      "sha256": "2bf82ed0f9ce7588e568628a4bccfe08fd24ba8238f748bc9c508bf32e967f3c"
+    },
+    {
+      "path": "installed-metadata-summary.json",
+      "bytes": 1526,
+      "sha256": "0e57639a4a321fa8293dddf288ff728b089ac3a82e26d25236e94c8c61c9e154"
+    },
+    {
+      "path": "junit-parameter-redaction.json",
+      "bytes": 410190,
+      "sha256": "4ab77259ddfeba41120ed45f5892b2e1b5b9c20b73fce811d70783b15ea52d33"
+    },
+    {
+      "path": "payload-equivalence.json",
+      "bytes": 843,
+      "sha256": "af5dd1e6bb16710cc290ecaaac8c6d531070e4ccfe3cb0605a252e6406330432"
+    },
+    {
+      "path": "preserved-core-audit-identity-failure.json",
+      "bytes": 2576,
+      "sha256": "de2c54c63e131bd761157cfecae77726bcf77a1a33d68f9b0777a397e6541cbd"
+    },
+    {
+      "path": "python312/junit.xml",
+      "bytes": 204891,
+      "sha256": "8511cf40439c3f2fcf5d842775f8d274ad885ff5886b6c06e6911960e5a89d3b"
+    },
+    {
+      "path": "python312/summary.json",
+      "bytes": 7558,
+      "sha256": "d7da3786dc88af2ac72d01839e0b4bda9bc3902bdd8bec652693555cadbdad0b"
+    },
+    {
+      "path": "srs-audit-correction-observation.json",
+      "bytes": 830,
+      "sha256": "6aff96ba2f2d6e9860a2e7c5bc34346f40c74b04d2d927d338f0bebddcba623a"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 4979,
+      "sha256": "52423fb938ec0d9b04a095ba696dace5908613e0c467b9f9c7ec2dc993ab0c0c"
+    }
+  ]
+}

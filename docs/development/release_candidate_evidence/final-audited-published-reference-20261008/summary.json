@@ -1,0 +1,59 @@
+{
+  "earlier_metadata_only_observation_flags_preserved_unchanged": true,
+  "full_srs_release_qualified": false,
+  "hosted_artifact_bytes_actually_retrieved_and_verified": true,
+  "hosted_core_marker_deselected_count": null,
+  "hosted_core_marker_deselected_count_scope": "Not stored in these original JUnit archives; no local deselection count transferred to hosted evidence.",
+  "hosted_core_python310_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 1078,
+    "skipped": 0,
+    "tests": 1078
+  },
+  "hosted_core_python312_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 1078,
+    "skipped": 0,
+    "tests": 1078
+  },
+  "hosted_full_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 3248,
+    "skipped": 0,
+    "tests": 3248
+  },
+  "hosted_native_original_inventory_bundle_count": 64,
+  "hosted_native_original_inventory_bytes_verified": 7773413,
+  "hosted_native_retention_truncated": true,
+  "hosted_run_id": 37850778613,
+  "local_complete_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 3248,
+    "skipped": 0,
+    "tests": 3248
+  },
+  "local_installed_core_python312_counts": {
+    "error": 0,
+    "executed": 1078,
+    "failure": 0,
+    "passed": 1078,
+    "skipped": 0
+  },
+  "new_tests_or_calculations_run_by_consolidation": false,
+  "original_public_junit_redaction_outcomes_and_durations_preserved": true,
+  "overlapping_test_lanes_must_not_be_summed": true,
+  "raw_native_payloads_logs_or_credential_values_included": false,
+  "recorded_at": "2026-10-08T22:45:42.490718+00:00",
+  "repository_modified": false,
+  "schema_version": "cochem.source4d-local-hosted-historical-evidence/1",
+  "scientific_accuracy_established": false,
+  "scientific_application_sha256": "60f6e63ddb9232db144248b2f0ef900d673add4406aad5a19fba4876e7a47b62",
+  "scope": "Source4d/commitbb6 historical software, genuine bounded calculations/source acquisition and verified canonical Actions artifact evidence. No subsequent source, independent scientific accuracy, full-SRS release or live student deployment qualification is inferred.",
+  "source_tree_sha256": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "student_deployment_performed": false,
+  "tested_commit": "bb6c23ed9b048091838fef0aba1c40fecc04cc20"
+}

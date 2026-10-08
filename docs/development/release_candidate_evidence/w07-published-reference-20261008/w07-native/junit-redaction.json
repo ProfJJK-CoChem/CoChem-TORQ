@@ -1,0 +1,137 @@
+{
+  "actual_case_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 28,
+    "skipped": 0,
+    "tests": 28
+  },
+  "all_outcomes_class_function_and_duration_strings_preserved": true,
+  "case_name_hash_mapping": [
+    {
+      "case_index": 1,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "983646acc058e0e33f25ef2b23b330f02f1dd8ef4eb9330840d32caed10b8b23",
+      "original_parameter_suffix_sha256": "c93199c04e24e1446693e6e4bf1acdde513d4410d340d08f661f13e2baf184b9"
+    },
+    {
+      "case_index": 2,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "f5d6d58e10c2a51eaac2c28bff5137caa3f658bd64488519f604b96507cba4bd",
+      "original_parameter_suffix_sha256": "d606d1934e27d75f2c9a46b2fe5f16564ff2c61b2d4665d259109fd6773d44d7"
+    },
+    {
+      "case_index": 3,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "ea49bc14108caffe6007f82cf23cae96e75c62e666c253df742397a5c8421c21",
+      "original_parameter_suffix_sha256": "967a933a1596edb1b021b583ead88f902c2165667d40ac3a5fe4c89d2a7c1860"
+    },
+    {
+      "case_index": 4,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "e0ef9a05dabccacd72778fb3f65f03361e01b213d01bf404924bf602cf020b0d",
+      "original_parameter_suffix_sha256": "f2837df4aa10aa51d881f8bf02f9a1d862c54b441fb5ea8e55d5d2c270d61e00"
+    },
+    {
+      "case_index": 5,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "ca91d5cd7c886457ced04e3dc4bcab3b6df51993972684fd919168f0b130cfe0",
+      "original_parameter_suffix_sha256": "b16c65c6d06b505dbc93a62f95107f8db3c2770078617576c6f221f46b75902d"
+    },
+    {
+      "case_index": 6,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "9d9515a730853c09b8ab326b4ced1770531f77639ee196f74f5fd08660463e30",
+      "original_parameter_suffix_sha256": "bb987616c93ce8585d323cac73345af49012d58488c323ea6ad8206b7d174a78"
+    },
+    {
+      "case_index": 7,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "38e5a232fa660b59cec33bd5a289bf65d63820252413a978207ffa7d39fdf332",
+      "original_parameter_suffix_sha256": "217b53ec627e64413cf2a4d1f66f23f1a5942c97fdad59aa371a5cd8a58bcde8"
+    },
+    {
+      "case_index": 8,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "e71f729ac3c6b9ab135346d2d4c68203cdbdf34cc22d75b7a0ddd10d00c1ea7e",
+      "original_parameter_suffix_sha256": "b50b83c7ac0f0a476308a7a73d1e2c646d4c476900728d74ca75d17d95d2c0ac"
+    },
+    {
+      "case_index": 9,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "b0c7e5d6d24a06603f2a4cab2268463fe71a45db2a0879e61df61e895d362778",
+      "original_parameter_suffix_sha256": "5ff9b528d8706007a7d5e9183da4a4f4b72364004052ba231e1c84858a8f8c4e"
+    },
+    {
+      "case_index": 10,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "bfd3340c5bf5203bb071a4898f61d0fbf560f12952c725c95ef7413b0d7c0962",
+      "original_parameter_suffix_sha256": "84b250fe64cf79ddfb371ed22e2a3510ea24ae64d5cf67f6de52fe4777abaad0"
+    },
+    {
+      "case_index": 11,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_unapproved_scope_rejects_before_native_dispatch",
+      "original_full_name_sha256": "a5c00d56ea3e7843fa9f92032180ac18241e395be00eb6b3a103873c77485247",
+      "original_parameter_suffix_sha256": "227e71096b13e2fff2b323e374b8508c3d7259ec70aa0c979274f11b9d2e5e07"
+    },
+    {
+      "case_index": 15,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_relaxed_point_requires_an_actual_approved_index",
+      "original_full_name_sha256": "e592313921dec4d0e0d7069ecac2c4c22951ea19bce2dbf84499e0a1d53d3ed7",
+      "original_parameter_suffix_sha256": "ce905dc776fd5da5371c404595dc84c6eb4bd0128d81c329ff37aa27a636219f"
+    },
+    {
+      "case_index": 16,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_relaxed_point_requires_an_actual_approved_index",
+      "original_full_name_sha256": "c1083d8b27c51398556c56295b3f47d407f6b867c34f6d5b95280ead71670413",
+      "original_parameter_suffix_sha256": "970f58e53249bc950ab8ad3ad6ddb2007dcda29b5213fc17b602fcbb2366e0bd"
+    },
+    {
+      "case_index": 17,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_relaxed_point_requires_an_actual_approved_index",
+      "original_full_name_sha256": "62abe7ad99453205481654618c1cf9692619651d2e5290c9162c6126cbf99b0e",
+      "original_parameter_suffix_sha256": "892491211326600b77f0464218fe38f041857e6b8cb5253558f03fe6f81ce40b"
+    },
+    {
+      "case_index": 18,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_relaxed_point_requires_an_actual_approved_index",
+      "original_full_name_sha256": "6ff249d5f3086c3ea521c7521b4e90e27fe127579d0a3a49b4e983920b204e15",
+      "original_parameter_suffix_sha256": "42f78f54f79468dd85249f38f17ed2a683f9298c62619bbd590206720fc04965"
+    },
+    {
+      "case_index": 20,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_physical_angle_targets_and_singular_constraints_reject_at_preflight",
+      "original_full_name_sha256": "abf09846be15bd2d8efe6df8c50980e79895f5652ece4e247ae3af6a2b358cb9",
+      "original_parameter_suffix_sha256": "ce905dc776fd5da5371c404595dc84c6eb4bd0128d81c329ff37aa27a636219f"
+    },
+    {
+      "case_index": 21,
+      "classname": "tests.test_relaxed_internal_scans",
+      "function": "test_physical_angle_targets_and_singular_constraints_reject_at_preflight",
+      "original_full_name_sha256": "0c81e77a81948cfa6a6fd33211ff9f06f171229dee4707619a9405adbc4fffea",
+      "original_parameter_suffix_sha256": "804ebf5e907c4f4379baa3765ccc684e791ff792a5ca262b872d07a1f548cf3e"
+    }
+  ],
+  "diagnostic_output_properties_hostnames_omitted": true,
+  "new_tests_run": false,
+  "original_junit_sha256": "8a3fd5d63cdc8ec0e062938fa22727509f78403f809c4748035a7afe5da46dac",
+  "parameter_suffixes_redacted": 17,
+  "public_junit_sha256": "5b13d070ee5afd74a697eb3582e6c5f15010aa6a3062cb6b3a93c4a0f94f35b0",
+  "schema_version": "cochem.actual-junit-parameter-redaction/1"
+}

@@ -1,0 +1,32 @@
+{
+  "actual_case_counts": {
+    "errors": 4,
+    "failures": 0,
+    "passed": 24,
+    "skipped": 0,
+    "tests": 28
+  },
+  "actual_complete_native_bundle_count": 14,
+  "actual_complete_native_bytes": 1243181,
+  "actual_original_completion_recorded_at": "2026-10-08T22:46:32.115094+00:00",
+  "actual_original_pytest_exit_code": 1,
+  "application_code_sha256": "4e016cce131d89d74486130921be149bf274c1ee67de3dd8574b49c8c02a383a",
+  "executed_test_file": "tests/test_relaxed_internal_scans.py",
+  "full_srs_qualification": false,
+  "name_or_marker_exclusions": false,
+  "new_tests_or_calculations_run_by_curation": false,
+  "original_after_receipt_sha256": "225e03cc138a61140f310c2f9bb883f8cf17a9f035c7e9d97a10e46f8459932c",
+  "original_before_receipt_sha256": "e1b937c1bbfb7e1557609bcb8959ea4912440c74f92517097b7307044f7bcd26",
+  "original_completion_receipt_sha256": "930ea3c18814cf9e37d9ad2254063858d8aa9b74661e6ffe80b58fb13dc6648f",
+  "original_junit_sha256": "54b4f83d8e020bd280eff69d713b2fdb25919b38f52f11acddccc238ba4d9114",
+  "passed": false,
+  "public_junit_sha256": "71c2d97c054151f60f8c37989de90f32ed44463c7f22bef6382f973cc2ad0753",
+  "schema_version": "cochem.actual-w07-selected-run/1",
+  "scientific_qualification": false,
+  "scope": "Bounded local W07 implementation checks with actual native calculations. Counts are from original JUnit; failures are retained. This is not an all-repository run or a general scan/domain qualification.",
+  "source_tree_sha256_after": "41050855b8297ee1bf041758d4d6d3ddaec98c6a7c5da699ed623357f85f7027",
+  "source_tree_sha256_before": "41050855b8297ee1bf041758d4d6d3ddaec98c6a7c5da699ed623357f85f7027",
+  "source_unchanged_and_clean": true,
+  "student_test_deployment": "on_hold_and_not_run",
+  "tested_source_commit": "a65f3edcf5f5292d1074c2083829cd2546213e91"
+}

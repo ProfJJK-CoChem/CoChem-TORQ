@@ -1,0 +1,787 @@
+{
+  "all_reported_jobs_successful": true,
+  "artifact_bytes_downloaded_or_verified": false,
+  "artifacts": [
+    {
+      "created_at": "2026-10-08T22:11:42Z",
+      "digest": "sha256:9b01728ad6e42b0c8db62a23dddca13392f73ad4ca4db3b6ea547362f5eb01f5",
+      "expired": false,
+      "id": 11582546315,
+      "name": "torq-real-engine-37850778613-1",
+      "size_in_bytes": 3074146,
+      "updated_at": "2026-10-08T22:11:42Z"
+    },
+    {
+      "created_at": "2026-10-08T22:05:01Z",
+      "digest": "sha256:6b9c1b0b8821bdbdc433f4387075f83708ec24a013cde6c6df673f4c664b2e6d",
+      "expired": false,
+      "id": 11582465118,
+      "name": "torq-student-ecosystem-37850778613-1",
+      "size_in_bytes": 14903,
+      "updated_at": "2026-10-08T22:05:01Z"
+    },
+    {
+      "created_at": "2026-10-08T22:17:10Z",
+      "digest": "sha256:aa865b5343c50eb751bfefa46fdb35b7072c65accb897f5474e2fc3d24af7473",
+      "expired": false,
+      "id": 11582322850,
+      "name": "torq-complete-regression-37850778613-1",
+      "size_in_bytes": 3100234,
+      "updated_at": "2026-10-08T22:17:10Z"
+    },
+    {
+      "created_at": "2026-10-08T22:02:32Z",
+      "digest": "sha256:f3def6e34b69f3860ed31cd0f5196fac1608080c5337a75a07e2c63e52c0869d",
+      "expired": false,
+      "id": 11582100254,
+      "name": "torq-calculation-image-37850778613-1",
+      "size_in_bytes": 152626,
+      "updated_at": "2026-10-08T22:02:32Z"
+    },
+    {
+      "created_at": "2026-10-08T22:05:00Z",
+      "digest": "sha256:a4571337c4f41e03f5c50940efa066f7e3428dc07482628506b5a48544a76fe1",
+      "expired": false,
+      "id": 11581798961,
+      "name": "wheel-python-3.12",
+      "size_in_bytes": 1247987,
+      "updated_at": "2026-10-08T22:05:00Z"
+    },
+    {
+      "created_at": "2026-10-08T22:04:35Z",
+      "digest": "sha256:79c48bbe8b440980a0fb415576a8d3e4cf80695a50929225b1443529066ef44f",
+      "expired": false,
+      "id": 11581753300,
+      "name": "wheel-python-3.10",
+      "size_in_bytes": 1247917,
+      "updated_at": "2026-10-08T22:04:35Z"
+    },
+    {
+      "created_at": "2026-10-08T22:05:47Z",
+      "digest": "sha256:03b2c2745f648e7ff50a66ffd7d9dd3024387950947067e7a8bc0cb5f361a597",
+      "expired": false,
+      "id": 11581444969,
+      "name": "torq-real-ecosystem-37850778613-1",
+      "size_in_bytes": 893745,
+      "updated_at": "2026-10-08T22:05:47Z"
+    },
+    {
+      "created_at": "2026-10-08T22:03:45Z",
+      "digest": "sha256:a9967d44f685f4ed2588a61564b78002215a98cb27e892284b4d36d01c908895",
+      "expired": false,
+      "id": 11580839721,
+      "name": "torq-optional-scientific-37850778613-1",
+      "size_in_bytes": 109314,
+      "updated_at": "2026-10-08T22:03:45Z"
+    }
+  ],
+  "full_srs_release_ready": false,
+  "independent_scientific_qualification": false,
+  "jobs": [
+    {
+      "completed_at": "2026-10-08T22:02:34Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562851682",
+      "id": 113562851682,
+      "name": "student-calculation-image",
+      "started_at": "2026-10-08T22:01:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Build the actual isolated calculation image",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Normalize and hash the actual student water request",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require genuine image energy and derivative qualification",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Execute the genuine water pipeline offline",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify the sealed typed artifact in the actual image",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Reap only containers owned by this image qualification attempt",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Grant the authenticated runner group read access to owned image results",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain real calculation image artifacts and evidence",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:04:38Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562851900",
+      "id": 113562851900,
+      "name": "core-integrity (3.10)",
+      "started_at": "2026-10-08T22:01:32Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Build distributable",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install wheel with declared core validation dependencies",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Import and invoke installed package outside checkout",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record full SRS coverage and unresolved qualifications",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require application implementation lint and formatting",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run core scientific-data and persistence regression tests",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain wheel for inspection",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:11:45Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562851914",
+      "id": 113562851914,
+      "name": "real-student-engine",
+      "started_at": "2026-10-08T22:01:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install the genuine named engine and student contracts",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Compile external Pickett executables for mandatory validation",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require actual energies, derivatives and optimization",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record native derivative qualification evidence",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare bounded public native evidence without fixture credentials",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain genuine engine evidence",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 17,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 18,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 19,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:03:47Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562851981",
+      "id": 113562851981,
+      "name": "cpu-numerical-integrity",
+      "started_at": "2026-10-08T22:01:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install CPU compute dependencies",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Validate mathematical and surrogate integrity paths",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require genuine molecular, dispersion and telemetry checks",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain optional scientific model evidence",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:05:03Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562852055",
+      "id": 113562852055,
+      "name": "core-integrity (3.12)",
+      "started_at": "2026-10-08T22:01:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Build distributable",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install wheel with declared core validation dependencies",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Import and invoke installed package outside checkout",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record full SRS coverage and unresolved qualifications",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require application implementation lint and formatting",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run core scientific-data and persistence regression tests",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain wheel for inspection",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:05:52Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562852061",
+      "id": 113562852061,
+      "name": "real-ecosystem-consumers",
+      "started_at": "2026-10-08T22:01:31Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Mint narrowly scoped sibling source token",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install the genuine named engine and student contracts",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install actual pinned sibling environments for reverse scientific handoffs",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install isolated reviewed TOPOS consumer contract",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require every genuine sibling producer and reverse scientific consumer",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record native derivative qualification evidence",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain genuine engine evidence",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:05:05Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562852067",
+      "id": 113562852067,
+      "name": "student-ecosystem-interface",
+      "started_at": "2026-10-08T22:01:32Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Mint narrowly scoped sibling source token",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install the locked interface independently of calculation engines",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Use the actual pinned BASE installer for isolated sibling environments",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require actual sibling producers and notebook/widget workflow checks",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Check actual authenticated Jupyter lifecycle",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Stop only an interface process owned by this lifecycle",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain installation and lifecycle observations",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-08T22:17:16Z",
+      "conclusion": "success",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613/job/113562852100",
+      "id": 113562852100,
+      "name": "complete-repository-regression",
+      "started_at": "2026-10-08T22:01:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Mint narrowly scoped sibling source token",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install the reproduced complete validation environment",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install the actual pinned sibling environments",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install isolated reviewed TOPOS consumer contract",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Compile external Pickett executables for mandatory validation",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Require complete source-bound regression with zero skips",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Retain bounded reports and verified scientific native inventories",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "live_codespaces_qualification": false,
+  "raw_receipt_sha256": {
+    "artifacts.raw.json": "0861e5ffd9c8ea762850fff8aa438b3b30c2dda81ae0d843b30ab4b48cdf229b",
+    "jobs.raw.json": "9e2af9aad5a44216d7103c2bcaff75885a183691958b8d6da4eca0f4a783beb3",
+    "run.raw.json": "161bb172e0de79b432bce3fa0af0bc174cf6fdf10854191f7b06163d681b3bcc"
+  },
+  "recorded_at": "2026-10-08T22:19:48.437835+00:00",
+  "run": {
+    "conclusion": "success",
+    "created_at": "2026-10-08T22:01:28Z",
+    "event": "push",
+    "head_branch": "main",
+    "head_sha": "bb6c23ed9b048091838fef0aba1c40fecc04cc20",
+    "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613",
+    "id": 37850778613,
+    "name": "Scientific data integrity",
+    "run_attempt": 1,
+    "status": "completed",
+    "updated_at": "2026-10-08T22:17:16Z"
+  },
+  "run_success_observed": true,
+  "scope": "Actual API job/step/upload metadata only; not artifact bytes or scientific accuracy.",
+  "test_counts": null
+}

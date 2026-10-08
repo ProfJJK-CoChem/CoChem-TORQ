@@ -1,0 +1,137 @@
+{
+  "actual_job_count": 8,
+  "all_actual_metadata_command_exit_codes": {
+    "artifact-list": 0,
+    "core310": 0,
+    "core312": 0,
+    "full": 0,
+    "jobs": 0,
+    "run": 0
+  },
+  "conclusion": "success",
+  "fresh_metadata_sha256": {
+    "artifact-list": "3d7c419625c5a8011a98dc20e9d31b5278184431edc9def65f8fc039de802b54",
+    "core310": "5cec833388686ca17a15bd2fb34ef6805169d7eb8e89b4c07c5ecbd883906499",
+    "core312": "b8826f62f22722980e3381b461dc69a139ba56423ddd2632545d71bb4cf80199",
+    "full": "36e80339ec307270b51354eab5f23434fa70207a76bd4e4cede5afb26e6142fa",
+    "jobs": "45c4e6a3f50f76d25f5b075039a6201385027e24f7d82f4313ce84d1e2447393",
+    "run": "40c6a29524b7d35480cc3252beed686ed1d870c197383bc70dff03a7b129c83d"
+  },
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37856692326",
+  "jobs": [
+    {
+      "completed_at": "2026-10-08T23:00:12Z",
+      "conclusion": "success",
+      "job_id": 113582467402,
+      "name": "cpu-numerical-integrity",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T23:15:32Z",
+      "conclusion": "success",
+      "job_id": 113582467470,
+      "name": "complete-repository-regression",
+      "optional_skipped_step_count": 1,
+      "required_validation_steps": [
+        {
+          "conclusion": "success",
+          "name": "Require complete source-bound regression with zero skips",
+          "status": "completed"
+        }
+      ],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:58:58Z",
+      "conclusion": "success",
+      "job_id": 113582467522,
+      "name": "student-calculation-image",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T23:01:03Z",
+      "conclusion": "success",
+      "job_id": 113582467573,
+      "name": "core-integrity (3.12)",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [
+        {
+          "conclusion": "success",
+          "name": "Import and invoke installed package outside checkout",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run core scientific-data and persistence regression tests",
+          "status": "completed"
+        }
+      ],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T23:01:00Z",
+      "conclusion": "success",
+      "job_id": 113582467586,
+      "name": "student-ecosystem-interface",
+      "optional_skipped_step_count": 1,
+      "required_validation_steps": [],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T23:02:10Z",
+      "conclusion": "success",
+      "job_id": 113582467589,
+      "name": "real-ecosystem-consumers",
+      "optional_skipped_step_count": 1,
+      "required_validation_steps": [],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T23:09:36Z",
+      "conclusion": "success",
+      "job_id": 113582467648,
+      "name": "real-student-engine",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [],
+      "run_id": 37856692326,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T23:00:14Z",
+      "conclusion": "success",
+      "job_id": 113582467649,
+      "name": "core-integrity (3.10)",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [
+        {
+          "conclusion": "success",
+          "name": "Import and invoke installed package outside checkout",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run core scientific-data and persistence regression tests",
+          "status": "completed"
+        }
+      ],
+      "run_id": 37856692326,
+      "status": "completed"
+    }
+  ],
+  "repository": "ProfJJK-CoChem/CoChem-TORQ",
+  "run_attempt": 1,
+  "run_id": 37856692326,
+  "scope": "Authenticated GitHub run/job/artifact metadata observed. Successful job steps are not a substitute for unavailable original JUnit or wheel bytes.",
+  "status": "completed"
+}

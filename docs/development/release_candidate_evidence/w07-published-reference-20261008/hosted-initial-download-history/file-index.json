@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "bytes": 4647,
+      "path": "archive-download-failures.json",
+      "sha256": "48bf2b6dbf5d0d8e2c7441ee7c5560413755759595f1a23e34ac99658bab1269"
+    },
+    {
+      "bytes": 458,
+      "path": "effective-network-policy-observation.json",
+      "sha256": "27f69fd4c8fcc3d57056f567bc8e9899bd57cd6110ddaa6883a1b20a74348bf8"
+    },
+    {
+      "bytes": 4398,
+      "path": "hosted-run-binding.json",
+      "sha256": "575ac7f3c460c50086766c570e1ecee472dfbe7a494e8f4dbec0e54ed526885e"
+    },
+    {
+      "bytes": 915,
+      "path": "source-scope.json",
+      "sha256": "462e06df25916cf2305943d18f4aa01343cc3f8b2241ec9fb03b73cdc21c6382"
+    },
+    {
+      "bytes": 2300,
+      "path": "summary.json",
+      "sha256": "84ac8a1e421987d2962b7be6daf5a2dfcb28d309b3d4ae1398b9984352e1c710"
+    }
+  ],
+  "schema_version": "cochem.public-evidence-file-index/1"
+}

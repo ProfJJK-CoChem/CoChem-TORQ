@@ -1,0 +1,133 @@
+{
+  "all_actual_authenticated_metadata_command_exit_codes": {
+    "core310": 0,
+    "core312": 0,
+    "full": 0,
+    "jobs": 0,
+    "run": 0
+  },
+  "conclusion": "success",
+  "fresh_metadata_sha256": {
+    "core310": "9aa42d04733dc2e726adce8dcb48f148063c8a59dfc2e632ecc8625c56b03824",
+    "core312": "7a3b3bf502a2eca1bddf8a7dfeea0c8144367dfe6e8fb27695f87325f573b694",
+    "full": "a4ee0c7015f39a462d1a79784f268d3d21b073a41154bbd45a8bf10841ce83b3",
+    "jobs": "9e2af9aad5a44216d7103c2bcaff75885a183691958b8d6da4eca0f4a783beb3",
+    "run": "161bb172e0de79b432bce3fa0af0bc174cf6fdf10854191f7b06163d681b3bcc"
+  },
+  "head_sha": "bb6c23ed9b048091838fef0aba1c40fecc04cc20",
+  "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37850778613",
+  "jobs": [
+    {
+      "completed_at": "2026-10-08T22:02:34Z",
+      "conclusion": "success",
+      "job_id": 113562851682,
+      "name": "student-calculation-image",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:04:38Z",
+      "conclusion": "success",
+      "job_id": 113562851900,
+      "name": "core-integrity (3.10)",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [
+        {
+          "conclusion": "success",
+          "name": "Import and invoke installed package outside checkout",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run core scientific-data and persistence regression tests",
+          "status": "completed"
+        }
+      ],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:11:45Z",
+      "conclusion": "success",
+      "job_id": 113562851914,
+      "name": "real-student-engine",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:03:47Z",
+      "conclusion": "success",
+      "job_id": 113562851981,
+      "name": "cpu-numerical-integrity",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:05:03Z",
+      "conclusion": "success",
+      "job_id": 113562852055,
+      "name": "core-integrity (3.12)",
+      "optional_skipped_step_count": 0,
+      "required_validation_steps": [
+        {
+          "conclusion": "success",
+          "name": "Import and invoke installed package outside checkout",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run core scientific-data and persistence regression tests",
+          "status": "completed"
+        }
+      ],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:05:52Z",
+      "conclusion": "success",
+      "job_id": 113562852061,
+      "name": "real-ecosystem-consumers",
+      "optional_skipped_step_count": 1,
+      "required_validation_steps": [],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:05:05Z",
+      "conclusion": "success",
+      "job_id": 113562852067,
+      "name": "student-ecosystem-interface",
+      "optional_skipped_step_count": 1,
+      "required_validation_steps": [],
+      "run_id": 37850778613,
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-10-08T22:17:16Z",
+      "conclusion": "success",
+      "job_id": 113562852100,
+      "name": "complete-repository-regression",
+      "optional_skipped_step_count": 1,
+      "required_validation_steps": [
+        {
+          "conclusion": "success",
+          "name": "Require complete source-bound regression with zero skips",
+          "status": "completed"
+        }
+      ],
+      "run_id": 37850778613,
+      "status": "completed"
+    }
+  ],
+  "repository": "ProfJJK-CoChem/CoChem-TORQ",
+  "run_attempt": 1,
+  "run_id": 37850778613,
+  "status": "completed"
+}

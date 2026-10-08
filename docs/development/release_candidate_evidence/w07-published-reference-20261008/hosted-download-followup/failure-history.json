@@ -1,0 +1,39 @@
+{
+  "artifact_download_is_not_a_remaining_owner_prerequisite_for_this_verified_run": true,
+  "causal_limit": "The earlier observed effective allowlist absence and network-policy state unknown did not establish the cause of the failed transfer. Fresh short-lived managed direct calls to the same authenticated API endpoints subsequently succeeded. No policy activation, alternative host, credential configuration change or network bypass was used for this verification.",
+  "historical_download_blocked_packet_index_sha256": "ef19c469cd097653af91e058827eb11a1560acf806e5eb424a3b64bd6edf190a",
+  "historical_download_blocked_packet_summary_sha256": "84ac8a1e421987d2962b7be6daf5a2dfcb28d309b3d4ae1398b9984352e1c710",
+  "historical_packet_and_private_failed_attempts_retained_unchanged": true,
+  "original_401_observer_completion_sha256": "b29efafa879323694f80a5609403afe66727d468c76c0e49bf1c1505cad5672a",
+  "original_archive_failures": {
+    "core310": {
+      "original_failed_download_exit_code": 1,
+      "original_failed_download_receipt_sha256": "c335aa43620f4c99c9157017d1165643afeec683a49286be8ea7d633b7b5e0d8",
+      "original_failed_received_bytes": 0,
+      "original_failed_stderr_sha256": "cda653917d9f4adede3b621ccad4b00586c1c2b2e7b0e725d8f40562baf57b24",
+      "original_failure_receipt_unchanged_from_prior_public_packet": true,
+      "successful_followup_archive_sha256": "eb8ef723ee618ba6173d9d9ca707cd17dabb7b49f4bbcd7ab5f1e3ba31847cde",
+      "successful_followup_download_exit_code": 0
+    },
+    "core312": {
+      "original_failed_download_exit_code": 1,
+      "original_failed_download_receipt_sha256": "3380ea313a1dce02309427325a4465b83d3a6cc4f3b972101ca095bd3ad66182",
+      "original_failed_received_bytes": 0,
+      "original_failed_stderr_sha256": "69258fbbac908fc57f2859834fdf56da6022ae42308487064171f6f9e0321491",
+      "original_failure_receipt_unchanged_from_prior_public_packet": true,
+      "successful_followup_archive_sha256": "8d906378f7b88879caced2b4a875ab9e34a27b3e710f7d39a452e5fe744a1791",
+      "successful_followup_download_exit_code": 0
+    },
+    "full": {
+      "original_failed_download_exit_code": 1,
+      "original_failed_download_receipt_sha256": "b15c3b741404c71c0b73ed1e491fa1bbb0b3bcaa44bf4d83371279fee6016400",
+      "original_failed_received_bytes": 0,
+      "original_failed_stderr_sha256": "adfcf7e59baf20a33197cf8c140537215731c821045f9dcbdbf2892a48448f90",
+      "original_failure_receipt_unchanged_from_prior_public_packet": true,
+      "successful_followup_archive_sha256": "a38fc883496a5e9c775cd0318e6f0567463769c91c961f2e04e01482930f6446",
+      "successful_followup_download_exit_code": 0
+    }
+  },
+  "prior_activation_as_required_artifact_prerequisite_inference_superseded": true,
+  "schema_version": "cochem.actual-archive-failure-history/1"
+}

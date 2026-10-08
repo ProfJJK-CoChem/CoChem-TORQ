@@ -1,0 +1,13 @@
+{
+  "canonical_core_test_file_count_in_workflow_source": 45,
+  "core_marker_expression": "not cpu_ml and not real_engine and not ecosystem",
+  "every_catalogued_current_source_python_payload_hash_and_size_verified": true,
+  "frozen_source_catalog_sha256": "0d68263b9dc577ffa8f0347053017fea595114c865cd9df0007e8770e2513108",
+  "frozen_source_python_file_count": 262,
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "hosted_wheel_payload_count_or_bytes_verified": false,
+  "scope": "Counts describe the frozen current source catalog and workflow file list, not retrieved hosted wheel payloads or executed testcases.",
+  "source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "workflow_sha256": "fe76c817cd31541297552046392aeed2a7ca270f1efd5ed936963d118147171d"
+}

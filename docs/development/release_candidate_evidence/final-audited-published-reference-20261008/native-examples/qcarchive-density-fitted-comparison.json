@@ -1,0 +1,243 @@
+{
+  "actual_counts": {
+    "active_mp2_occupied": 4,
+    "frozen_occupied_orbitals": 1,
+    "grid_points": 120800,
+    "jkfit_auxiliary": 242,
+    "mp2_ri_auxiliary": 244,
+    "occupied_orbitals": 5,
+    "orbital_ao": 115
+  },
+  "actual_scf_converged": true,
+  "all_npz_array_shapes_dtypes_and_C_order_hashes_readback_verified": true,
+  "arrays": {
+    "grid_coords_bohr": {
+      "dtype": "float64",
+      "sha256_c_order": "ad9047e91343f2494c39577180f72379ba4e2fa3a75bd9703543cad10c78f7bf",
+      "shape": [
+        120800,
+        3
+      ]
+    },
+    "grid_weights_bohr3": {
+      "dtype": "float64",
+      "sha256_c_order": "f04198b3ece0f48b4419a3b0b53ab3589360582ea7060d3b52a4fbec1cabc6cb",
+      "shape": [
+        120800
+      ]
+    },
+    "jkfit_atm": {
+      "dtype": "int32",
+      "sha256_c_order": "ea3ec03ed994c06bd38da58212b588c7b84676007322429684ab9a37c1437cdb",
+      "shape": [
+        4,
+        6
+      ]
+    },
+    "jkfit_bas": {
+      "dtype": "int32",
+      "sha256_c_order": "cedbd91cb59ec19d15c98a19344e01301a3116417e740c82d0164f8fd9dfe1e3",
+      "shape": [
+        72,
+        8
+      ]
+    },
+    "jkfit_env": {
+      "dtype": "float64",
+      "sha256_c_order": "50af4bf23636639bde669255d630b379d363ff38b67365d9ba5a0a201d261983",
+      "shape": [
+        124
+      ]
+    },
+    "mo_coeff": {
+      "dtype": "float64",
+      "sha256_c_order": "91f535bae129f76e8c0cfc272034fee37870a33286917c152f616b09525b322a",
+      "shape": [
+        115,
+        115
+      ]
+    },
+    "mo_energy": {
+      "dtype": "float64",
+      "sha256_c_order": "24eb1f9be774108effd5081844a1ebffe29859a83cd83939300638fc774714c5",
+      "shape": [
+        115
+      ]
+    },
+    "mo_occ": {
+      "dtype": "float64",
+      "sha256_c_order": "5f865208c9b0cac609c4da6f18a1e959ffa83e549e6ed5ba7ea6c82b1d2b47e7",
+      "shape": [
+        115
+      ]
+    },
+    "mp2_ri_atm": {
+      "dtype": "int32",
+      "sha256_c_order": "ea3ec03ed994c06bd38da58212b588c7b84676007322429684ab9a37c1437cdb",
+      "shape": [
+        4,
+        6
+      ]
+    },
+    "mp2_ri_bas": {
+      "dtype": "int32",
+      "sha256_c_order": "2bd456041b8bf14b0f66e287325f8a0931a3bfa52427e402c6170e5f2ba8fdf2",
+      "shape": [
+        70,
+        8
+      ]
+    },
+    "mp2_ri_env": {
+      "dtype": "float64",
+      "sha256_c_order": "a50c0dbd7f02d138d263f18ce1f484b10b0933fa5420a1dceadce6daa71fe1e1",
+      "shape": [
+        120
+      ]
+    },
+    "orbital_atm": {
+      "dtype": "int32",
+      "sha256_c_order": "ea3ec03ed994c06bd38da58212b588c7b84676007322429684ab9a37c1437cdb",
+      "shape": [
+        4,
+        6
+      ]
+    },
+    "orbital_bas": {
+      "dtype": "int32",
+      "sha256_c_order": "d8a8e532ad0c7aea5dd3586513eb3ba4e82eb5f5d3f1b1b8d5a90aeab1044c25",
+      "shape": [
+        40,
+        8
+      ]
+    },
+    "orbital_env": {
+      "dtype": "float64",
+      "sha256_c_order": "46c4affcea6f4060d81176bad310422f801d2c59c6f3340259e89fc5a6708c03",
+      "shape": [
+        110
+      ]
+    }
+  },
+  "arrays_included_in_this_public_bundle": false,
+  "benchmark_acceptance": false,
+  "comparison_tolerance": null,
+  "components_and_residuals": {
+    "double_hybrid_total_energy": {
+      "calculated_hartree": -56.5380913934205,
+      "calculated_minus_source_hartree": -9.666056399737499e-08,
+      "source_psi4_hartree_as_printed": "-56.5380912967599372"
+    },
+    "mp2_correlation_energy": {
+      "calculated_hartree": -0.28703813392081934,
+      "calculated_minus_source_hartree": 2.3122134762409985e-08,
+      "source_psi4_hartree_as_printed": "-0.2870381570429541"
+    },
+    "mp2_opposite_spin_energy": {
+      "calculated_hartree": -0.22269852498343434,
+      "calculated_minus_source_hartree": 1.6498523158769984e-08,
+      "source_psi4_hartree_as_printed": "-0.2226985414819575"
+    },
+    "mp2_same_spin_energy": {
+      "calculated_hartree": -0.064339608937385,
+      "calculated_minus_source_hartree": 6.6236116036400006e-09,
+      "source_psi4_hartree_as_printed": "-0.0643396155609966"
+    },
+    "orbital_scf_energy": {
+      "calculated_hartree": -56.46059109726188,
+      "calculated_minus_source_hartree": -1.0290354168773774e-07,
+      "source_psi4_hartree_as_printed": "-56.4605909943583413"
+    },
+    "scaled_mp2_correlation": {
+      "calculated_hartree": -0.07750029615862122,
+      "calculated_minus_source_hartree": 6.242976371972908e-09,
+      "source_psi4_hartree_as_printed": "-0.0775003024015976"
+    }
+  },
+  "curator_attestation": false,
+  "mp2_used_explicit_converged_rks_orbital_energies": true,
+  "original_npz_sha256": "f1180954dcdcb822a21ad08ebf5c6df74ed188657d98acf4fe904f8f193071e1",
+  "original_private_comparison_sha256": "aa689b3f8e46c01336dc3ffef5fee684d0addc59a65d1e1ffb7b2fbba98566f9",
+  "scf_iterations": [
+    {
+      "cycle": 0,
+      "density_change_norm": 0.9280194524785392,
+      "energy_hartree": -56.44118385365864,
+      "orbital_gradient_norm": 0.29040296949617117
+    },
+    {
+      "cycle": 1,
+      "density_change_norm": 0.28027594107168113,
+      "energy_hartree": -56.44497662168688,
+      "orbital_gradient_norm": 0.27869891484468773
+    },
+    {
+      "cycle": 2,
+      "density_change_norm": 0.12253396628483534,
+      "energy_hartree": -56.46051581713513,
+      "orbital_gradient_norm": 0.01889724179847432
+    },
+    {
+      "cycle": 3,
+      "density_change_norm": 0.010778749756320895,
+      "energy_hartree": -56.460587991813966,
+      "orbital_gradient_norm": 0.0032340491267319033
+    },
+    {
+      "cycle": 4,
+      "density_change_norm": 0.0021698539969767015,
+      "energy_hartree": -56.46059100280662,
+      "orbital_gradient_norm": 0.00036281025016830527
+    },
+    {
+      "cycle": 5,
+      "density_change_norm": 0.0005920123032142916,
+      "energy_hartree": -56.46059109344279,
+      "orbital_gradient_norm": 6.134185511994982e-05
+    },
+    {
+      "cycle": 6,
+      "density_change_norm": 0.00013800761580833314,
+      "energy_hartree": -56.46059109718607,
+      "orbital_gradient_norm": 9.209631524937845e-06
+    },
+    {
+      "cycle": 7,
+      "density_change_norm": 1.694863512050402e-05,
+      "energy_hartree": -56.4605910972608,
+      "orbital_gradient_norm": 8.963662560953628e-07
+    },
+    {
+      "cycle": 8,
+      "density_change_norm": 1.3393087186372296e-06,
+      "energy_hartree": -56.4605910972618,
+      "orbital_gradient_norm": 9.016569922385973e-08
+    },
+    {
+      "cycle": 9,
+      "density_change_norm": 1.813992534282984e-07,
+      "energy_hartree": -56.4605910972618,
+      "orbital_gradient_norm": 2.044634949132899e-08
+    },
+    {
+      "cycle": 10,
+      "density_change_norm": 3.3704347702981174e-08,
+      "energy_hartree": -56.460591097262224,
+      "orbital_gradient_norm": 1.2828729514975787e-08
+    },
+    {
+      "cycle": 11,
+      "density_change_norm": 1.7856845886276277e-08,
+      "energy_hartree": -56.46059109726146,
+      "orbital_gradient_norm": 6.509003640862167e-09
+    }
+  ],
+  "scientific_profile_qualification": false,
+  "separate_jkfit_ri_objects": true,
+  "status": "completed unqualified research comparison",
+  "versions": {
+    "libxc": "7.0.0",
+    "numpy": "2.5.3",
+    "pyscf": "2.14.0",
+    "python": "3.12.14"
+  }
+}

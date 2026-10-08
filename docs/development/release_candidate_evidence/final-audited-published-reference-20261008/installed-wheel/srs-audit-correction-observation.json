@@ -1,0 +1,15 @@
+{
+  "schema_version": "cochem.srs-audit-document-identity-correction/1",
+  "old_specification_sha256": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536",
+  "new_specification_sha256": "a4b76cc928e74f200a73315a7581082778fddb44b518e5a76073e592ff88d023",
+  "before_audit_file_sha256": "8814d492bd115b25cd0bcb8b82687847187449f88adbf8e2ec2d283594846b9a",
+  "after_audit_file_sha256": "33672cefd7fe4e3abb0337a9b1cdd2b3a6b4bf3ffa66311bc0706877cea82b31",
+  "only_specification_sha256_changed": true,
+  "only_literal_sha_bytes_changed_in_document": true,
+  "all_requirement_acceptance_and_qualification_fields_byte_equivalent": true,
+  "requirement_count": 73,
+  "acceptance_count": 41,
+  "all_gate_statuses_unchanged": true,
+  "qualification_not_promoted": true,
+  "scientific_source_and_wheel_rebuild_required": false
+}

@@ -1,0 +1,40 @@
+{
+  "files": [
+    {
+      "bytes": 2127,
+      "path": "execution-summary.json",
+      "sha256": "4b9e7b648c9dd58a957610aa7307e38fe64d708757937621aef20091990a7609"
+    },
+    {
+      "bytes": 3759,
+      "path": "qcarchive-components-execution.json",
+      "sha256": "68c5aed4b5d5fda38605c3146d5d4c85902129c08d06db003db05463455baf57"
+    },
+    {
+      "bytes": 7149,
+      "path": "qcarchive-density-fitted-comparison.json",
+      "sha256": "8a7c78dbd33a818b047f67eb0e2fac56935c4baffaaa29c68be778755b7c6b4b"
+    },
+    {
+      "bytes": 4259,
+      "path": "qcarchive-existing-torq-comparison.json",
+      "sha256": "248167ce1515a5d4f62065774060e36ef8193882ff4b6ad24dfacfd127a599ee"
+    },
+    {
+      "bytes": 1544,
+      "path": "qcarchive-original-source-values.json",
+      "sha256": "9893aa385d135778b484075e2071595edc9954aa84b91adb8dcabb3e7eb23f9a"
+    },
+    {
+      "bytes": 1661,
+      "path": "summary.json",
+      "sha256": "1323fcd8b22b11b3fd3c628d14614c732dc2b3d3d941f3719158113546154718"
+    },
+    {
+      "bytes": 41006,
+      "path": "water-six-descriptive-comparisons.json",
+      "sha256": "fccad49f56db32eea9716a477d2952b47560fea7bd03c172c6ec5eeec4844419"
+    }
+  ],
+  "schema_version": "cochem.public-evidence-file-index/1"
+}

@@ -1,0 +1,3963 @@
+{
+  "actual_verified_bundle_count": 64,
+  "actual_verified_native_bytes": 7771841,
+  "adapter_source_sha256": "d62d7d517816ee08bf905d1b2858f4e21b85e020ac0063b4cde9c11c2c8e14cf",
+  "all_included_native_file_sizes_and_hashes_verified": true,
+  "bundles": [
+    {
+      "bytes": 126113,
+      "manifest_sha256": "2293cf4803015e88e9fcdb0488a0bda728f7aa26449c849dfdab4bb795b997c6",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1489,
+          "path": "manifest.json",
+          "sha256": "2293cf4803015e88e9fcdb0488a0bda728f7aa26449c849dfdab4bb795b997c6"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "1518c756a8f3bf72f2f7b3c089e4e9a9302ef050b32c9496a63c27436c93c285"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "127ba1aab4a3a0feee1ff6c0f9ff714bc2006849787a42436d96e602262c0984"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "c041ebde0fb1bd184036b9bd0632873ad508b068e09d917c9f057672611ec13e"
+        },
+        {
+          "bytes": 40997,
+          "path": "pyscf.log",
+          "sha256": "fd7dfd540752d858c1f42c9fa21e9d9379f5daf8236d654f414d2102389af8be"
+        },
+        {
+          "bytes": 1248,
+          "path": "request.json",
+          "sha256": "def1bd6a05994c0f5c1c4e5d5d57ec930df3c475a8721b78a2281757382a3e39"
+        },
+        {
+          "bytes": 3319,
+          "path": "result.json",
+          "sha256": "1da3014aef6d91e853d65cf8515784a749a9959c39e8bcbc7971f3c24efc44e9"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "430d65edb9af5c5c70770bc66aab054b21158f69833edf6b9cb2fb458d1fc285"
+        }
+      ]
+    },
+    {
+      "bytes": 129603,
+      "manifest_sha256": "29ebca8e3241c1c684dbce59d13b2bd771271584a78d0b46cdd9ca9c6e8ebfea",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "29ebca8e3241c1c684dbce59d13b2bd771271584a78d0b46cdd9ca9c6e8ebfea"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "127ba1aab4a3a0feee1ff6c0f9ff714bc2006849787a42436d96e602262c0984"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "c041ebde0fb1bd184036b9bd0632873ad508b068e09d917c9f057672611ec13e"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "757d5d68d02e60199c33c47c0f69b0822b24b7668d39dfdc319dee34eba4b2e5"
+        },
+        {
+          "bytes": 155,
+          "path": "launcher.log",
+          "sha256": "b59b23e1e58b3702785a3d607a780e1816653efc0b5e61ea1cc92ea6b3055024"
+        },
+        {
+          "bytes": 41000,
+          "path": "pyscf.log",
+          "sha256": "18cc5a26044b6963341f04d4f50aafc4a32f39a95f3bf4f448faa578db15c07c"
+        },
+        {
+          "bytes": 1249,
+          "path": "request.json",
+          "sha256": "404e5da1d9bbf27ed78beda8f71690bf7f3a129ab1df12224552306e7312ddcd"
+        },
+        {
+          "bytes": 5866,
+          "path": "result.json",
+          "sha256": "dfacd803bc36db69214ebffa4577b1ba98b0acbb078eccdda9ca44cb1eb97430"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "430d65edb9af5c5c70770bc66aab054b21158f69833edf6b9cb2fb458d1fc285"
+        }
+      ]
+    },
+    {
+      "bytes": 123521,
+      "manifest_sha256": "76818101c4d34860071d9a83ed0b6d119a04f08ff2591e28c8a966094dabea95",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1488,
+          "path": "manifest.json",
+          "sha256": "76818101c4d34860071d9a83ed0b6d119a04f08ff2591e28c8a966094dabea95"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "2dfae0cce60c73d1d42c78e8ac247e7d5b17500b74554935c43ee7ba8666b6eb"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "dffa3691e1811ee97dc62ac1f16c711d3755fae539ac331b451e8a3fc9520b7d"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "30a0f94695d28e1af23017061771567ac4555fee9d2657e3768351fd5d961994"
+        },
+        {
+          "bytes": 39985,
+          "path": "pyscf.log",
+          "sha256": "73ceaea4f4a5529d927c62ace02769501d4963097424092335086a59df2c56f1"
+        },
+        {
+          "bytes": 964,
+          "path": "request.json",
+          "sha256": "5ad15015a816cfb6bbcb11711fa2f152c38b50541a190c9234454ae3f435b26b"
+        },
+        {
+          "bytes": 2642,
+          "path": "result.json",
+          "sha256": "0bcae4798cc3c3fd89d28c6da586f226899bb664190f4ab3f176d6b207f720a0"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "a2eb4422c0660d47fc40acef359bfffb5cec42b2e61037d1784c4737018cdeda"
+        }
+      ]
+    },
+    {
+      "bytes": 165704,
+      "manifest_sha256": "1c8e8ba0f88ae5cd0671b9bdb07370ee7a3029880957974c407c124114a5e0bd",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "1c8e8ba0f88ae5cd0671b9bdb07370ee7a3029880957974c407c124114a5e0bd"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "4548248ff5b84b1e8bfa8bbcc165766f914c881cec444f19918f7ff5a8037cc4"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 139,
+          "path": "launcher.log",
+          "sha256": "dd9d1391cccb622c85dc9c2bd2f44dc59cda1dc380f57f0537d0ff9364c7a8bf"
+        },
+        {
+          "bytes": 82402,
+          "path": "pyscf.log",
+          "sha256": "fc8f27aa255ab59c8336fd73c171bf9d59fc6b1ccf94c6f30b3e4ed2d677086d"
+        },
+        {
+          "bytes": 967,
+          "path": "request.json",
+          "sha256": "ace90e592a23d5aba86de8ec0d3e43b1ccd43e40270bf61f33a3e58b9445e042"
+        },
+        {
+          "bytes": 2422,
+          "path": "result.json",
+          "sha256": "3322dcd8d3794fbc07f349ffd6f8d4357a935bec87b876ac01a357ffa119044e"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "24ecc2f2d4efa620ba30f38bfc01d0956506e842d86fcf03f5f01e1e116ccf0d"
+        }
+      ]
+    },
+    {
+      "bytes": 165685,
+      "manifest_sha256": "437dd7903b4836a8591ea2a6ee9b6d704977c59c9cb1e0e243d71411c02bb21a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "437dd7903b4836a8591ea2a6ee9b6d704977c59c9cb1e0e243d71411c02bb21a"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "cc58ba8472190d14f2412b26f05b1179936cee78519b796faa2bcac65d6f1313"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d68101d95dafc6ef93473d88b445c95d7c33db27bf79a202549fa716bbc0628c"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "012ec724b56efd68b64ef4de0b5641891554c4d8287e696bd58988132502dcc9"
+        },
+        {
+          "bytes": 82399,
+          "path": "pyscf.log",
+          "sha256": "38b0fb05b57c8cc00965e4df84276d97e543c4fdd85f967e7ec950f835545552"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "6645c5bcdc260b34d3d0eba5795dadcbceee4a6ad64012602b098e4505b52b50"
+        },
+        {
+          "bytes": 2426,
+          "path": "result.json",
+          "sha256": "a43b1dfbc21ce8180c63681c27c5bed29de2a928685eda376c406272a3eb9c29"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "7f3ffb0d7e63adede3545600a0dfa059d0570518dc67a268a8e7a38903886831"
+        }
+      ]
+    },
+    {
+      "bytes": 165666,
+      "manifest_sha256": "1bcf4947f95aac18091cdda867ddd8c31c2690c4389ffd9e815fc11bd812079f",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "1bcf4947f95aac18091cdda867ddd8c31c2690c4389ffd9e815fc11bd812079f"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18cefe4327556483be633e990ca12ef34bff7b022450876e454d4bc1d7b188f2"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "3cb0e56baf9c244be70e83f4a240eda9f17458bd71a1a6d02ac93d9ec4f64678"
+        },
+        {
+          "bytes": 82398,
+          "path": "pyscf.log",
+          "sha256": "ad291fe042d8863891d2c0bb646bbf0499fb6ad1c1918fe30a2bc2927d3f74d6"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "1f3b3acb08dcf91b0e98aaea7a23babd4430e92753760951082292cd0d55cf33"
+        },
+        {
+          "bytes": 2408,
+          "path": "result.json",
+          "sha256": "20578feaff86f4fbd2f23639124909c069f66cc973b40c539c39529ecee34ba4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "18d5f31298a2a32822e5be9d481b79c790587c66a9688cf8dbf88b9b3d8c67b2"
+        }
+      ]
+    },
+    {
+      "bytes": 165710,
+      "manifest_sha256": "5e2cd1835aac66cad0ac1b4539cdaf9b892e23e660af90cf7a50d7eb74d08465",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "5e2cd1835aac66cad0ac1b4539cdaf9b892e23e660af90cf7a50d7eb74d08465"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "3cc28fdb685189a418c93bc248b2024a1860dc4574136022d133328e9b7e914e"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d7bf912aacb5bbfdd2e72a5f3319343e030aac06ab331bf38498c06b2cff9f7a"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "ee41e32712c5faa23e442779e8201e38ce9b97e1be1383928f9d12d8ff7f3b59"
+        },
+        {
+          "bytes": 82385,
+          "path": "pyscf.log",
+          "sha256": "5c4264c1482370f28f58b33b32a74c019f0835d932f8b4300dc5523a725ea0d2"
+        },
+        {
+          "bytes": 968,
+          "path": "request.json",
+          "sha256": "5bd28b13a3309bbd3af76490c1420153ba926bc82ea2577c5c79b45857a9a59a"
+        },
+        {
+          "bytes": 2450,
+          "path": "result.json",
+          "sha256": "dddf75155a8cad0211b037bc5ce7ff3dba311ed435c51992ffc9cd957e2d4534"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8da0b907be39471e43fa79dc2807b5da1fd130d6d633f58e6bf548ad4415c6b9"
+        }
+      ]
+    },
+    {
+      "bytes": 165710,
+      "manifest_sha256": "055c73f7493af6da2f61ce714bdfe96bb8454a813c18125f96f9d7b075366f9a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "055c73f7493af6da2f61ce714bdfe96bb8454a813c18125f96f9d7b075366f9a"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "3cc28fdb685189a418c93bc248b2024a1860dc4574136022d133328e9b7e914e"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d7bf912aacb5bbfdd2e72a5f3319343e030aac06ab331bf38498c06b2cff9f7a"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "948fdaf9a545d863328e8b322b936c9dfd49abcf37dffd9f789cab696e3ffc58"
+        },
+        {
+          "bytes": 82385,
+          "path": "pyscf.log",
+          "sha256": "cd662c6b42e2affb6f28590c6893280823608467654f07f49dd94f74ea898890"
+        },
+        {
+          "bytes": 968,
+          "path": "request.json",
+          "sha256": "5bd28b13a3309bbd3af76490c1420153ba926bc82ea2577c5c79b45857a9a59a"
+        },
+        {
+          "bytes": 2450,
+          "path": "result.json",
+          "sha256": "dddf75155a8cad0211b037bc5ce7ff3dba311ed435c51992ffc9cd957e2d4534"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8da0b907be39471e43fa79dc2807b5da1fd130d6d633f58e6bf548ad4415c6b9"
+        }
+      ]
+    },
+    {
+      "bytes": 165666,
+      "manifest_sha256": "7faceb939d319a91ca04a7eb0d0393ee80941c01a01358aa282d8c43f66842a1",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "7faceb939d319a91ca04a7eb0d0393ee80941c01a01358aa282d8c43f66842a1"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18cefe4327556483be633e990ca12ef34bff7b022450876e454d4bc1d7b188f2"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "c036c19f404ad018d9ead26a54ca89763e1ddafdf1eebcd5964aff876eb87184"
+        },
+        {
+          "bytes": 82398,
+          "path": "pyscf.log",
+          "sha256": "1c918816dc069dc3ec05ffa74710aecf7ef87951adf9f0a7b96b382f4560ab58"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "1f3b3acb08dcf91b0e98aaea7a23babd4430e92753760951082292cd0d55cf33"
+        },
+        {
+          "bytes": 2408,
+          "path": "result.json",
+          "sha256": "20578feaff86f4fbd2f23639124909c069f66cc973b40c539c39529ecee34ba4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "18d5f31298a2a32822e5be9d481b79c790587c66a9688cf8dbf88b9b3d8c67b2"
+        }
+      ]
+    },
+    {
+      "bytes": 165685,
+      "manifest_sha256": "b1e66030aec6d2881dc37da2c5a8a8c466b8c18b0750c3d950de63af8d45cf63",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "b1e66030aec6d2881dc37da2c5a8a8c466b8c18b0750c3d950de63af8d45cf63"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "cc58ba8472190d14f2412b26f05b1179936cee78519b796faa2bcac65d6f1313"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d68101d95dafc6ef93473d88b445c95d7c33db27bf79a202549fa716bbc0628c"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "677464fa75185e46c2b55bf5a29f6e5fffc48f00d5bb71a8a4cc9c019337870d"
+        },
+        {
+          "bytes": 82399,
+          "path": "pyscf.log",
+          "sha256": "757294b7c012feb768f6a6123bf23ced9e1bc7a481622e2bf291ebfed131d914"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "6645c5bcdc260b34d3d0eba5795dadcbceee4a6ad64012602b098e4505b52b50"
+        },
+        {
+          "bytes": 2426,
+          "path": "result.json",
+          "sha256": "a43b1dfbc21ce8180c63681c27c5bed29de2a928685eda376c406272a3eb9c29"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "7f3ffb0d7e63adede3545600a0dfa059d0570518dc67a268a8e7a38903886831"
+        }
+      ]
+    },
+    {
+      "bytes": 165685,
+      "manifest_sha256": "404b21dc2558340cdd2b3a271bda54af613543baf96aee46670c10cf69deb7e9",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "404b21dc2558340cdd2b3a271bda54af613543baf96aee46670c10cf69deb7e9"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "cc58ba8472190d14f2412b26f05b1179936cee78519b796faa2bcac65d6f1313"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d68101d95dafc6ef93473d88b445c95d7c33db27bf79a202549fa716bbc0628c"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "afd5b19c428b41038b980a05a7cd77838c0e5daa8a5cf728dbf194514ea5c7ee"
+        },
+        {
+          "bytes": 82399,
+          "path": "pyscf.log",
+          "sha256": "8bf9e7f102079693cfbb1aae420bc26e1d6f81ca93adc46b498cdd50183846a0"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "6645c5bcdc260b34d3d0eba5795dadcbceee4a6ad64012602b098e4505b52b50"
+        },
+        {
+          "bytes": 2426,
+          "path": "result.json",
+          "sha256": "a43b1dfbc21ce8180c63681c27c5bed29de2a928685eda376c406272a3eb9c29"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "7f3ffb0d7e63adede3545600a0dfa059d0570518dc67a268a8e7a38903886831"
+        }
+      ]
+    },
+    {
+      "bytes": 165666,
+      "manifest_sha256": "4ed76caa8d7b30095a36669415a912f42c2b3989b030904138cb93d8385f32ae",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "4ed76caa8d7b30095a36669415a912f42c2b3989b030904138cb93d8385f32ae"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18cefe4327556483be633e990ca12ef34bff7b022450876e454d4bc1d7b188f2"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "d0c8da996b3f0597e09f10d17a55280deac12066b15707eb193e82e1aae7874a"
+        },
+        {
+          "bytes": 82398,
+          "path": "pyscf.log",
+          "sha256": "726ca28b0f0efba6ea2d986725356812f8e0a4b16ed8bdd27510b6ef912f321f"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "1f3b3acb08dcf91b0e98aaea7a23babd4430e92753760951082292cd0d55cf33"
+        },
+        {
+          "bytes": 2408,
+          "path": "result.json",
+          "sha256": "20578feaff86f4fbd2f23639124909c069f66cc973b40c539c39529ecee34ba4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "18d5f31298a2a32822e5be9d481b79c790587c66a9688cf8dbf88b9b3d8c67b2"
+        }
+      ]
+    },
+    {
+      "bytes": 165710,
+      "manifest_sha256": "bdc5fc781fd525b4b5cbdc61e7255b846b163cefaa61c4a4d05227d6cf240323",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "bdc5fc781fd525b4b5cbdc61e7255b846b163cefaa61c4a4d05227d6cf240323"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "3cc28fdb685189a418c93bc248b2024a1860dc4574136022d133328e9b7e914e"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d7bf912aacb5bbfdd2e72a5f3319343e030aac06ab331bf38498c06b2cff9f7a"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "45e995b1365e4142cc77992a5d36de190799e1c7371fcae96d45733551cf8699"
+        },
+        {
+          "bytes": 82385,
+          "path": "pyscf.log",
+          "sha256": "fe55efc9e7f0843e31c182d5eb2dced44f50f2719c74a2eb7f4a2bc9d6e771cd"
+        },
+        {
+          "bytes": 968,
+          "path": "request.json",
+          "sha256": "5bd28b13a3309bbd3af76490c1420153ba926bc82ea2577c5c79b45857a9a59a"
+        },
+        {
+          "bytes": 2450,
+          "path": "result.json",
+          "sha256": "dddf75155a8cad0211b037bc5ce7ff3dba311ed435c51992ffc9cd957e2d4534"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8da0b907be39471e43fa79dc2807b5da1fd130d6d633f58e6bf548ad4415c6b9"
+        }
+      ]
+    },
+    {
+      "bytes": 126105,
+      "manifest_sha256": "800babd7b8081b3f26ea473c0ded6a7c83dd39d27933c92debf2903d1f0874ca",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1489,
+          "path": "manifest.json",
+          "sha256": "800babd7b8081b3f26ea473c0ded6a7c83dd39d27933c92debf2903d1f0874ca"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "1518c756a8f3bf72f2f7b3c089e4e9a9302ef050b32c9496a63c27436c93c285"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "127ba1aab4a3a0feee1ff6c0f9ff714bc2006849787a42436d96e602262c0984"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "c041ebde0fb1bd184036b9bd0632873ad508b068e09d917c9f057672611ec13e"
+        },
+        {
+          "bytes": 40989,
+          "path": "pyscf.log",
+          "sha256": "807724c98d8082ded3001577d41ef057bc6d762cae628853f04454bb31bce09f"
+        },
+        {
+          "bytes": 1248,
+          "path": "request.json",
+          "sha256": "def1bd6a05994c0f5c1c4e5d5d57ec930df3c475a8721b78a2281757382a3e39"
+        },
+        {
+          "bytes": 3319,
+          "path": "result.json",
+          "sha256": "1da3014aef6d91e853d65cf8515784a749a9959c39e8bcbc7971f3c24efc44e9"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "430d65edb9af5c5c70770bc66aab054b21158f69833edf6b9cb2fb458d1fc285"
+        }
+      ]
+    },
+    {
+      "bytes": 129587,
+      "manifest_sha256": "ed0938dd2df12fc660603e4d0a00b5482982fc47653e63411da4ee9a54883259",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "ed0938dd2df12fc660603e4d0a00b5482982fc47653e63411da4ee9a54883259"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "127ba1aab4a3a0feee1ff6c0f9ff714bc2006849787a42436d96e602262c0984"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "c041ebde0fb1bd184036b9bd0632873ad508b068e09d917c9f057672611ec13e"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "757d5d68d02e60199c33c47c0f69b0822b24b7668d39dfdc319dee34eba4b2e5"
+        },
+        {
+          "bytes": 147,
+          "path": "launcher.log",
+          "sha256": "e9e27151bbdedc5b607c83f01afca3f2bfdbbdb7769d8d7ceb7898a2324a4cec"
+        },
+        {
+          "bytes": 40992,
+          "path": "pyscf.log",
+          "sha256": "ae508bce5c188253b9b03e187318bee221d9965c5dab111c63780f0918cec9cf"
+        },
+        {
+          "bytes": 1249,
+          "path": "request.json",
+          "sha256": "404e5da1d9bbf27ed78beda8f71690bf7f3a129ab1df12224552306e7312ddcd"
+        },
+        {
+          "bytes": 5866,
+          "path": "result.json",
+          "sha256": "dfacd803bc36db69214ebffa4577b1ba98b0acbb078eccdda9ca44cb1eb97430"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "430d65edb9af5c5c70770bc66aab054b21158f69833edf6b9cb2fb458d1fc285"
+        }
+      ]
+    },
+    {
+      "bytes": 123577,
+      "manifest_sha256": "7522a56b3a6aeede1a98b1ebc14af646fc0dd91461bd060bc501093ab46b27c9",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1488,
+          "path": "manifest.json",
+          "sha256": "7522a56b3a6aeede1a98b1ebc14af646fc0dd91461bd060bc501093ab46b27c9"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "2dfae0cce60c73d1d42c78e8ac247e7d5b17500b74554935c43ee7ba8666b6eb"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "dffa3691e1811ee97dc62ac1f16c711d3755fae539ac331b451e8a3fc9520b7d"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "30a0f94695d28e1af23017061771567ac4555fee9d2657e3768351fd5d961994"
+        },
+        {
+          "bytes": 39979,
+          "path": "pyscf.log",
+          "sha256": "d4d5fd31ddffca4988f4426f1ea80f15ac593a6b1b3a525f1a3d27027e4cc96a"
+        },
+        {
+          "bytes": 995,
+          "path": "request.json",
+          "sha256": "daf42307106dfb6b684d46845fe5693b4cfeb649cdaf1de4e7777c66433e2594"
+        },
+        {
+          "bytes": 2673,
+          "path": "result.json",
+          "sha256": "0275e513e9190a0dacf2b84d38598c4c6cd6fdca8374b9d9695c4be9291b1c2c"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "cf7a4255fe5b03bb7a4f825e8a9ec583f31b38dbf113cb41efc4db6bcb8b1604"
+        }
+      ]
+    },
+    {
+      "bytes": 124955,
+      "manifest_sha256": "8cf9de6190ac7bf74e2e72441e590bc266d906900cb840860b8abc5a506dbcbe",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1648,
+          "path": "manifest.json",
+          "sha256": "8cf9de6190ac7bf74e2e72441e590bc266d906900cb840860b8abc5a506dbcbe"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "dffa3691e1811ee97dc62ac1f16c711d3755fae539ac331b451e8a3fc9520b7d"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "30a0f94695d28e1af23017061771567ac4555fee9d2657e3768351fd5d961994"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "65e07b320e4853c8187675e2a6193e72cd21cfe893406df5869fbc2e498258be"
+        },
+        {
+          "bytes": 155,
+          "path": "launcher.log",
+          "sha256": "26f1c415385c63d40118bca88891375140a296be48406c55355535a36ffe85eb"
+        },
+        {
+          "bytes": 39982,
+          "path": "pyscf.log",
+          "sha256": "aa067da5b33497a829342837cb865c7fc9e44cd4ad184beea236f67b9768a9e4"
+        },
+        {
+          "bytes": 996,
+          "path": "request.json",
+          "sha256": "effabde5586852c7eaa362cd365b75918f9c8ce9b1d09ebbc860db80673d0512"
+        },
+        {
+          "bytes": 3468,
+          "path": "result.json",
+          "sha256": "8928f82af2e46bf04a018a47a53fee4dc2314229a77a54a4f0bc48080e2de5b5"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "cf7a4255fe5b03bb7a4f825e8a9ec583f31b38dbf113cb41efc4db6bcb8b1604"
+        }
+      ]
+    },
+    {
+      "bytes": 125993,
+      "manifest_sha256": "b18143851f47da62eae8d6b13f04d61776678d0a71564dc41644b5c608606b08",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1489,
+          "path": "manifest.json",
+          "sha256": "b18143851f47da62eae8d6b13f04d61776678d0a71564dc41644b5c608606b08"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "1736a5a1a388ff656cf25d920a3e90f34164cfe7e8bf7cb17e3ede676674b0c5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "a4ee7901724e0667b262f2da9ff542b5ab95768bdbf01b2cc19f1bec51deff8d"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "f1d39990379f3ec37dd2860d6f3da8e853c518e877c08656cf8bd4b3d1a8a3e7"
+        },
+        {
+          "bytes": 41016,
+          "path": "pyscf.log",
+          "sha256": "74d331105183ce790b560f1a8977dedd6db34fad372461732b2cab9b08c945b2"
+        },
+        {
+          "bytes": 1185,
+          "path": "request.json",
+          "sha256": "f11d0e151830442aef3210f05a68055c80eaa7061b48ce845b5803b637c82164"
+        },
+        {
+          "bytes": 3243,
+          "path": "result.json",
+          "sha256": "7aefd855bffa8e21e19c0334c3e7bec3ebfae8af228b91bba84f093b0be45360"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "be707ab7bcf04ce084deb3e7388110185e78d2020ba38c847f4d32cdb83cbf23"
+        }
+      ]
+    },
+    {
+      "bytes": 129490,
+      "manifest_sha256": "c8d18f2b62c2f2e857d25e331f8120a1070eb0d3cad93fef98fd7d538142534a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "c8d18f2b62c2f2e857d25e331f8120a1070eb0d3cad93fef98fd7d538142534a"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "a4ee7901724e0667b262f2da9ff542b5ab95768bdbf01b2cc19f1bec51deff8d"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "f1d39990379f3ec37dd2860d6f3da8e853c518e877c08656cf8bd4b3d1a8a3e7"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "899cb26d8394ffd4051e309adecd06d5dc832cdc6836dd61be8cec68161a6ef5"
+        },
+        {
+          "bytes": 176,
+          "path": "launcher.log",
+          "sha256": "a652ff669a2d5f4b4ac0c52e1a4fbf261da1433fdc4f6397bde05a378a7c200b"
+        },
+        {
+          "bytes": 41019,
+          "path": "pyscf.log",
+          "sha256": "93b3ec293c5207a1d953286cad6a4a5fbbadbee9cf089d0da9dccbf7b89fdee9"
+        },
+        {
+          "bytes": 1186,
+          "path": "request.json",
+          "sha256": "60f07b9bf3ac1425b8779e52e0efa49ca95aacfb663342c5ed1a754962d16543"
+        },
+        {
+          "bytes": 5776,
+          "path": "result.json",
+          "sha256": "16002c50198d4ceb9ab2232b9009b1a31a384245e73e130966bf4debf81c7518"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "be707ab7bcf04ce084deb3e7388110185e78d2020ba38c847f4d32cdb83cbf23"
+        }
+      ]
+    },
+    {
+      "bytes": 165661,
+      "manifest_sha256": "ce5f7d77f452683abec8b742e8af692cceac57591aa5929134b2a193ca8a18a3",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "ce5f7d77f452683abec8b742e8af692cceac57591aa5929134b2a193ca8a18a3"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "c6e59680545b8f04b8334a5e30b2ff360d9f48f2b7da755004ad9b01a8e94074"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "76f4bd1302d1688e4916d0b78e90a23b857734e299fab36a7cfd619ff10af733"
+        },
+        {
+          "bytes": 150,
+          "path": "launcher.log",
+          "sha256": "03e15b725457434085b5a82216594044778ee06d3a23243b96fb22a621a67936"
+        },
+        {
+          "bytes": 82398,
+          "path": "pyscf.log",
+          "sha256": "79951478bb872abe74ba4e666f6cf42cd30ac2d4a824617233fdbb336ee0e2b8"
+        },
+        {
+          "bytes": 943,
+          "path": "request.json",
+          "sha256": "ee865b1039dccf51e34e083a50e42868c10d77cb548c2ffb5ba588e3b1aadef0"
+        },
+        {
+          "bytes": 2396,
+          "path": "result.json",
+          "sha256": "321b86290f10da0dfb3d806bf70bebd27a349dab353c333b9528d75b3363616d"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "2daca800fb05b286d338f59e31b3a86e15f90e3d8b473215234ba395784e7d75"
+        }
+      ]
+    },
+    {
+      "bytes": 165684,
+      "manifest_sha256": "b73d8a327e48bee60d47a9e3f05a3c6474c4c38ef67af5d9a0e1d0c389656c9b",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "b73d8a327e48bee60d47a9e3f05a3c6474c4c38ef67af5d9a0e1d0c389656c9b"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "364f8da8405fcc2e9e4c8e15adc2a982d10a5958b42f044397ac68cc9580b7e8"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "553a813ff4876919d0fb5034490f5aa46ed541346d668a397aa9d57202ceb7f7"
+        },
+        {
+          "bytes": 150,
+          "path": "launcher.log",
+          "sha256": "f6bd52940a651e0bfd18673ba3dad322cd375da753a784724fb65d80493b06a6"
+        },
+        {
+          "bytes": 82421,
+          "path": "pyscf.log",
+          "sha256": "963139843d7d755e2293fe54da994b93a178c0c49d6f0ab400377def1751e420"
+        },
+        {
+          "bytes": 943,
+          "path": "request.json",
+          "sha256": "e23b4314ff74428d1a7831d7758d69114958f6f972ba2f0c34920d9bd651b1af"
+        },
+        {
+          "bytes": 2396,
+          "path": "result.json",
+          "sha256": "79666bfaf3aa1f963bcb4e08db2489878060f14eb3ba2ce45a4223505a6c439c"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "c3ec4fc053ee72ba3a5c190d66cfe2e5682dc63b902a1657e24fde094286b53d"
+        }
+      ]
+    },
+    {
+      "bytes": 165697,
+      "manifest_sha256": "2e24b679795fee43d5a8874c28942142df191a58c61a810798d309d32cfaee48",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "2e24b679795fee43d5a8874c28942142df191a58c61a810798d309d32cfaee48"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "99e4165a97300b5f9142756db64a675811e5fcdf0f5db28b0755b481f3ba6b78"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d68101d95dafc6ef93473d88b445c95d7c33db27bf79a202549fa716bbc0628c"
+        },
+        {
+          "bytes": 150,
+          "path": "launcher.log",
+          "sha256": "52a7aaeb2198a0cfe8f1fdd928ff5cb11511b19857c3a3b0428fa41079f20d23"
+        },
+        {
+          "bytes": 82414,
+          "path": "pyscf.log",
+          "sha256": "757b034427dfce14c3843b356862b3ba8152184c7ddc5a7126039811da782a47"
+        },
+        {
+          "bytes": 943,
+          "path": "request.json",
+          "sha256": "c21ffffb078a8cf121b8e0127a83fd19525151cd4b171ef135cbfd473af804d5"
+        },
+        {
+          "bytes": 2416,
+          "path": "result.json",
+          "sha256": "54677b7e2125f6bec8c58006dab7ef4afde2e722af4f35c905a4c1067cb74c47"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "56fb6ec84f77c54bb40d04c26195ad344c1c1aab8c19058c14e1b0bcf3ff9abd"
+        }
+      ]
+    },
+    {
+      "bytes": 165661,
+      "manifest_sha256": "d660b3696d3438e6bc678e18ea3168d184d298a9c4e0379b59b70e638ff4f0a1",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "d660b3696d3438e6bc678e18ea3168d184d298a9c4e0379b59b70e638ff4f0a1"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "c6e59680545b8f04b8334a5e30b2ff360d9f48f2b7da755004ad9b01a8e94074"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "76f4bd1302d1688e4916d0b78e90a23b857734e299fab36a7cfd619ff10af733"
+        },
+        {
+          "bytes": 150,
+          "path": "launcher.log",
+          "sha256": "da922e43047529081fbf70b622fb3be856bb7977d20934b0f087252852695471"
+        },
+        {
+          "bytes": 82398,
+          "path": "pyscf.log",
+          "sha256": "0dcdef83b08590f81d3a4c3b74054840564a18f5d05c35ec41e686f829b21eaa"
+        },
+        {
+          "bytes": 943,
+          "path": "request.json",
+          "sha256": "ee865b1039dccf51e34e083a50e42868c10d77cb548c2ffb5ba588e3b1aadef0"
+        },
+        {
+          "bytes": 2396,
+          "path": "result.json",
+          "sha256": "321b86290f10da0dfb3d806bf70bebd27a349dab353c333b9528d75b3363616d"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "2daca800fb05b286d338f59e31b3a86e15f90e3d8b473215234ba395784e7d75"
+        }
+      ]
+    },
+    {
+      "bytes": 165684,
+      "manifest_sha256": "ffd8b164e095cc07669ae3412a69fcb3308807f17396cb410ad79ec173cd57fe",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "ffd8b164e095cc07669ae3412a69fcb3308807f17396cb410ad79ec173cd57fe"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "364f8da8405fcc2e9e4c8e15adc2a982d10a5958b42f044397ac68cc9580b7e8"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "553a813ff4876919d0fb5034490f5aa46ed541346d668a397aa9d57202ceb7f7"
+        },
+        {
+          "bytes": 150,
+          "path": "launcher.log",
+          "sha256": "910b0049be119973feb878d57d4ab5126e5c36fb17bdb85c2a2d9ee3fd920fd2"
+        },
+        {
+          "bytes": 82421,
+          "path": "pyscf.log",
+          "sha256": "443946bde9f51035248e4434e645ad8484ecc822129cd4737b538b49611649c8"
+        },
+        {
+          "bytes": 943,
+          "path": "request.json",
+          "sha256": "e23b4314ff74428d1a7831d7758d69114958f6f972ba2f0c34920d9bd651b1af"
+        },
+        {
+          "bytes": 2396,
+          "path": "result.json",
+          "sha256": "79666bfaf3aa1f963bcb4e08db2489878060f14eb3ba2ce45a4223505a6c439c"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "c3ec4fc053ee72ba3a5c190d66cfe2e5682dc63b902a1657e24fde094286b53d"
+        }
+      ]
+    },
+    {
+      "bytes": 165678,
+      "manifest_sha256": "9e6c67869e8d42604708e60a0fcfbc8fda29d398b5f4e368d65899d92e54da6a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "9e6c67869e8d42604708e60a0fcfbc8fda29d398b5f4e368d65899d92e54da6a"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "4548248ff5b84b1e8bfa8bbcc165766f914c881cec444f19918f7ff5a8037cc4"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 150,
+          "path": "launcher.log",
+          "sha256": "6c4206cde7cded915bfb3e4a868e6a5d06c3dcfc51eaed54b2cb2b43c674e47d"
+        },
+        {
+          "bytes": 82413,
+          "path": "pyscf.log",
+          "sha256": "53fe44ec5d9ce6aa8b9277c72aad23ffd9155aef21a668ef78d72ad689c21139"
+        },
+        {
+          "bytes": 943,
+          "path": "request.json",
+          "sha256": "8ce161776f7a1ffab78164f9c38597e872eb6e253db887060783a0f0c8f4d088"
+        },
+        {
+          "bytes": 2398,
+          "path": "result.json",
+          "sha256": "9b89455ecb4e733cf1c4280ce761b890da3000644c4003bfdb09e0b41ddbe1b1"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "24ecc2f2d4efa620ba30f38bfc01d0956506e842d86fcf03f5f01e1e116ccf0d"
+        }
+      ]
+    },
+    {
+      "bytes": 123596,
+      "manifest_sha256": "73b72e62373985a78f06b96793d45ea90f43e46da338dd0580c7648d16d4bdcd",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1488,
+          "path": "manifest.json",
+          "sha256": "73b72e62373985a78f06b96793d45ea90f43e46da338dd0580c7648d16d4bdcd"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "2dfae0cce60c73d1d42c78e8ac247e7d5b17500b74554935c43ee7ba8666b6eb"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "e0fabf0e3eaba8ae411ea20875c414669a00d9ffbe17266e70f50266ae4a4ccf"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "4adcd13c672d1effe055c18776fc2df711ed0ed1c243f8b88ba0c8df5187f944"
+        },
+        {
+          "bytes": 39995,
+          "path": "pyscf.log",
+          "sha256": "921c4206ce1d8ae4738bcd60c0fd8f9761091a157dc651e949fa89800a53ad62"
+        },
+        {
+          "bytes": 988,
+          "path": "request.json",
+          "sha256": "db62900462fd17208add04e99ca2aabdbf5cb462d126d3a06a66da5808d5e69d"
+        },
+        {
+          "bytes": 2683,
+          "path": "result.json",
+          "sha256": "cbc5d46ac1c0c459adaf9e4902404b61cd53da9b091c214d0cc415d70b3deab1"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8d8338f950f8e5c623d3cf45858ebefcc3837300ecc0588fa8a7064e5333cf5b"
+        }
+      ]
+    },
+    {
+      "bytes": 124991,
+      "manifest_sha256": "49ffe496abcb053709548faffa2fa7d0375fce5398051ff9d2a2743d38af6b5d",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1648,
+          "path": "manifest.json",
+          "sha256": "49ffe496abcb053709548faffa2fa7d0375fce5398051ff9d2a2743d38af6b5d"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "e0fabf0e3eaba8ae411ea20875c414669a00d9ffbe17266e70f50266ae4a4ccf"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "4adcd13c672d1effe055c18776fc2df711ed0ed1c243f8b88ba0c8df5187f944"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "b4248fe7908d8a7f390345e75793b4f897198ddc8ba68d1fb514c3762dc90e9a"
+        },
+        {
+          "bytes": 169,
+          "path": "launcher.log",
+          "sha256": "f3d4e6572bb57f983516eaf0decc29ac17f34caefe641e83cd4a6309286f4ca8"
+        },
+        {
+          "bytes": 39998,
+          "path": "pyscf.log",
+          "sha256": "268cf3478f46086f430f1c4cb11333bcc385c8384a960dc6c1acef594a85aa0b"
+        },
+        {
+          "bytes": 989,
+          "path": "request.json",
+          "sha256": "0ce7715fa2791f0f4ad4c7139d67d07d86e957bbcb962baf32edf123fecbe259"
+        },
+        {
+          "bytes": 3481,
+          "path": "result.json",
+          "sha256": "c6f4f7e2b7889472d0a86c4fe2e136d62c82d9d096ae6941060c4cdb969b93ec"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8d8338f950f8e5c623d3cf45858ebefcc3837300ecc0588fa8a7064e5333cf5b"
+        }
+      ]
+    },
+    {
+      "bytes": 88642,
+      "manifest_sha256": "645c0a3bf27960f01540ea191d4e1c2db7d063d18097d638ba88cbbbda204ee4",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1802,
+          "path": "manifest.json",
+          "sha256": "645c0a3bf27960f01540ea191d4e1c2db7d063d18097d638ba88cbbbda204ee4"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "3f6db9ba568910075d9a4574ef77ac730a710a4b177624a1a906d7a6051571c6"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "293e4fcdaa86bf886e8346a6be96199bce1d14ed2a4238cc0ed59ce41d1ea45a"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "b1e45611747f0939e3cc6f176e97a226c2b4976f415e5a3a599cad6562a6020e"
+        },
+        {
+          "bytes": 123,
+          "path": "launcher.log",
+          "sha256": "839fa08059f7cb39401fad72b90cc4b21b0af2659706f2256ac407a7905856c2"
+        },
+        {
+          "bytes": 3356,
+          "path": "pyscf.log",
+          "sha256": "07f862a97ca853a2bc04a691f4dcb04a95e137aaf229531bd09c47ffb9f46910"
+        },
+        {
+          "bytes": 948,
+          "path": "request.json",
+          "sha256": "93de291cc9ebe249a469f8280118bc8b77fdb410ac9a7412bf4ec7b80d895e95"
+        },
+        {
+          "bytes": 3555,
+          "path": "result.json",
+          "sha256": "0506cf4c61804f13a5adb904cf87eba995e021500a2cef1798b0e4a29fdf2bf4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "77aa60323e073078b285e775d7578b3a768ca2f2d130d85ac3b857c321b59276"
+        }
+      ]
+    },
+    {
+      "bytes": 88615,
+      "manifest_sha256": "f1aeb76ed527fd4ae9f4c02f1c51e353493e04d6409b34e22018eb9c50b3c9f8",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1652,
+          "path": "manifest.json",
+          "sha256": "f1aeb76ed527fd4ae9f4c02f1c51e353493e04d6409b34e22018eb9c50b3c9f8"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "a7ef4a2829cf870916583d940b38dfe2c29382b1400b6c3b924359bbd8e62449"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "179e0cf67998609ce3123d578a7ac8db0141103474ad01349f9f7c1a4f829a24"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "eea5ea1e6ba02ce9a24f9b0194499fbe49b22feec59fc2fcd2462a5504a4d51e"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "22c246339b81c81f793e15943f784b49b75bc0aaa144cdd63ff7a7ba108f327b"
+        },
+        {
+          "bytes": 3363,
+          "path": "pyscf.log",
+          "sha256": "ea90122d0f615a98a33f04d14e9a1aa4bc501ec4d6718eb55a5180008394f50d"
+        },
+        {
+          "bytes": 1015,
+          "path": "request.json",
+          "sha256": "dca3177b41f7c89b8fa97fb1503cf88dbe828f05e488ae27dd0364dd947e7ea9"
+        },
+        {
+          "bytes": 3727,
+          "path": "result.json",
+          "sha256": "f63c9c79daff123078d7b181908235cceca530aa09f3a894417446e6f6bf2e50"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8f8185187cba5d6bd16dda9e3df9e473da269fcfe21349f536717ef38bf78d5d"
+        }
+      ]
+    },
+    {
+      "bytes": 87146,
+      "manifest_sha256": "04d68bcf929658d4013a37b7d0ee08e3b035071acc1b9ea22c24abd97faaf21a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1638,
+          "path": "manifest.json",
+          "sha256": "04d68bcf929658d4013a37b7d0ee08e3b035071acc1b9ea22c24abd97faaf21a"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "3f6db9ba568910075d9a4574ef77ac730a710a4b177624a1a906d7a6051571c6"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "293e4fcdaa86bf886e8346a6be96199bce1d14ed2a4238cc0ed59ce41d1ea45a"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 119,
+          "path": "launcher.log",
+          "sha256": "3c0f79b40422bd5fdc8295b0e7040acb4d91e04144627d540ca8f33b1775c7af"
+        },
+        {
+          "bytes": 3354,
+          "path": "pyscf.log",
+          "sha256": "1cc2339359fcd1148e2625d0af276cb97d3f487ce9f2b8e303242df6548c4f06"
+        },
+        {
+          "bytes": 975,
+          "path": "request.json",
+          "sha256": "9abe196927722b4d2d83f480f71bdc9c28134488966c425fa1673e6e2ae057d3"
+        },
+        {
+          "bytes": 2618,
+          "path": "result.json",
+          "sha256": "d74db682000191e7210ee8d38783fdcd4cbf047f4ba9382e5a02460497d30de2"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "77aa60323e073078b285e775d7578b3a768ca2f2d130d85ac3b857c321b59276"
+        }
+      ]
+    },
+    {
+      "bytes": 89250,
+      "manifest_sha256": "3f28a9c82a39600b390421f3f89dc6ec6d48102e3bcff8c54c5f2bf581c70219",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1639,
+          "path": "manifest.json",
+          "sha256": "3f28a9c82a39600b390421f3f89dc6ec6d48102e3bcff8c54c5f2bf581c70219"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "0984cc46e27ddbb1b1ed516604860ca3a6a710d14bba360f5c5c2d28f32ba716"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "138e64c831fd36c80b3adfcda667d7e1527d9c66631084ed35df616c04a69a2a"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "2281a24e80ffc83ef1cbffcbdfd52218453c1593cfbab2c30be9bac5bf78d8c1"
+        },
+        {
+          "bytes": 122,
+          "path": "launcher.log",
+          "sha256": "519698d9e83f3a90edcec523f3dfae105025712c6225ad27917c7492dd19e3c1"
+        },
+        {
+          "bytes": 4379,
+          "path": "pyscf.log",
+          "sha256": "d1a0b6a1350c6c101a90cf9e565731e9b1f1cc3f16d8117b66c7ae14d748d4e1"
+        },
+        {
+          "bytes": 1070,
+          "path": "request.json",
+          "sha256": "eaac5f23787056b7558283d4303d590c3d6e2e8e3e7b24642d9e480eacea1f4e"
+        },
+        {
+          "bytes": 2980,
+          "path": "result.json",
+          "sha256": "b9f486b343ffe9d36551a693b191f45b6e4bee6384cf007504a734c7b4775da5"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "3d3e3c3b09831fa423a8df83ab4b96891c9331236cf841e9b433bd178ab5b238"
+        }
+      ]
+    },
+    {
+      "bytes": 88628,
+      "manifest_sha256": "b895cdf4a4ce77e27228c63c427ab18d6d59c1accbb0cac27f8cdd2bf523f368",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1802,
+          "path": "manifest.json",
+          "sha256": "b895cdf4a4ce77e27228c63c427ab18d6d59c1accbb0cac27f8cdd2bf523f368"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "3f6db9ba568910075d9a4574ef77ac730a710a4b177624a1a906d7a6051571c6"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "293e4fcdaa86bf886e8346a6be96199bce1d14ed2a4238cc0ed59ce41d1ea45a"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "b1e45611747f0939e3cc6f176e97a226c2b4976f415e5a3a599cad6562a6020e"
+        },
+        {
+          "bytes": 115,
+          "path": "launcher.log",
+          "sha256": "19de45f18a7d484f5f081c4cc2361d5d59cd4df743772fe59224ba673518a134"
+        },
+        {
+          "bytes": 3350,
+          "path": "pyscf.log",
+          "sha256": "47d6ad95f30192e7b08f72362efafd60d1b60d609c610dfd34862d4f5dd6b39f"
+        },
+        {
+          "bytes": 948,
+          "path": "request.json",
+          "sha256": "93de291cc9ebe249a469f8280118bc8b77fdb410ac9a7412bf4ec7b80d895e95"
+        },
+        {
+          "bytes": 3555,
+          "path": "result.json",
+          "sha256": "0506cf4c61804f13a5adb904cf87eba995e021500a2cef1798b0e4a29fdf2bf4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "77aa60323e073078b285e775d7578b3a768ca2f2d130d85ac3b857c321b59276"
+        }
+      ]
+    },
+    {
+      "bytes": 124628,
+      "manifest_sha256": "778e1968d20f0146d1a700ae08624385da1f902d9b4996d530741a53599df0d8",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1489,
+          "path": "manifest.json",
+          "sha256": "778e1968d20f0146d1a700ae08624385da1f902d9b4996d530741a53599df0d8"
+        },
+        {
+          "bytes": 315,
+          "path": "basis-definition.json",
+          "sha256": "42b8f4e0791b9bfad8c0f165df6c8d476a36dbda3ca5c2a27bc1217aedfef26c"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "407413903dc7a4be0a786ccda521823aec1666f585306d2b0996c73cb8bc2688"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18517d7b74baf60be11a1aa40eaff75be8e2922be9a9ef004c4070a4fb461c02"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "26e2981b828d005eea48b0470ce27c6055e9ac135603342154c67d60f486c2cd"
+        },
+        {
+          "bytes": 40534,
+          "path": "pyscf.log",
+          "sha256": "279bea0eb500769e3693fb569a36c01b86d8b78ba5357e781ffa1133dcb0ee76"
+        },
+        {
+          "bytes": 1082,
+          "path": "request.json",
+          "sha256": "58879584c538839075b6949d9eb4c39abf290d887c7a8f7b612646cad0558a5f"
+        },
+        {
+          "bytes": 2970,
+          "path": "result.json",
+          "sha256": "633fc1b762494132d8c182b4f3c45426e2eee7b91d319dbd1cb2709f2468ab2d"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "4091403e25716949e2315df80bd2ba929374732a77273910b96e186a58db60bc"
+        }
+      ]
+    },
+    {
+      "bytes": 126487,
+      "manifest_sha256": "4327a83254bf4df0684bdc3b3a54220d5fe382d4741a16c6b83231db17d5e3a6",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "4327a83254bf4df0684bdc3b3a54220d5fe382d4741a16c6b83231db17d5e3a6"
+        },
+        {
+          "bytes": 315,
+          "path": "basis-definition.json",
+          "sha256": "42b8f4e0791b9bfad8c0f165df6c8d476a36dbda3ca5c2a27bc1217aedfef26c"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18517d7b74baf60be11a1aa40eaff75be8e2922be9a9ef004c4070a4fb461c02"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "26e2981b828d005eea48b0470ce27c6055e9ac135603342154c67d60f486c2cd"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "77cfd8da16998d65a592142eb28d55db64c7290e7184a68d163588c3ca2cd439"
+        },
+        {
+          "bytes": 180,
+          "path": "launcher.log",
+          "sha256": "987585d51898691924f8afdc31b759520b015a0040db2fde90aae86b105409b8"
+        },
+        {
+          "bytes": 40537,
+          "path": "pyscf.log",
+          "sha256": "733323998ccaf51837f2de18f23f5d990e4ef31abc6f6278bc76441661e95459"
+        },
+        {
+          "bytes": 1083,
+          "path": "request.json",
+          "sha256": "04f035cafd5c61bb19c8b5d53c709e397c5860ac737e2f1abdd7c1b6297b1539"
+        },
+        {
+          "bytes": 4221,
+          "path": "result.json",
+          "sha256": "c29136db8fa6c51bb5fdb7fce81040153c49573b792752a8bbd15c97494dd27f"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "4091403e25716949e2315df80bd2ba929374732a77273910b96e186a58db60bc"
+        }
+      ]
+    },
+    {
+      "bytes": 123619,
+      "manifest_sha256": "0884c07684d6da080bdbbb5c341356140ea61146c58c3bed392aa84c22db1aa4",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1489,
+          "path": "manifest.json",
+          "sha256": "0884c07684d6da080bdbbb5c341356140ea61146c58c3bed392aa84c22db1aa4"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "7201446fd584d25d8697c7791cecfbc6f9bf58ebcc07f5e690627088bd777af2"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "05266ead98aa0f23c6db2cd63a03088b558153d53e7f45d2add9314a4f3b16e6"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "bee14163899aca7386f082415b091f3c18c1cbd1883159e68d727404f6d2e90c"
+        },
+        {
+          "bytes": 40003,
+          "path": "pyscf.log",
+          "sha256": "cff5fcbed19cdfb367af1cce6501c938e2d2303c086817e327a984ef580571d1"
+        },
+        {
+          "bytes": 1005,
+          "path": "request.json",
+          "sha256": "378655ee1ed2dc71a3eff8cd2ebfa7e89b13538750fb8fde5c585b757025e541"
+        },
+        {
+          "bytes": 2680,
+          "path": "result.json",
+          "sha256": "ed1dc6b953722d064e478cb283f11a88c0bae4009d49f76be1234d451918c9f0"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "91d72d518ec721e224d9bb8663c76aca8a9b649b843d4eb92ee767e8f5723ade"
+        }
+      ]
+    },
+    {
+      "bytes": 125017,
+      "manifest_sha256": "0a15ce3cc2649d15c0c64e557c6fb6408091f934964b1fda6d5d8031102ffc5b",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "0a15ce3cc2649d15c0c64e557c6fb6408091f934964b1fda6d5d8031102ffc5b"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "05266ead98aa0f23c6db2cd63a03088b558153d53e7f45d2add9314a4f3b16e6"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "bee14163899aca7386f082415b091f3c18c1cbd1883159e68d727404f6d2e90c"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "b83378aa1adaf0973f80baab236e6cf7145f7ddae717f92892db1065c4d3ab30"
+        },
+        {
+          "bytes": 180,
+          "path": "launcher.log",
+          "sha256": "b9f157f6983729ab4f8020c176eaa67f0b87ea0f5253bd68fb69f21e9c34e9bf"
+        },
+        {
+          "bytes": 40006,
+          "path": "pyscf.log",
+          "sha256": "0cc9a7ddfd0db6e579f146e9f8c8530f6630cf5eb40f3d7962b1d57f7e655b62"
+        },
+        {
+          "bytes": 1006,
+          "path": "request.json",
+          "sha256": "1244fc6b0dd324d8ee111cacf76210cca7f84eab285268d4e6dc8e175f5b11fc"
+        },
+        {
+          "bytes": 3470,
+          "path": "result.json",
+          "sha256": "e047e84461c1c6f851304148f2c96bd6389fb953974811da4489bdc3a7e9f9c2"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "91d72d518ec721e224d9bb8663c76aca8a9b649b843d4eb92ee767e8f5723ade"
+        }
+      ]
+    },
+    {
+      "bytes": 165723,
+      "manifest_sha256": "09780e157963288d9cf8bdb0727ef5122e2531b84d5a8bacb915d757d6ed59ee",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "09780e157963288d9cf8bdb0727ef5122e2531b84d5a8bacb915d757d6ed59ee"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "cc58ba8472190d14f2412b26f05b1179936cee78519b796faa2bcac65d6f1313"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d68101d95dafc6ef93473d88b445c95d7c33db27bf79a202549fa716bbc0628c"
+        },
+        {
+          "bytes": 152,
+          "path": "launcher.log",
+          "sha256": "f88d523e74197d9b5eec0a3d55b36e858615c8c71d84d889ef0aef40a0822f1a"
+        },
+        {
+          "bytes": 82418,
+          "path": "pyscf.log",
+          "sha256": "a2de70e63f502e2b248473a1e28c04386d77f90de82f1a8a6c6475cb5dcb6847"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "6645c5bcdc260b34d3d0eba5795dadcbceee4a6ad64012602b098e4505b52b50"
+        },
+        {
+          "bytes": 2426,
+          "path": "result.json",
+          "sha256": "a43b1dfbc21ce8180c63681c27c5bed29de2a928685eda376c406272a3eb9c29"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "7f3ffb0d7e63adede3545600a0dfa059d0570518dc67a268a8e7a38903886831"
+        }
+      ]
+    },
+    {
+      "bytes": 165704,
+      "manifest_sha256": "fc146e21919cf1c8fece6a119cb1b1b1b120c4e6ce8e558e63dd325aed77580c",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "fc146e21919cf1c8fece6a119cb1b1b1b120c4e6ce8e558e63dd325aed77580c"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18cefe4327556483be633e990ca12ef34bff7b022450876e454d4bc1d7b188f2"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 152,
+          "path": "launcher.log",
+          "sha256": "565cbdbf2ac88b80df38bdeb45e2bc4c945098c9f6c2aaa93476448c9dd9c752"
+        },
+        {
+          "bytes": 82417,
+          "path": "pyscf.log",
+          "sha256": "1ac4341a173d92d174a23752fe1dd488b75082dc81dbc67be53ee7ad657f10bd"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "1f3b3acb08dcf91b0e98aaea7a23babd4430e92753760951082292cd0d55cf33"
+        },
+        {
+          "bytes": 2408,
+          "path": "result.json",
+          "sha256": "20578feaff86f4fbd2f23639124909c069f66cc973b40c539c39529ecee34ba4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "18d5f31298a2a32822e5be9d481b79c790587c66a9688cf8dbf88b9b3d8c67b2"
+        }
+      ]
+    },
+    {
+      "bytes": 95663,
+      "manifest_sha256": "aec7cd8a46df776e5f7c01d8582fc27c2961d9e29417964bdc6d551d3c0b0770",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1498,
+          "path": "manifest.json",
+          "sha256": "aec7cd8a46df776e5f7c01d8582fc27c2961d9e29417964bdc6d551d3c0b0770"
+        },
+        {
+          "bytes": 776,
+          "path": "basis-definition.json",
+          "sha256": "b74957710f72b9d476e7876a240827b74d58504dbc8a3d005adfe9ec6cf52465"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 224,
+          "path": "geometry-bohr.npy",
+          "sha256": "406dc67266bb0e7c35c550778ba5beacccd7d1f67e4fe192f03efe6d9ef9049b"
+        },
+        {
+          "bytes": 224,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "141f21cab9d5aab927948fb9c8bfa3c23d6630c79f04856a250ce27148624513"
+        },
+        {
+          "bytes": 1280,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "da6c6db32c4cfffd4299969f47e8f1bec544da605d7e7a47b6095fa6331aa2b0"
+        },
+        {
+          "bytes": 4597,
+          "path": "pyscf.log",
+          "sha256": "b2fd92c7a207721ce822b6247bfb67980e8713a2d10c3ee3191bbbca1246374b"
+        },
+        {
+          "bytes": 1395,
+          "path": "request.json",
+          "sha256": "4ca408f59b98138f3fafd0b594c5f20592279f9525d956dca7d25f4b5caa4cd7"
+        },
+        {
+          "bytes": 7935,
+          "path": "result.json",
+          "sha256": "66616bb344c3e002bd9cb2499b4173f29bde52b699a2f1cadb60d147a30aa346"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "4410f84763d6c5272c3cd27fabed37a037a827e39446e3cd8046a908b9c6167f"
+        }
+      ]
+    },
+    {
+      "bytes": 95621,
+      "manifest_sha256": "8b65044e74c79bce99b1d317fd4a5310b2a4953eb0fa931f7ebec58729fd2c95",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1498,
+          "path": "manifest.json",
+          "sha256": "8b65044e74c79bce99b1d317fd4a5310b2a4953eb0fa931f7ebec58729fd2c95"
+        },
+        {
+          "bytes": 776,
+          "path": "basis-definition.json",
+          "sha256": "b74957710f72b9d476e7876a240827b74d58504dbc8a3d005adfe9ec6cf52465"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 224,
+          "path": "geometry-bohr.npy",
+          "sha256": "67e1693e93408959cd82454d00780790b87e9edab38bef8bdfdce6a4e0fddf3a"
+        },
+        {
+          "bytes": 224,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "49a07dc18072de73f1eb0ef5694e314cac149865d107d91be86f13f4450978b0"
+        },
+        {
+          "bytes": 1280,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "9bab87f1c23f937a25a6896caf74412e9a709826dcb652706fa8efca456fbfcb"
+        },
+        {
+          "bytes": 4597,
+          "path": "pyscf.log",
+          "sha256": "49d9cead883978096de41eb3b67a6a69cb1683248811736e93a9c869ef029507"
+        },
+        {
+          "bytes": 1391,
+          "path": "request.json",
+          "sha256": "2ef421917bc89136cfdbb33ef6abf0503d1c05a4857232b8c571434853349de0"
+        },
+        {
+          "bytes": 7897,
+          "path": "result.json",
+          "sha256": "777be0aa858b9bc209844ab9ba98fc9c01317142a51696d78b2bf754e3da803b"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "d87a64f2f4d4c1e8c9474ad3b26c49ef26457b3f59a90f1c3663604bd149e811"
+        }
+      ]
+    },
+    {
+      "bytes": 95457,
+      "manifest_sha256": "11a2c96ec0cba1730fa1737205e3e3874d3f45ace20f37c16699526d57157fab",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "11a2c96ec0cba1730fa1737205e3e3874d3f45ace20f37c16699526d57157fab"
+        },
+        {
+          "bytes": 776,
+          "path": "basis-definition.json",
+          "sha256": "b74957710f72b9d476e7876a240827b74d58504dbc8a3d005adfe9ec6cf52465"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 224,
+          "path": "geometry-bohr.npy",
+          "sha256": "74c1aad9557e4f504158012bd0ee478da31367cea2d8f35fdcb62d2c73af26fe"
+        },
+        {
+          "bytes": 224,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "4462ad6bd09d1a23362aded7b353a04fcbf1b0393c5d1e4fc354dd05fdc1dbc7"
+        },
+        {
+          "bytes": 1280,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "09b4bf0ead6075a7d231f760fe2ef80c3aa1fb34fc4cea3204f37d35a56b1401"
+        },
+        {
+          "bytes": 148,
+          "path": "launcher.log",
+          "sha256": "09d1c15ad63f9a3e443848a5bb069fc5288f9f59b9ba7fb214b7bc3e336e649f"
+        },
+        {
+          "bytes": 4439,
+          "path": "pyscf.log",
+          "sha256": "e6242b79b4abb7c395da32582d9a1c881e541cc045f24cb65a983ed9c005649e"
+        },
+        {
+          "bytes": 1238,
+          "path": "request.json",
+          "sha256": "5dd28240a16ce4d3593a73f59dd39ddf33488516363b94fa01c5f855709c7f5f"
+        },
+        {
+          "bytes": 7745,
+          "path": "result.json",
+          "sha256": "606261869124b78e5e14ae9a1bdf80c662c884708c0afe400a2b8a509254738e"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "da52780502a7befeb18f77be86cb458e5a7fd62a37d208488177538bad1fc073"
+        }
+      ]
+    },
+    {
+      "bytes": 95931,
+      "manifest_sha256": "fe912ce97a0b89fcdbaf91daea162ae439f837bf08fa078ef33017871c27d920",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "fe912ce97a0b89fcdbaf91daea162ae439f837bf08fa078ef33017871c27d920"
+        },
+        {
+          "bytes": 776,
+          "path": "basis-definition.json",
+          "sha256": "b74957710f72b9d476e7876a240827b74d58504dbc8a3d005adfe9ec6cf52465"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 224,
+          "path": "geometry-bohr.npy",
+          "sha256": "656db9b03f51e31f35f0577faf6884efded36e883a71f064e13f559d68e666b4"
+        },
+        {
+          "bytes": 224,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "e82c9ee2ce077de891af76502cf0f86dd001e42d98a9bbab7e5fad41f2e428ab"
+        },
+        {
+          "bytes": 1280,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "31bee88f7395150b5bc77fbc8ab6cc88a6e83db80d87846c7b1e34cfaa57067b"
+        },
+        {
+          "bytes": 148,
+          "path": "launcher.log",
+          "sha256": "cd568f5758f2a4496170dac5d2a82524cba69f2ffdbb7b945b24f12c862b4423"
+        },
+        {
+          "bytes": 4441,
+          "path": "pyscf.log",
+          "sha256": "c6eead1b7e0d265a61ec861069f6aff750489905560e9404702efe9972c23f60"
+        },
+        {
+          "bytes": 1386,
+          "path": "request.json",
+          "sha256": "1c9da21700bda44147e5793d6cc1fcd6c6bb48046c1edc730972f6e0c1661257"
+        },
+        {
+          "bytes": 8069,
+          "path": "result.json",
+          "sha256": "ecded4eca11644b41d30c12c73d94fd5cc53eaed33b5bf617cccd0d9bce90156"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "6260ce38ff975261c9263bb9468c80854230f1f9fa0786e6dc87a7f8eeedb3e3"
+        }
+      ]
+    },
+    {
+      "bytes": 86854,
+      "manifest_sha256": "86985a7230647018f3a4ead7c456b8f4a58ff8d0c519ab73aee844a7ddaba753",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1483,
+          "path": "manifest.json",
+          "sha256": "86985a7230647018f3a4ead7c456b8f4a58ff8d0c519ab73aee844a7ddaba753"
+        },
+        {
+          "bytes": 314,
+          "path": "basis-definition.json",
+          "sha256": "42392a888546ab8053e5b930eb3f757437f9be6f60ac204e39ecbb432a225021"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 152,
+          "path": "geometry-bohr.npy",
+          "sha256": "9fffeef8450686340f307d9f7e51056036dd332ba0f7fa0d76aa58fe8bc5c2e4"
+        },
+        {
+          "bytes": 152,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "9fffeef8450686340f307d9f7e51056036dd332ba0f7fa0d76aa58fe8bc5c2e4"
+        },
+        {
+          "bytes": 292,
+          "path": "launcher.log",
+          "sha256": "33a34ee9ece6ecf572742cedcbaf73b85e3fa5c34c32cb3beb373828569beab3"
+        },
+        {
+          "bytes": 3675,
+          "path": "pyscf.log",
+          "sha256": "65d6b8eb382515d533c1c97b04832d50ae8b0db4137259a976ac196b3045d860"
+        },
+        {
+          "bytes": 860,
+          "path": "request.json",
+          "sha256": "e81ea88e1f8432fbd9303bdca995e1d8cca289ed82a505e958382a36c8c2244f"
+        },
+        {
+          "bytes": 2192,
+          "path": "result.json",
+          "sha256": "14eb264ad158a9693246cbb81272e5396ea8603551ee61c35eabff66e027a3cd"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "29e862f4e499fa4f65ee24bc6c11cbadee1340c75297aaa5716e92f0ec8893e1"
+        }
+      ]
+    },
+    {
+      "bytes": 86854,
+      "manifest_sha256": "01215c7dafe0e2def81fa16d848e1f5b3f62a03de8ebf9ffb105a6ac7e2ae61b",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1483,
+          "path": "manifest.json",
+          "sha256": "01215c7dafe0e2def81fa16d848e1f5b3f62a03de8ebf9ffb105a6ac7e2ae61b"
+        },
+        {
+          "bytes": 314,
+          "path": "basis-definition.json",
+          "sha256": "42392a888546ab8053e5b930eb3f757437f9be6f60ac204e39ecbb432a225021"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 152,
+          "path": "geometry-bohr.npy",
+          "sha256": "d2a4055f94ac50517db031ab1586a0052cd0e00e941173663a73b7fca1855cc3"
+        },
+        {
+          "bytes": 152,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "9fffeef8450686340f307d9f7e51056036dd332ba0f7fa0d76aa58fe8bc5c2e4"
+        },
+        {
+          "bytes": 292,
+          "path": "launcher.log",
+          "sha256": "8ba4e957a9deb5db8a231da5a27be0132783c9a5700f7d48947d53bf604535fe"
+        },
+        {
+          "bytes": 3675,
+          "path": "pyscf.log",
+          "sha256": "5576a5cecd6d087dabffdace5c01bdaf5b61be94b63d6c7a507e65b23908cc26"
+        },
+        {
+          "bytes": 860,
+          "path": "request.json",
+          "sha256": "49a970078cb3330aaa849bcd7cd0131f1a132f719abfa4577aa18c68eea4e9a8"
+        },
+        {
+          "bytes": 2192,
+          "path": "result.json",
+          "sha256": "fbd33c51a7c452443ca9bed4028e15308b9432b44dce39f3d3100febfcf06aae"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "d5f1fb9003ab8a7a45d163a37ff01b6d544f861933042bdc492a9956652c826f"
+        }
+      ]
+    },
+    {
+      "bytes": 87213,
+      "manifest_sha256": "05c3cad9888ac8413052cc13dec153ae90c54ddd1373fba272415ebc1b52a29a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1483,
+          "path": "manifest.json",
+          "sha256": "05c3cad9888ac8413052cc13dec153ae90c54ddd1373fba272415ebc1b52a29a"
+        },
+        {
+          "bytes": 314,
+          "path": "basis-definition.json",
+          "sha256": "42392a888546ab8053e5b930eb3f757437f9be6f60ac204e39ecbb432a225021"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "abfeb9f37dcff2229a1ed822c8fdf5b4973ae2ed9934c3566494026cca08d267"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "8fa06729d3d778180468e2d1ca2751d5f8b7b7f787b8ab5f0cb96a0c853aa7c5"
+        },
+        {
+          "bytes": 133,
+          "path": "launcher.log",
+          "sha256": "4e5c81ece9d6446f4b30e9f12188df2643b22d84baa4bb9d6b1df0127db2ff2f"
+        },
+        {
+          "bytes": 3736,
+          "path": "pyscf.log",
+          "sha256": "9b38485654ec12d916fef72301c1eeefc1ce5bcebc312233465589cffa7b4abc"
+        },
+        {
+          "bytes": 953,
+          "path": "request.json",
+          "sha256": "dbbd3b682dd3151bb1253f64647d043f3b04a4aef3b6cdc7b136462b2c82a58c"
+        },
+        {
+          "bytes": 2508,
+          "path": "result.json",
+          "sha256": "167741f4b6a1db8f8a2e46a469c9263a95d8ba506f60e49afab0016eb85cb66c"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "8114be3d0463edfaf94aab4ef3a28b21b46d44cbc3c9fd58892107ce2758ede9"
+        }
+      ]
+    },
+    {
+      "bytes": 120960,
+      "manifest_sha256": "029a4d8bdcd28f58ae624fc9e1803bac23ec056a8dcd20d503ca4ad5286ffda8",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1489,
+          "path": "manifest.json",
+          "sha256": "029a4d8bdcd28f58ae624fc9e1803bac23ec056a8dcd20d503ca4ad5286ffda8"
+        },
+        {
+          "bytes": 315,
+          "path": "basis-definition.json",
+          "sha256": "42b8f4e0791b9bfad8c0f165df6c8d476a36dbda3ca5c2a27bc1217aedfef26c"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "407413903dc7a4be0a786ccda521823aec1666f585306d2b0996c73cb8bc2688"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "18517d7b74baf60be11a1aa40eaff75be8e2922be9a9ef004c4070a4fb461c02"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "26e2981b828d005eea48b0470ce27c6055e9ac135603342154c67d60f486c2cd"
+        },
+        {
+          "bytes": 36866,
+          "path": "pyscf.log",
+          "sha256": "94681343bfbe592288b119157117cbefdc8cde61f0766bc35b874d059869d02b"
+        },
+        {
+          "bytes": 1082,
+          "path": "request.json",
+          "sha256": "58879584c538839075b6949d9eb4c39abf290d887c7a8f7b612646cad0558a5f"
+        },
+        {
+          "bytes": 2970,
+          "path": "result.json",
+          "sha256": "633fc1b762494132d8c182b4f3c45426e2eee7b91d319dbd1cb2709f2468ab2d"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "4091403e25716949e2315df80bd2ba929374732a77273910b96e186a58db60bc"
+        }
+      ]
+    },
+    {
+      "bytes": 119836,
+      "manifest_sha256": "0705c0a9f8a986af03faf8b18bf4e0f51d443af44af8a1b4a71e8f241a7e3327",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1488,
+          "path": "manifest.json",
+          "sha256": "0705c0a9f8a986af03faf8b18bf4e0f51d443af44af8a1b4a71e8f241a7e3327"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "7201446fd584d25d8697c7791cecfbc6f9bf58ebcc07f5e690627088bd777af2"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "05266ead98aa0f23c6db2cd63a03088b558153d53e7f45d2add9314a4f3b16e6"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "bee14163899aca7386f082415b091f3c18c1cbd1883159e68d727404f6d2e90c"
+        },
+        {
+          "bytes": 36305,
+          "path": "pyscf.log",
+          "sha256": "4bd78d4ad5593a61e9191a65a03eed6a1f24a5f4653f5e53fed8b8f80fe14c9e"
+        },
+        {
+          "bytes": 963,
+          "path": "request.json",
+          "sha256": "da23ddd32859eecf6d71bcd1f23e0605c11a5d7a26dd28f93736b8d1b669e991"
+        },
+        {
+          "bytes": 2638,
+          "path": "result.json",
+          "sha256": "2c47327d8be0298cb7270163b19c8632b9ab528c3e9ffbc28f2191dab1209d00"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "ddd934a8154bfdccf80829ac281a4e66655c9484fe80f9d231f7a7b0c5f41db0"
+        }
+      ]
+    },
+    {
+      "bytes": 121332,
+      "manifest_sha256": "0f95bbc3078c64900c11ffb92ad83c8b9d0035f9178aa0bcd3ae5fd9e90ab3e6",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1649,
+          "path": "manifest.json",
+          "sha256": "0f95bbc3078c64900c11ffb92ad83c8b9d0035f9178aa0bcd3ae5fd9e90ab3e6"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "05266ead98aa0f23c6db2cd63a03088b558153d53e7f45d2add9314a4f3b16e6"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "bee14163899aca7386f082415b091f3c18c1cbd1883159e68d727404f6d2e90c"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "b83378aa1adaf0973f80baab236e6cf7145f7ddae717f92892db1065c4d3ab30"
+        },
+        {
+          "bytes": 163,
+          "path": "launcher.log",
+          "sha256": "c1bae7e21f6d9795558726ad09076f1d9b892f8e80202a7074b420f69ae60c60"
+        },
+        {
+          "bytes": 36338,
+          "path": "pyscf.log",
+          "sha256": "ff92f408d9de3e0ecfadfb8ee0c7ddb672c924aeff32a7e0b51f654935e029f7"
+        },
+        {
+          "bytes": 1006,
+          "path": "request.json",
+          "sha256": "1244fc6b0dd324d8ee111cacf76210cca7f84eab285268d4e6dc8e175f5b11fc"
+        },
+        {
+          "bytes": 3470,
+          "path": "result.json",
+          "sha256": "e047e84461c1c6f851304148f2c96bd6389fb953974811da4489bdc3a7e9f9c2"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "91d72d518ec721e224d9bb8663c76aca8a9b649b843d4eb92ee767e8f5723ade"
+        }
+      ]
+    },
+    {
+      "bytes": 88593,
+      "manifest_sha256": "10b886d7d01be9532402873e230537cae92715999e10d769074e63e272ce253a",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1801,
+          "path": "manifest.json",
+          "sha256": "10b886d7d01be9532402873e230537cae92715999e10d769074e63e272ce253a"
+        },
+        {
+          "bytes": 204,
+          "path": "basis-definition.json",
+          "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "3f6db9ba568910075d9a4574ef77ac730a710a4b177624a1a906d7a6051571c6"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 176,
+          "path": "geometry-bohr.npy",
+          "sha256": "293e4fcdaa86bf886e8346a6be96199bce1d14ed2a4238cc0ed59ce41d1ea45a"
+        },
+        {
+          "bytes": 176,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "0e6c22f2b78261ac5e7433ae24d7cfdab1f820f729ee4502dacf259d62ced877"
+        },
+        {
+          "bytes": 416,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "b1e45611747f0939e3cc6f176e97a226c2b4976f415e5a3a599cad6562a6020e"
+        },
+        {
+          "bytes": 98,
+          "path": "launcher.log",
+          "sha256": "72e3b6ef791cfb4a9ef6d149807799de12c754265cf605e20c03f8e9736649e0"
+        },
+        {
+          "bytes": 3333,
+          "path": "pyscf.log",
+          "sha256": "58d1d6a24e38aa921b11a046f2389b6bf44ea966f982c3292c8754b9f1d87b59"
+        },
+        {
+          "bytes": 948,
+          "path": "request.json",
+          "sha256": "93de291cc9ebe249a469f8280118bc8b77fdb410ac9a7412bf4ec7b80d895e95"
+        },
+        {
+          "bytes": 3555,
+          "path": "result.json",
+          "sha256": "0506cf4c61804f13a5adb904cf87eba995e021500a2cef1798b0e4a29fdf2bf4"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "77aa60323e073078b285e775d7578b3a768ca2f2d130d85ac3b857c321b59276"
+        }
+      ]
+    },
+    {
+      "bytes": 89658,
+      "manifest_sha256": "4f2591d3b85304075142f7d5942b4bcaf4c65063d415f3d2f502d575b27825a1",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1488,
+          "path": "manifest.json",
+          "sha256": "4f2591d3b85304075142f7d5942b4bcaf4c65063d415f3d2f502d575b27825a1"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "e05c33c4f9a15bf5615ce1bf93b860ad32938a96b2974e1d55de7e29a817e41f"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "29bd6adac0e508467302c6594def293305ecb7de19de95dea9674b84426313c4"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "551ad78f57b6b4507e4d38396cda9457bbd3d825f276b34a56c29b3dd378c2db"
+        },
+        {
+          "bytes": 4519,
+          "path": "pyscf.log",
+          "sha256": "57e1b8aee6e0f20808724750a8c381d4f2fb83ee680a07223f5626a2c7b0dea8"
+        },
+        {
+          "bytes": 1264,
+          "path": "request.json",
+          "sha256": "42034055e45dda78b84c9f9080494aae0ad4a4a350032501675d3f3d0c838a9e"
+        },
+        {
+          "bytes": 3327,
+          "path": "result.json",
+          "sha256": "3d4fcbd3b1ee5ac743554d8581da2b7875cf3b12297bfb86dfef601b3f085dbf"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "e0dd34b2344079ff9495c25bd730d30c3fd5dd844007b651603be5275d3f06ed"
+        }
+      ]
+    },
+    {
+      "bytes": 93109,
+      "manifest_sha256": "7be9b99eb7ac5a975cb71dfce9ee7e6700412fc315609ce1add9f23238d446ef",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1648,
+          "path": "manifest.json",
+          "sha256": "7be9b99eb7ac5a975cb71dfce9ee7e6700412fc315609ce1add9f23238d446ef"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "29bd6adac0e508467302c6594def293305ecb7de19de95dea9674b84426313c4"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "551ad78f57b6b4507e4d38396cda9457bbd3d825f276b34a56c29b3dd378c2db"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "330d9684f754f8302554a6701faec2da12d36889553aebbbc3ecafa05a9db065"
+        },
+        {
+          "bytes": 107,
+          "path": "launcher.log",
+          "sha256": "b56a0f292758c1554f22b39bca409f28020268d56ee3056a6ea4f835e655f754"
+        },
+        {
+          "bytes": 4522,
+          "path": "pyscf.log",
+          "sha256": "9ae3c16cc4e30860081ae5aa305527eef3de1fe37ab841315fd2779e1a2b655f"
+        },
+        {
+          "bytes": 1265,
+          "path": "request.json",
+          "sha256": "e966c10c29241dfc9c79eb18b43d3ed83d29659a809ce258c0b02462e1db1d2a"
+        },
+        {
+          "bytes": 5883,
+          "path": "result.json",
+          "sha256": "b4eae9911f64129b0ecc805ce1e9131599b66a36f7f972f85b33e5a85b9ed429"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "e0dd34b2344079ff9495c25bd730d30c3fd5dd844007b651603be5275d3f06ed"
+        }
+      ]
+    },
+    {
+      "bytes": 87969,
+      "manifest_sha256": "9c2edaff738c87d72b0ff7c25ce6fdf563c28a64e00044d45790c29758282ce6",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1320,
+          "path": "manifest.json",
+          "sha256": "9c2edaff738c87d72b0ff7c25ce6fdf563c28a64e00044d45790c29758282ce6"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "7104a3bd7d2412335ddb55212e2a74550c5b748e5e49123eb8e5bb146c2cd14a"
+        },
+        {
+          "bytes": 108,
+          "path": "launcher.log",
+          "sha256": "a052b79e36c4f2a29a6b9d92be492b5cecf9e44f04baa79df7625b223bff4439"
+        },
+        {
+          "bytes": 4075,
+          "path": "pyscf.log",
+          "sha256": "5aa0d35f7474ba3e2498122192c698c747c7a3eecc8d260e6d7a7c57182bd2d2"
+        },
+        {
+          "bytes": 1129,
+          "path": "request.json",
+          "sha256": "c99243756eb4bb541694b8355d29e3b0c20f046cf74a44ded665f19dba6551ab"
+        },
+        {
+          "bytes": 2629,
+          "path": "result.json",
+          "sha256": "29d8a6eb48ccfccb48303a770624399c584e12e1caaf06bfcd0132a3073642d8"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "680340f2c70eaa263e9dff0c072ac5c38e4098df642a1387129b32fdb7c6ab4c"
+        }
+      ]
+    },
+    {
+      "bytes": 89394,
+      "manifest_sha256": "9c41c258adf9dfc2966300905f50f7531549047581373a1c6adaaa640973846c",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "9c41c258adf9dfc2966300905f50f7531549047581373a1c6adaaa640973846c"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "29bd6adac0e508467302c6594def293305ecb7de19de95dea9674b84426313c4"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "551ad78f57b6b4507e4d38396cda9457bbd3d825f276b34a56c29b3dd378c2db"
+        },
+        {
+          "bytes": 122,
+          "path": "launcher.log",
+          "sha256": "eb603c1e1c6e70ef93d32d90ae821acc262b9d20f9ad51667ce16713726fa346"
+        },
+        {
+          "bytes": 4537,
+          "path": "pyscf.log",
+          "sha256": "b4d14e25eaa7636bdc47a48566d45ab3bac57c8767392e6375dc050b757aefeb"
+        },
+        {
+          "bytes": 1250,
+          "path": "request.json",
+          "sha256": "92e2d7bfedab67b7c761a5e02a0308fa40b2b92acd29b9182bc4abd067068fa7"
+        },
+        {
+          "bytes": 3093,
+          "path": "result.json",
+          "sha256": "66a149f2f63ab63d8285dff333f4b665c37b382d8b8c55eb6be7ccae226ef9d0"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "e0dd34b2344079ff9495c25bd730d30c3fd5dd844007b651603be5275d3f06ed"
+        }
+      ]
+    },
+    {
+      "bytes": 93071,
+      "manifest_sha256": "44c094521ac80eb1f69affae4f68105bd5055707d06bbe9a7cf75721f7d863f4",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1652,
+          "path": "manifest.json",
+          "sha256": "44c094521ac80eb1f69affae4f68105bd5055707d06bbe9a7cf75721f7d863f4"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 152,
+          "path": "dipole-debye.npy",
+          "sha256": "ea5e91d0fb639c2eace3d0bdf35d95f005fbf8412f9a38237e5034a37c50dca5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "7104a3bd7d2412335ddb55212e2a74550c5b748e5e49123eb8e5bb146c2cd14a"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "4ce936c4b575fcf759078e382945dc6689cbff810b34d44de8c6aafe7a6f4708"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "2467c31780ab19649292ee63ce9ec82f71885f2bec8ed04155b819ac665c929a"
+        },
+        {
+          "bytes": 4386,
+          "path": "pyscf.log",
+          "sha256": "268c4ddc5fb338097a5c296bdc8e5369f7e8090758b47cb4c2d570988b3dd575"
+        },
+        {
+          "bytes": 1174,
+          "path": "request.json",
+          "sha256": "85d241ebf9aff180a39cfca68b850082029928f0714805b2dee75fa7858c2b0e"
+        },
+        {
+          "bytes": 6023,
+          "path": "result.json",
+          "sha256": "b6a01ea6db1f5feb7122ca027a03b54eca8e45d4bc788fca3d566c49fa96fa1d"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "9c347ec686ec62e542edaad71dfd8fb717d01035ff5ebaff50c52da906c33f98"
+        }
+      ]
+    },
+    {
+      "bytes": 89225,
+      "manifest_sha256": "9235973bab0c5238c048f29b32eae7ff6d42761c39fff5eca0ff6d4f3896d9f0",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "9235973bab0c5238c048f29b32eae7ff6d42761c39fff5eca0ff6d4f3896d9f0"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "902ae4972710641703c97abd5023f95bb2318ae01a1fd29d1a1bf38d8e98566f"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "bf1486917efd4b140990b64ce15fb2b57cf5320ef32162bf398ff5e01955a1d1"
+        },
+        {
+          "bytes": 147,
+          "path": "launcher.log",
+          "sha256": "5cae39f08e4aa93abf3d658b34ffc3fd046c6a049c10e8c99ec1282d06fa5cda"
+        },
+        {
+          "bytes": 4405,
+          "path": "pyscf.log",
+          "sha256": "e5c2ecee5ef08927950ea5355ed6cb18ea99bfbbe6eee6c5651d406c95812fb4"
+        },
+        {
+          "bytes": 1218,
+          "path": "request.json",
+          "sha256": "2fb49b572922937c34a6ea3724f2148df5983d7049d1340cec2479e9ebfd7206"
+        },
+        {
+          "bytes": 3063,
+          "path": "result.json",
+          "sha256": "f3b09c92d0f5e588b495770202b047b7581e65eed8e6deea19084f75111f6568"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "a25dcd58ae9d9c5f5bf1317865b7e2daeea21d519c74cd17dfa837388367361d"
+        }
+      ]
+    },
+    {
+      "bytes": 92680,
+      "manifest_sha256": "1366dfaf0d7cd38c48ddd91d8d4ebeed62c67d782f8cb47083784cabee44d5e9",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1497,
+          "path": "manifest.json",
+          "sha256": "1366dfaf0d7cd38c48ddd91d8d4ebeed62c67d782f8cb47083784cabee44d5e9"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "38a403f7cf513c00a2ce8238e00371294dbb1f69b0f095820525c77e37790bf5"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "b22e5bc9c9e1e023cb75bf95408cbbedbfdb75dc04e69a38744d52cc881621e5"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "8d76f0a1d236da1faea8bb67a2c39f07f7ced2ed3bb25ce1d8ed1ecf40106b4f"
+        },
+        {
+          "bytes": 4397,
+          "path": "pyscf.log",
+          "sha256": "4c62da04239eff37eb532b4192a64e658bbf521d36d70e9a3c51c1fd59dae035"
+        },
+        {
+          "bytes": 1235,
+          "path": "request.json",
+          "sha256": "98c67b126f5f9c8a79d7a6df4c16ae133b9837fc8a05fe196fcd2dbce98cda91"
+        },
+        {
+          "bytes": 5867,
+          "path": "result.json",
+          "sha256": "0c4ea9081bd5d33865bb3b922e02b0f014037033e50c6e9edfb534b1ce12d341"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "6b2fb63aa9af0ae49f90350cdb74d801d0608970d19950df5cf916c2e73c104b"
+        }
+      ]
+    },
+    {
+      "bytes": 89180,
+      "manifest_sha256": "698a176dbfd6f61507f74c2ba7c5335fce25eefb503177509c0b007392e63598",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "698a176dbfd6f61507f74c2ba7c5335fce25eefb503177509c0b007392e63598"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "249d1af269d6a5343903ee19dddc317911f6dfeb9d257bf86fa58e7902371e50"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d3008c5393d549fbac6a5aa1aa8c218634a83cb12d612028589b8ffcb7fed4e5"
+        },
+        {
+          "bytes": 147,
+          "path": "launcher.log",
+          "sha256": "75eaa521ae1e4102f1a8ff1c39828e43d52641a87e96d6ee91b726ffa2b9fed4"
+        },
+        {
+          "bytes": 4398,
+          "path": "pyscf.log",
+          "sha256": "a67349b4f4a1db1cb6d4a9f465024c377bad999f8dbf37657e4f13aae63973b2"
+        },
+        {
+          "bytes": 1206,
+          "path": "request.json",
+          "sha256": "fe7fbeb1bed15d4793173cf2072d768af174d42cd5df6d4c334ce24d632600e4"
+        },
+        {
+          "bytes": 3037,
+          "path": "result.json",
+          "sha256": "d739bd4fb1f25643c856a6c0b15ac61d4550a58b2ccb3c0f77c9c027aeeb6c4c"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "7dd6b6327cf89f61849f2c7ad5ecc75edd64d17714529abebc7c4efdb9e66f8d"
+        }
+      ]
+    },
+    {
+      "bytes": 92547,
+      "manifest_sha256": "8b575973f2553ad509f8bfc9e51d89d2348a04c8fb1fd3fa1db54c2db88d6487",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1497,
+          "path": "manifest.json",
+          "sha256": "8b575973f2553ad509f8bfc9e51d89d2348a04c8fb1fd3fa1db54c2db88d6487"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "d93623a4768ebc4000d398f1c9fe42d8cb6c6855a8f83f6997d0545776af4376"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "5512d3f50f40c6e0f9289b28d9f2f1f9cefc46640cf3788111308d8a9422103b"
+        },
+        {
+          "bytes": 776,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "c65e50cc056a5b738a1b8bf8b455357c3baad826132639123be62a61c5438da7"
+        },
+        {
+          "bytes": 4400,
+          "path": "pyscf.log",
+          "sha256": "794e1a911c58fd8cf1af35442fe67b9d27e11cd4819e5024607c9e684b6fba7e"
+        },
+        {
+          "bytes": 1222,
+          "path": "request.json",
+          "sha256": "924c89e71920733abcdcc3166a609ece8eb0a58b8ccf68d1af35afa3f92b7b9c"
+        },
+        {
+          "bytes": 5744,
+          "path": "result.json",
+          "sha256": "ff7d13f968e57537da5e1132b272834dd5f8473abd08a14c19d96d7928cca6d8"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "29de21f733f8c682c56e60d428465f110dffde54a69dd63eb13e8661ff844450"
+        }
+      ]
+    },
+    {
+      "bytes": 104381,
+      "manifest_sha256": "e5e6fad631f163cea49507bcce1e45010a19ec7344613e0f6589bb3049366937",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1499,
+          "path": "manifest.json",
+          "sha256": "e5e6fad631f163cea49507bcce1e45010a19ec7344613e0f6589bb3049366937"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 272,
+          "path": "geometry-bohr.npy",
+          "sha256": "4f1fcf066ac90f74dba322471d4ec683a14066e4c930fb031a1e55bc3ca868b4"
+        },
+        {
+          "bytes": 272,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "d60c930e9833277646bff4611b2bebba50162919a744bde04025f0df748bb7b2"
+        },
+        {
+          "bytes": 2720,
+          "path": "hessian-hartree-bohr2.npy",
+          "sha256": "f7abf30e08c78f76e53eb137b7d30f9b688e9b8c6983c9c014374c4521ae647c"
+        },
+        {
+          "bytes": 5430,
+          "path": "pyscf.log",
+          "sha256": "cfcd0ddf24b9254bc205cf3b5671a02e757c8cf6fe39c04ab218c1b3390e6caf"
+        },
+        {
+          "bytes": 1671,
+          "path": "request.json",
+          "sha256": "b6b86d11d1cc56dd6ea6f65cb3ca8796f2dca7b5dd9bd16de66cdeb2aa628bf8"
+        },
+        {
+          "bytes": 14009,
+          "path": "result.json",
+          "sha256": "e49c5f56adbfaa9d2d2c60a93231a4ccfc9b4260e7bacd1d5e775a65f789cbff"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "ca87b40cb3fcdb868b524daf2835adbbad9edd42c54d8ca4e0379f043f72aada"
+        }
+      ]
+    },
+    {
+      "bytes": 89191,
+      "manifest_sha256": "67f99943b239e5335f1862897b4d61617133087f8e2962630a1828cbe0b2fda8",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "67f99943b239e5335f1862897b4d61617133087f8e2962630a1828cbe0b2fda8"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "8394122af2217122f994479a7c01e3b41663988318ec5846fa0d861f76086329"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "62ef3c73096061908797a2a68d59e1bd7318cc816e35041468111e55f276bd24"
+        },
+        {
+          "bytes": 147,
+          "path": "launcher.log",
+          "sha256": "b18cbaba1ff75007a49d5de0ee08059639aad52e206af9cb749dfa7f89b1c4b9"
+        },
+        {
+          "bytes": 4556,
+          "path": "pyscf.log",
+          "sha256": "2bba8dfa06a488f1c7802a3a85e10bd900779a979c06df7710a127d9becc0584"
+        },
+        {
+          "bytes": 1151,
+          "path": "request.json",
+          "sha256": "04df82639abd098ab3fa78751acee18add0952754e08a38a463bd983ad860749"
+        },
+        {
+          "bytes": 2945,
+          "path": "result.json",
+          "sha256": "4ed2e96169b3237d6c79a93f4593f5875947b8d1201d1d08fd1dba99f5611e5d"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "6bb51f9523f369ad79a69f4bc6e4aae062f6b65d6f9913d58a2be6c7af9bdc1d"
+        }
+      ]
+    },
+    {
+      "bytes": 88579,
+      "manifest_sha256": "6e31df2b699caf6e7e0f2b5d02a8f704bd45948705a0ae5f70b7609150e0cee4",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "6e31df2b699caf6e7e0f2b5d02a8f704bd45948705a0ae5f70b7609150e0cee4"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "4e09cfbd36bc29f85414d7d51d8e8ad8978affd5635c196a9ae7675b185271bb"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "329a87bbbfe031c66f7b733edf2b3176ef9593c4b6fefe4683fb823ddbe270d3"
+        },
+        {
+          "bytes": 167,
+          "path": "launcher.log",
+          "sha256": "0b3ecaf75380ae902450ad278fbf611cab555f743ef67e6066f4379d4fbc29f2"
+        },
+        {
+          "bytes": 4229,
+          "path": "pyscf.log",
+          "sha256": "f053b013a9200f73fa25714c03dd5bed8f3845c0f22c8e928327dc44335f981f"
+        },
+        {
+          "bytes": 1051,
+          "path": "request.json",
+          "sha256": "514f9703a852a40b6649d33ece83401815f308c30973fe1eb48bcc206ee4d990"
+        },
+        {
+          "bytes": 2740,
+          "path": "result.json",
+          "sha256": "7b1d624559ce05e3559c58d6a94d0169f1c6f2fd713cdef3f162ab478e1ed578"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "6b6007d85b40ff760f1aeece75a8750e1b6192e91ad7597856911c8ee011d4be"
+        }
+      ]
+    },
+    {
+      "bytes": 88844,
+      "manifest_sha256": "e409ae968fdf0ed3e6463a00577a2a644afbc68faf933dcf552edc616fe688c7",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "e409ae968fdf0ed3e6463a00577a2a644afbc68faf933dcf552edc616fe688c7"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "af2708d998140c812d3bcecc8a06892b1cbe8efeaa02b2a1bb8da0b00d3ea8d3"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "a0faf5453c162b241c7dad1c5272d02bc7d0dbb33c7101506dc7a502f05f8d7a"
+        },
+        {
+          "bytes": 167,
+          "path": "launcher.log",
+          "sha256": "918ddd4ffa68868c7cb8bb4db39b382e289e36e9b8717b7302286f4552c4fe68"
+        },
+        {
+          "bytes": 4230,
+          "path": "pyscf.log",
+          "sha256": "27aebb148a882b93b8fdb4e41af88128372e0589b3251823aade446a657224d2"
+        },
+        {
+          "bytes": 1138,
+          "path": "request.json",
+          "sha256": "72905c6a76fc7c66cc66674cc2c2d75f5242820c4488868bbd44b6325258b359"
+        },
+        {
+          "bytes": 2917,
+          "path": "result.json",
+          "sha256": "69d6a4d90ae27f76e318d9178acdbfe2b581bcf17b4d0db2c3c1553fdaa8665c"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "e202ff405511caaccc9f80fe287d8197f8c526408ad59b16a00debf7c3a0da3e"
+        }
+      ]
+    },
+    {
+      "bytes": 88879,
+      "manifest_sha256": "04a6ecd5e9ee2b3dab7b7f9e050ded1d234d4a946479dc47f1bfb60f9d7194bb",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "04a6ecd5e9ee2b3dab7b7f9e050ded1d234d4a946479dc47f1bfb60f9d7194bb"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "1a24499aab3d1752ecfc3be65335dc09045734866a881f4bc13a38e40bd96f07"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "523e2fdc78a9a364dd101fb85dc3616c2ea13b011c344a0b0668324b5a19e5db"
+        },
+        {
+          "bytes": 167,
+          "path": "launcher.log",
+          "sha256": "9782362aac6b519376d61b71152565d0080c7872ebeb8242239f9f23fbe7ff02"
+        },
+        {
+          "bytes": 4230,
+          "path": "pyscf.log",
+          "sha256": "90d9d494d51f65a6f266c7ea00a5887514e98b8de5291eb81b1735f0243e0491"
+        },
+        {
+          "bytes": 1150,
+          "path": "request.json",
+          "sha256": "f3c85ce0e74b56b187584175cf0216874b34757ba9edda5f879be538b89384b4"
+        },
+        {
+          "bytes": 2940,
+          "path": "result.json",
+          "sha256": "601b50ef28d580198a56b551f3e3cec7b890cc4b7f6511d76dacc640dc75caf6"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "584f6ade499f5c164a6d877125ba1a0c9aaea1645823cbed340464f97109305a"
+        }
+      ]
+    },
+    {
+      "bytes": 88878,
+      "manifest_sha256": "ccee7d0d07973c5f83a283e0d797542fa40cabe0d26efb034d1bb10ebdca366b",
+      "original_files_readback_verified": [
+        {
+          "bytes": 1484,
+          "path": "manifest.json",
+          "sha256": "ccee7d0d07973c5f83a283e0d797542fa40cabe0d26efb034d1bb10ebdca366b"
+        },
+        {
+          "bytes": 774,
+          "path": "basis-definition.json",
+          "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+        },
+        {
+          "bytes": 67206,
+          "path": "engine-installation.json",
+          "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+        },
+        {
+          "bytes": 200,
+          "path": "geometry-bohr.npy",
+          "sha256": "a7e7ee2e1df55fc52265ad44d71c1be684c00513c22ab19dd2b2ca6b3c815aad"
+        },
+        {
+          "bytes": 200,
+          "path": "gradient-hartree-bohr.npy",
+          "sha256": "fcd7a1b560cf47953a0fbb59903fec026a9d5a70c9935fd09c89d88d7174b023"
+        },
+        {
+          "bytes": 167,
+          "path": "launcher.log",
+          "sha256": "b551086f9d9a1181e6b426a8467fde4d742d9d0e22a4c4571a1d8562fd25f34c"
+        },
+        {
+          "bytes": 4229,
+          "path": "pyscf.log",
+          "sha256": "13ab63647b39c4f27ae56091a9e7b93ab73049e51c10ff0c8c9688914b53862f"
+        },
+        {
+          "bytes": 1150,
+          "path": "request.json",
+          "sha256": "2aac2aed7aa2582a8e12a0a31ec1fd32a1ee9ee668b23f7d6616533aff24dfd7"
+        },
+        {
+          "bytes": 2940,
+          "path": "result.json",
+          "sha256": "373c6fa7c25fe1c35a36fd2d0c318f1772036ee27fb236955c6adb0bec5d3705"
+        },
+        {
+          "bytes": 10528,
+          "path": "wavefunction.chk",
+          "sha256": "a782554034d07fbd740768cfd92ca8a1f055f71d33160cbae0d4ef2e8483d6cc"
+        }
+      ]
+    }
+  ],
+  "curator_original_report": {
+    "bundles": [
+      {
+        "bytes": 126113,
+        "manifest_sha256": "2293cf4803015e88e9fcdb0488a0bda728f7aa26449c849dfdab4bb795b997c6"
+      },
+      {
+        "bytes": 129603,
+        "manifest_sha256": "29ebca8e3241c1c684dbce59d13b2bd771271584a78d0b46cdd9ca9c6e8ebfea"
+      },
+      {
+        "bytes": 123521,
+        "manifest_sha256": "76818101c4d34860071d9a83ed0b6d119a04f08ff2591e28c8a966094dabea95"
+      },
+      {
+        "bytes": 165704,
+        "manifest_sha256": "1c8e8ba0f88ae5cd0671b9bdb07370ee7a3029880957974c407c124114a5e0bd"
+      },
+      {
+        "bytes": 165685,
+        "manifest_sha256": "437dd7903b4836a8591ea2a6ee9b6d704977c59c9cb1e0e243d71411c02bb21a"
+      },
+      {
+        "bytes": 165666,
+        "manifest_sha256": "1bcf4947f95aac18091cdda867ddd8c31c2690c4389ffd9e815fc11bd812079f"
+      },
+      {
+        "bytes": 165710,
+        "manifest_sha256": "5e2cd1835aac66cad0ac1b4539cdaf9b892e23e660af90cf7a50d7eb74d08465"
+      },
+      {
+        "bytes": 165710,
+        "manifest_sha256": "055c73f7493af6da2f61ce714bdfe96bb8454a813c18125f96f9d7b075366f9a"
+      },
+      {
+        "bytes": 165666,
+        "manifest_sha256": "7faceb939d319a91ca04a7eb0d0393ee80941c01a01358aa282d8c43f66842a1"
+      },
+      {
+        "bytes": 165685,
+        "manifest_sha256": "b1e66030aec6d2881dc37da2c5a8a8c466b8c18b0750c3d950de63af8d45cf63"
+      },
+      {
+        "bytes": 165685,
+        "manifest_sha256": "404b21dc2558340cdd2b3a271bda54af613543baf96aee46670c10cf69deb7e9"
+      },
+      {
+        "bytes": 165666,
+        "manifest_sha256": "4ed76caa8d7b30095a36669415a912f42c2b3989b030904138cb93d8385f32ae"
+      },
+      {
+        "bytes": 165710,
+        "manifest_sha256": "bdc5fc781fd525b4b5cbdc61e7255b846b163cefaa61c4a4d05227d6cf240323"
+      },
+      {
+        "bytes": 126105,
+        "manifest_sha256": "800babd7b8081b3f26ea473c0ded6a7c83dd39d27933c92debf2903d1f0874ca"
+      },
+      {
+        "bytes": 129587,
+        "manifest_sha256": "ed0938dd2df12fc660603e4d0a00b5482982fc47653e63411da4ee9a54883259"
+      },
+      {
+        "bytes": 123577,
+        "manifest_sha256": "7522a56b3a6aeede1a98b1ebc14af646fc0dd91461bd060bc501093ab46b27c9"
+      },
+      {
+        "bytes": 124955,
+        "manifest_sha256": "8cf9de6190ac7bf74e2e72441e590bc266d906900cb840860b8abc5a506dbcbe"
+      },
+      {
+        "bytes": 125993,
+        "manifest_sha256": "b18143851f47da62eae8d6b13f04d61776678d0a71564dc41644b5c608606b08"
+      },
+      {
+        "bytes": 129490,
+        "manifest_sha256": "c8d18f2b62c2f2e857d25e331f8120a1070eb0d3cad93fef98fd7d538142534a"
+      },
+      {
+        "bytes": 165661,
+        "manifest_sha256": "ce5f7d77f452683abec8b742e8af692cceac57591aa5929134b2a193ca8a18a3"
+      },
+      {
+        "bytes": 165684,
+        "manifest_sha256": "b73d8a327e48bee60d47a9e3f05a3c6474c4c38ef67af5d9a0e1d0c389656c9b"
+      },
+      {
+        "bytes": 165697,
+        "manifest_sha256": "2e24b679795fee43d5a8874c28942142df191a58c61a810798d309d32cfaee48"
+      },
+      {
+        "bytes": 165661,
+        "manifest_sha256": "d660b3696d3438e6bc678e18ea3168d184d298a9c4e0379b59b70e638ff4f0a1"
+      },
+      {
+        "bytes": 165684,
+        "manifest_sha256": "ffd8b164e095cc07669ae3412a69fcb3308807f17396cb410ad79ec173cd57fe"
+      },
+      {
+        "bytes": 165678,
+        "manifest_sha256": "9e6c67869e8d42604708e60a0fcfbc8fda29d398b5f4e368d65899d92e54da6a"
+      },
+      {
+        "bytes": 123596,
+        "manifest_sha256": "73b72e62373985a78f06b96793d45ea90f43e46da338dd0580c7648d16d4bdcd"
+      },
+      {
+        "bytes": 124991,
+        "manifest_sha256": "49ffe496abcb053709548faffa2fa7d0375fce5398051ff9d2a2743d38af6b5d"
+      },
+      {
+        "bytes": 88642,
+        "manifest_sha256": "645c0a3bf27960f01540ea191d4e1c2db7d063d18097d638ba88cbbbda204ee4"
+      },
+      {
+        "bytes": 88615,
+        "manifest_sha256": "f1aeb76ed527fd4ae9f4c02f1c51e353493e04d6409b34e22018eb9c50b3c9f8"
+      },
+      {
+        "bytes": 87146,
+        "manifest_sha256": "04d68bcf929658d4013a37b7d0ee08e3b035071acc1b9ea22c24abd97faaf21a"
+      },
+      {
+        "bytes": 89250,
+        "manifest_sha256": "3f28a9c82a39600b390421f3f89dc6ec6d48102e3bcff8c54c5f2bf581c70219"
+      },
+      {
+        "bytes": 88628,
+        "manifest_sha256": "b895cdf4a4ce77e27228c63c427ab18d6d59c1accbb0cac27f8cdd2bf523f368"
+      },
+      {
+        "bytes": 124628,
+        "manifest_sha256": "778e1968d20f0146d1a700ae08624385da1f902d9b4996d530741a53599df0d8"
+      },
+      {
+        "bytes": 126487,
+        "manifest_sha256": "4327a83254bf4df0684bdc3b3a54220d5fe382d4741a16c6b83231db17d5e3a6"
+      },
+      {
+        "bytes": 123619,
+        "manifest_sha256": "0884c07684d6da080bdbbb5c341356140ea61146c58c3bed392aa84c22db1aa4"
+      },
+      {
+        "bytes": 125017,
+        "manifest_sha256": "0a15ce3cc2649d15c0c64e557c6fb6408091f934964b1fda6d5d8031102ffc5b"
+      },
+      {
+        "bytes": 165723,
+        "manifest_sha256": "09780e157963288d9cf8bdb0727ef5122e2531b84d5a8bacb915d757d6ed59ee"
+      },
+      {
+        "bytes": 165704,
+        "manifest_sha256": "fc146e21919cf1c8fece6a119cb1b1b1b120c4e6ce8e558e63dd325aed77580c"
+      },
+      {
+        "bytes": 95663,
+        "manifest_sha256": "aec7cd8a46df776e5f7c01d8582fc27c2961d9e29417964bdc6d551d3c0b0770"
+      },
+      {
+        "bytes": 95621,
+        "manifest_sha256": "8b65044e74c79bce99b1d317fd4a5310b2a4953eb0fa931f7ebec58729fd2c95"
+      },
+      {
+        "bytes": 95457,
+        "manifest_sha256": "11a2c96ec0cba1730fa1737205e3e3874d3f45ace20f37c16699526d57157fab"
+      },
+      {
+        "bytes": 95931,
+        "manifest_sha256": "fe912ce97a0b89fcdbaf91daea162ae439f837bf08fa078ef33017871c27d920"
+      },
+      {
+        "bytes": 86854,
+        "manifest_sha256": "86985a7230647018f3a4ead7c456b8f4a58ff8d0c519ab73aee844a7ddaba753"
+      },
+      {
+        "bytes": 86854,
+        "manifest_sha256": "01215c7dafe0e2def81fa16d848e1f5b3f62a03de8ebf9ffb105a6ac7e2ae61b"
+      },
+      {
+        "bytes": 87213,
+        "manifest_sha256": "05c3cad9888ac8413052cc13dec153ae90c54ddd1373fba272415ebc1b52a29a"
+      },
+      {
+        "bytes": 120960,
+        "manifest_sha256": "029a4d8bdcd28f58ae624fc9e1803bac23ec056a8dcd20d503ca4ad5286ffda8"
+      },
+      {
+        "bytes": 119836,
+        "manifest_sha256": "0705c0a9f8a986af03faf8b18bf4e0f51d443af44af8a1b4a71e8f241a7e3327"
+      },
+      {
+        "bytes": 121332,
+        "manifest_sha256": "0f95bbc3078c64900c11ffb92ad83c8b9d0035f9178aa0bcd3ae5fd9e90ab3e6"
+      },
+      {
+        "bytes": 88593,
+        "manifest_sha256": "10b886d7d01be9532402873e230537cae92715999e10d769074e63e272ce253a"
+      },
+      {
+        "bytes": 89658,
+        "manifest_sha256": "4f2591d3b85304075142f7d5942b4bcaf4c65063d415f3d2f502d575b27825a1"
+      },
+      {
+        "bytes": 93109,
+        "manifest_sha256": "7be9b99eb7ac5a975cb71dfce9ee7e6700412fc315609ce1add9f23238d446ef"
+      },
+      {
+        "bytes": 87969,
+        "manifest_sha256": "9c2edaff738c87d72b0ff7c25ce6fdf563c28a64e00044d45790c29758282ce6"
+      },
+      {
+        "bytes": 89394,
+        "manifest_sha256": "9c41c258adf9dfc2966300905f50f7531549047581373a1c6adaaa640973846c"
+      },
+      {
+        "bytes": 93071,
+        "manifest_sha256": "44c094521ac80eb1f69affae4f68105bd5055707d06bbe9a7cf75721f7d863f4"
+      },
+      {
+        "bytes": 89225,
+        "manifest_sha256": "9235973bab0c5238c048f29b32eae7ff6d42761c39fff5eca0ff6d4f3896d9f0"
+      },
+      {
+        "bytes": 92680,
+        "manifest_sha256": "1366dfaf0d7cd38c48ddd91d8d4ebeed62c67d782f8cb47083784cabee44d5e9"
+      },
+      {
+        "bytes": 89180,
+        "manifest_sha256": "698a176dbfd6f61507f74c2ba7c5335fce25eefb503177509c0b007392e63598"
+      },
+      {
+        "bytes": 92547,
+        "manifest_sha256": "8b575973f2553ad509f8bfc9e51d89d2348a04c8fb1fd3fa1db54c2db88d6487"
+      },
+      {
+        "bytes": 104381,
+        "manifest_sha256": "e5e6fad631f163cea49507bcce1e45010a19ec7344613e0f6589bb3049366937"
+      },
+      {
+        "bytes": 89191,
+        "manifest_sha256": "67f99943b239e5335f1862897b4d61617133087f8e2962630a1828cbe0b2fda8"
+      },
+      {
+        "bytes": 88579,
+        "manifest_sha256": "6e31df2b699caf6e7e0f2b5d02a8f704bd45948705a0ae5f70b7609150e0cee4"
+      },
+      {
+        "bytes": 88844,
+        "manifest_sha256": "e409ae968fdf0ed3e6463a00577a2a644afbc68faf933dcf552edc616fe688c7"
+      },
+      {
+        "bytes": 88879,
+        "manifest_sha256": "04a6ecd5e9ee2b3dab7b7f9e050ded1d234d4a946479dc47f1bfb60f9d7194bb"
+      },
+      {
+        "bytes": 88878,
+        "manifest_sha256": "ccee7d0d07973c5f83a283e0d797542fa40cabe0d26efb034d1bb10ebdca366b"
+      }
+    ],
+    "bytes_copied": 7771841,
+    "excluded_control_directories": 179,
+    "independent_scientific_qualification": false,
+    "rejected_or_unsupported": 39,
+    "schema_version": "cochem.torq.curated-native-evidence/1",
+    "scope": "complete current-adapter PySCF native inventories only",
+    "truncated_by_bound": true
+  },
+  "independent_scientific_qualification": false,
+  "schema_version": "cochem.full-regression-native-inventory-readback/1",
+  "scope": "Every originally curated current-adapter native file was read and hashed; only inventory metadata is included here. The original bounded curator omitted controls/unsupported sources and was truncated. This is not exhaustive scientific/domain coverage.",
+  "underlying_native_arrays_checkpoints_or_logs_included": false
+}

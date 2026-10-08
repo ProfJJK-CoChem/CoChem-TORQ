@@ -1,0 +1,61 @@
+{
+  "actual_hosted_job_count": 8,
+  "all_actual_hosted_jobs_passed": true,
+  "archive_bytes_retrieved_and_verified_against_github_api": false,
+  "archive_download_original_exit_codes": {
+    "core310": 1,
+    "core312": 1,
+    "full": 1
+  },
+  "archive_download_received_bytes": {
+    "core310": 0,
+    "core312": 0,
+    "full": 0
+  },
+  "full_srs_qualification": false,
+  "future_work": "Activate the reviewed managed network configuration with the actual redirect hostname allowed, then perform fresh ordinary authenticated downloads into a new receipt root, safely inspect original bytes and derive counts. No rerun required merely to retrieve these still-available artifacts.",
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "hosted_native_inventory_bundle_count": null,
+  "hosted_wheel_python_payload_count": {
+    "core310": null,
+    "core312": null
+  },
+  "independent_scientific_method_qualification": false,
+  "metadata_original_byte_hashes_and_actual_exit_codes_verified": true,
+  "original_hosted_junit_counts": {
+    "core310": {
+      "errors": null,
+      "failures": null,
+      "passed": null,
+      "skipped": null,
+      "tests": null
+    },
+    "core312": {
+      "errors": null,
+      "failures": null,
+      "passed": null,
+      "skipped": null,
+      "tests": null
+    },
+    "full": {
+      "errors": null,
+      "failures": null,
+      "passed": null,
+      "skipped": null,
+      "tests": null
+    }
+  },
+  "prior_verified_run_not_relabelled_as_current_source": true,
+  "privacy": "Only public API IDs/digests/statuses and hash-bound failure observations retained; signed redirect URLs, credentials, raw stderr, trace/output bodies and local absolute paths excluded.",
+  "recorded_at": "2026-10-08T23:32:58.478514+00:00",
+  "repository": "ProfJJK-CoChem/CoChem-TORQ",
+  "run_attempt": 1,
+  "run_conclusion": "success",
+  "run_id": 37856692326,
+  "run_status": "completed",
+  "schema_version": "cochem.independent-hosted-metadata-and-download-failure/1",
+  "source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_unchanged_during_independent_readback": true,
+  "student_test_deployment": "on_hold_and_not_run"
+}

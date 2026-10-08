@@ -1,0 +1,60 @@
+{
+  "schema_version": "cochem.preserved-core-audit-identity-failure/1",
+  "counts": {
+    "executed": 1078,
+    "failure": 9,
+    "error": 0,
+    "skipped": 0,
+    "passed": 1069
+  },
+  "core_test_exit_code": 1,
+  "no_skips_gate_exit_code": 1,
+  "source_tree_sha256": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "source_unchanged_during_replay": true,
+  "original_summary_sha256": "5d1b1bd160364ff3206b6c6915e500fe493cc546fcf02baa9bf8190ef2370f75",
+  "original_raw_junit_sha256": "808c24e938c9b9852ffc13e09d7942e5049683ab193dfd521bff2a6dd180b71d",
+  "failed_cases": [
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_complete_document_coverage_remains_incomplete_scientific_release"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_full_release_gate_refuses_real_unmet_requirements"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_missing_or_duplicate_normative_id_is_not_coverage[requirements]"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_missing_or_duplicate_normative_id_is_not_coverage[acceptance]"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_source_presence_and_declared_pass_cannot_replace_execution_evidence"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_stale_specification_and_unknown_gate_reference_are_rejected"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_mandatory_scientific_gates_cannot_be_removed_or_diluted[omitted_dependency]"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_mandatory_scientific_gates_cannot_be_removed_or_diluted[duplicate_dependency]"
+    },
+    {
+      "classname": "tests.test_release_evidence_validator",
+      "name": "test_mandatory_scientific_gates_cannot_be_removed_or_diluted[weakened_kind]"
+    }
+  ],
+  "all_four_packaged_student_ui_cases_passed": true,
+  "diagnosis": "All nine failed assertions encountered the committed canonical SRS hash mismatch before their intended acceptance logic. Validator refusal was preserved, not weakened.",
+  "audit_specification_sha256_observed": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536",
+  "current_committed_specification_sha256_observed": "a4b76cc928e74f200a73315a7581082778fddb44b518e5a76073e592ff88d023",
+  "original_files_retained": true,
+  "no_retry_pass_claimed": true
+}

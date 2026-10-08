@@ -1,0 +1,48 @@
+{
+  "all_commands_finished": true,
+  "all_commands_succeeded": true,
+  "application_code_sha256_after": "60f6e63ddb9232db144248b2f0ef900d673add4406aad5a19fba4876e7a47b62",
+  "application_code_sha256_before": "60f6e63ddb9232db144248b2f0ef900d673add4406aad5a19fba4876e7a47b62",
+  "application_source_unchanged": true,
+  "commands": [
+    {
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true,
+      "elapsed_seconds": 8.305651175993262,
+      "log_sha256": "c2928891f6344856662858130827083a6a2bb8c152a9d4e76c1f593c25302c25",
+      "module_executed": "scripts.run_qm9_water_comparison",
+      "name": "water",
+      "started_at": "2026-10-08T21:11:54.219683+00:00"
+    },
+    {
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true,
+      "elapsed_seconds": 87.35200691700447,
+      "log_sha256": "21ec961bf0c746f597223ac288eeb8c8170e137c515d68f5dedfd383f2c4e60a",
+      "module_executed": "scripts.run_qcarchive_component_comparison",
+      "name": "qcarchive-components",
+      "started_at": "2026-10-08T21:12:02.527056+00:00"
+    }
+  ],
+  "full_srs_release_qualified": false,
+  "native_payloads_or_logs_included": false,
+  "original_private_receipt_sha256": "13f7997ac3642b76e10752444d69b59288549f6ca89efcee8a553ca8ae2c75f0",
+  "private_command_environment_and_output_paths_omitted": true,
+  "scientific_accuracy_qualified": false,
+  "scope": "Actual clean-commit published-source native examples; no scientific accuracy or full-SRS qualification",
+  "source_commit_after": "c0df7a0fa4c06bcebb0fc7d2f17cb3740085063e",
+  "source_commit_before": "c0df7a0fa4c06bcebb0fc7d2f17cb3740085063e",
+  "source_status_after": "",
+  "source_tree_sha256_after": "09cee06551d7ddcf05c9a734f23731260e10d32fb45c68909ba5b1606bb1eaca",
+  "source_tree_sha256_before": "09cee06551d7ddcf05c9a734f23731260e10d32fb45c68909ba5b1606bb1eaca",
+  "source_unchanged_and_clean": true,
+  "space_after": {
+    "tmp_free_bytes": 865591296,
+    "workspace_free_bytes": 573968384
+  },
+  "space_before": {
+    "tmp_free_bytes": 904744960,
+    "workspace_free_bytes": 574504960
+  },
+  "student_deployment_performed": false
+}

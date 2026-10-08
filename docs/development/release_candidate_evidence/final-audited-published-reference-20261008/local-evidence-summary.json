@@ -1,0 +1,43 @@
+{
+  "actual_complete_local_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 3248,
+    "skipped": 0,
+    "tests": 3248
+  },
+  "actual_full_native_inventory_bundles_readback_verified": 64,
+  "actual_full_native_inventory_bytes_readback_verified": 7771841,
+  "all_actual_local_execution_exit_codes_zero": true,
+  "all_parameter_literals_in_actual_full_junit_hash_redacted": true,
+  "full_srs_release_qualified": false,
+  "hosted_artifact_byte_verification_included": false,
+  "installed_python312_core_counts": {
+    "error": 0,
+    "executed": 1078,
+    "failure": 0,
+    "passed": 1078,
+    "skipped": 0
+  },
+  "latest_hosted_source_metadata_success": true,
+  "native_curator_truncated_by_bound": true,
+  "native_examples_original_commit": "c0df7a0fa4c06bcebb0fc7d2f17cb3740085063e",
+  "native_examples_original_source_tree_sha256": "09cee06551d7ddcf05c9a734f23731260e10d32fb45c68909ba5b1606bb1eaca",
+  "new_tests_or_calculations_run_by_curation": false,
+  "original_supervisor_exit_code": 0,
+  "parameter_suffixes_redacted": 1709,
+  "pre_full_assembly_status_sha256": "81b7aef7dbc97cbe2cb002bc8fe650c2feaf813e637dc59b75d25a1c09494311",
+  "pre_full_parts_file_index_sha256": "2b6695a91850d5865278d3081c144098b283a72cacb2daea94627b47fa4e4a19",
+  "raw_native_payloads_or_logs_included": false,
+  "recorded_at": "2026-10-08T22:32:45.050661+00:00",
+  "schema_version": "cochem.audited-source4d-local-public-evidence/1",
+  "scientific_accuracy_established": false,
+  "scientific_application_sha256": "60f6e63ddb9232db144248b2f0ef900d673add4406aad5a19fba4876e7a47b62",
+  "scope": "Actual completed frozen-source local complete regression, genuine installed wheel/core, source-specific native descriptive examples, verified SDK setup and authentic primary sources. Hosted metadata is included separately with its original artifact/test-count limitations. Source4d evidence becomes historical after any later scientific source change.",
+  "source_tree_sha256": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "source_tree_sha256_observed_after_curation": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "source_tree_sha256_observed_before_curation": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "source_unchanged_and_clean_during_curation": true,
+  "student_deployment_performed": false,
+  "tested_commit": "bb6c23ed9b048091838fef0aba1c40fecc04cc20"
+}

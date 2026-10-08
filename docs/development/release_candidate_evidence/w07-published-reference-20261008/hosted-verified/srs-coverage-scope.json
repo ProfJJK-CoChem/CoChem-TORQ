@@ -1,0 +1,50 @@
+{
+  "core310": {
+    "acceptance_count": 41,
+    "archived_report_sha256": "01c314a1744d16c759fa6ae66878c417ebaae2e5a085b9dfef6819cb69ccf18a",
+    "classifications": {
+      "implemented_and_qualified": 0,
+      "missing_implementation": 1,
+      "missing_independent_qualification": 8,
+      "optional_profile_or_credentials": 8,
+      "partial_supported_scope": 56
+    },
+    "coverage_valid": true,
+    "full_srs_release_ready": false,
+    "requirement_count": 73,
+    "unresolved_acceptance_count": 41,
+    "unresolved_requirement_count": 73
+  },
+  "core312": {
+    "acceptance_count": 41,
+    "archived_report_sha256": "01c314a1744d16c759fa6ae66878c417ebaae2e5a085b9dfef6819cb69ccf18a",
+    "classifications": {
+      "implemented_and_qualified": 0,
+      "missing_implementation": 1,
+      "missing_independent_qualification": 8,
+      "optional_profile_or_credentials": 8,
+      "partial_supported_scope": 56
+    },
+    "coverage_valid": true,
+    "full_srs_release_ready": false,
+    "requirement_count": 73,
+    "unresolved_acceptance_count": 41,
+    "unresolved_requirement_count": 73
+  },
+  "full": {
+    "acceptance_count": 41,
+    "archived_report_sha256": "01c314a1744d16c759fa6ae66878c417ebaae2e5a085b9dfef6819cb69ccf18a",
+    "classifications": {
+      "implemented_and_qualified": 0,
+      "missing_implementation": 1,
+      "missing_independent_qualification": 8,
+      "optional_profile_or_credentials": 8,
+      "partial_supported_scope": 56
+    },
+    "coverage_valid": true,
+    "full_srs_release_ready": false,
+    "requirement_count": 73,
+    "unresolved_acceptance_count": 41,
+    "unresolved_requirement_count": 73
+  }
+}

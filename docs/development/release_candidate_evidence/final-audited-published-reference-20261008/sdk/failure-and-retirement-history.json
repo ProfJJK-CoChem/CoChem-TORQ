@@ -1,0 +1,22 @@
+{
+  "closed_owned_runtime_retirements": [
+    {
+      "original_private_receipt_sha256": "d78711f7f2a9239b106fd639ea2e5016f1a7f05c9c0321d54801400607fec142",
+      "retired_runtime_count": 2,
+      "status": "closed-duplicate-runtimes-retired"
+    },
+    {
+      "original_private_receipt_sha256": "de3e58150d900be967a6ed53103eadc0e748506a00932090da7664f42b708f36",
+      "retired_runtime_count": 2,
+      "status": "closed-duplicate-runtimes-retired"
+    }
+  ],
+  "failed_partial_runtime_preserved_for_forensics": true,
+  "failed_runtime_qualified": false,
+  "original_failed_setup_actual_exit_code": 1,
+  "original_failed_setup_receipt_sha256": "09e08ae5482a91b1ec0e32185490eea7041eb61a0bcd90767af0ca0d35a01829",
+  "original_failed_setup_status": "failed",
+  "schema_version": "cochem.sdk-failure-retirement-public-history/1",
+  "scientific_accuracy_established": false,
+  "student_deployment_performed": false
+}

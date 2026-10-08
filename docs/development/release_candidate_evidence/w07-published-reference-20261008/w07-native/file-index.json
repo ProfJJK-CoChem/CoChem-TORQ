@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "bytes": 7074,
+      "path": "junit-redaction.json",
+      "sha256": "d9459e171941043b77724b5e1cc2c50519746ac3f8079bb4b4386144628eb2fb"
+    },
+    {
+      "bytes": 5395,
+      "path": "junit.xml",
+      "sha256": "5b13d070ee5afd74a697eb3582e6c5f15010aa6a3062cb6b3a93c4a0f94f35b0"
+    },
+    {
+      "bytes": 74298,
+      "path": "native-inventory.json",
+      "sha256": "ba09a0a2ebb6c9ac6f38d0a376f63d2c4b1a55789b6eb4addff8dd1682b9513c"
+    },
+    {
+      "bytes": 1806,
+      "path": "summary.json",
+      "sha256": "e15329e0c604cd58598cadbd157b2e3f4d66ffa569a03cfd9fddceadea52f61a"
+    }
+  ],
+  "schema_version": "cochem.public-evidence-file-index/1"
+}

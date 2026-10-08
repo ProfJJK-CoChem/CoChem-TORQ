@@ -1,0 +1,65 @@
+{
+  "files": [
+    {
+      "bytes": 270206,
+      "path": "core310/junit-redaction.json",
+      "sha256": "001d79bc308de4156f12f3d19461f852c60e74b5249fc6b774f2d43060db4b4d"
+    },
+    {
+      "bytes": 205028,
+      "path": "core310/junit.xml",
+      "sha256": "0f3d91d36425c22534cdb7cbc3c2c4c05e826051f51ae244c4520c5cd7fa22fb"
+    },
+    {
+      "bytes": 270206,
+      "path": "core312/junit-redaction.json",
+      "sha256": "21884b998548e59cd66d27e067351ac9e631e0f224102bc50f99f1ceb5dce185"
+    },
+    {
+      "bytes": 205028,
+      "path": "core312/junit.xml",
+      "sha256": "d7f9a06baeaaae7ae524a7549e50517c5660d912397c7223313a8335bc488968"
+    },
+    {
+      "bytes": 650115,
+      "path": "full/junit-redaction.json",
+      "sha256": "ef9bc1ceca142c77ff3c8ecdcd39b29aa06bfbefd99d668634eab1efcf142b60"
+    },
+    {
+      "bytes": 572867,
+      "path": "full/junit.xml",
+      "sha256": "137240281d11a4a0c21258aa8bd29276839eda7e4e1748f2360c1eddda8416d0"
+    },
+    {
+      "bytes": 4423,
+      "path": "full-environment.json",
+      "sha256": "be8d10c76fda17ffb86dd77a92248e87feff4ea1cf022fe9c09af876bf625b6c"
+    },
+    {
+      "bytes": 4138,
+      "path": "hosted-run-binding.json",
+      "sha256": "e07e581d485d4601f8804ca6a8b6336c7ece6a918916ba8bf506457f177ef260"
+    },
+    {
+      "bytes": 23015,
+      "path": "native-inventory-verification.json",
+      "sha256": "6d9af281b5d13a37e99c1b727338250cb4903db6966c21ad13ec481a54df6239"
+    },
+    {
+      "bytes": 1647,
+      "path": "srs-coverage-scope.json",
+      "sha256": "c25035edbf9bbd2592074a740f38b8d7d61f7f73d7c9e42b6be460800a9366a6"
+    },
+    {
+      "bytes": 6514,
+      "path": "summary.json",
+      "sha256": "580007d755ef9f0b31921351b4acab5d8413d31ff05375fc862f8749623c5417"
+    },
+    {
+      "bytes": 47361,
+      "path": "wheel-payload-verification.json",
+      "sha256": "b0863b303598806ceed883fd0a73c6048eb7d7716a2011efa86712718633f81b"
+    }
+  ],
+  "schema_version": "cochem.public-evidence-file-index/1"
+}

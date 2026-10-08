@@ -1,0 +1,84 @@
+{
+  "actual_canonical_setup_exit_code": 0,
+  "actual_independent_verify_exit_code": 0,
+  "completed_at": "2026-10-08T21:10:32.143818+00:00",
+  "disk_after": {
+    "scratch": {
+      "free": 934273024,
+      "total": 17921830912,
+      "used": 16987557888
+    },
+    "workspace": {
+      "free": 574554112,
+      "total": 33770192896,
+      "used": 31460876288
+    }
+  },
+  "independent_verification_receipt_sha256": "e384ee4a1d785eec925f2f362e685e82f0de4f3137393496edb245bdffe30b65",
+  "module_manifest_sha256": "94fc1be4cdcd811cc9326047b2c64746abd32f58be75d4d55e1d770831753486",
+  "modules": [
+    {
+      "built_wheel_sha256": "8f2a4ab1d17b13ac4ebdff8b5bc1c9918da1cb467fe65fee1e229c7499cd492f",
+      "dependency_distribution_count": 72,
+      "distribution_metadata": {
+        "direct_url": {
+          "archive_info": {
+            "hash": "sha256=8f2a4ab1d17b13ac4ebdff8b5bc1c9918da1cb467fe65fee1e229c7499cd492f",
+            "hashes": {
+              "sha256": "8f2a4ab1d17b13ac4ebdff8b5bc1c9918da1cb467fe65fee1e229c7499cd492f"
+            }
+          },
+          "original_local_direct_url_omitted": true
+        },
+        "files_sha256": "d3daabc62cb60bfad162bf948633ec5aa4a818784a84493a363f5174f3b47da7",
+        "name": "CoChem-BASE",
+        "version": "1.0.0"
+      },
+      "environment_sha256": "ea7799cf9dff85eae4040ddfe00fc7e25d4ae69e670ac0b35ee18e75f4c9f5a0",
+      "installed_files_sha256": "357c3e80f558dbff46a16a86908b9df0083745fa29036bf7cb9c3275f16a9924",
+      "module_id": "base",
+      "pip_check": {
+        "passed": true
+      },
+      "revision": "83462724849f1ef0be8c70ffcad6265d6af99388",
+      "source_sha256": "696bfb401ac022a89d8b0d2704fbd9d469e0d4a04807552611f2ad05d24e1618"
+    },
+    {
+      "built_wheel_sha256": "3f326821a2fd7fc87313c72a5a71de8ef3a4393fca1f456e614628080fe4a4e7",
+      "dependency_distribution_count": 23,
+      "distribution_metadata": {
+        "direct_url": {
+          "archive_info": {
+            "hash": "sha256=3f326821a2fd7fc87313c72a5a71de8ef3a4393fca1f456e614628080fe4a4e7",
+            "hashes": {
+              "sha256": "3f326821a2fd7fc87313c72a5a71de8ef3a4393fca1f456e614628080fe4a4e7"
+            }
+          },
+          "original_local_direct_url_omitted": true
+        },
+        "files_sha256": "09df8793a55ecadd1cb35b02f612863661a3b0111e9838b2865a03aa4d857213",
+        "name": "cochem-topos",
+        "version": "0.1.0"
+      },
+      "environment_sha256": "6891e44ac87ea3f61ffa58b9b817305920188730cda91471990d48d8845fa392",
+      "installed_files_sha256": "86b56a771fb05e4a2a4ed6399eb568eda1f5c0193339e7977fe078376387b6d5",
+      "module_id": "topos",
+      "pip_check": {
+        "passed": true
+      },
+      "revision": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+      "source_sha256": "ffa86b586bff64ee404484177a5b0e0fb382e94517b4ff82adda97a9bd42e429"
+    }
+  ],
+  "original_private_summary_sha256": "c00f21c33846d0d1e89d71216fcf7a1eebd63d845665f5620424fcafdc744220",
+  "repository_head_at_final_verification": "c0df7a0fa4c06bcebb0fc7d2f17cb3740085063e",
+  "schema_version": "cochem.reviewed-sdk-provisioning-summary/1",
+  "scientific_accuracy_established": false,
+  "scope": "Observed canonical SDK setup and independent verification, exact source/wheel/environment/installed-file hashes and dependency metadata. Local filesystem/direct URLs omitted; no fresh-task restoration or student deployment qualification.",
+  "source_repository_modified_by_this_task": false,
+  "status": "canonical-setup-and-independent-verification-passed",
+  "student_deployment_performed": false,
+  "student_environment_receipt_sha256": "41a3abb047306fe5dd777381c513aa328655d7357277e4be94e432ebbd70da52",
+  "student_setup_script_sha256": "8d40d3027ae8c1939e7f6798d2e4c794754c7fcffd52abc84decf3a08842a67f",
+  "student_setup_script_unchanged_since_initial_attempt": true
+}

@@ -1,0 +1,82 @@
+{
+  "actual_genuine_source_identity_installation_case_count": 8,
+  "actual_hosted_jobs": 8,
+  "actual_original_junit_counts": {
+    "core310": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 1079,
+      "skipped": 0,
+      "tests": 1079
+    },
+    "core312": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 1079,
+      "skipped": 0,
+      "tests": 1079
+    },
+    "full": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 3277,
+      "skipped": 0,
+      "tests": 3277
+    }
+  },
+  "all_hosted_jobs_success": true,
+  "all_retained_native_manifest_and_file_hash_size_bindings_verified": true,
+  "archives": {
+    "core310": {
+      "actual_wheel_sha256": "a164cd1df0abc634a89a26848dcc6f3a10396090e7b43d412e9b7d0f4af5e550",
+      "archive_bytes": 1259236,
+      "archive_sha256": "eb8ef723ee618ba6173d9d9ca707cd17dabb7b49f4bbcd7ab5f1e3ba31847cde",
+      "artifact_id": 11583808301,
+      "python_payload_count": 262,
+      "regular_member_count": 3
+    },
+    "core312": {
+      "actual_wheel_sha256": "ad029884d00149faf9f8a4a1df22b3baea779fab07c1a72da1503bf1fdd6ac92",
+      "archive_bytes": 1259296,
+      "archive_sha256": "8d906378f7b88879caced2b4a875ab9e34a27b3e710f7d39a452e5fe744a1791",
+      "artifact_id": 11584502291,
+      "python_payload_count": 262,
+      "regular_member_count": 3
+    },
+    "full": {
+      "archive_bytes": 3148772,
+      "archive_sha256": "a38fc883496a5e9c775cd0318e6f0567463769c91c961f2e04e01482930f6446",
+      "artifact_id": 11584623695,
+      "regular_member_count": 667
+    }
+  },
+  "both_wheels_match_entire_frozen_source_catalog": true,
+  "every_genuine_source_identity_installation_case_passed": true,
+  "frozen_packaged_python_source_count": 262,
+  "full_srs_scientific_qualification": false,
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "metadata_redaction_only_tests_not_rerun": true,
+  "native_retention_truncated_by_bound": true,
+  "original_archives_and_fresh_api_size_digest_source_binding_verified": true,
+  "original_to_redacted_class_function_parameter_digest_duration_outcomes_verified": true,
+  "parameterized_cases_redacted": {
+    "core310": 715,
+    "core312": 715,
+    "full": 1726
+  },
+  "public_file_index_sha256": "3c548f6ce6b6c63dd94aacc6c3ba884e97ab0a7d20fac4a9f23caa28ce867140",
+  "public_index_all_file_hash_size_bindings_verified": true,
+  "public_indexed_file_count": 12,
+  "public_summary_sha256": "580007d755ef9f0b31921351b4acab5d8413d31ff05375fc862f8749623c5417",
+  "recorded_at": "2026-10-08T23:37:35.975418+00:00",
+  "retained_native_bundle_count": 64,
+  "retained_native_bytes": 8063591,
+  "run_attempt": 1,
+  "run_id": 37856692326,
+  "safe_read_every_member_crc_size_path_mode_and_expansion_bound_verified": true,
+  "schema_version": "cochem.independent-hosted-archive-readback/1",
+  "source_catalog_sha256": "0d68263b9dc577ffa8f0347053017fea595114c865cd9df0007e8770e2513108",
+  "source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "student_deployment": "on_hold_and_not_run"
+}

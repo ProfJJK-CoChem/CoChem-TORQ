@@ -1,0 +1,31 @@
+{
+  "schema_version": "cochem.installed-ui-metadata-validation/1",
+  "recorded_at": "2026-10-08T21:42:50.910428+00:00",
+  "source_tree_sha256_before": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "source_tree_sha256_after": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5",
+  "source_unchanged": true,
+  "scope": "Actual installed wheel entry point metadata, module origins, source provenance observation, packaged notebook bytes and UI command help. No notebook server launched, real calculation, student deployment or scientific qualification.",
+  "passed": true,
+  "original_summary_sha256": "07582e98be51ee5b178e5098a55fbf25abb6f112f2b0ffae2cf681d5b094d77f",
+  "command_exit_codes": {
+    "installed-metadata": 0,
+    "installed-ui-help": 0
+  },
+  "console_entry_points": {
+    "cochem-torq": "cochem_torq.cli:main",
+    "cochem-torq-ui": "cochem_torq.ui:main"
+  },
+  "packaged_notebook_bytes": 2541,
+  "packaged_notebook_sha256": "9d5831ff8f9434c9f02301a6df1c617018529e7ced7a01767930f0e034788ee3",
+  "all_runtime_scientific_module_origins_observed_inside_actual_installed_prefix": true,
+  "installed_source_identity": {
+    "distribution": "CoChem-TORQ",
+    "code_sha256": "60f6e63ddb9232db144248b2f0ef900d673add4406aad5a19fba4876e7a47b62",
+    "git_commit": null,
+    "working_tree_dirty": null,
+    "declared_workflow_commit": null,
+    "declared_engine_image": null
+  },
+  "ui_is_regular_installed_package": true,
+  "ui_package_file_is_actual_installed_init_module": true
+}

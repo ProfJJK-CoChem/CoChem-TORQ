@@ -1,0 +1,39 @@
+{
+  "actual_commands": [
+    {
+      "actual_exit_code": 0,
+      "elapsed_seconds": 0.06474892000551336,
+      "name": "ruff",
+      "original_log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "actual_exit_code": 0,
+      "elapsed_seconds": 0.06450790699454956,
+      "name": "format",
+      "original_log_sha256": "70aeb2781372748bf56bc4126fc132461937977430c7144a7cb865fa230b87a6"
+    },
+    {
+      "actual_exit_code": 0,
+      "elapsed_seconds": 6.745909534016391,
+      "name": "mypy",
+      "original_log_sha256": "960745a059df2e6bf5556b518f6404c7707247bf3da084d48c3008145eb95a5d"
+    },
+    {
+      "actual_exit_code": 0,
+      "elapsed_seconds": 0.9200309889856726,
+      "name": "test-policy",
+      "original_log_sha256": "0a6dd27a4b5feffe8db1ff62712ca09026e362bd1fef42773a255d44bcdaf02d"
+    }
+  ],
+  "all_recorded_static_commands_exited_zero": true,
+  "new_checks_run_by_curation": false,
+  "original_actual_audit_report_sha256": "01c314a1744d16c759fa6ae66878c417ebaae2e5a085b9dfef6819cb69ccf18a",
+  "original_private_summary_sha256": "75a01318bfae2d8c60572d575ef6ac7a18093673e7f3929c0315ea300d9f907a",
+  "raw_static_logs_included": false,
+  "schema_version": "cochem.actual-source-bound-static-observation/1",
+  "scientific_qualification": false,
+  "scope": "configured canonical application static checks and AST replacement API inventory; no scientific qualification",
+  "source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_unchanged": true
+}

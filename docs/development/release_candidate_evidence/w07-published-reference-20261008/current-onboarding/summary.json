@@ -1,0 +1,239 @@
+{
+  "schema_version": "cochem.current-onboarding-observation/1",
+  "recorded_at": "2026-10-08T23:04:24.816006+00:00",
+  "tested_source_commit": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "application_code_sha256": "680f1415ee5e10867709c8d6c67f26f169c2c098d16b81ef0a6ef2331b65e1be",
+  "lanes": {
+    "software-interface": {
+      "tests": 50,
+      "passed": 50,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "actual_tool_exit_code": 0,
+      "original_junit_sha256": "2f1819004b09308d01c0e4b71af5ec5113d4dc507366e489e4f19425f18598fe",
+      "public_junit_sha256": "a4c6305ab2f8adaba962d6311be299918ec10a5763f759a56a6188782918e2df",
+      "parameter_redactions": [
+        {
+          "case_index": 2,
+          "parameter_literal_sha256": "6ad061beb41e0d473cc927b2bde7c6125b331a8f43edf05ff9e05f1a809a213a"
+        },
+        {
+          "case_index": 3,
+          "parameter_literal_sha256": "ae7f6777444bd1b949fb2a0fed869d0ebdfff56d5fe4fd8027f16a3448cb19e6"
+        },
+        {
+          "case_index": 4,
+          "parameter_literal_sha256": "ef5d5c5c15e8e7307d25ca08e04c2951521764a610882026ee1629e77a551293"
+        },
+        {
+          "case_index": 5,
+          "parameter_literal_sha256": "1cd3323a505a9ed5ad24f7c0a9133780430e068457ddd66f2b3baa07889db25a"
+        },
+        {
+          "case_index": 6,
+          "parameter_literal_sha256": "abba1aa2e6d22ae6d579c9cac3d06c7d033d59c88e37f2c004658649e4ce476b"
+        },
+        {
+          "case_index": 7,
+          "parameter_literal_sha256": "4f832cdbba78a813915828bb54a1853764040b9d9f9bd8af20ed2d2b44ee5c10"
+        },
+        {
+          "case_index": 8,
+          "parameter_literal_sha256": "749a7c0ae450d0a7fb32192561c4606ad4c512fd34e06aa185da38619ca9acfb"
+        },
+        {
+          "case_index": 9,
+          "parameter_literal_sha256": "3ea09d8ee62a07dbfe89bd745c0177e903cbc0ab44d267c4e6193199b6d4a101"
+        },
+        {
+          "case_index": 10,
+          "parameter_literal_sha256": "05205b8cec595677ae129df1c129da58c5101020837c5f7962cfcb53f8981b2c"
+        },
+        {
+          "case_index": 11,
+          "parameter_literal_sha256": "2ebcb71bd7424304d0cc8654e5832750d0f7111173639c75ea458c5f5b16ede0"
+        },
+        {
+          "case_index": 12,
+          "parameter_literal_sha256": "d630f8bb42a569066d336ba19dbd3d3765cc9c56e3e13ade056ddfd26c4593bd"
+        },
+        {
+          "case_index": 13,
+          "parameter_literal_sha256": "2d31aa2a6ecea0e45277190e133aff67c526e617c8b44e694d4305a5516b4fec"
+        },
+        {
+          "case_index": 17,
+          "parameter_literal_sha256": "1910012d67140cc5a3d21a0d3d78cf69a667dad7d63934f849bfb09c6efb4831"
+        },
+        {
+          "case_index": 18,
+          "parameter_literal_sha256": "02c11e0e3eaea3521e4df5e50f38c274846c0dc6860edf59c566c6d88b648f10"
+        },
+        {
+          "case_index": 20,
+          "parameter_literal_sha256": "cfae0d4248f7142f7b17f826cd7a519280e312577690e957830d23dcf35a3fff"
+        },
+        {
+          "case_index": 21,
+          "parameter_literal_sha256": "9d46a8e68fdcdecdf866a827525ae2cd5b7a211c28765b3ffc07c985219c3038"
+        },
+        {
+          "case_index": 22,
+          "parameter_literal_sha256": "88c4911dc8b23565a3fc76930e970eb8522b338bafb600a60e3157eecab51ac3"
+        },
+        {
+          "case_index": 23,
+          "parameter_literal_sha256": "abe4eb85ab8ec740c591a95be9cdeca4bc4688e49fa6bb06005f5cec421092c4"
+        },
+        {
+          "case_index": 24,
+          "parameter_literal_sha256": "cfaefd969bd534fa7f9cf80240ced2f78e330c35ab91d747b3f31e829e35de12"
+        },
+        {
+          "case_index": 29,
+          "parameter_literal_sha256": "4a971c23c11c4b4f24ad532ff441efead8d6450ce19e872188b8409783f4ca1a"
+        },
+        {
+          "case_index": 30,
+          "parameter_literal_sha256": "49db7260f1f1557fcf94588577396e52439f95a55d6ecdc98489b44338459f4f"
+        },
+        {
+          "case_index": 31,
+          "parameter_literal_sha256": "c4556b24563481f2082607559ecf4a229d1273775e02dcdc3e75aa5d8bab7a0f"
+        },
+        {
+          "case_index": 43,
+          "parameter_literal_sha256": "8a2b64ba2a80f72f98cc025f87a3e26d48d793c6291f5311ab130669bbc6175e"
+        },
+        {
+          "case_index": 44,
+          "parameter_literal_sha256": "20493cdc429db6c6a955c2d078d8bd88337d21f70c88c985d73f1ee07da84275"
+        },
+        {
+          "case_index": 45,
+          "parameter_literal_sha256": "3ce2b3504009c34cfb2f3d6aebe7799a642ed47845b86ae9ae735509f30e2ead"
+        }
+      ]
+    },
+    "host-allocation": {
+      "tests": 38,
+      "passed": 38,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "actual_tool_exit_code": 0,
+      "original_junit_sha256": "69446d4e6fff16179475daa59b3133d700a32b0f28b8f234042a22dd4ccac560",
+      "public_junit_sha256": "8648e9ff9723705554d506267e11ba34572407ceb6cb7bb5a8d3cdebeb61d16c",
+      "parameter_redactions": [
+        {
+          "case_index": 3,
+          "parameter_literal_sha256": "e8cb5013f313345d219b5349e66e4efbf31c50bf5bf8a435267f8ae3332fcb44"
+        },
+        {
+          "case_index": 4,
+          "parameter_literal_sha256": "e733ab556849bf322aec4be87d17b347aa64125521d134c0fa1462757590d2a6"
+        },
+        {
+          "case_index": 5,
+          "parameter_literal_sha256": "a7d9de883a24269d37bf0ddf5cf367e779622d5fbfd0b37a479b0d52956d51d4"
+        },
+        {
+          "case_index": 6,
+          "parameter_literal_sha256": "dfc4b2573557d6c1d9ad0022be974373e4b3c1203ffca07fc2298eb835ae361c"
+        },
+        {
+          "case_index": 13,
+          "parameter_literal_sha256": "460a0e6700d3d4d719fb2386d460a9e95a1669fc817ef90035008ba8d547a66a"
+        },
+        {
+          "case_index": 14,
+          "parameter_literal_sha256": "4ccbc56e53699a097143f1257d11039fe60c1d11cf40240a589361ebc68056d3"
+        },
+        {
+          "case_index": 18,
+          "parameter_literal_sha256": "592f252491810d76954208a0a6676914196ce19900f90001db0fcf8429e0ef5f"
+        },
+        {
+          "case_index": 19,
+          "parameter_literal_sha256": "5a1c841d2130b6504e82fdbfd078c44ca1487f8a18b09c7548c7ae7a518e96cd"
+        },
+        {
+          "case_index": 20,
+          "parameter_literal_sha256": "059064a24e34aba8c4d5828420addc85de618acadaffaa1fbd8ca377de642ee8"
+        },
+        {
+          "case_index": 21,
+          "parameter_literal_sha256": "3bbcdc2262b24f45c55a8a371fe605ba2b7d71f7d46b4b8940f382c22886acfa"
+        },
+        {
+          "case_index": 23,
+          "parameter_literal_sha256": "20e8fd959ee67d510e057f96b7bc2817e186048cd7d96dd63d908a9e9e1ec19a"
+        },
+        {
+          "case_index": 24,
+          "parameter_literal_sha256": "f860cd81fad6ce5da126843c5fcd6494d6017ddbc6009da60c00904fed714bae"
+        },
+        {
+          "case_index": 25,
+          "parameter_literal_sha256": "42f78f54f79468dd85249f38f17ed2a683f9298c62619bbd590206720fc04965"
+        },
+        {
+          "case_index": 26,
+          "parameter_literal_sha256": "970f58e53249bc950ab8ad3ad6ddb2007dcda29b5213fc17b602fcbb2366e0bd"
+        },
+        {
+          "case_index": 27,
+          "parameter_literal_sha256": "804ebf5e907c4f4379baa3765ccc684e791ff792a5ca262b872d07a1f548cf3e"
+        },
+        {
+          "case_index": 28,
+          "parameter_literal_sha256": "e830209bfc217d788ce8dd10841f6ec2cb5e89aa36f4676821ac44085ba873d3"
+        },
+        {
+          "case_index": 30,
+          "parameter_literal_sha256": "804ebf5e907c4f4379baa3765ccc684e791ff792a5ca262b872d07a1f548cf3e"
+        },
+        {
+          "case_index": 31,
+          "parameter_literal_sha256": "ce905dc776fd5da5371c404595dc84c6eb4bd0128d81c329ff37aa27a636219f"
+        }
+      ]
+    }
+  },
+  "sdk_setup_actual_tool_exit_code": 0,
+  "sdk_verify_actual_tool_exit_code": 0,
+  "original_sdk_setup_stdout_sha256": "5f737615b1da102f83278e4b5866748375185b00b8d0f25ed61c0285ef37fa37",
+  "original_sdk_verify_receipt_sha256": "e384ee4a1d785eec925f2f362e685e82f0de4f3137393496edb245bdffe30b65",
+  "verified_sdk_modules": [
+    {
+      "module_id": "base",
+      "repository": "ProfJJK-CoChem/CoChem-BASE",
+      "revision": "83462724849f1ef0be8c70ffcad6265d6af99388",
+      "source_sha256": "696bfb401ac022a89d8b0d2704fbd9d469e0d4a04807552611f2ad05d24e1618",
+      "built_wheel_sha256": "8f2a4ab1d17b13ac4ebdff8b5bc1c9918da1cb467fe65fee1e229c7499cd492f",
+      "installed_files_sha256": "357c3e80f558dbff46a16a86908b9df0083745fa29036bf7cb9c3275f16a9924",
+      "environment_sha256": "ea7799cf9dff85eae4040ddfe00fc7e25d4ae69e670ac0b35ee18e75f4c9f5a0",
+      "manifest_spec_sha256": "bbc716a8d888637991fb799662addfbd8c1fbf5f1a9788f661b11d910af1c7f4",
+      "actual_dependency_distribution_count": 72
+    },
+    {
+      "module_id": "topos",
+      "repository": "ProfJJK-CoChem/CoChem-TOPOS",
+      "revision": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+      "source_sha256": "ffa86b586bff64ee404484177a5b0e0fb382e94517b4ff82adda97a9bd42e429",
+      "built_wheel_sha256": "3f326821a2fd7fc87313c72a5a71de8ef3a4393fca1f456e614628080fe4a4e7",
+      "installed_files_sha256": "86b56a771fb05e4a2a4ed6399eb568eda1f5c0193339e7977fe078376387b6d5",
+      "environment_sha256": "6891e44ac87ea3f61ffa58b9b817305920188730cda91471990d48d8845fa392",
+      "manifest_spec_sha256": "1497fcab4e465cdae0625e33f7718ee0d083bf13480ec1d596cc9bdea8a32421",
+      "actual_dependency_distribution_count": 23
+    }
+  ],
+  "current_uv_pip_check_actual_tool_exit_code": 0,
+  "actual_compatible_distribution_count": 163,
+  "source_clean": true,
+  "student_deployment_performed": false,
+  "scientific_qualification": false,
+  "scope": "Actual existing-instance software interface, host process regressions and idempotent pinned SDK setup/verify; no full install-script replay, fresh-task restoration, scientific accuracy campaign or student pilot."
+}

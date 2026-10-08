@@ -28,15 +28,7 @@ TORQ distribution contain overlapping shared package paths, so the modern TORQ
 student module must stay in its separate environment. The mandatory TOPOS kit's
 compatibility importer remains distinct from this student calculation interface.
 
-The `7bcc043` merged snapshot has a genuine installed Python 3.12 wheel check: **1,072
-passed, 63 explicitly deselected, zero failures/errors/skips**, plus eight
-passing installed-source provenance checks. These overlapping checks establish
-their recorded software scope; they do not qualify every scientific method or
-the student platform. The earlier complete **3,192-pass** regression belongs to
-the earlier source snapshot, and the final integrated full regression is pending. See the
-[source-bound validation record](development/published_reference_product.md#completed-local-software-validation)
-for exact hashes, prerequisites and retained history. All 41 full-SRS gates
-remain blocked; student deployment stays on hold.
+The latest exact-source GitHub Actions full regression passed **3,277 tests**, with zero failures/errors/skips. Its installed Python 3.10 and 3.12 core lanes passed **1,079** and **1,079** cases; these overlapping suites are reported separately. The bounded genuine relaxed-scan implementation also passed **28 checks**. Original artifact bytes, wheel payloads, native inventories and earlier failures are preserved in the [source-bound validation record](development/published_reference_product.md#completed-local-software-validation). Passing software does not establish identification accuracy or the complete SRS. All 41 full-SRS gates remain blocked; the live student journey is unverified and student deployment stays on hold.
 
 ## Your first calculation
 

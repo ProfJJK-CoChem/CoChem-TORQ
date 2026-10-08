@@ -1,0 +1,10 @@
+{
+  "actual_original_supervisor_completion_read": true,
+  "module_executed": "ci_tools/run_repository_regression.py",
+  "original_private_completion_receipt_sha256": "698eae1ac152c41820f68f4fa4eca2d68ce0828967d70e8ef47ca67c8388bd0b",
+  "private_command_paths_omitted": true,
+  "recorded_at": "2026-10-08T22:27:22.484738+00:00",
+  "runner_exit_code": 0,
+  "schema_version": "cochem.actual-original-regression-supervisor-completion/1",
+  "source_tree_sha256": "4d310c51dab2a0a2b4cfaf39a25a8333351b23bd35664d00e60c29c365278ca5"
+}

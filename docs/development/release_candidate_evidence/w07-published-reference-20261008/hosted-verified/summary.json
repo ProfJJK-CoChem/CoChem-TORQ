@@ -1,0 +1,141 @@
+{
+  "actual_full_genuine_source_identity_installation_case_count": 8,
+  "actual_full_original_summary_archived_member_sha256": "7d81aae8a6405a5b31cb18aa90e1b8c8ce78f9f3c6b5e037388b4c9d596379e7",
+  "actual_hosted_full_audit_exit_code": 0,
+  "actual_hosted_full_elapsed_seconds": 871.273435326,
+  "actual_hosted_full_pytest_exit_code": 0,
+  "actual_hosted_full_source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "actual_hosted_full_source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "actual_hosted_job_count": 8,
+  "all_actual_hosted_jobs_passed": true,
+  "archive_bytes_retrieved_and_verified_against_fresh_github_api": true,
+  "artifacts": {
+    "core310": {
+      "actual_archive_sha256": "eb8ef723ee618ba6173d9d9ca707cd17dabb7b49f4bbcd7ab5f1e3ba31847cde",
+      "actual_authenticated_download_exit_code": 0,
+      "archive_bytes": 1259236,
+      "artifact_id": 11583808301,
+      "artifact_name": "wheel-python-3.10",
+      "every_member_crc_and_byte_size_read_checked": true,
+      "junit": {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "passed": 1079,
+          "skipped": 0,
+          "tests": 1079
+        },
+        "derived_public_sha256": "0f3d91d36425c22534cdb7cbc3c2c4c05e826051f51ae244c4520c5cd7fa22fb",
+        "original_archived_member_sha256": "588450ed0ff514080808382c34df4119079df36da7aba7cb563ccbcd12f68ac8",
+        "parameterized_case_count": 715,
+        "suite_counts_and_durations": [
+          {
+            "errors": "0",
+            "failures": "0",
+            "name": "pytest",
+            "skipped": "0",
+            "tests": "1079",
+            "time": "109.527"
+          }
+        ]
+      },
+      "matches_fresh_github_api_size_and_digest": true,
+      "member_inventory_sha256": "345184503dc21455ef1e7ef94a75c1a7a8956c537e635c3bc4abe45b44d40812",
+      "regular_member_count": 3,
+      "safe_path_unique_members_no_symlinks_encryption_or_unbounded_expansion": true,
+      "total_uncompressed_bytes": 1425800
+    },
+    "core312": {
+      "actual_archive_sha256": "8d906378f7b88879caced2b4a875ab9e34a27b3e710f7d39a452e5fe744a1791",
+      "actual_authenticated_download_exit_code": 0,
+      "archive_bytes": 1259296,
+      "artifact_id": 11584502291,
+      "artifact_name": "wheel-python-3.12",
+      "every_member_crc_and_byte_size_read_checked": true,
+      "junit": {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "passed": 1079,
+          "skipped": 0,
+          "tests": 1079
+        },
+        "derived_public_sha256": "d7f9a06baeaaae7ae524a7549e50517c5660d912397c7223313a8335bc488968",
+        "original_archived_member_sha256": "a5610359a3a5529eb4194c0643f6f32c16c8ed361f019db2a69f019425f2c9b9",
+        "parameterized_case_count": 715,
+        "suite_counts_and_durations": [
+          {
+            "errors": "0",
+            "failures": "0",
+            "name": "pytest",
+            "skipped": "0",
+            "tests": "1079",
+            "time": "146.164"
+          }
+        ]
+      },
+      "matches_fresh_github_api_size_and_digest": true,
+      "member_inventory_sha256": "4e05903b89db77dc69ff693c7b9002a475d4872716802d39787ec0873c36a8af",
+      "regular_member_count": 3,
+      "safe_path_unique_members_no_symlinks_encryption_or_unbounded_expansion": true,
+      "total_uncompressed_bytes": 1425800
+    },
+    "full": {
+      "actual_archive_sha256": "a38fc883496a5e9c775cd0318e6f0567463769c91c961f2e04e01482930f6446",
+      "actual_authenticated_download_exit_code": 0,
+      "archive_bytes": 3148772,
+      "artifact_id": 11584623695,
+      "artifact_name": "torq-complete-regression-37856692326-1",
+      "every_member_crc_and_byte_size_read_checked": true,
+      "junit": {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "passed": 3277,
+          "skipped": 0,
+          "tests": 3277
+        },
+        "derived_public_sha256": "137240281d11a4a0c21258aa8bd29276839eda7e4e1748f2360c1eddda8416d0",
+        "original_archived_member_sha256": "d697e58b96a3968e3f487efcee92e338c5b24d5a1367df7c0e0515f0082d3dc6",
+        "parameterized_case_count": 1726,
+        "suite_counts_and_durations": [
+          {
+            "errors": "0",
+            "failures": "0",
+            "name": "pytest",
+            "skipped": "0",
+            "tests": "3277",
+            "time": "864.250"
+          }
+        ]
+      },
+      "matches_fresh_github_api_size_and_digest": true,
+      "member_inventory_sha256": "74756fd5c66ce6b49cc569b47b7ef5c8d2dc2df0b1822f0c259c240133f1e8e4",
+      "regular_member_count": 667,
+      "safe_path_unique_members_no_symlinks_encryption_or_unbounded_expansion": true,
+      "total_uncompressed_bytes": 8575666
+    }
+  },
+  "core_marker_deselected_count": null,
+  "core_marker_deselected_count_scope": "Not stored in these original JUnit archives; no local deselection count transferred to hosted evidence.",
+  "earlier_observation_receipt_left_unchanged": true,
+  "earlier_observation_receipt_sha256": "43afaf13212f1b15450a8254cc1ba787e194c0012ba053fd6f1d7c8242db10d4",
+  "full_srs_qualification": false,
+  "full_srs_release_ready": false,
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "independent_scientific_method_qualification": false,
+  "native_bundle_count": 64,
+  "native_retention_truncated_by_bound": true,
+  "original_runner_raw_full_junit_hash_recorded_but_raw_bytes_not_in_artifact": "819357b8c961d63a74c7310bccf92957c3885f737494d15a9fbb13da8fa532ca",
+  "privacy": "No authentication headers, signed redirect URLs, credential values, hostnames, trace/output bodies or local absolute paths included; parameter literals represented by SHA256.",
+  "public_metadata_redaction_only_no_execution_rerun": true,
+  "recorded_at": "2026-10-08T23:36:44.066613+00:00",
+  "repository": "ProfJJK-CoChem/CoChem-TORQ",
+  "run_id": 37856692326,
+  "schema_version": "cochem.actual-hosted-archive-verification/1",
+  "source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_unchanged_during_readonly_verification": true,
+  "student_test_deployment": "on_hold_and_not_run",
+  "verification_scope": "Three original GitHub artifacts; every archived member read with CRC/size bounds, direct original JUnit counts, all retained native inventory byte bindings and both packaged wheel Python payloads."
+}

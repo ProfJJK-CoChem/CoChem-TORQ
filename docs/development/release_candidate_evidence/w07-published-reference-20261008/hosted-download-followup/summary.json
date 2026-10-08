@@ -1,0 +1,48 @@
+{
+  "actual_direct_original_command_exits_verified": true,
+  "actual_frozen_source_python_payload_count": 262,
+  "actual_genuine_source_identity_installation_case_count": 8,
+  "actual_original_junit_counts": {
+    "core310": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 1079,
+      "skipped": 0,
+      "tests": 1079
+    },
+    "core312": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 1079,
+      "skipped": 0,
+      "tests": 1079
+    },
+    "full": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 3277,
+      "skipped": 0,
+      "tests": 3277
+    }
+  },
+  "both_actual_hosted_wheels_match_entire_frozen_source_catalog": true,
+  "current_authoritative_public_index_sha256": "3c548f6ce6b6c63dd94aacc6c3ba884e97ab0a7d20fac4a9f23caa28ce867140",
+  "current_authoritative_public_summary_sha256": "580007d755ef9f0b31921351b4acab5d8413d31ff05375fc862f8749623c5417",
+  "every_genuine_source_identity_installation_case_passed": true,
+  "full_srs_scientific_qualification": false,
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "historical_failures_preserved_and_causal_inference_superseded": true,
+  "independent_original_archive_readback_passed": true,
+  "independent_readback_sha256": "5966295006418d88d59e493def5ad5d314226a6191b61e89e16978bece060fe5",
+  "native_retention_truncated_by_bound": true,
+  "recorded_at": "2026-10-08T23:39:42.535206+00:00",
+  "retained_native_bundle_count": 64,
+  "retained_native_bytes": 8063591,
+  "run_attempt": 1,
+  "run_id": 37856692326,
+  "schema_version": "cochem.actual-archive-success-followup/1",
+  "scientific_tests_rerun_for_metadata_derivation": false,
+  "source_tree_sha256_after": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "source_tree_sha256_before": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "student_deployment": "on_hold_and_not_run"
+}

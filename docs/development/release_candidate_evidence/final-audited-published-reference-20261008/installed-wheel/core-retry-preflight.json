@@ -1,0 +1,10 @@
+{
+  "canonical_audit_validator_exit_code": 0,
+  "coverage_valid": true,
+  "full_srs_release_ready": false,
+  "stopped_full_supervisor_completion_sha256": "d7b138757e3ef9d3357ac96cbefbe74e2500640d18a866c4d309ed09927a11b7",
+  "stopped_full_runner_exit_code": 1,
+  "root_editorial_review_sha256": "2e56da325e640bfbeb9255350e8c4436c646b53e0837b4ef05d8fe5b5a42b40b",
+  "original_failed_core_preserved": true,
+  "no_wheel_rebuild_required": true
+}

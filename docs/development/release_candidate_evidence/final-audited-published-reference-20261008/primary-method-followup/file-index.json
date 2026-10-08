@@ -1,0 +1,25 @@
+{
+  "schema_version": "cochem.torq.source-followup-public-index/1",
+  "files": [
+    {
+      "name": "LICENSE-NOTICE.md",
+      "bytes": 579,
+      "sha256": "724c2f0f7f10f98139f7f160cbbb20d9cc86f1478c1ff9809717169d80f886ea"
+    },
+    {
+      "name": "publisher-MOS-SI-TableS5-exact-quote.txt",
+      "bytes": 1913,
+      "sha256": "3b447b6dd08a3a9d1982f162dcdfc4fdb0db5191894c3dd1fefb659ff3f84de8"
+    },
+    {
+      "name": "revdsd_primary_and_upstream_followup.json",
+      "bytes": 26363,
+      "sha256": "cb551fd99c29996fcff66b766790427dce5a283ebb0d5364c832f4c26645eb20"
+    },
+    {
+      "name": "revdsd_primary_and_upstream_followup.md",
+      "bytes": 11939,
+      "sha256": "b35055fe399037315c7d851196c4f5d21d49942644e09a3a52b6f283b1255284"
+    }
+  ]
+}

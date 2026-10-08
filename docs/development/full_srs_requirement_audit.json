@@ -350,7 +350,7 @@
     {
       "evidence_ids": [],
       "id": "V-PACKAGE",
-      "reason": "The e77e2a4 wheel byte-matches all 249 packaged Python sources; installed-wheel core lanes pass 952 each and the complete local suite passes 3034 without exclusions/skips. Later main at 5c1da3a passed all eight hosted jobs, including actual offline calculation image/native/core/ecosystem/interface and complete regression. Application Python bytes remain unchanged; hosted artifact bytes and exact case counts remain unverified. Complete live Codespaces/private student journey and scientific qualification remain outstanding.",
+      "reason": "Current source 164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902 has actual verified canonical hosted full 3277-pass and installed Python 3.10/3.12 core evidence, plus bounded native W07 checks. Exact method/domain independence, remaining agent workstreams and held live student/platform scope are unqualified; this full-scope gate stays blocked.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -399,7 +399,7 @@
     {
       "evidence_ids": [],
       "id": "V-RELEASE",
-      "reason": "All 41 full-scope acceptance gates retain their missing evidence and all73 requirements remain incompletely qualified. The complete current local software regression, installed wheel and sibling handoffs pass; exact revDSD/full rovibrational products, independent scientific benchmarks and deployed student platform qualification remain missing.",
+      "reason": "Current source 164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902 has actual verified canonical hosted full 3277-pass and installed Python 3.10/3.12 core evidence, plus bounded native W07 checks. Exact method/domain independence, remaining agent workstreams and held live student/platform scope are unqualified; this full-scope gate stays blocked.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -432,53 +432,79 @@
     "total": 73
   },
   "current_collection_observation": {
-    "collected": 3034,
-    "path": "docs/development/release_candidate_evidence/e77e2a4/full-run/summary.json",
+    "collected": 3277,
+    "path": "docs/development/release_candidate_evidence/w07-published-reference-20261008/hosted-verified/summary.json",
     "performed": true,
-    "scope": "Genuine complete collection and execution without test exclusions; independent scientific and deployed platform qualification remain distinct.",
-    "sha256": "b2ba6fc574d9e5a36c4bd95e2fd23920c3656bd1b048dbbcd0545848f2c29ae7",
-    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
-    "status": "actual_complete_execution_without_exclusions"
+    "scope": "Actual complete canonical hosted execution; no separate collect-only command is asserted. Scientific and held student-platform qualification remain distinct.",
+    "sha256": "580007d755ef9f0b31921351b4acab5d8413d31ff05375fc862f8749623c5417",
+    "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+    "status": "actual_complete_hosted_collection_and_execution_verified_from_original_artifact"
   },
   "current_execution_observation": {
     "audit_exit_code": 0,
     "errors": 0,
     "failures": 0,
-    "passed": 3034,
-    "path": "docs/development/release_candidate_evidence/e77e2a4/full-run/summary.json",
+    "passed": 3277,
+    "path": "docs/development/release_candidate_evidence/w07-published-reference-20261008/hosted-verified/summary.json",
     "pytest_exit_code": 0,
-    "scope": "Local all-repository software, mathematical, process and genuine-engine regression. All complete-scope gates retain required missing independent scientific or platform evidence.",
-    "sha256": "b2ba6fc574d9e5a36c4bd95e2fd23920c3656bd1b048dbbcd0545848f2c29ae7",
+    "run_id": 37856692326,
+    "scope": "Canonical GitHub Actions all-repository software/native regression, authenticated original archive and outcome verification. No local new-source full supervisor or independent full scientific acceptance is asserted.",
+    "sha256": "580007d755ef9f0b31921351b4acab5d8413d31ff05375fc862f8749623c5417",
     "skipped": 0,
-    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
     "source_unchanged": true,
-    "status": "actual_local_complete_software_execution",
-    "supervisor_exit_code": 0,
-    "tested_source_commit": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
-    "tests": 3034
+    "status": "actual_verified_hosted_complete_software_execution",
+    "tested_source_commit": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+    "tests": 3277
   },
   "current_hosted_main_software_observation": {
-    "actual_main_run_id": 37805501782,
-    "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
-    "hosted_artifact_bytes_verified": false,
-    "hosted_test_counts": null,
-    "receipt": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/torq-hosted-observation.json",
+    "actual_main_run_id": 37856692326,
+    "application_code_sha256": "680f1415ee5e10867709c8d6c67f26f169c2c098d16b81ef0a6ef2331b65e1be",
+    "hosted_artifact_bytes_verified": true,
+    "hosted_test_counts": {
+      "core310": {
+        "errors": 0,
+        "failures": 0,
+        "passed": 1079,
+        "skipped": 0,
+        "tests": 1079
+      },
+      "core312": {
+        "errors": 0,
+        "failures": 0,
+        "passed": 1079,
+        "skipped": 0,
+        "tests": 1079
+      },
+      "full": {
+        "errors": 0,
+        "failures": 0,
+        "passed": 3277,
+        "skipped": 0,
+        "tests": 3277
+      }
+    },
+    "receipt": "docs/development/release_candidate_evidence/w07-published-reference-20261008/hosted-verified/summary.json",
+    "receipt_sha256": "580007d755ef9f0b31921351b4acab5d8413d31ff05375fc862f8749623c5417",
     "reported_hosted_jobs_passed": 8,
-    "scope": "Actual job/step metadata. Scientific and full deployed student gates remain blocked; artifact bytes and hosted case counts are unverified.",
-    "source_tree_sha256": "64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf",
-    "tested_commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e"
+    "scope": "Actual source CI plus authenticated original ZIP/member/JUnit/native/wheel byte verification. This is separate from the held live student Codespaces-to-Actions journey.",
+    "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+    "tested_commit": "d43b8aa3eefc4768f2d52857cd3945677ed3a794"
   },
   "current_narrow_test_policy_observation": {
+    "actual_exit_code": 0,
     "command": "python ci_tools/check_scientific_test_policy.py tests",
     "environment_configuration_calls": 2,
     "explicit_runtime_replacement_violations": 0,
-    "files_checked": 136,
-    "path": "docs/development/scientific_test_policy_current.json",
+    "files_checked": 147,
+    "original_inventory_sha256": "0a6dd27a4b5feffe8db1ff62712ca09026e362bd1fef42773a255d44bcdaf02d",
+    "original_source_bound_static_summary_sha256": "75a01318bfae2d8c60572d575ef6ac7a18093673e7f3929c0315ea300d9f907a",
+    "path": "docs/development/release_candidate_evidence/w07-published-reference-20261008/current-static/policy-observation.json",
     "performed": true,
+    "schema_version": "cochem.actual-source-bound-policy-observation/1",
+    "scientific_qualification": false,
     "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety.",
-    "sha256": "9c04961bbb4b329ce66a792a9eccd6d4a3e83b8b37ca06ca233940ffe4a25c5b",
-    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
-    "status": "current_narrow_ast_observation"
+    "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902"
   },
   "historical_collection_observation": {
     "collected": 1438,
@@ -708,6 +734,55 @@
     "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
     "status": "current_narrow_ast_observation"
   },
+  "preceding_5c1da3a_current_hosted_main_software_observation": {
+    "actual_main_run_id": 37805501782,
+    "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "hosted_artifact_bytes_verified": false,
+    "hosted_test_counts": null,
+    "receipt": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/torq-hosted-observation.json",
+    "reported_hosted_jobs_passed": 8,
+    "scope": "Actual job/step metadata. Scientific and full deployed student gates remain blocked; artifact bytes and hosted case counts are unverified.",
+    "source_tree_sha256": "64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf",
+    "tested_commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e"
+  },
+  "preceding_e77e2a4_current_collection_observation": {
+    "collected": 3034,
+    "path": "docs/development/release_candidate_evidence/e77e2a4/full-run/summary.json",
+    "performed": true,
+    "scope": "Genuine complete collection and execution without test exclusions; independent scientific and deployed platform qualification remain distinct.",
+    "sha256": "b2ba6fc574d9e5a36c4bd95e2fd23920c3656bd1b048dbbcd0545848f2c29ae7",
+    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "status": "actual_complete_execution_without_exclusions"
+  },
+  "preceding_e77e2a4_current_execution_observation": {
+    "audit_exit_code": 0,
+    "errors": 0,
+    "failures": 0,
+    "passed": 3034,
+    "path": "docs/development/release_candidate_evidence/e77e2a4/full-run/summary.json",
+    "pytest_exit_code": 0,
+    "scope": "Local all-repository software, mathematical, process and genuine-engine regression. All complete-scope gates retain required missing independent scientific or platform evidence.",
+    "sha256": "b2ba6fc574d9e5a36c4bd95e2fd23920c3656bd1b048dbbcd0545848f2c29ae7",
+    "skipped": 0,
+    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "source_unchanged": true,
+    "status": "actual_local_complete_software_execution",
+    "supervisor_exit_code": 0,
+    "tested_source_commit": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
+    "tests": 3034
+  },
+  "preceding_e77e2a4_current_narrow_test_policy_observation": {
+    "command": "python ci_tools/check_scientific_test_policy.py tests",
+    "environment_configuration_calls": 2,
+    "explicit_runtime_replacement_violations": 0,
+    "files_checked": 136,
+    "path": "docs/development/scientific_test_policy_current.json",
+    "performed": true,
+    "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety.",
+    "sha256": "9c04961bbb4b329ce66a792a9eccd6d4a3e83b8b37ca06ca233940ffe4a25c5b",
+    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "status": "current_narrow_ast_observation"
+  },
   "preceding_failed_execution_observation": {
     "actual_summary_path": "docs/development/release_candidate_evidence/57c81eb/earlier-mass-fixed-failed-summary.json",
     "actual_summary_sha256": "28ccee680f87b76b9a85b6291f7cda6a219fb8512e19a36ef263085a8ad1e2d6",
@@ -722,11 +797,11 @@
     "tests": 2486
   },
   "release_scope": {
-    "bounded_student_release_qualification": "bounded current local module/process/native checks pass; preceding wheel/sibling checks remain historical; independent science and canonical deployed journey remain blocked",
+    "bounded_student_release_qualification": "Current exact-source full/core Actions and bounded local native checks pass; independent science and the live student journey remain blocked. Student deployment is on hold.",
     "canonical_platform_qualifications_outstanding": [
-      "reviewed calculation workflow available on default branch with actual repository Actions access",
-      "live Codespaces import/approve/submit/status/cancel/download/export journey",
-      "actual artifact download through permitted storage endpoint and original-byte verification",
+      "held student owning-repository calculation workflow on its default branch with actual private-repository Actions access",
+      "held live student Codespaces import/approve/submit/status/cancel/download/export journey",
+      "held student calculation artifact download and original-byte verification; the ordinary public source-CI artifacts were already downloaded and verified",
       "deployed coordinator/schema recovery, shared host allocation and full security/operational lifecycle"
     ],
     "full_srs_release_ready": false,
@@ -743,7 +818,8 @@
       "bounded supplied-graph/stereo/isotope proper-rotation comparisons and tolerance-swept nuclear-position symmetry proposals retaining complete originals and ambiguous candidates",
       "approved bounded closed-shell H2 and nonperiodic fixed valence-coordinate RHF/STO-3G scans with actual prior-density continuation, independent challenges and genuine native-point-to-fenced-HDF5 admission",
       "approved one-coordinate finite-design physical-anchor/maximin adaptive acquisition with true budgets/explicit stops and separately approved genuine target optimization/Hessian minimum checks",
-      "strict geometric precursors and bounded canonical nonresonant Watson/Dirichlet-local operator routes with applicability-gated model products and explicit unavailable B0/alpha for rejected default water"
+      "strict geometric precursors and bounded canonical nonresonant Watson/Dirichlet-local operator routes with applicability-gated model products and explicit unavailable B0/alpha for rejected default water",
+      "bounded water-only nonperiodic RHF/STO-3G relaxed internal-coordinate scan through actual API/CLI, with independent MINAO starts, explicit native evaluation budgets and native lineage; current positive checks cover one target through three scheduled attempts, not a complete PES"
     ],
     "independent_scientific_qualifications_outstanding": [
       "exact primary-source revDSD orbital/semilocal/OS/SS/D4/core-definition reconciliation and authenticated independent components/response/higher derivatives",
@@ -2193,8 +2269,8 @@
     }
   ],
   "reviewed_at": "2026-10-08",
-  "reviewed_source_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
-  "reviewed_working_tree": "Frozen corrected source/configuration/tests passed the complete source-bound local regression. Documentation-only receipt updates do not change the tested source hash. Full-scope science, deployed platform and all acceptance gates remain incompletely qualified.",
+  "reviewed_source_commit": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "reviewed_working_tree": "Clean actual source matches the completed canonical hosted full/core original-artifact proof and genuine bounded W07 native run. All independent full scientific and live student-platform qualifications remain blocked.",
   "schema_version": "cochem.torq.full-srs-audit/1",
   "scope": "All 73 normative requirements, 41 acceptance definitions and 140 historical matrix identities remain visible. Source/test pointers are implementation coverage references, never passing execution evidence. Actual evidence must bind the complete tested source/configuration tree. The bounded experimental supplied-candidate workflow is distinct from complete full-SRS scientific or deployed student qualification.",
   "specification": {

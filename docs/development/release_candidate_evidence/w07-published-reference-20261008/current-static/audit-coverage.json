@@ -1,0 +1,296 @@
+{
+  "acceptance_count": 41,
+  "classifications": {
+    "implemented_and_qualified": 0,
+    "missing_implementation": 1,
+    "missing_independent_qualification": 8,
+    "optional_profile_or_credentials": 8,
+    "partial_supported_scope": 56
+  },
+  "coverage_valid": true,
+  "full_srs_release_ready": false,
+  "requirement_count": 73,
+  "schema_version": "cochem.torq.release-audit-result/1",
+  "unresolved_acceptance": [
+    {
+      "id": "V-STAGES",
+      "reason": "Strict baseline/advanced payloads preserve real earlier results and atom/isotope/frame/mode/parent identities. The complete independently qualified rovibration/VPT2/B0/identification route and source-bound execution ledger remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-SCHEMA",
+      "reason": "RFC 8785 identities, separate submission/cache keys and strict advanced payloads exist; all SRS record families, absence states and complete version migrations still require implementation/qualification.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-UNITS",
+      "reason": "An immutable versioned CODATA-2022-compatible constants service and strict unit/frame/coordinate contracts now exist, with mathematical round-trip tests. All historical adapter/property migrations and source-bound full gate evidence remain incomplete; a mathematical conversion cannot qualify scientific model accuracy.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-GEO",
+      "reason": "Bounded supplied-graph/isotope/stereo-aware mapping and proper-rotation comparisons retain complete originals and ambiguous candidates. General topology/stereo/constraint domain and independent deduplication/recall qualification remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-ROT",
+      "reason": "Genuine bounded baseline rotor calculations and independent mathematical checks exist; exact source-bound gate evidence for full supported geometry domains remains to be recorded.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-ISO",
+      "reason": "Real remassing/axis calculations exist; near-degenerate-frame continuity and the selected anharmonic/isotope domain require independent qualification.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-SYM",
+      "reason": "Bounded tolerance-swept nuclear-position/isotope/mass actions and separately named constrained-HF residual/Lagrangian-curvature calculations exist. General point/engine subgroups, feasible permutation-inversion symmetry, spin weights, tunneling and independent constrained-domain qualification remain unavailable.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-METHOD",
+      "reason": "Immutable exact capability tuples and source/native-request-bound local evidence now exist. Built-in methods remain experimental and unknown tuples cannot inherit support; all140 matrix identities remain documentary. Each production scientific/domain/deployment tuple still requires genuine qualification and current source-bound execution evidence.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-ENGINE",
+      "reason": "Real bounded restricted/open-shell native execution, owned subprocess supervision, actual checkpoint consumption and local host/campaign authority now exist. Complete asynchronous lifecycle, independently qualified advertised tuples and source-bound canonical-platform evidence remain required.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-OPT",
+      "reason": "Real water/H2 optimization exists; full required minimum/linear/dimer/domain campaign and source-bound acceptance evidence remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-ELECTRONIC",
+      "reason": "Real restricted SCF stability exists; advanced/open-shell/state diagnostics and profile-specific independent references remain unqualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-DERIV",
+      "reason": "Real finite differences/analytic checks exist; exact revDSD response/higher derivatives and independently qualified molecular higher-order fields remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-VIB",
+      "reason": "Real harmonic baseline exists; complete required reference-frequency/linear/isotope/weak-binding challenge campaign remains incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-VPT2",
+      "reason": "Bounded canonical nonresonant Watson semirigid J=0 perturbation (Coriolis/volume terms), leading alpha/model B0 and unreduced harmonic quartic response now exist with mathematical and genuine-input/worker checks. Actual default HF/STO-3G water fails the reviewed coupling gate, so B0/model alpha/semirigid results remain unavailable while valid earlier evidence is retained. Full resonant GVPT2/polyads, reduction-induced shifts, higher distortion/hyperfine/tunneling and independent spectroscopy/identification calibration remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-DVR",
+      "reason": "A bounded Dirichlet local variational rovibrational operator/solver and mathematical/native-input checks now exist with explicit boundaries, mode/energy conventions and convergence diagnostics. It is not a periodic large-amplitude model; coupled molecular PES/kinetic/spin-sector applicability and independent spectral qualification remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-PES",
+      "reason": "Approved bounded RHF/STO-3G fixed H2 and nonperiodic internal-coordinate scans retain actual forward/reverse/challenge energies, native densities, exact prior-checkpoint consumption and current coordinator/host provenance. Standalone constrained HF optimization and a genuine point-to-fenced-HDF5 bridge exist. General relaxed/periodic/multistate PES, branch completeness, independent applicability and deployed-platform qualification remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-TS",
+      "reason": "Actual first-order saddle and downhill endpoint candidates are implemented without claiming IRC/connectivity. Full target-level verified reaction-mode/endpoints and independent TS/IRC evidence remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-AL",
+      "reason": "Bounded approved physical-anchor/maximin acquisition, genuine challenges, actual budgets and explicit stops exist for one finite H2 design; separately approved target optimization/Hessian verification preserves original candidates. Trained-surrogate applicability, family-held-out calibration and independent global basin coverage/recall qualification remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-CP",
+      "reason": "Genuine same-complex-basis ghost-fragment energies, full moving-grid-response gradients and explicit interaction/deformation/De/D0/RRHO calculations exist experimentally. CP geometry optimization, selected composites and authenticated independent method-domain accuracy remain unqualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-DH",
+      "reason": "Exact primary revDSD recipe reconciliation and independent component/response/higher-derivative comparison remain blocked.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-PROP",
+      "reason": "Genuine baseline dipoles/origin shifts exist; all enabled EFG/coupling/response/Hamiltonian properties and independent reference tensors remain unqualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-WFN",
+      "reason": "No complete basis/spin/occupation/ECP/normalization/electron-density interchange reference campaign has passed.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-ANALYSIS",
+      "reason": "Named optional analyses remain individually unqualified; genuine licensed/open implementations and independent grid/basin/identity reference cases are required.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-KINETICS",
+      "reason": "Optional kinetic models do not have the required qualified physical partition functions/range/assumption campaign.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-UQ",
+      "reason": "Strict declaration/leakage controls, separate five-source error budgets and mathematical covariance propagation exist. Actual target-domain sensitivities, independently curated calibration/held-out references and predictive interval/domain evidence remain outstanding; all declared goals remain unqualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-BENCH",
+      "reason": "Benchmark proposal contains empty references/null targets; independent accepted preregistration and blind numerical/predictive results are absent.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-PLAN",
+      "reason": "Explicit review binds the exact request, current recipe/plan and code source, finite budgets and expiry. Actions transport preserves the same approval; local revocation prevents future work. Full multi-task branch/change-policy semantics, deployed authenticated lifecycle and scientific target achievement remain unqualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-BUDGET",
+      "reason": "Atomic campaign budget authority and a deployment-wide private local host ledger reserve CPU/RAM/scratch/worker and explicitly probed GPU slots across participating campaigns. Both scan and ordinary workers bind actual process identities and retain unknown launches/nested-child costs; genuine local contention/death tests pass. Complete primitive-stage accounting, GPU-positive qualification, exact lifetime peaks and canonical-platform evidence remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-FAIL",
+      "reason": "The current frozen source passed all repository tests without exclusions or skips, including explicit missing/unsupported/failure integrity cases and real budget/SCF failures. The current AST inventory is only a narrow replacement-API observation. Full-schema absence states and applicable every-profile scientific/platform failure acceptance remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-STATE",
+      "reason": "Authoritative revision-CAS/events/immutable attempts, fenced publication and verified online SQLite snapshots/new-target offline recovery now exist. Recovery revokes approvals, clears active leases and increments generation fences while preserving history and unknown costs. Every-transition/deployed duplicate-delivery and cross-host ownership qualification remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-RESTART",
+      "reason": "Authenticated immutable PySCF checkpoint orbitals now provide an observed initial density genuinely consumed by a fresh SCF, with actual first-callback proof and explicitly allowed geometry projection. Original/sealed inputs and exact state/basis/occupation/native identities remain bound. SCF iteration/DIIS, optimizer and higher-derivative algorithm-state resume, other adapters and deployed recovery qualification remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-STORAGE",
+      "reason": "The local sole-merger HDF5 contract now admits genuine native scan points through exact current committed coordinator receipts, preserves absolute-energy/unit/atom/state/native identities and publishes atomically with same-authority orphan recovery. Mathematical samples keep their separate evidence class. Source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and full independent molecular/source-bound qualification remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-CONSUMER",
+      "reason": "Actual versioned SpycFit consumer and convention/schema round trips have not been supplied or qualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-SPCAT",
+      "reason": "Strict export rejects missing constants. Genuine pinned externally compiled SPCAT/SPFIT executes the bounded supported Hamiltonian and round trips with 52 passing local checks; redistribution permission, independent molecular/consumer conventions, experimental transition/intensity accuracy and complete calibrated identification remain unqualified.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-EXPORT",
+      "reason": "Truthful baseline exploratory exports exist; complete publication-eligibility/provenance/advanced Hamiltonian contract and selected consumer profiles remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-PACKAGE",
+      "reason": "The e77e2a4 wheel byte-matches all 249 packaged Python sources; installed-wheel core lanes pass 952 each and the complete local suite passes 3034 without exclusions/skips. Later main at 5c1da3a passed all eight hosted jobs, including actual offline calculation image/native/core/ecosystem/interface and complete regression. Application Python bytes remain unchanged; hosted artifact bytes and exact case counts remain unverified. Complete live Codespaces/private student journey and scientific qualification remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-SECURITY",
+      "reason": "Path/hash/basic isolation checks exist; unauthorized cancel/approval/tenant controls and the complete tested trust-policy/retention boundary remain incomplete.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-E2E",
+      "reason": "Shared doctor/plan/approval/run/resume/export contracts exist locally. Complete owned cancel and actual Codespaces-to-Actions user journey remain required.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-HPC",
+      "reason": "Named Slurm allocation/cancel/requeue/staging and optional GPU/MPS profile credentials/environment evidence remain unavailable.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-DEPLOY",
+      "reason": "Local shard recovery, WAL-consistent coordinator backup/new-target fenced restore, exact known v0-to-v1 metadata adoption and private shared-host allocation are implemented with real SQLite/process tests. Generic unknown-schema migrations/rollback, remote scheduler authority and actual canonical Codespaces/Actions full operational lifecycle remain outstanding.",
+      "status": "blocked"
+    },
+    {
+      "id": "V-RELEASE",
+      "reason": "All 41 full-scope acceptance gates retain their missing evidence and all73 requirements remain incompletely qualified. The complete current local software regression, installed wheel and sibling handoffs pass; exact revDSD/full rovibrational products, independent scientific benchmarks and deployed student platform qualification remain missing.",
+      "status": "blocked"
+    }
+  ],
+  "unresolved_requirements": [
+    "TORQ-GOV-001",
+    "TORQ-GOV-002",
+    "TORQ-SCI-001",
+    "TORQ-SCI-002",
+    "TORQ-SCI-003",
+    "TORQ-SCI-004",
+    "TORQ-SCI-005",
+    "TORQ-ARC-001",
+    "TORQ-ARC-002",
+    "TORQ-ARC-003",
+    "TORQ-DATA-001",
+    "TORQ-DATA-002",
+    "TORQ-DATA-003",
+    "TORQ-METHOD-001",
+    "TORQ-METHOD-002",
+    "TORQ-METHOD-003",
+    "TORQ-METHOD-004",
+    "TORQ-METHOD-005",
+    "TORQ-METHOD-006",
+    "TORQ-PLAN-001",
+    "TORQ-PLAN-002",
+    "TORQ-PLAN-003",
+    "TORQ-PLAN-004",
+    "TORQ-PLAN-005",
+    "TORQ-GEO-001",
+    "TORQ-GEO-002",
+    "TORQ-GEO-003",
+    "TORQ-GEO-004",
+    "TORQ-GEO-005",
+    "TORQ-PES-001",
+    "TORQ-PES-002",
+    "TORQ-PES-003",
+    "TORQ-PES-004",
+    "TORQ-PES-005",
+    "TORQ-PES-006",
+    "TORQ-PES-007",
+    "TORQ-VIB-001",
+    "TORQ-VIB-002",
+    "TORQ-VIB-003",
+    "TORQ-VIB-004",
+    "TORQ-VIB-005",
+    "TORQ-SPEC-001",
+    "TORQ-SPEC-002",
+    "TORQ-SPEC-003",
+    "TORQ-ANA-001",
+    "TORQ-ANA-002",
+    "TORQ-ANA-003",
+    "TORQ-UQ-001",
+    "TORQ-UQ-002",
+    "TORQ-UQ-003",
+    "TORQ-UQ-004",
+    "TORQ-EXP-001",
+    "TORQ-EXP-002",
+    "TORQ-EXP-003",
+    "TORQ-EXP-004",
+    "TORQ-OPS-001",
+    "TORQ-OPS-002",
+    "TORQ-OPS-003",
+    "TORQ-OPS-004",
+    "TORQ-OPS-005",
+    "TORQ-OPS-006",
+    "TORQ-UI-001",
+    "TORQ-UI-002",
+    "TORQ-UI-003",
+    "TORQ-DEP-001",
+    "TORQ-DEP-002",
+    "TORQ-DEP-003",
+    "TORQ-DEP-004",
+    "TORQ-SEC-001",
+    "TORQ-DEP-005",
+    "TORQ-VAL-001",
+    "TORQ-VAL-002",
+    "TORQ-VAL-003"
+  ]
+}

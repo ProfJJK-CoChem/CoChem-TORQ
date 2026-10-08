@@ -1,0 +1,15 @@
+{
+  "actual_exit_code": 0,
+  "command": "python ci_tools/check_scientific_test_policy.py tests",
+  "environment_configuration_calls": 2,
+  "explicit_runtime_replacement_violations": 0,
+  "files_checked": 147,
+  "original_inventory_sha256": "0a6dd27a4b5feffe8db1ff62712ca09026e362bd1fef42773a255d44bcdaf02d",
+  "original_source_bound_static_summary_sha256": "75a01318bfae2d8c60572d575ef6ac7a18093673e7f3929c0315ea300d9f907a",
+  "path": "docs/development/release_candidate_evidence/w07-published-reference-20261008/static/policy-observation.json",
+  "performed": true,
+  "schema_version": "cochem.actual-source-bound-policy-observation/1",
+  "scientific_qualification": false,
+  "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety.",
+  "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902"
+}

@@ -1,0 +1,893 @@
+{
+  "all_nine_actual_reference_input_hashes_readback_verified_against_checkout_packet": true,
+  "all_six_comparison_receipt_hashes_and_scalar_results_readback_verified": true,
+  "application_code_sha256_verified_in_all_six_actual_comparisons": "60f6e63ddb9232db144248b2f0ef900d673add4406aad5a19fba4876e7a47b62",
+  "comparison_kind": "descriptive_cross_method_example",
+  "comparisons": [
+    {
+      "comparison_context": {
+        "basis_labels_match": false,
+        "basis_mismatch": true,
+        "comparison_scope": "cross_method_descriptive",
+        "geometry_correspondence": "different_retained_coordinate_digest",
+        "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+        "geometry_digest_match": false,
+        "method_labels_match": false,
+        "method_mismatch": true,
+        "native_basis": "sto-3g",
+        "native_method": "hf",
+        "quality_flags": [
+          "different_method_labels",
+          "different_basis_labels",
+          "different_geometry_coordinate_digest"
+        ],
+        "reference_basis": "6-31G(2df,p)",
+        "reference_method": "B3LYP",
+        "reference_origin": "published_theoretical",
+        "reference_theoretical_provenance": {
+          "basis": "6-31G(2df,p)",
+          "engine": null,
+          "engine_information_status": "not_reported",
+          "engine_version": null,
+          "geometry_description": "Published relaxed equilibrium geometry, XYZ lines3-5. Digest uses coordinates converted to Bohr with the recorded PySCF BOHR constant.",
+          "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+          "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5; original README equilibrium geometry description",
+          "independence_review": "Raw publisher XYZ/README omit engine/version, isotope/mass convention and explicit state. Cross-method comparison is descriptive only.",
+          "independence_status": "not_established",
+          "method": "B3LYP",
+          "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+          "quantity_convention": "Computed equilibrium A/B/C from relaxed DFT geometry; source GHz converted exactly to MHz; no vibration-corrected B0 claim."
+        },
+        "same_method_numerical_reproduction_established": false
+      },
+      "observable": "equilibrium_rotational_constant",
+      "path": "comparisons/01.json",
+      "prediction_value": 698404.8917091425,
+      "reference_id": "qm9-water-Be-A",
+      "reference_value": 799588.12,
+      "residuals": {
+        "absolute_residual": 101183.22829085751,
+        "relative_residual": -0.1265441866380625,
+        "relative_residual_absence_reason": null,
+        "relative_residual_definition": "(prediction - reference) / abs(reference)",
+        "relative_residual_ppm": -126544.1866380625,
+        "residual_over_reference_standard_uncertainty": null,
+        "signed_residual": -101183.22829085751,
+        "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+      },
+      "sha256": "48d94007cb23040fbbf7291dd9386a6c35a5eb9bd658281d6fe0bf711863d0eb",
+      "status": "available",
+      "unit": "MHz"
+    },
+    {
+      "comparison_context": {
+        "basis_labels_match": false,
+        "basis_mismatch": true,
+        "comparison_scope": "cross_method_descriptive",
+        "geometry_correspondence": "different_retained_coordinate_digest",
+        "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+        "geometry_digest_match": false,
+        "method_labels_match": false,
+        "method_mismatch": true,
+        "native_basis": "sto-3g",
+        "native_method": "hf",
+        "quality_flags": [
+          "different_method_labels",
+          "different_basis_labels",
+          "different_geometry_coordinate_digest"
+        ],
+        "reference_basis": "6-31G(2df,p)",
+        "reference_method": "B3LYP",
+        "reference_origin": "published_theoretical",
+        "reference_theoretical_provenance": {
+          "basis": "6-31G(2df,p)",
+          "engine": null,
+          "engine_information_status": "not_reported",
+          "engine_version": null,
+          "geometry_description": "Published relaxed equilibrium geometry, XYZ lines3-5. Digest uses coordinates converted to Bohr with the recorded PySCF BOHR constant.",
+          "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+          "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5; original README equilibrium geometry description",
+          "independence_review": "Raw publisher XYZ/README omit engine/version, isotope/mass convention and explicit state. Cross-method comparison is descriptive only.",
+          "independence_status": "not_established",
+          "method": "B3LYP",
+          "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+          "quantity_convention": "Computed equilibrium A/B/C from relaxed DFT geometry; source GHz converted exactly to MHz; no vibration-corrected B0 claim."
+        },
+        "same_method_numerical_reproduction_established": false
+      },
+      "observable": "equilibrium_rotational_constant",
+      "path": "comparisons/02.json",
+      "prediction_value": 436283.2747209287,
+      "reference_id": "qm9-water-Be-B",
+      "reference_value": 437903.86,
+      "residuals": {
+        "absolute_residual": 1620.585279071296,
+        "relative_residual": -0.0037007787030497886,
+        "relative_residual_absence_reason": null,
+        "relative_residual_definition": "(prediction - reference) / abs(reference)",
+        "relative_residual_ppm": -3700.7787030497884,
+        "residual_over_reference_standard_uncertainty": null,
+        "signed_residual": -1620.585279071296,
+        "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+      },
+      "sha256": "fc46daa76e002263ef03fe8f33bcca0407258f25ee5568cc7dde77e3a029069c",
+      "status": "available",
+      "unit": "MHz"
+    },
+    {
+      "comparison_context": {
+        "basis_labels_match": false,
+        "basis_mismatch": true,
+        "comparison_scope": "cross_method_descriptive",
+        "geometry_correspondence": "different_retained_coordinate_digest",
+        "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+        "geometry_digest_match": false,
+        "method_labels_match": false,
+        "method_mismatch": true,
+        "native_basis": "sto-3g",
+        "native_method": "hf",
+        "quality_flags": [
+          "different_method_labels",
+          "different_basis_labels",
+          "different_geometry_coordinate_digest"
+        ],
+        "reference_basis": "6-31G(2df,p)",
+        "reference_method": "B3LYP",
+        "reference_origin": "published_theoretical",
+        "reference_theoretical_provenance": {
+          "basis": "6-31G(2df,p)",
+          "engine": null,
+          "engine_information_status": "not_reported",
+          "engine_version": null,
+          "geometry_description": "Published relaxed equilibrium geometry, XYZ lines3-5. Digest uses coordinates converted to Bohr with the recorded PySCF BOHR constant.",
+          "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+          "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5; original README equilibrium geometry description",
+          "independence_review": "Raw publisher XYZ/README omit engine/version, isotope/mass convention and explicit state. Cross-method comparison is descriptive only.",
+          "independence_status": "not_established",
+          "method": "B3LYP",
+          "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+          "quantity_convention": "Computed equilibrium A/B/C from relaxed DFT geometry; source GHz converted exactly to MHz; no vibration-corrected B0 claim."
+        },
+        "same_method_numerical_reproduction_established": false
+      },
+      "observable": "equilibrium_rotational_constant",
+      "path": "comparisons/03.json",
+      "prediction_value": 268534.01864111045,
+      "reference_id": "qm9-water-Be-C",
+      "reference_value": 282945.45,
+      "residuals": {
+        "absolute_residual": 14411.43135888956,
+        "relative_residual": -0.050933603487490466,
+        "relative_residual_absence_reason": null,
+        "relative_residual_definition": "(prediction - reference) / abs(reference)",
+        "relative_residual_ppm": -50933.603487490465,
+        "residual_over_reference_standard_uncertainty": null,
+        "signed_residual": -14411.43135888956,
+        "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+      },
+      "sha256": "e1d8a0341835a2775247192bbb3b95e888278aafdde75bd38b8e21d7a69d2f73",
+      "status": "available",
+      "unit": "MHz"
+    },
+    {
+      "comparison_context": {
+        "basis_labels_match": false,
+        "basis_mismatch": true,
+        "comparison_scope": "cross_method_descriptive",
+        "geometry_correspondence": "different_retained_coordinate_digest",
+        "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+        "geometry_digest_match": false,
+        "method_labels_match": false,
+        "method_mismatch": true,
+        "native_basis": "sto-3g",
+        "native_method": "hf",
+        "quality_flags": [
+          "different_method_labels",
+          "different_basis_labels",
+          "different_geometry_coordinate_digest"
+        ],
+        "reference_basis": "6-31G(2df,p)",
+        "reference_method": "B3LYP",
+        "reference_origin": "published_theoretical",
+        "reference_theoretical_provenance": {
+          "basis": "6-31G(2df,p)",
+          "engine": null,
+          "engine_information_status": "not_reported",
+          "engine_version": null,
+          "geometry_description": "Published relaxed water geometry in XYZ lines3-5; sorted raw frequency list has3 positive entries. Source mode vectors/assignments are absent.",
+          "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+          "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5 and6; original QM9 README",
+          "independence_review": "Harmonic interpretation follows computed vibrational-frequency list; no observed fundamentals or independently established physical mode assignment. Isotope/mass/engine conventions are unavailable.",
+          "independence_status": "not_established",
+          "method": "B3LYP",
+          "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+          "quantity_convention": "Computed frequency list at relaxed DFT geometry in cm^-1; rank correspondence only. Not measured fundamentals or VPT2-corrected frequencies."
+        },
+        "same_method_numerical_reproduction_established": false
+      },
+      "observable": "harmonic_frequency",
+      "path": "comparisons/04.json",
+      "prediction_value": 2170.0408703289067,
+      "reference_id": "qm9-water-harmonic-rank-0",
+      "reference_value": 1671.4222,
+      "residuals": {
+        "absolute_residual": 498.6186703289068,
+        "relative_residual": 0.2983199997755844,
+        "relative_residual_absence_reason": null,
+        "relative_residual_definition": "(prediction - reference) / abs(reference)",
+        "relative_residual_ppm": 298319.9997755844,
+        "residual_over_reference_standard_uncertainty": null,
+        "signed_residual": 498.6186703289068,
+        "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+      },
+      "sha256": "5ba93e28b64137206f39ef33feacd8789fb94ca9ce85e7cd7aaeb6db23e5b23b",
+      "status": "available",
+      "unit": "cm^-1"
+    },
+    {
+      "comparison_context": {
+        "basis_labels_match": false,
+        "basis_mismatch": true,
+        "comparison_scope": "cross_method_descriptive",
+        "geometry_correspondence": "different_retained_coordinate_digest",
+        "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+        "geometry_digest_match": false,
+        "method_labels_match": false,
+        "method_mismatch": true,
+        "native_basis": "sto-3g",
+        "native_method": "hf",
+        "quality_flags": [
+          "different_method_labels",
+          "different_basis_labels",
+          "different_geometry_coordinate_digest"
+        ],
+        "reference_basis": "6-31G(2df,p)",
+        "reference_method": "B3LYP",
+        "reference_origin": "published_theoretical",
+        "reference_theoretical_provenance": {
+          "basis": "6-31G(2df,p)",
+          "engine": null,
+          "engine_information_status": "not_reported",
+          "engine_version": null,
+          "geometry_description": "Published relaxed water geometry in XYZ lines3-5; sorted raw frequency list has3 positive entries. Source mode vectors/assignments are absent.",
+          "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+          "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5 and6; original QM9 README",
+          "independence_review": "Harmonic interpretation follows computed vibrational-frequency list; no observed fundamentals or independently established physical mode assignment. Isotope/mass/engine conventions are unavailable.",
+          "independence_status": "not_established",
+          "method": "B3LYP",
+          "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+          "quantity_convention": "Computed frequency list at relaxed DFT geometry in cm^-1; rank correspondence only. Not measured fundamentals or VPT2-corrected frequencies."
+        },
+        "same_method_numerical_reproduction_established": false
+      },
+      "observable": "harmonic_frequency",
+      "path": "comparisons/05.json",
+      "prediction_value": 4139.999499261233,
+      "reference_id": "qm9-water-harmonic-rank-1",
+      "reference_value": 3803.6305,
+      "residuals": {
+        "absolute_residual": 336.3689992612326,
+        "relative_residual": 0.08843366863874727,
+        "relative_residual_absence_reason": null,
+        "relative_residual_definition": "(prediction - reference) / abs(reference)",
+        "relative_residual_ppm": 88433.66863874727,
+        "residual_over_reference_standard_uncertainty": null,
+        "signed_residual": 336.3689992612326,
+        "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+      },
+      "sha256": "b2e637adb272fc3ae399c6ed3172440e08b7a3b177a1613375da4becec952e18",
+      "status": "available",
+      "unit": "cm^-1"
+    },
+    {
+      "comparison_context": {
+        "basis_labels_match": false,
+        "basis_mismatch": true,
+        "comparison_scope": "cross_method_descriptive",
+        "geometry_correspondence": "different_retained_coordinate_digest",
+        "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+        "geometry_digest_match": false,
+        "method_labels_match": false,
+        "method_mismatch": true,
+        "native_basis": "sto-3g",
+        "native_method": "hf",
+        "quality_flags": [
+          "different_method_labels",
+          "different_basis_labels",
+          "different_geometry_coordinate_digest"
+        ],
+        "reference_basis": "6-31G(2df,p)",
+        "reference_method": "B3LYP",
+        "reference_origin": "published_theoretical",
+        "reference_theoretical_provenance": {
+          "basis": "6-31G(2df,p)",
+          "engine": null,
+          "engine_information_status": "not_reported",
+          "engine_version": null,
+          "geometry_description": "Published relaxed water geometry in XYZ lines3-5; sorted raw frequency list has3 positive entries. Source mode vectors/assignments are absent.",
+          "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+          "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5 and6; original QM9 README",
+          "independence_review": "Harmonic interpretation follows computed vibrational-frequency list; no observed fundamentals or independently established physical mode assignment. Isotope/mass/engine conventions are unavailable.",
+          "independence_status": "not_established",
+          "method": "B3LYP",
+          "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+          "quantity_convention": "Computed frequency list at relaxed DFT geometry in cm^-1; rank correspondence only. Not measured fundamentals or VPT2-corrected frequencies."
+        },
+        "same_method_numerical_reproduction_established": false
+      },
+      "observable": "harmonic_frequency",
+      "path": "comparisons/06.json",
+      "prediction_value": 4391.068562685777,
+      "reference_id": "qm9-water-harmonic-rank-2",
+      "reference_value": 3907.698,
+      "residuals": {
+        "absolute_residual": 483.3705626857768,
+        "relative_residual": 0.1236970110499268,
+        "relative_residual_absence_reason": null,
+        "relative_residual_definition": "(prediction - reference) / abs(reference)",
+        "relative_residual_ppm": 123697.01104992679,
+        "residual_over_reference_standard_uncertainty": null,
+        "signed_residual": 483.3705626857768,
+        "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+      },
+      "sha256": "477edfcf0cebbf9edfed5f938f45e94340ad21920ee3665e1212cc6e75f994a2",
+      "status": "available",
+      "unit": "cm^-1"
+    }
+  ],
+  "created_at": "2026-10-08T21:11:54.557285+00:00",
+  "experimental_accuracy_established": false,
+  "held_out_benchmark": false,
+  "independent_curation_completed": false,
+  "input_file_observed_sha256": {
+    "automated-review.json": "135b9a58c04a3779d8cb01da6a39c249835f4f88d9d72cf896196b51eaf1df80",
+    "pins.json": "f67bb9e1e3b48a3645c965e01976c7e07faaf0ecdc3fe953aa2ebcaf80067b5c",
+    "publisher-metadata.json": "8efa1d122deb6f2ae35e3161dd781ff37723d576d8e2097bfff05e017d8017c0",
+    "publisher-readme.txt": "0ee83fc21faa9527ebe89fad0ce8f2bd2da1cbd35a3c7edc199f4ad21d31d97a",
+    "references.json": "65c5280b4e3b5e0a644f94ee304cadcf71328de2daeba930587a88631a8eabaa",
+    "request.json": "3c072436a1fb60c03693521931bc4cba0058f2e0ac25a51d9be415ef3c0f4a15",
+    "retrieval-proof.json": "699da6d52c39090ff20156faf2bcbaa3859eff9d866f4f36d3714d9172a07ab4",
+    "source-locations.json": "e67ce4bddf2870dd23b0cbb79a9397e284196a84ecc164adee106b9aef1e3688",
+    "water.xyz": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c"
+  },
+  "interpretation": "HF/STO-3G predictions are compared descriptively with published QM9 B3LYP/6-31G(2df,p) equilibrium constants and harmonic ranks. Method, basis, optimized geometry, isotope/state evidence and physical mode-assignment differences remain explicit. This is not a same-method reproduction or experimental accuracy gate.",
+  "native_errors": [],
+  "native_status": "complete",
+  "network_reference_retrieval_performed": false,
+  "original_private_summary_sha256": "8130aa5ee0bc49243b924c60a7110c2aace644b2fde541e5773334f48c47756b",
+  "publication_inventory": {
+    "all_native_and_source_file_sizes_and_hashes_readback_verified": true,
+    "eligibility": "exploratory",
+    "file_count": 101,
+    "files": [
+      {
+        "path": "README.md",
+        "sha256": "486d4535a5a0a5b3d4cf102f545b3057c0eccdc8bada41ee6beb1efa82f39495",
+        "size_bytes": 2676
+      },
+      {
+        "path": "analysis/source/Libraries/cochem_isotopes.py",
+        "sha256": "b93000494f8a61d86e73b0ffd458c518b163d94e69eb20fc6da68adeb9aa86b7",
+        "size_bytes": 3162
+      },
+      {
+        "path": "analysis/source/cochem/orchestration/campaign.py",
+        "sha256": "2526e348ba2bd72c6d7248d403aad372cbe24f41d4a8d03fbe6dc29e8ae44ac0",
+        "size_bytes": 47471
+      },
+      {
+        "path": "analysis/source/cochem/orchestration/campaign_backup.py",
+        "sha256": "0fb4d46f7e203e5706f973e49e0367af8642bc543cceee3112bcd2410e008c91",
+        "size_bytes": 29395
+      },
+      {
+        "path": "analysis/source/cochem/orchestration/host_allocation.py",
+        "sha256": "f4e544e2b8df1b5e4a585a2a4382e276c27860cb756f1abdfbd21f4adf92e7c0",
+        "size_bytes": 53124
+      },
+      {
+        "path": "analysis/source/cochem/storage/fenced_pes.py",
+        "sha256": "6b858fd9d4b692d7ad7d6564cad9741f90874c08bc47c79a6da7a842114901b8",
+        "size_bytes": 26654
+      },
+      {
+        "path": "analysis/source/cochem_torq/__init__.py",
+        "sha256": "73a2180c4bcc2a85b9b6563cae0ea2630ddc8a4e33f71302b15a150514f46590",
+        "size_bytes": 184
+      },
+      {
+        "path": "analysis/source/cochem_torq/__main__.py",
+        "sha256": "f3a42741532b061ec8855c9520b832fabdd8544d6f901ad84f006297c0496dce",
+        "size_bytes": 151
+      },
+      {
+        "path": "analysis/source/cochem_torq/adaptive.py",
+        "sha256": "eac3d3f6983c17c9d23bfc6dff6177eb35362763c21864857ce1556e99cf975c",
+        "size_bytes": 40256
+      },
+      {
+        "path": "analysis/source/cochem_torq/application.py",
+        "sha256": "868a2765c05d695be351a65b61e6ea9403d15bc19de61bf01749a76cc5307589",
+        "size_bytes": 68873
+      },
+      {
+        "path": "analysis/source/cochem_torq/artifacts.py",
+        "sha256": "8d343e9eb395ce6d4dd2d2cb3481fb79145443fedbdc317eba4aba4b3755b70a",
+        "size_bytes": 19854
+      },
+      {
+        "path": "analysis/source/cochem_torq/base_bridge.py",
+        "sha256": "41b875727eb211e36cf64de3693026e6a12f884f1a3be83e89f32df799a5970c",
+        "size_bytes": 8378
+      },
+      {
+        "path": "analysis/source/cochem_torq/benchmark_cli.py",
+        "sha256": "ba22903910d2d0b659679388e68f7afec68e045818e52419d9cbeb2f2a98fb72",
+        "size_bytes": 6438
+      },
+      {
+        "path": "analysis/source/cochem_torq/benchmarking.py",
+        "sha256": "42e7c17d72dba0fc553741d12b994deec51d0467a07b701de790acaf82b131ef",
+        "size_bytes": 57622
+      },
+      {
+        "path": "analysis/source/cochem_torq/candidate_ledger.py",
+        "sha256": "ef619268285f7293b5057ae754ca0c000d88529ebcd0d1bed04af90fab5391e2",
+        "size_bytes": 30095
+      },
+      {
+        "path": "analysis/source/cochem_torq/capabilities.py",
+        "sha256": "31f8f2a0097ee12e0a97b7f8954b11b285708de05f8f6d8e83f08f0af5cfbde7",
+        "size_bytes": 37553
+      },
+      {
+        "path": "analysis/source/cochem_torq/cli.py",
+        "sha256": "fb71e64a2d320db6d6fc0ca30428e6565800ef14e370294ebe340f5b1430154a",
+        "size_bytes": 36795
+      },
+      {
+        "path": "analysis/source/cochem_torq/constrained_service.py",
+        "sha256": "6a3a7cb27a7c4dffce68ff14a55613aaa11702a5efc8a34ad76f5e3566c2876a",
+        "size_bytes": 7355
+      },
+      {
+        "path": "analysis/source/cochem_torq/domain.py",
+        "sha256": "e2d7d25baf5253c9370923788cabea1c4dcc206d34094793a7969a0a9e8fb978",
+        "size_bytes": 20576
+      },
+      {
+        "path": "analysis/source/cochem_torq/ecosystem.py",
+        "sha256": "465ce34d430c40b8f4c49e116ba95f549f1ee16f1e4426d15b134fd5cf085141",
+        "size_bytes": 36690
+      },
+      {
+        "path": "analysis/source/cochem_torq/energetics.py",
+        "sha256": "677e1522bac7066005cf500a08bda19231fcd42b45a56d440f4f9959ce9740e8",
+        "size_bytes": 34299
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/__init__.py",
+        "sha256": "a3747be850800b1312c1ccc2c25bada1730c5407469e172abf41f90b1dfc4856",
+        "size_bytes": 183
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/checkpoint_restart.py",
+        "sha256": "966a9d8776a55c951cfcf9c1620a30f9bb291cabd2d56afdc78a98a4112f934e",
+        "size_bytes": 30609
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/constrained_optimization.py",
+        "sha256": "943d09ce095dbd0b6b4e4b578adf441503addf3fdd4e8e149a5937b4e70765a0",
+        "size_bytes": 42987
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/counterpoise.py",
+        "sha256": "28fe9a4367caea95b1fd2b3f17ed6b57e910399f9e62dd42cc9eb5d36bafab8e",
+        "size_bytes": 15464
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/diagnostics.py",
+        "sha256": "f3d28f49f6f6ca37ce04fe1984cf4be447f90f93df201447400ce888571543fe",
+        "size_bytes": 9940
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/open_shell.py",
+        "sha256": "22d6ac3ef681da52ce04972df788e338411a3fdeb955bcaf672a8fd3d20445ed",
+        "size_bytes": 39445
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/pathway.py",
+        "sha256": "24c3373933a64077631d8120f9908a7a32535f6d174fdb7540a5271ac8b6b07f",
+        "size_bytes": 13376
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/pyscf_backend.py",
+        "sha256": "d62d7d517816ee08bf905d1b2858f4e21b85e020ac0063b4cde9c11c2c8e14cf",
+        "size_bytes": 36701
+      },
+      {
+        "path": "analysis/source/cochem_torq/engines/revdsd.py",
+        "sha256": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+        "size_bytes": 74155
+      },
+      {
+        "path": "analysis/source/cochem_torq/geometry_identity.py",
+        "sha256": "8183c1065fcd19a8f88b36575e306d09c5c3b84afe3db31071205eb55a762532",
+        "size_bytes": 35653
+      },
+      {
+        "path": "analysis/source/cochem_torq/github.py",
+        "sha256": "534ee46b30a51c35f60d91089f0990ed15aa3563f4d05ccf97d44530ab9e2f85",
+        "size_bytes": 21580
+      },
+      {
+        "path": "analysis/source/cochem_torq/github_auth.py",
+        "sha256": "f31faedf9d08376ed554840fe9fade897c5c4747a80c9a6d92819baf32e201c2",
+        "size_bytes": 1120
+      },
+      {
+        "path": "analysis/source/cochem_torq/github_provenance.py",
+        "sha256": "34510b6819a6b3bad5fb1a5d06a28dad14abe177472e69a3f79d8e515d2f21c1",
+        "size_bytes": 10904
+      },
+      {
+        "path": "analysis/source/cochem_torq/internal_coordinates.py",
+        "sha256": "e51cbd5144ca71aad8d83e54e933543b05dda46c65cc27b1bf3895048a1c60b2",
+        "size_bytes": 10194
+      },
+      {
+        "path": "analysis/source/cochem_torq/landscape_inspection.py",
+        "sha256": "14cab38d422113b0747065dbce8cf87a6dc4deaa9fd5a92868f5b5be1ff80e22",
+        "size_bytes": 38855
+      },
+      {
+        "path": "analysis/source/cochem_torq/open_shell_service.py",
+        "sha256": "09a1d17de57da00157627421234906c74b9d2a02333515b71ef00006883fca1a",
+        "size_bytes": 18140
+      },
+      {
+        "path": "analysis/source/cochem_torq/operations.py",
+        "sha256": "53f6eea7f8e43017491f4355907d7723168ec8ad46064a2265c0c3e2e3dcfd7a",
+        "size_bytes": 17948
+      },
+      {
+        "path": "analysis/source/cochem_torq/pes_storage.py",
+        "sha256": "1ed79f8a9c3fce0d673552fc4011c3df03a8ae1c5bcdc3129459a3363aa48da7",
+        "size_bytes": 43216
+      },
+      {
+        "path": "analysis/source/cochem_torq/publication.py",
+        "sha256": "4ab5fb44ea3d38d096d79170a50897d84f26c64892e04d3101023fd984c92f9e",
+        "size_bytes": 26173
+      },
+      {
+        "path": "analysis/source/cochem_torq/qm9_sources.py",
+        "sha256": "5a9d64706af06255ee6353ee378b8febb96da4bde4dfe86d041afb4149236abe",
+        "size_bytes": 18634
+      },
+      {
+        "path": "analysis/source/cochem_torq/reference_comparison.py",
+        "sha256": "e7a013f701ca62f31b52647aa5afe17a3753adc562470452f09caa4bd2cd1f1b",
+        "size_bytes": 36899
+      },
+      {
+        "path": "analysis/source/cochem_torq/reference_sources.py",
+        "sha256": "c0f74565412a3a691e3b297cea19579db7bb373f6fcd57ff27dc727e57fa96c5",
+        "size_bytes": 8454
+      },
+      {
+        "path": "analysis/source/cochem_torq/registry.py",
+        "sha256": "c1edb2a7bb82a4b8370816f86230fd064b3774ecaa932b62fd07f0e7bb0d7c56",
+        "size_bytes": 20309
+      },
+      {
+        "path": "analysis/source/cochem_torq/research_pipeline.py",
+        "sha256": "9bf4f5d89abfb32fbae35f906116caad5ff0e9fe7c5086749cb8b042d11837a2",
+        "size_bytes": 30634
+      },
+      {
+        "path": "analysis/source/cochem_torq/reviewed_topos.py",
+        "sha256": "0fc9929edefc9cf578812ebadf5f3ba44aed463d0c3fd22fa3915785a0ac0e29",
+        "size_bytes": 12158
+      },
+      {
+        "path": "analysis/source/cochem_torq/scan.py",
+        "sha256": "8760d0fc82453abb1b1123015bb83503b0b1af33e5b5fc82f20be45de9e49b83",
+        "size_bytes": 79238
+      },
+      {
+        "path": "analysis/source/cochem_torq/scientific_contracts.py",
+        "sha256": "4036ddcf3a9c5cef1142edc3f40385ac287588600620170e72542f507fd3664f",
+        "size_bytes": 25003
+      },
+      {
+        "path": "analysis/source/cochem_torq/scientific_values.py",
+        "sha256": "ac971e09374a1a1a7d3068962f5caf5dbb3364edf22a18aaa60d8c6c95940262",
+        "size_bytes": 6738
+      },
+      {
+        "path": "analysis/source/cochem_torq/service.py",
+        "sha256": "30636d60b3842d08c1958763dfaf42590ebbc318b5f2dd73e2ebfc7df18e7e8f",
+        "size_bytes": 12597
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/__init__.py",
+        "sha256": "7e14d01722ae68a82f986be41642a43db27ffccc8a84dd97e41965fcc0777234",
+        "size_bytes": 1417
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/advanced_products.py",
+        "sha256": "61f967309ccf9820e401b41e9bf70e2fd24cabb6670baa264878fd7e08060633",
+        "size_bytes": 2607
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/forcefield.py",
+        "sha256": "f9102643e9c741a43d8ba681d39ae1cd041ed6c00c9bab2fbbd7f8d86e889d94",
+        "size_bytes": 9852
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/harmonic.py",
+        "sha256": "79590c50ab0291946007da50ad9e0ee8853df6dd6f68a8364d9ae12c1efce073",
+        "size_bytes": 8857
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/perturbation.py",
+        "sha256": "822bd9b7a2fe90ff5a491bb46753eaa385b28b764b168e3118bf43ed741e138c",
+        "size_bytes": 13047
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/pickett_backend.py",
+        "sha256": "da0c06d2a46e6356a14b5118e94208c81e6cbfb0f0ac6acb416139e045523077",
+        "size_bytes": 46499
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/results.py",
+        "sha256": "39332a2c3e703a55ada6cab3c9fd9ae8aff961720c849418a8a12f5f8069c8c8",
+        "size_bytes": 20220
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/rotational.py",
+        "sha256": "37ea0680d54004d97d1a6b179ddb49ae416ff1b12b94bb821c6d3efc44684913",
+        "size_bytes": 14196
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/rovibrational.py",
+        "sha256": "c6de2668d954513feee6f268e031f6dbdfd8de155d87d4a48785bfa56b7b21b5",
+        "size_bytes": 30896
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/rovibrational_perturbation.py",
+        "sha256": "aec564c8b33666c548b3eabe5c4837e451318eacecde5d050eab5c8623d1ad96",
+        "size_bytes": 58616
+      },
+      {
+        "path": "analysis/source/cochem_torq/spectroscopy/rovibrational_solver.py",
+        "sha256": "f7fbad1f5e47020080eb8741de6f6ff569d93209ca373587c98508cf0f6dfbaa",
+        "size_bytes": 38672
+      },
+      {
+        "path": "analysis/source/cochem_torq/student_app.py",
+        "sha256": "14a8dbb0c839ac3718c6c28a35898e5dc4d9c50d791e35e952f13ec3e71c45dd",
+        "size_bytes": 51047
+      },
+      {
+        "path": "analysis/source/cochem_torq/ui.py",
+        "sha256": "c87599af02fc15a8a34283117e5df8ad477b88d2bbdb7b62a0fda99b08970305",
+        "size_bytes": 2285
+      },
+      {
+        "path": "analysis/source/cochem_torq/units.py",
+        "sha256": "7a881e80bc66019b99ec12ddca1cee722a1d49ddcbb1a5f582acfce16df921aa",
+        "size_bytes": 20389
+      },
+      {
+        "path": "analysis/source-inventory.json",
+        "sha256": "6e23d293f7d9c431c478e7bd2f44ed3a4a761f70560ebbaf8adb0d18e1a0db92",
+        "size_bytes": 16349
+      },
+      {
+        "path": "publication.json",
+        "sha256": "44f50e1a2f11343c0e9899e9749c101f906de5dd0642e7ccf66c6f307db14385",
+        "size_bytes": 13001
+      },
+      {
+        "path": "shard/atomic-result.json",
+        "sha256": "37fd43bb2c436e68c051cd3382f55ed9d731ccad522f2bbd046a37d91a9a798a",
+        "size_bytes": 3941
+      },
+      {
+        "path": "shard/engine/final/basis-definition.json",
+        "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+        "size_bytes": 774
+      },
+      {
+        "path": "shard/engine/final/dipole-debye.npy",
+        "sha256": "1736a5a1a388ff656cf25d920a3e90f34164cfe7e8bf7cb17e3ede676674b0c5",
+        "size_bytes": 152
+      },
+      {
+        "path": "shard/engine/final/engine-installation.json",
+        "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+        "size_bytes": 67206
+      },
+      {
+        "path": "shard/engine/final/geometry-bohr.npy",
+        "sha256": "a4ee7901724e0667b262f2da9ff542b5ab95768bdbf01b2cc19f1bec51deff8d",
+        "size_bytes": 200
+      },
+      {
+        "path": "shard/engine/final/gradient-hartree-bohr.npy",
+        "sha256": "f1d39990379f3ec37dd2860d6f3da8e853c518e877c08656cf8bd4b3d1a8a3e7",
+        "size_bytes": 200
+      },
+      {
+        "path": "shard/engine/final/manifest.json",
+        "sha256": "04907adccf37ad9ed53a476d9bfac0791a2c7625c9025f6cea3127f1a1bad462",
+        "size_bytes": 1489
+      },
+      {
+        "path": "shard/engine/final/pyscf.log",
+        "sha256": "9c6750871b484fd5cce466879f8a39eebcfca17da7fcd83a0df191e1bd9ba3a0",
+        "size_bytes": 40964
+      },
+      {
+        "path": "shard/engine/final/request.json",
+        "sha256": "f11d0e151830442aef3210f05a68055c80eaa7061b48ce845b5803b637c82164",
+        "size_bytes": 1185
+      },
+      {
+        "path": "shard/engine/final/result.json",
+        "sha256": "7aefd855bffa8e21e19c0334c3e7bec3ebfae8af228b91bba84f093b0be45360",
+        "size_bytes": 3243
+      },
+      {
+        "path": "shard/engine/final/wavefunction.chk",
+        "sha256": "be707ab7bcf04ce084deb3e7388110185e78d2020ba38c847f4d32cdb83cbf23",
+        "size_bytes": 10528
+      },
+      {
+        "path": "shard/engine/geometric.log",
+        "sha256": "0c39272edd4be981ab755301e4fdb36621ca4d1d5e3016ec01a3d1518cd156a3",
+        "size_bytes": 8136
+      },
+      {
+        "path": "shard/engine/initial/pyscf.log",
+        "sha256": "513d5d5706948909f35008bc3e84880c5b4050faece318187a401bddf00bb387",
+        "size_bytes": 56938
+      },
+      {
+        "path": "shard/engine/initial/wavefunction.chk",
+        "sha256": "8215e51bdbc0db2bc7eb692e4828ce2839f8a72f5a18e1af419626c59be7df19",
+        "size_bytes": 10528
+      },
+      {
+        "path": "shard/engine/launcher.log",
+        "sha256": "2491778e8fdb6f431249680e5d1c3c01661f53c0e45b683543343af3f87c3f58",
+        "size_bytes": 244
+      },
+      {
+        "path": "shard/engine/manifest.json",
+        "sha256": "fd5ba07d242f691b9ab9990d76d2a35bb3edb6543156f7c16389768a1aeaf470",
+        "size_bytes": 2811
+      },
+      {
+        "path": "shard/engine/optimization-trajectory.json",
+        "sha256": "94286be27b9c2239b3ac618f2c400f39681bacaeef7f46f03337e6faee99ee50",
+        "size_bytes": 4637
+      },
+      {
+        "path": "shard/engine/optimization-wavefunction.chk",
+        "sha256": "78533173f32749b686635c8e2edfed73481aba7eb41745ba22cb1778746a217c",
+        "size_bytes": 31456
+      },
+      {
+        "path": "shard/engine/request.json",
+        "sha256": "0a018baa24e065d3addf0ed90641f964e1e30d230b494600252a52e5ddce477b",
+        "size_bytes": 1181
+      },
+      {
+        "path": "shard/engine/result.json",
+        "sha256": "d69b638f5bc14957be27ff71a954a1eb1712cf037db1e77a791786602a586242",
+        "size_bytes": 4136
+      },
+      {
+        "path": "shard/harmonic-engine/basis-definition.json",
+        "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+        "size_bytes": 774
+      },
+      {
+        "path": "shard/harmonic-engine/engine-installation.json",
+        "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+        "size_bytes": 67206
+      },
+      {
+        "path": "shard/harmonic-engine/geometry-bohr.npy",
+        "sha256": "a4ee7901724e0667b262f2da9ff542b5ab95768bdbf01b2cc19f1bec51deff8d",
+        "size_bytes": 200
+      },
+      {
+        "path": "shard/harmonic-engine/gradient-hartree-bohr.npy",
+        "sha256": "f1d39990379f3ec37dd2860d6f3da8e853c518e877c08656cf8bd4b3d1a8a3e7",
+        "size_bytes": 200
+      },
+      {
+        "path": "shard/harmonic-engine/hessian-hartree-bohr2.npy",
+        "sha256": "899cb26d8394ffd4051e309adecd06d5dc832cdc6836dd61be8cec68161a6ef5",
+        "size_bytes": 776
+      },
+      {
+        "path": "shard/harmonic-engine/launcher.log",
+        "sha256": "47cb8f82d68fa4609471dfd1a3778fe8dbb7b3232ed65d1d7e27ae3b5da17311",
+        "size_bytes": 124
+      },
+      {
+        "path": "shard/harmonic-engine/manifest.json",
+        "sha256": "6bd88b3ef8a9738ec6c5a142e00cc0d6e5bbf90c363870f2398b2fa27e1fe8fa",
+        "size_bytes": 1649
+      },
+      {
+        "path": "shard/harmonic-engine/pyscf.log",
+        "sha256": "fbef7fd2a068b87752df42097854315d1099d65e0e9237ced15e2f4ace871f4a",
+        "size_bytes": 40967
+      },
+      {
+        "path": "shard/harmonic-engine/request.json",
+        "sha256": "60f07b9bf3ac1425b8779e52e0efa49ca95aacfb663342c5ed1a754962d16543",
+        "size_bytes": 1186
+      },
+      {
+        "path": "shard/harmonic-engine/result.json",
+        "sha256": "16002c50198d4ceb9ab2232b9009b1a31a384245e73e130966bf4debf81c7518",
+        "size_bytes": 5776
+      },
+      {
+        "path": "shard/harmonic-engine/wavefunction.chk",
+        "sha256": "be707ab7bcf04ce084deb3e7388110185e78d2020ba38c847f4d32cdb83cbf23",
+        "size_bytes": 10528
+      },
+      {
+        "path": "shard/manifest.json",
+        "sha256": "c3ad529ac6177e6799423ee7d325b76200fc011b2d6c073c274c38159deeee41",
+        "size_bytes": 8076
+      },
+      {
+        "path": "shard/request.json",
+        "sha256": "3c072436a1fb60c03693521931bc4cba0058f2e0ac25a51d9be415ef3c0f4a15",
+        "size_bytes": 1642
+      },
+      {
+        "path": "shard/result.json",
+        "sha256": "12394b2dd1d7408c834cdb65a15c8edad992df297b1bb1471f0d6aefad74f283",
+        "size_bytes": 33717
+      },
+      {
+        "path": "shard/worker.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      }
+    ],
+    "original_publication_manifest_sha256": "8401f389c2b0ac27106fdca11248a43cb3c62290eba545a161400d0d16767e12",
+    "publication_validated": false,
+    "total_bytes": 2075628,
+    "underlying_native_bytes_or_logs_included": false
+  },
+  "publication_manifest_sha256": "8401f389c2b0ac27106fdca11248a43cb3c62290eba545a161400d0d16767e12",
+  "reference_identity_quality_flags": [
+    "isotope_identity_not_explicit_in_original_source",
+    "physical_harmonic_mode_assignment_not_established",
+    "state_identity_not_explicit_in_original_source"
+  ],
+  "reference_manifest_sha256": "65c5280b4e3b5e0a644f94ee304cadcf71328de2daeba930587a88631a8eabaa",
+  "reference_review_sha256": "135b9a58c04a3779d8cb01da6a39c249835f4f88d9d72cf896196b51eaf1df80",
+  "release_qualification_enabled": false,
+  "request_resources": {
+    "cores": 1,
+    "memory_mb": 1024,
+    "wall_seconds": 120
+  },
+  "request_sha256": "2a7847b5de3fa1e19f6f8d4c43b96eafa765d28edae9161275dc0dcbffbc2b62",
+  "schema_version": "cochem.torq.qm9-water-comparison-run/1",
+  "scientific_method_qualified": false,
+  "source_commit_verified_in_all_six_actual_comparisons": "c0df7a0fa4c06bcebb0fc7d2f17cb3740085063e",
+  "status": "complete_descriptive_comparison"
+}

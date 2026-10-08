@@ -1,0 +1,89 @@
+{
+  "activation_or_policy_bypass_performed": false,
+  "denial_scope": "Three authenticated downloads actually exited 1 with zero received bytes; private stderr identifies this redirect hostname. Current managed policy does not effectively allow the hostname. No HTTP403 status inferred from these stderr bytes.",
+  "failed_original_attempts_preserved": true,
+  "failures": {
+    "core310": {
+      "actual_original_download_exit_code": 1,
+      "actual_received_archive_bytes": 0,
+      "actual_received_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_stderr_bytes": 643,
+      "actual_stderr_sha256": "cda653917d9f4adede3b621ccad4b00586c1c2b2e7b0e725d8f40562baf57b24",
+      "api_expected_archive_bytes": 1259236,
+      "api_expected_archive_sha256": "eb8ef723ee618ba6173d9d9ca707cd17dabb7b49f4bbcd7ab5f1e3ba31847cde",
+      "archive_bytes_verified": false,
+      "archive_digest_and_size_match": false,
+      "artifact_id": 11583808301,
+      "artifact_name": "wheel-python-3.10",
+      "original_archive_junit_counts": {
+        "errors": null,
+        "failures": null,
+        "passed": null,
+        "skipped": null,
+        "tests": null
+      },
+      "original_download_receipt_sha256": "c335aa43620f4c99c9157017d1165643afeec683a49286be8ea7d633b7b5e0d8",
+      "packaged_wheel_python_file_count": null,
+      "signed_redirect_urls_and_authentication_headers_exposed": false,
+      "stderr_mentions_redirect_hostname": true,
+      "wait_status": "Original authenticated download process exited and was waited; archive unavailable pending effective policy access to its redirect hostname."
+    },
+    "core312": {
+      "actual_original_download_exit_code": 1,
+      "actual_received_archive_bytes": 0,
+      "actual_received_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_stderr_bytes": 647,
+      "actual_stderr_sha256": "69258fbbac908fc57f2859834fdf56da6022ae42308487064171f6f9e0321491",
+      "api_expected_archive_bytes": 1259296,
+      "api_expected_archive_sha256": "8d906378f7b88879caced2b4a875ab9e34a27b3e710f7d39a452e5fe744a1791",
+      "archive_bytes_verified": false,
+      "archive_digest_and_size_match": false,
+      "artifact_id": 11584502291,
+      "artifact_name": "wheel-python-3.12",
+      "original_archive_junit_counts": {
+        "errors": null,
+        "failures": null,
+        "passed": null,
+        "skipped": null,
+        "tests": null
+      },
+      "original_download_receipt_sha256": "3380ea313a1dce02309427325a4465b83d3a6cc4f3b972101ca095bd3ad66182",
+      "packaged_wheel_python_file_count": null,
+      "signed_redirect_urls_and_authentication_headers_exposed": false,
+      "stderr_mentions_redirect_hostname": true,
+      "wait_status": "Original authenticated download process exited and was waited; archive unavailable pending effective policy access to its redirect hostname."
+    },
+    "full": {
+      "actual_original_download_exit_code": 1,
+      "actual_received_archive_bytes": 0,
+      "actual_received_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_stderr_bytes": 668,
+      "actual_stderr_sha256": "adfcf7e59baf20a33197cf8c140537215731c821045f9dcbdbf2892a48448f90",
+      "api_expected_archive_bytes": 3148772,
+      "api_expected_archive_sha256": "a38fc883496a5e9c775cd0318e6f0567463769c91c961f2e04e01482930f6446",
+      "archive_bytes_verified": false,
+      "archive_digest_and_size_match": false,
+      "artifact_id": 11584623695,
+      "artifact_name": "torq-complete-regression-37856692326-1",
+      "original_archive_junit_counts": {
+        "errors": null,
+        "failures": null,
+        "passed": null,
+        "skipped": null,
+        "tests": null
+      },
+      "original_download_receipt_sha256": "b15c3b741404c71c0b73ed1e491fa1bbb0b3bcaa44bf4d83371279fee6016400",
+      "packaged_wheel_python_file_count": null,
+      "signed_redirect_urls_and_authentication_headers_exposed": false,
+      "stderr_mentions_redirect_hostname": true,
+      "wait_status": "Original authenticated download process exited and was waited; archive unavailable pending effective policy access to its redirect hostname."
+    }
+  },
+  "head_sha": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "policy_observation_sha256": "7d424d721d2141c9694f077370c9d1178f04612d87db3e6e92d3da30050e4270",
+  "redirect_hostname": "productionresultssa5.blob.core.windows.net",
+  "run_attempt": 1,
+  "run_id": 37856692326,
+  "schema_version": "cochem.actual-hosted-artifact-download-failures/1",
+  "successful_archive_retrieval_or_junit_derivation_performed": false
+}
