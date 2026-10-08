@@ -1,0 +1,94 @@
+{
+  "scope": "canonical nonresonant leading Watson, semirigid J0 VPT2 and unreduced harmonic distortion",
+  "focused_tests": {
+    "passed": 42,
+    "skipped": 0,
+    "duration_seconds": 75.71
+  },
+  "independent_scientific_qualification": false,
+  "identification_ready": false,
+  "full_resonant_gvpt2": false,
+  "metrics": {
+    "actual_alpha_closed_expression_max_absolute_error_hartree": 1.4399560103323106e-20,
+    "actual_semirigid_g0_xij_max_absolute_error_hartree": 6.938893903907228e-18,
+    "volume_identity_residuals_hartree": [
+      4.0657581468206416e-20,
+      1.3552527156068805e-20,
+      2.0328790734103208e-20
+    ],
+    "native_cubic_ratios": [
+      0.1226343832116868,
+      0.10777924407041098,
+      0.26453625919559304,
+      0.25391628970585767
+    ],
+    "default_applicability_passed": false,
+    "native_gradient_max_hartree_bohr": 3.874255405378335e-08,
+    "actual_displaced_calculations": 107,
+    "ground_state_constants_available": false,
+    "model_alpha_available": false,
+    "semirigid_vpt2_available": false,
+    "unreduced_distortion_available": "available_unreduced_harmonic_model",
+    "mass_probe_comparison": [
+      {
+        "epsilon": 0.3,
+        "ground_vibrational_energy_hartree": 0.0018446240784611532,
+        "ground_J1_energies_hartree": [
+          0.0018453943445187275,
+          0.0018458480349063265,
+          0.0018460039301265504
+        ],
+        "observed_leading_rotational_response_hartree": [
+          1.6054540404452908e-06,
+          4.748600034686913e-06,
+          5.60881937787737e-06
+        ],
+        "maximum_absolute_response_error_hartree": 3.8237206084164985e-09
+      },
+      {
+        "epsilon": 0.2,
+        "ground_vibrational_energy_hartree": 0.0008199258619655499,
+        "ground_J1_energies_hartree": [
+          0.000820077884888136,
+          0.0008201672513879732,
+          0.0008201979766666637
+        ],
+        "observed_leading_rotational_response_hartree": [
+          1.6060617682441223e-06,
+          4.750726140661387e-06,
+          5.610612092046259e-06
+        ],
+        "maximum_absolute_response_error_hartree": 1.697614633942694e-09
+      },
+      {
+        "epsilon": 0.1,
+        "ground_vibrational_energy_hartree": 0.00020499537079975453,
+        "ground_J1_energies_hartree": [
+          0.00020500486741459586,
+          0.00020501044338775107,
+          0.0002050123611378115
+        ],
+        "observed_leading_rotational_response_hartree": [
+          1.6064267698443692e-06,
+          4.751999642808629e-06,
+          5.611685713842787e-06
+        ],
+        "maximum_absolute_response_error_hartree": 4.241124867003011e-10
+      }
+    ]
+  },
+  "files": {
+    "/workspace/CoChem-TORQ/src/cochem_torq/spectroscopy/rovibrational_perturbation.py": "aec564c8b33666c548b3eabe5c4837e451318eacecde5d050eab5c8623d1ad96",
+    "/workspace/CoChem-TORQ/tests/test_rovibrational_perturbation.py": "2e1714d9ba785f6279d1b519fcde3977510eae661421916858821af266f7f65a",
+    "/workspace/CoChem-TORQ/docs/development/rovibrational_perturbation.md": "7d79acd4fc5a05ba50dfaca0b07234aee6e86d6914bb07266c4387693bcf90fe",
+    "/workspace/torq-review/watson-canonical-complete.xml": "28465da3076845168e570e266f2a0e9e602e5e41db6feec99ae079860520d3c9",
+    "/tmp/cochem_exec_watson_complete/test_canonical_mass_probe_conv0/mass-probe-comparison.json": "6fc3c1164bb52d010d57e70a78dd40b79f47fe8bddba44a66142b43df231df2f",
+    "/tmp/cochem_exec_watson_complete/genuine-water-local-rovibrational0/canonical-watson-leading.json": "b269204bd092f249d1cc80168f9b0ce8fbdde17b50cdd91c3986a8ce9289a0f9",
+    "/tmp/cochem_exec_watson_complete/genuine-water-local-rovibrational0/stationary-reference.json": "2e266b70e62e7090b4a4b77f1de1cf3944ae4c6e7dc6c71278aa1301a7678f48",
+    "/tmp/cochem_exec_watson_complete/genuine-water-local-rovibrational0/geometric-precursors.json": "d6bfb470f887b2ad43e702a3a21815495a980035343c1450c2b63ea6f343f100",
+    "/tmp/cochem_exec_watson_complete/genuine-water-local-rovibrational0/force-field.json": "98448b98699ee9b16ce285c7a8bdfb81e536c05a064d47a6c7fb99d8f99400b0",
+    "/tmp/cochem_exec_watson_complete/test_canonical_mass_probe_conv0/mass-probe-epsilon-0.1.npz": "8eff59d7b952329332c73639d672e6e6a0ac9407aa7f2b1a950fadc7bcbd8716",
+    "/tmp/cochem_exec_watson_complete/test_canonical_mass_probe_conv0/mass-probe-epsilon-0.2.npz": "abaffe18df8d9354a43b1fb2df793bf4d93b8747ad854cc5344c7458cae37c0e",
+    "/tmp/cochem_exec_watson_complete/test_canonical_mass_probe_conv0/mass-probe-epsilon-0.3.npz": "be4dd52f7997c2dc74c55a87aed8bf618ec6c1619fcbbc4169f4604f927ca26f"
+  }
+}

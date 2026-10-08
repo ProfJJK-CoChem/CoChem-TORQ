@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="30.600"><testcase classname="tests.test_open_shell_service" name="test_actual_open_shell_approved_worker_and_immutable_shard" time="7.330" /><testcase classname="tests.test_constrained_service" name="test_actual_approved_constrained_water_worker_and_immutable_shard" time="20.520" /></testsuite></testsuites>

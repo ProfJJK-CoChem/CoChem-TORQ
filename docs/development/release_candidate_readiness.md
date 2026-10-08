@@ -1,10 +1,55 @@
 # Release candidate readiness and exact closure gates
 
-Reviewed 2026-10-08. **The complete SRS is not yet qualified for release.** The preceding complete local regression at `57c81eb` passed 2486 tests with zero failures/errors/skips; its selected installed-wheel, CLI/notebook and sibling checks remain historical evidence. The expanded implementation has new bounded local milestones and separately recorded current-source checks; the final complete-repository run must be recorded for the new candidate. The deployed student journey and independent scientific qualification remain incomplete. The [aggregate results](release_candidate_check_results.json) distinguish local implementation evidence from release qualification; neither source presence nor a software regression establishes scientific accuracy.
+Reviewed 2026-10-08. **The complete SRS is not yet qualified for release.** The final complete local regression at `e77e2a4` passed 3034 tests with zero failures/errors/skips, audit and supervising process exit zero, and unchanged tested source. Both final installed-wheel core lanes passed 952 tests each. The preceding complete regression at `57c81eb` and its CLI/notebook and sibling checks remain historical evidence. The deployed student journey and independent scientific qualification remain incomplete. The [aggregate results](release_candidate_check_results.json) distinguish local implementation evidence from release qualification; neither source presence nor a software regression establishes scientific accuracy.
 
 The [full-SRS audit](full_srs_requirement_audit.json) covers all **73 normative requirements, 41 acceptance definitions and 140 original historical method-matrix row IDs**. Its current inventory is **56 partial supported scope, one missing full implementation, eight missing independent qualification and eight optional profile/provisioning**. No requirement is classified as implemented and qualified. All 41 complete-scope acceptance gates remain blocked, and the release flag remains false. [Student release scope](student_release_scope.md) provides the complete reconciled requirement-to-code/check map; links are coverage pointers rather than passing gate evidence.
 
 The supplied-candidate workflow already computes genuine bounded restricted electronic structure, optimized geometry, isotope-specific equilibrium constants, harmonic results and finite-J rigid-rotor screening using actual dipoles. Other explicitly named local validation profiles compute actual numerical derivatives, bounded vibrational force fields/VPT2, ghost-basis interaction quantities and saddle/downhill endpoint candidates. New bounded geometry/PES profiles retain supplied-graph mapping, nuclear-position symmetry proposals, nonperiodic fixed valence-coordinate observations, actual prior-density continuation, adaptive physical anchors, constrained-HF residual/KKT/curvature evidence and separately approved target minimum checks. Genuine native points bridge to sole-merger HDF5 storage under current committed coordinator admission. Canonical nonresonant Watson and a separate local Dirichlet variational route retain bounded operator/applicability evidence; default HF/STO-3G water fails the reviewed coupling gate and keeps model B0/alpha/semirigid outputs unavailable. Missing later scientific stages retain earlier results and explicit reasons. Exact revDSD, general B0/rovibrational spectroscopy, calibrated identification accuracy and automated completeness claims remain disabled.
+
+The final tested code is `e77e2a47d4ef23bb4ad6db72519e656336cf0bb2`,
+with complete source SHA-256
+`a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c`
+and application SHA-256
+`fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9`.
+Its [current complete local evidence](release_candidate_evidence/e77e2a4/aggregate.json)
+records **3034 passed, zero failures/errors/skips**, the actual complete-suite
+command without selected-name/marker/path exclusions, and 1743.275 seconds
+elapsed. Pytest, the audit and the owned supervising runner each exited zero,
+with the full source digest unchanged before and after. The
+[evidence index](release_candidate_evidence/e77e2a4/evidence-index.json) binds
+sanitized actual JUnit, environment and completion receipts, unchanged originals
+by digest, and eight selected verified genuine native inventories. Selected
+native bundles are evidence samples, rather than the entire calculation archive.
+
+Both final installed-wheel core lanes passed **952 tests each** on Python 3.10
+and 3.12 with zero failures/errors/skips, unchanged final source and 56 deliberate
+marker deselections per interpreter. The final wheel SHA-256 is
+`7c0a5450c64d7e7c6dc0de568a46794b782ca75ad1e5eb5afb5d8db50711bf13`;
+all **249 packaged Python sources** match the final checkout byte for byte.
+Core and scoped lanes overlap the complete suite and are not added to its total.
+The additional genuine external-Pickett provision and reviewed modern-TOPOS
+handoff receipts report 52 and nine passing cases respectively, with zero
+failures/errors/skips. Those scoped results do not establish general consumer
+conventions, independent molecular accuracy or a live canonical student platform.
+
+The preceding BASE full run at `12dd1089e54946ee8b4b20871576ca82c5e2cf77`
+executed **1913 cases: 1905 passed, eight skipped, zero failures/errors**, with
+unchanged tested source and exit zero. Its skips and historical source remain
+explicit in the [sibling observations](release_candidate_evidence/e77e2a4/aggregate.json).
+A separate actual local BASE Actions-interface HTTP/widget/kernel lifecycle
+check passed, including owned shutdown and absence of a local calculation-engine
+installation. That scoped receipt does not declare a complete BASE source digest
+or establish hosted calculation execution or a live Codespace. The complete run
+for the subsequently edited BASE interface code remains pending; neither earlier
+observation qualifies those edits or the final deployed student journey.
+
+The initial expanded full attempt executed **2990 cases: 2987 passed and three
+failed**, with zero errors/skips. Pytest and supervisor exited one; the audit
+exited zero. The three genuine Git-ignore coverage/semantics/policy failures
+and the earlier two failed Watson serialization/missingness checks remain in
+[failed-attempt history](release_candidate_evidence/e77e2a4/aggregate.json).
+Their original bytes remain bound in the new index. Subsequent fixes and the
+separate successful final complete run preserve this history.
 
 The preceding complete-repository candidate was `57c81eb7d699c6717926eeaab25ba0a0a59ca0f9`,
 with source SHA-256
@@ -118,7 +163,7 @@ identity, conformer completeness or the historical method matrix.
 
 ## Current local operations and source-bound milestones
 
-The frozen Python application at `b8f8a23` has source digest
+The final Python application at `e77e2a4` retains source digest
 `fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9`.
 Seventeen genuine shared-host/native dispatch cases passed with that digest
 unchanged before and after: real competing campaigns, owned SIGKILL/waits,
@@ -177,7 +222,7 @@ GitHub Actions is the calculation authority, and GitHub Codespaces is the interf
 5. **Final sibling lifecycle:** verify the final TORQ pin with compatible genuine BASE/TOPOS environments, actual task-service ownership where advertised, cancellation/resume semantics and consumer-side conventions. Prior sibling checks remain tied to their tested revisions.
 6. **Deployed operations/security/storage:** qualify current leases/approvals through publication, resources across campaigns, target filesystem/NFS semantics, crash/restart/reconciliation, sealed backup/restore, artifact retention/access controls and legitimate licensed-engine provisioning. Local SQLite/process/HDF5 checks alone do not qualify every deployed platform.
 
-The [current source-bound evidence index](release_candidate_evidence/57c81eb/record.json) and [aggregate results](release_candidate_check_results.json) retain the completed local receipts and unresolved release gates. The [canonical environment record](canonical_environments.md), [historical hosted evidence](hosted-actions-check-results.json), [historical ecosystem evidence](ecosystem-check-results.json) and [historical student release report](student-release-check-results.json) preserve earlier genuine runs and blocked requests. Do not sum overlapping test lanes or use historical image/run identities as current-source acceptance evidence.
+The [current source-bound evidence index](release_candidate_evidence/e77e2a4/evidence-index.json) and [aggregate results](release_candidate_check_results.json) retain the final completed local receipts, unchanged historical/failed attempts and unresolved release gates. The [preceding completed local index](release_candidate_evidence/57c81eb/record.json) remains historical. The [canonical environment record](canonical_environments.md), [historical hosted evidence](hosted-actions-check-results.json), [historical ecosystem evidence](ecosystem-check-results.json) and [historical student release report](student-release-check-results.json) preserve earlier genuine runs and blocked requests. Do not sum overlapping test lanes or use historical image/run identities as current-source acceptance evidence.
 
 ## Claims that still need primary/vendor verification
 

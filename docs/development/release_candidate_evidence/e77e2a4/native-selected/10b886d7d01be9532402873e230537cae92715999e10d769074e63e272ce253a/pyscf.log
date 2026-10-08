@@ -1,0 +1,82 @@
+#INFO: **** input file is /workspace/.venvs/cochem-torq/lib/python3.12/site-packages/pytest/__main__.py ****
+"""The pytest entry point."""
+
+from __future__ import annotations
+
+from _pytest.config import _console_main
+
+
+if __name__ == "__main__":
+    raise SystemExit(_console_main())
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='de5d28e8dd1d', release='6.18.44', version='#1 SMP Sat Sep 26 20:02:31 UTC 2026', machine='x86_64')  Threads 1
+Python 3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]
+numpy 2.5.3  scipy 1.18.1  h5py 3.16.0
+Date: Thu Oct  8 14:47:23 2026
+PySCF version 2.14.0
+PySCF path  /workspace/.venvs/cochem-torq/lib/python3.12/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 2
+[INPUT] num. electrons = 2
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = Bohr
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 H      0.000000000000   0.000000000000  -0.370424047644 AA    0.000000000000   0.000000000000  -0.700000000000 Bohr   0.0
+[INPUT]  2 H      0.000000000000   0.000000000000   0.370424047644 AA    0.000000000000   0.000000000000   0.700000000000 Bohr   0.0
+
+nuclear repulsion = 0.714285714285714
+number of shells = 2
+number of NR pGTOs = 6
+number of NR cGTOs = 2
+basis = sto-3g
+ecp = {}
+CPU time:       723.71
+
+
+******** <class 'pyscf.scf.hf.RHF'> ********
+method = RHF
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-11
+SCF conv_tol_grad = 1e-07
+SCF max_cycles = 100
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/cochem_exec_completion-final-20261008_complete/cochem_exec_h2_actual0/wavefunction.chk
+max_memory 1500 MB (current use 1253 MB)
+Initial guess from minao.
+init E= -0.769872479594464
+  HOMO = -0.519937101137375  LUMO = 0.592916871165542  gap/eV = 30.28230
+cycle= 1 E= -1.11671432506255  delta_E= -0.347  |g|= 3.68e-16  |ddm|= 0.849
+  HOMO = -0.578202977512448  LUMO = 0.670267768273737  gap/eV = 33.97262
+cycle= 2 E= -1.11671432506255  delta_E=    0  |g|= 7.62e-17  |ddm|= 1.02e-15
+  HOMO = -0.578202977512448  LUMO = 0.670267768273737  gap/eV = 33.97262
+Extra cycle  E= -1.11671432506255  delta_E=    0  |g|= 7.62e-17  |ddm|=    0
+converged SCF energy = -1.11671432506255
+rhf_internal: lowest eigs of H = [4.514722]
+<class 'pyscf.scf.hf.RHF'> wavefunction is stable in the internal stability analysis
+rhf_real2complex: lowest eigs of H = [0.76616467]
+<class 'pyscf.scf.hf.RHF'> wavefunction is stable in the real -> complex stability analysis
+rhf_external: lowest eigs of H = [0.40364884]
+<class 'pyscf.scf.hf.RHF'> wavefunction is stable in the RHF/RKS -> UHF/UKS stability analysis
+
+
+******** <class 'pyscf.grad.rhf.Gradients'> for <class 'pyscf.scf.hf.RHF'> ********
+unit = Eh/Bohr
+max_memory 1500 MB (current use 1253 MB)
+--------------- RHF gradients ---------------
+         x                y                z
+0 H     0.0000000000     0.0000000000    -0.0284540584
+1 H     0.0000000000     0.0000000000     0.0284540584
+----------------------------------------------

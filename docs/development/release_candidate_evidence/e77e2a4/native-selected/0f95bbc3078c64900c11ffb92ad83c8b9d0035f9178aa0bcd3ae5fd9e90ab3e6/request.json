@@ -1,0 +1,57 @@
+{
+  "method": {
+    "basis": "sto-3g",
+    "density_fitting": false,
+    "dispersion": null,
+    "frozen_core": false,
+    "name": "hf",
+    "reference": "restricted"
+  },
+  "molecule": {
+    "atom_ids": [
+      "hydrogen-1",
+      "hydrogen-2"
+    ],
+    "charge": 0,
+    "geometry_bohr": [
+      [
+        0.0,
+        0.0,
+        -0.6729596151601954
+      ],
+      [
+        0.0,
+        0.0,
+        0.6729596151601864
+      ]
+    ],
+    "isotope_symbols": [
+      "H",
+      "H"
+    ],
+    "isotopes": null,
+    "multiplicity": 1,
+    "symbols": [
+      "H",
+      "H"
+    ]
+  },
+  "optimization": {},
+  "properties": [
+    "energy",
+    "gradient",
+    "hessian"
+  ],
+  "settings": {
+    "check_stability": true,
+    "dft_grid_level": 4,
+    "hessian_convergence_tolerance": 5e-05,
+    "hessian_step_bohr": 0.002,
+    "hessian_symmetry_tolerance": 5e-06,
+    "memory_mb": 2048,
+    "scf_energy_tolerance": 1e-11,
+    "scf_gradient_tolerance": 1e-07,
+    "scf_max_cycle": 100,
+    "threads": 1
+  }
+}

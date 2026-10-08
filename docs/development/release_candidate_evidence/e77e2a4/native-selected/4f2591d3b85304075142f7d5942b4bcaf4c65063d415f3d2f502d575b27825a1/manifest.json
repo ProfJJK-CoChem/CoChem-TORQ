@@ -1,0 +1,50 @@
+{
+  "artifacts": [
+    {
+      "path": "basis-definition.json",
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+      "size_bytes": 774
+    },
+    {
+      "path": "dipole-debye.npy",
+      "sha256": "e05c33c4f9a15bf5615ce1bf93b860ad32938a96b2974e1d55de7e29a817e41f",
+      "size_bytes": 152
+    },
+    {
+      "path": "engine-installation.json",
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+      "size_bytes": 67206
+    },
+    {
+      "path": "geometry-bohr.npy",
+      "sha256": "29bd6adac0e508467302c6594def293305ecb7de19de95dea9674b84426313c4",
+      "size_bytes": 200
+    },
+    {
+      "path": "gradient-hartree-bohr.npy",
+      "sha256": "551ad78f57b6b4507e4d38396cda9457bbd3d825f276b34a56c29b3dd378c2db",
+      "size_bytes": 200
+    },
+    {
+      "path": "pyscf.log",
+      "sha256": "57e1b8aee6e0f20808724750a8c381d4f2fb83ee680a07223f5626a2c7b0dea8",
+      "size_bytes": 4519
+    },
+    {
+      "path": "request.json",
+      "sha256": "42034055e45dda78b84c9f9080494aae0ad4a4a350032501675d3f3d0c838a9e",
+      "size_bytes": 1264
+    },
+    {
+      "path": "result.json",
+      "sha256": "3d4fcbd3b1ee5ac743554d8581da2b7875cf3b12297bfb86dfef601b3f085dbf",
+      "size_bytes": 3327
+    },
+    {
+      "path": "wavefunction.chk",
+      "sha256": "e0dd34b2344079ff9495c25bd730d30c3fd5dd844007b651603be5275d3f06ed",
+      "size_bytes": 10528
+    }
+  ],
+  "schema_version": "cochem-torq.engine-artifacts.v1"
+}

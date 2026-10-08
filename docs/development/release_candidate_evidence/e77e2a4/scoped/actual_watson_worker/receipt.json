@@ -1,0 +1,59 @@
+{
+  "focused_tests": {
+    "passed": 2,
+    "skipped": 0,
+    "duration_seconds": 14.45
+  },
+  "source_identity_before": {
+    "code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "declared_engine_image": null,
+    "declared_workflow_commit": null,
+    "distribution": "CoChem-TORQ",
+    "git_commit": "b8f8a23d7b429c71cf92f6e4de36521787e606b5",
+    "working_tree_dirty": false
+  },
+  "source_identity_after": {
+    "code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "declared_engine_image": null,
+    "declared_workflow_commit": null,
+    "distribution": "CoChem-TORQ",
+    "git_commit": "b8f8a23d7b429c71cf92f6e4de36521787e606b5",
+    "working_tree_dirty": false
+  },
+  "source_stable": true,
+  "worker_status": "partial",
+  "stages": {
+    "anharmonic_force_field": "available",
+    "centrifugal_distortion": "available",
+    "electronic_structure": "available",
+    "equilibrium_constants": "available",
+    "equilibrium_geometry": "available",
+    "ground_state_constants": "blocked",
+    "harmonic_analysis": "available",
+    "identification_catalog": "blocked",
+    "resonance_analysis": "available",
+    "rovibrational_precursors": "available",
+    "semirigid_vpt2": "blocked",
+    "stationary_rotational_constants": "available",
+    "vibration_rotation_corrections": "available",
+    "vpt2": "blocked"
+  },
+  "native_displacement_count": 107,
+  "native_ground_cubic_coupling_ratio": 0.12263440659989104,
+  "ground_state_constants_available": false,
+  "model_alpha_available": false,
+  "semirigid_vpt2_available": false,
+  "nested_outcome": "partial",
+  "independent_scientific_qualification": false,
+  "identification_ready": false,
+  "files": {
+    "/workspace/CoChem-TORQ/tests/test_watson_pipeline.py": "8988f9caf62ddb22729f5480778d5266dc63df7e25629eadfa39f862066b6a8c",
+    "/workspace/torq-review/watson-pipeline-final.xml": "24ffccee90414c85b6861f8ee9e3149c9f72ff78cceacf05b5cb34bd991f752d",
+    "/tmp/cochem_exec_watson_pipeline_final/genuine-water-watson-worker0/worker-returned.json": "b984796ab85ebc4e1680817e4b48abc4b0db7ff6d311e0dee7df9829bfe4cb40",
+    "/tmp/cochem_exec_watson_pipeline_final/genuine-water-watson-worker0/source-stability.json": "8aafe31fc111414c9dbcdd98a9177153ee5ab4a6f0e36997c743c1a6b2e4f1d9",
+    "/tmp/cochem_exec_watson_pipeline_final/genuine-water-watson-worker0/request.json": "8d7433afe24fde2954fd6010f1e6ff41e2ad5e90ddb6b030a215318f933ce1b7",
+    "/tmp/cochem_exec_watson_pipeline_final/genuine-water-watson-worker0/anharmonic-research/research-manifest.json": "fd5f211e56f04d721daa2fb79a14612480b84b29ca63cc949e75272845b29403",
+    "/tmp/cochem_exec_watson_pipeline_final/genuine-water-watson-worker0/anharmonic-research/watson-corrections.json": "bff07b5275441e433fce8cf1760a998d40eb1b4cde50e3abaeb9b351223d2e45"
+  },
+  "earlier_failed_campaign": "/tmp/cochem_exec_watson_pipeline/genuine-water-watson-worker0"
+}

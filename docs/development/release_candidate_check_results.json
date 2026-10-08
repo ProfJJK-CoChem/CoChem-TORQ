@@ -1,7 +1,294 @@
 {
-  "actual_evidence_index": "docs/development/release_candidate_evidence/57c81eb/record.json",
-  "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
-  "authenticated_local_interface": {
+  "schema_version": "cochem.torq.release-candidate-review/1",
+  "recorded_at": "2026-10-08T15:03:56.218412+00:00",
+  "tested_code_commit": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
+  "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+  "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+  "wheel_sha256": "7c0a5450c64d7e7c6dc0de568a46794b782ca75ad1e5eb5afb5d8db50711bf13",
+  "actual_evidence_index": "docs/development/release_candidate_evidence/e77e2a4/evidence-index.json",
+  "actual_evidence_aggregate": "docs/development/release_candidate_evidence/e77e2a4/aggregate.json",
+  "complete_repository": {
+    "tests": 3034,
+    "passed": true,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "elapsed_seconds": 1743.2746530880104,
+    "pytest_exit_code": 0,
+    "audit_exit_code": 0,
+    "supervisor_exit_code": 0,
+    "source_unchanged": true,
+    "test_exclusions": [],
+    "actual_raw_junit_sha256": "c11c0ecd1bcbad71b00555eeb7c1246d6045e4c9173e72a1c1e789842921d4e5",
+    "actual_public_junit_sha256": "06655ffb878975cbbe23e662623fe6f83f7cf990a85d6797ada6840323274e8b",
+    "repository_public_junit_sha256": "b7a299ba7b73e84898dcc6e3a52ea8734e519104d33ab1e00a53cdbf69a2c3cf",
+    "scope": "Local software, mathematical, process and genuine-engine checks; not independent model-accuracy or deployed-platform qualification."
+  },
+  "clean_installed_wheel": {
+    "scope": "Genuine local Python 3.10/3.12 installed-final-wheel replay of selected canonical core contracts.",
+    "all_selected_local_core_gates_passed": true,
+    "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "wheel_sha256": "7c0a5450c64d7e7c6dc0de568a46794b782ca75ad1e5eb5afb5d8db50711bf13",
+    "core_replays": {
+      "python310": {
+        "status": "passed_existing_core_receipt",
+        "scope": "Local replay of mandatory selected core CI contracts; no real-engine or hosted deployment qualification.",
+        "counts": {
+          "executed": 952,
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "passed": 952
+        },
+        "passed": true,
+        "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+        "wheel_sha256": "7c0a5450c64d7e7c6dc0de568a46794b782ca75ad1e5eb5afb5d8db50711bf13",
+        "explicit_marker_deselections": 56,
+        "independent_scientific_qualification": false
+      },
+      "python312": {
+        "status": "passed_existing_core_receipt",
+        "scope": "Local replay of mandatory selected core CI contracts; no real-engine or hosted deployment qualification.",
+        "counts": {
+          "executed": 952,
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "passed": 952
+        },
+        "passed": true,
+        "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+        "wheel_sha256": "7c0a5450c64d7e7c6dc0de568a46794b782ca75ad1e5eb5afb5d8db50711bf13",
+        "explicit_marker_deselections": 56,
+        "independent_scientific_qualification": false
+      }
+    },
+    "packaged_python_sources_byte_verified_against_checkout": 249,
+    "all_packaged_python_sources_match_current_checkout": true,
+    "wheel_source_receipt": "docs/development/release_candidate_evidence/e77e2a4/additional-receipts/final_code_wheel_identity.json",
+    "current_container_runtime_qualification_established": false,
+    "hosted_github_actions_qualification_established": false,
+    "live_codespaces_qualification_established": false,
+    "independent_scientific_qualification": false,
+    "full_srs_release_ready": false
+  },
+  "scoped_local_evidence": {
+    "host_storage_process": {
+      "counts": {
+        "executed": 100,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 100
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false
+    },
+    "host_native_dispatch": {
+      "counts": {
+        "executed": 17,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 17
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false
+    },
+    "landscape": {
+      "counts": {
+        "executed": 49,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 49
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false,
+      "source_binding": {
+        "declared_application_source_digests": [
+          "0cf46732a243194b85cf6281bc95a81fb4397087461c1b80035cae7e97871ddb"
+        ],
+        "matches_current_application_source": false,
+        "classification": "preceding application receipt"
+      }
+    },
+    "checkpoint_consumption": {
+      "counts": {
+        "executed": 49,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 49
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false
+    },
+    "open_shell_constrained": {
+      "counts": {
+        "executed": 2,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false,
+      "source_binding": {
+        "declared_application_source_digests": [
+          "0cf46732a243194b85cf6281bc95a81fb4397087461c1b80035cae7e97871ddb"
+        ],
+        "matches_current_application_source": false,
+        "classification": "preceding application receipt"
+      }
+    },
+    "quartic_pickett": {
+      "counts": {
+        "executed": 2,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false
+    },
+    "revdsd_milestones": {
+      "counts": {
+        "executed": 41,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 41
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false
+    },
+    "canonical_watson": {
+      "counts": {
+        "executed": 42,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 42
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false,
+      "source_binding": {
+        "declared_application_source_digests": [],
+        "matches_current_application_source": false,
+        "classification": "scoped receipt without a declared full-application identity"
+      }
+    },
+    "actual_watson_worker": {
+      "counts": {
+        "executed": 2,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false,
+      "source_binding": {
+        "declared_application_source_digests": [
+          "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9"
+        ],
+        "matches_current_application_source": true,
+        "classification": "current application receipt"
+      }
+    },
+    "external_pickett_provisioning": {
+      "counts": {
+        "executed": 52,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 52
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false
+    },
+    "reviewed_modern_topos_handoff": {
+      "counts": {
+        "executed": 9,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 9
+      },
+      "tests_passed_without_skips": true,
+      "independent_scientific_qualification": false,
+      "source_binding": {
+        "declared_application_source_digests": [],
+        "matches_current_application_source": false,
+        "classification": "scoped receipt without a declared full-application identity"
+      }
+    }
+  },
+  "selected_native_evidence": {
+    "bundles": [
+      {
+        "manifest_sha256": "4f2591d3b85304075142f7d5942b4bcaf4c65063d415f3d2f502d575b27825a1",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "7be9b99eb7ac5a975cb71dfce9ee7e6700412fc315609ce1add9f23238d446ef",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "9c41c258adf9dfc2966300905f50f7531549047581373a1c6adaaa640973846c",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "9c2edaff738c87d72b0ff7c25ce6fdf563c28a64e00044d45790c29758282ce6",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "029a4d8bdcd28f58ae624fc9e1803bac23ec056a8dcd20d503ca4ad5286ffda8",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "0705c0a9f8a986af03faf8b18bf4e0f51d443af44af8a1b4a71e8f241a7e3327",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "0f95bbc3078c64900c11ffb92ad83c8b9d0035f9178aa0bcd3ae5fd9e90ab3e6",
+        "native_bytes_verified": true
+      },
+      {
+        "manifest_sha256": "10b886d7d01be9532402873e230537cae92715999e10d769074e63e272ce253a",
+        "native_bytes_verified": true
+      }
+    ],
+    "rejected_or_unsupported": 3,
+    "maximum_selected_bundles": 8,
+    "scope": "Selected genuine complete native inventories; not all artifacts."
+  },
+  "full_srs_coverage": {
+    "requirements": 73,
+    "acceptance_definitions": 41,
+    "full_scope_blocked_acceptance_gates": 41,
+    "full_scope_passed_acceptance_gates": 0,
+    "fully_qualified_requirements": 0,
+    "classifications": {
+      "missing_implementation": 1,
+      "missing_independent_qualification": 8,
+      "optional_profile_or_credentials": 8,
+      "partial_supported_scope": 56
+    },
+    "original_matrix_identities": 140,
+    "method_matrix_sha256": "f17fd8cd755719e921be8e59163dbacb0b0c20d97353e4a60c245fb3fb859496",
+    "normative_SRS_sha256": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536"
+  },
+  "canonical_platform": {
+    "hosted_qualified": false,
+    "Codespaces_to_Actions_user_journey": "unqualified",
+    "historical_observed_access_billing_and_image_records": "docs/development/release_candidate_evidence/57c81eb/aggregate-before-e77-update.json",
+    "scope": "Current live deployment, complete hosted artifact verification and deployed operations remain unqualified; historical access checks are not current-source acceptance."
+  },
+  "preceding_authenticated_local_interface": {
     "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
     "application_module_path": "/workspace/.venvs/cochem-torq/lib/python3.12/site-packages/cochem_torq/application.py",
     "checkout_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
@@ -56,274 +343,10 @@
     "source_before_after_identical": true,
     "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
     "status": "passed",
-    "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
-  },
-  "canonical_platform": {
-    "BASE_automatic_run_id": 37734371892,
-    "Codespaces_to_Actions_user_journey": "unqualified",
-    "actual_block": "GitHub says jobs were not started because recent account payments failed or the spending limit must increase; owner Billing & plans action required.",
-    "actual_deployment_access_checks": [
-      {
-        "available": true,
-        "check": "repository_metadata",
-        "default_branch": "main",
-        "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ",
-        "exit_code": 0,
-        "message": null,
-        "method": "GET",
-        "recorded_at": "2026-10-08T05:49:42.853080+00:00",
-        "status": "200"
-      },
-      {
-        "available": false,
-        "check": "default_calculation_workflow",
-        "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ/actions/workflows/calculation.yml",
-        "exit_code": 1,
-        "message": "Not Found",
-        "method": "GET",
-        "recorded_at": "2026-10-08T05:49:43.228974+00:00",
-        "status": "404",
-        "workflow_state": null
-      },
-      {
-        "available": false,
-        "check": "default_calculation_workflow_contents",
-        "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ/contents/.github/workflows/calculation.yml?ref=main",
-        "exit_code": 1,
-        "message": "Not Found",
-        "method": "GET",
-        "recorded_at": "2026-10-08T05:49:43.616177+00:00",
-        "status": "404"
-      },
-      {
-        "available": false,
-        "check": "repository_codespace_machines",
-        "endpoint": "repos/ProfJJK-CoChem/CoChem-TORQ/codespaces/machines",
-        "exit_code": 1,
-        "message": "Resource not accessible by integration",
-        "method": "GET",
-        "recorded_at": "2026-10-08T05:49:44.010654+00:00",
-        "status": "403"
-      }
-    ],
-    "current_calculation_image_runtime": "unrun; insufficient VFS workspace storage reserve",
-    "current_interface_image_runtime": "unrun",
-    "historical_807_calculation_image": "actual build succeeded; runtime blocked by ENOSPC; task-owned image/cache removed; historical evidence retained",
-    "hosted_artifact_byte_verification": "Current zero-step jobs produced no result artifacts. Historical artifact storage/log redirects were rejected by the active network policy; original hosted bytes remain unverified and draft allowances are not applied",
-    "hosted_qualified": false,
-    "tested_commit_automatic_TORQ_run_id": 37734312418,
-    "tested_commit_hosted_executed_steps": 0,
-    "tested_commit_hosted_jobs": 8
-  },
-  "clean_installed_wheel": {
-    "all_selected_local_core_gates_passed": true,
-    "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
-    "artifact_sha256": {
-      "/workspace/torq-review/rc-core-wheel-py310-release-final/installed-imports.log": "7cd4e687b344d495992cd0e6b97ef2cf1030e0c02d5e02a487f5fd52f81f5a71",
-      "/workspace/torq-review/rc-core-wheel-py310-release-final/junit.xml": "458020956ad627e219bc29e30cf46e3ad227ea2a0db0ced228c395c766a7531b",
-      "/workspace/torq-review/rc-core-wheel-py310-release-final/no-skips-gate.log": "79380746ab143fd496a96cd09f0803e8b716e8b3c54c5163bcb38ba9a295fa4f",
-      "/workspace/torq-review/rc-core-wheel-py310-release-final/pip-check.log": "c3268310ba52e0c22ac6d9cb111b1d2263f4dedbc2cb88d10255c94ab04b07c2",
-      "/workspace/torq-review/rc-core-wheel-py310-release-final/summary.json": "ec755432b05ad70e4e2260f89b3b766d56530446ac622b25656edc83a887934c",
-      "/workspace/torq-review/rc-core-wheel-py310-release-final/tests.log": "af7af0aebd5e77bf01c40b53ede5fc187c5be27175e94602e8c03775f7cafd83",
-      "/workspace/torq-review/rc-core-wheel-py312-release-final/installed-imports.log": "735d8f9e7bb8a8e87998a84a94d4f54a9053fd901ae45c0498fea2e1d5c0101d",
-      "/workspace/torq-review/rc-core-wheel-py312-release-final/junit.xml": "ee1e9a1ffbbb18570cbe97b5f697cf543951bef2cc59342c1f4a13f66f872f2f",
-      "/workspace/torq-review/rc-core-wheel-py312-release-final/no-skips-gate.log": "79380746ab143fd496a96cd09f0803e8b716e8b3c54c5163bcb38ba9a295fa4f",
-      "/workspace/torq-review/rc-core-wheel-py312-release-final/pip-check.log": "e374c0f851cccb0fbc27d6618458b86a1b5e0cb7b4e9ad22a62cc5b73a950698",
-      "/workspace/torq-review/rc-core-wheel-py312-release-final/summary.json": "2ee883bac5106ed70c8c095ee980b640ad54052d080ef9487fed1cee2b3e47f7",
-      "/workspace/torq-review/rc-core-wheel-py312-release-final/tests.log": "35ee0561086f164cbc1ed24b2b0e531c3f57220f3f55348fdbf464a9aa3b7416",
-      "/workspace/torq-review/rc-release-final-main-installed-wheel.json": "7101d37246c8698ad7537b5c11af74f23db5099e4bafe04efa26c7dd0090b16f",
-      "/workspace/torq-review/rc-release-final-static-main-receipt.json": "eb602398935fed1963cd607c71b5473241f92db2c5711716f5936b442aee7259",
-      "/workspace/torq-review/rc-release-final-wheel-source.json": "a9a17eedf4ffe12f935d3e242d437534c2f8348cc6d9736a48e1ea47fe6af1b0",
-      "/workspace/torq-review/rc-release-final-workflow-syntax-full.json": "9d09f83cbc7bb60142a9fcbff4997663a0de1552d284775dbd82090b5e4a683f"
-    },
-    "core_replays": {
-      "py310": {
-        "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
-        "counts": {
-          "error": 0,
-          "executed": 880,
-          "failure": 0,
-          "passed": 880,
-          "skipped": 0
-        },
-        "duration_seconds": 207.24,
-        "explicit_marker_deselections": 56,
-        "installed_package_path": "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/cochem_torq/__init__.py",
-        "marker_expression": "not cpu_ml and not real_engine and not ecosystem",
-        "no_skips_gate": "passed",
-        "passed": true,
-        "python": "3.10.21 (main, Sep 24 2026, 17:54:40) [Clang 22.1.3 ]",
-        "report_directory": "/workspace/torq-review/rc-core-wheel-py310-release-final",
-        "runtime_package_paths": {
-          "Libraries": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/Libraries"
-          ],
-          "UI": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/UI"
-          ],
-          "cochem": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/cochem"
-          ],
-          "cochem_torq": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/cochem_torq"
-          ],
-          "core": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/core"
-          ],
-          "orchestrator": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/orchestrator"
-          ],
-          "scripts": [
-            "/tmp/torq-hosted-core310-reproduction/lib/python3.10/site-packages/scripts"
-          ]
-        },
-        "selected_test_files": 39,
-        "source_unchanged": true,
-        "summary": "/workspace/torq-review/rc-core-wheel-py310-release-final/summary.json",
-        "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
-      },
-      "py312": {
-        "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
-        "counts": {
-          "error": 0,
-          "executed": 880,
-          "failure": 0,
-          "passed": 880,
-          "skipped": 0
-        },
-        "duration_seconds": 204.11,
-        "explicit_marker_deselections": 56,
-        "installed_package_path": "/tmp/torq-wheel-check/lib/python3.12/site-packages/cochem_torq/__init__.py",
-        "marker_expression": "not cpu_ml and not real_engine and not ecosystem",
-        "no_skips_gate": "passed",
-        "passed": true,
-        "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
-        "report_directory": "/workspace/torq-review/rc-core-wheel-py312-release-final",
-        "runtime_package_paths": {
-          "Libraries": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/Libraries"
-          ],
-          "UI": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/UI"
-          ],
-          "cochem": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/cochem"
-          ],
-          "cochem_torq": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/cochem_torq"
-          ],
-          "core": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/core"
-          ],
-          "orchestrator": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/orchestrator"
-          ],
-          "scripts": [
-            "/tmp/torq-wheel-check/lib/python3.12/site-packages/scripts"
-          ]
-        },
-        "selected_test_files": 39,
-        "source_unchanged": true,
-        "summary": "/workspace/torq-review/rc-core-wheel-py312-release-final/summary.json",
-        "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
-      }
-    },
-    "current_container_runtime_qualification_established": false,
-    "full_srs_release_ready": false,
-    "hosted_github_actions_qualification_established": false,
-    "live_codespaces_qualification_established": false,
-    "main_environment_ready": true,
-    "main_installed_python_files_byte_verified": 232,
-    "mypy": {
-      "arguments": [
-        "src/cochem_torq",
-        "--follow-imports=silent",
-        "--ignore-missing-imports"
-      ],
-      "configured_strict": true,
-      "source_files": 36,
-      "status": "passed"
-    },
-    "packaged_python_files_byte_verified": 232,
-    "recorded_at": "2026-10-08T05:55:05.749031+00:00",
-    "repository_head_at_record": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
-    "ruff": {
-      "check": "passed",
-      "format": "passed",
-      "scope": [
-        "src/cochem_torq",
-        "cochem/orchestration/campaign.py",
-        "cochem/storage/fenced_pes.py",
-        "ci_tools/validate_release_evidence.py",
-        "ci_tools/run_repository_regression.py"
-      ],
-      "scoped_files": 42
-    },
-    "schema_version": "cochem.local-canonical-wheel-qualification/1",
-    "scientific_native_and_cpu_gates": "Outside this selected core receipt; evaluated in the independently recorded complete repository run.",
-    "scope": "Frozen committed source static checks, fresh archive wheel build, MAIN isolated installed-byte proof, and local clean Python 3.10/3.12 replay of the canonical selected core contracts.",
-    "source_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
-    "source_tree_sha256_after": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
-    "source_tree_sha256_before": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
-    "source_unchanged": true,
-    "static_main_receipt": "/workspace/torq-review/rc-release-final-static-main-receipt.json",
-    "wheel": "/workspace/torq-review/rc-release-final-dist/cochem_torq-0.1.0-py3-none-any.whl",
     "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557",
-    "workflow_syntax": {
-      "bash_programs_checked": 41,
-      "embedded_python_programs": 6,
-      "report": "/workspace/torq-review/rc-canonical-workflow-syntax.json",
-      "status": "passed"
-    },
-    "workspace_free_bytes": 3020976128
+    "receipt_role": "historical preceding-source local evidence; not final e77e2a4 qualification"
   },
-  "complete_repository": {
-    "actual_public_junit_sha256": "a44b68d374365e1a86b1875560a9548494d2c70344796f11f03753f1c3d0bffa",
-    "elapsed_seconds": 1122.2723827709997,
-    "errors": 0,
-    "failures": 0,
-    "passed": true,
-    "scope": "Local software/mathematical/native checks; not independent model-accuracy qualification.",
-    "skipped": 0,
-    "source_unchanged": true,
-    "test_exclusions": [],
-    "tests": 2486
-  },
-  "full_srs_coverage": {
-    "acceptance_definitions": 41,
-    "classifications": {
-      "missing_implementation": 1,
-      "missing_independent_qualification": 8,
-      "optional_profile_or_credentials": 8,
-      "partial_supported_scope": 56
-    },
-    "full_scope_blocked_acceptance_gates": 41,
-    "full_scope_passed_acceptance_gates": 0,
-    "fully_qualified_requirements": 0,
-    "method_matrix_sha256": "f17fd8cd755719e921be8e59163dbacb0b0c20d97353e4a60c245fb3fb859496",
-    "normative_SRS_sha256": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536",
-    "original_matrix_identities": 140,
-    "requirements": 73
-  },
-  "full_srs_release_ready": false,
-  "historical_evidence": {
-    "80767e8_baseline": "docs/development/release_candidate_evidence/80767e8/record.json",
-    "historical_reports": [
-      "docs/development/student-release-check-results.json",
-      "docs/development/hosted-actions-check-results.json",
-      "docs/development/ecosystem-check-results.json"
-    ],
-    "policy": "Original histories, failed/interrupted runs and their tested sources remain preserved. Older image/run counts never qualify this source; overlapping lanes are not added."
-  },
-  "isolated_ecosystem": {
-    "BASE_SDK_producer_commit": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
-    "TOPOS_pin": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
-    "TORQ_pin": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
-    "actual_install_verify_and_water_handoffs": "passed",
-    "manifest_commit": "fd93301136729913c494ce9b9500c6c96e45f931",
-    "scientific_accuracy_established": false
-  },
-  "public_cli": {
+  "preceding_public_cli": {
     "actual_native_scan_calls": 6,
     "actual_public_command_gates": 16,
     "adaptive_stop_reason": "criteria_met",
@@ -345,25 +368,144 @@
     "surface_status": "partial",
     "target_optimizer_evaluations": 6,
     "target_result_status": "complete",
-    "uncomputed_design_nodes": 1
+    "uncomputed_design_nodes": 1,
+    "receipt_role": "historical preceding-source local evidence; not final e77e2a4 qualification"
   },
-  "recorded_at": "2026-10-08T06:13:16.146217+00:00",
-  "release_state": "experimental_candidate; complete-SRS and deployed student release blocked",
+  "preceding_isolated_ecosystem": {
+    "BASE_SDK_producer_commit": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+    "TOPOS_pin": "6a01b0f2adb7cff02edda6e339facf3d6f93904d",
+    "TORQ_pin": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+    "actual_install_verify_and_water_handoffs": "passed",
+    "manifest_commit": "fd93301136729913c494ce9b9500c6c96e45f931",
+    "scientific_accuracy_established": false,
+    "receipt_role": "historical preceding-source local evidence; not final e77e2a4 qualification"
+  },
+  "preceding_installed_wheel_core": {
+    "python310": {
+      "status": "passed_existing_core_receipt",
+      "scope": "Local replay of mandatory selected core CI contracts; no real-engine or hosted deployment qualification.",
+      "counts": {
+        "executed": 952,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 952
+      },
+      "passed": true,
+      "source_tree_sha256": "9bc506860ef8dd28c0b632fe6be4de69bd4ffa7894f54101a374e1c415f3a587",
+      "wheel_sha256": "9529af7a6f0121a5caccf705f80327691814e62b33533632aeeae6002f02e51c",
+      "explicit_marker_deselections": 56,
+      "independent_scientific_qualification": false
+    },
+    "python312": {
+      "status": "passed_existing_core_receipt",
+      "scope": "Local replay of mandatory selected core CI contracts; no real-engine or hosted deployment qualification.",
+      "counts": {
+        "executed": 952,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "passed": 952
+      },
+      "passed": true,
+      "source_tree_sha256": "9bc506860ef8dd28c0b632fe6be4de69bd4ffa7894f54101a374e1c415f3a587",
+      "wheel_sha256": "9529af7a6f0121a5caccf705f80327691814e62b33533632aeeae6002f02e51c",
+      "explicit_marker_deselections": 56,
+      "independent_scientific_qualification": false
+    }
+  },
+  "historical_evidence": {
+    "80767e8_baseline": "docs/development/release_candidate_evidence/80767e8/record.json",
+    "historical_reports": [
+      "docs/development/student-release-check-results.json",
+      "docs/development/hosted-actions-check-results.json",
+      "docs/development/ecosystem-check-results.json"
+    ],
+    "policy": "Original histories, failed/interrupted runs and their tested sources remain preserved. Older image/run counts never qualify this source; overlapping lanes are not added.",
+    "57c81eb_preceding_completed_local": "docs/development/release_candidate_evidence/57c81eb/record.json",
+    "preceding_aggregate_preserved": "docs/development/release_candidate_evidence/57c81eb/aggregate-before-e77-update.json",
+    "failed_current_attempts": [
+      {
+        "label": "complete_actual_attempt_with_three_gitignore_failures",
+        "role": "retained actual nonpassing/incomplete history",
+        "actual_supervisor_exit_code": 1,
+        "actual_junit_counts": {
+          "executed": 2990,
+          "failure": 3,
+          "error": 0,
+          "skipped": 0,
+          "passed": 2987
+        }
+      },
+      {
+        "label": "actual_watson_worker_strict_serialization_failure",
+        "role": "retained actual nonpassing/incomplete history",
+        "actual_junit_counts": {
+          "executed": 2,
+          "failure": 2,
+          "error": 0,
+          "skipped": 0,
+          "passed": 0
+        }
+      }
+    ]
+  },
   "remaining_implementation_and_science": [
-    "Exact primary-source revDSD definitions, independently verified components, analytic orbital-response gradients and higher derivatives.",
-    "Full rovibrational operator/VPT2, rotation-vibration alpha, A0/B0/C0 and qualified distortion/identification catalog.",
-    "General constrained/relaxed/periodic/coupled scans, electronic/branch continuation, complete symmetry/PI/spin/tunneling and validated conformer recall.",
-    "Native PES-to-fenced-HDF5 integration, full record/absence/migration families and deployed cross-host recovery/resource/security authority.",
-    "Curated independent references, accepted observable targets, frozen family-disjoint preregistration and blind calibrated-uncertainty validation.",
-    "Separately gated optional NBO/JANPA/QTAIM, SPCAT/SPFIT/SpycFit, LAM/kinetics and GPU/Slurm profiles."
+    "Exact primary-source revDSD definitions and authenticated independent method/response/higher-derivative qualification; bounded open-source machinery does not enable an exact named recipe.",
+    "Full resonant GVPT2/polyads, A/S reduction and induced shifts, higher distortion/hyperfine/tunneling and independently calibrated spectroscopy/identification; bounded nonresonant Watson and local Dirichlet models retain their own applicability limits.",
+    "General constrained/relaxed/periodic/coupled scans, electronic-branch completeness, complete symmetry/PI/spin/tunneling and validated conformer recall.",
+    "General record/absence/migration families and deployed cross-host recovery, resource, storage and security qualification beyond the real local native-PES/HDF5 and coordinator milestones.",
+    "Curated independent references, accepted observable targets, immutable family-disjoint preregistration and blind calibrated-uncertainty validation.",
+    "Separately gated optional NBO/JANPA/QTAIM, general SPCAT/SPFIT/SpycFit consumer domains, LAM/kinetics and GPU/Slurm profiles; actual scoped external provision/consumer checks do not establish universal support."
   ],
   "review_pull_requests": [
     "https://github.com/ProfJJK-CoChem/CoChem-TORQ/pull/3",
     "https://github.com/ProfJJK-CoChem/CoChem-BASE/pull/8"
   ],
-  "schema_version": "cochem.torq.release-candidate-review/1",
-  "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
+  "release_state": "experimental_candidate; complete-SRS and deployed student release blocked",
   "student_deployment_qualified": false,
-  "tested_code_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
-  "wheel_sha256": "d33311040cc50c1d166619e902486c71cb2c92e0ad407a24d35ada034480d557"
+  "independent_scientific_qualification": false,
+  "full_srs_release_ready": false,
+  "counts_policy": "Overlapping lanes are not added to a repository total.",
+  "sibling_observations": {
+    "preceding_BASE_full_local": {
+      "source_commit": "12dd1089e54946ee8b4b20871576ca82c5e2cf77",
+      "counts": {
+        "executed": 1913,
+        "failure": 0,
+        "error": 0,
+        "skipped": 8,
+        "passed": 1905
+      },
+      "status": "completed preceding-source local run; eight skips retained",
+      "pytest_exit_code": 0,
+      "source_and_head_preserved": true,
+      "scope": "Historical BASE proof; does not qualify subsequently edited BASE interface code or final TORQ deployment.",
+      "receipt": "sibling-evidence/preceding-base-run.json",
+      "junit": "sibling-evidence/preceding-base-junit.xml"
+    },
+    "BASE_actions_mode_interface_runtime": {
+      "status": "actual local interface observation passed",
+      "passed": true,
+      "mode": "github-actions",
+      "launcher_exit_code": 0,
+      "checks": {
+        "http_200": true,
+        "jupyter_config": true,
+        "actual_widget_view": true,
+        "cochem_output": true,
+        "no_rendered_traceback": true,
+        "absent_local_registry": true,
+        "no_silo_directory": true,
+        "no_native_engine_installation": true
+      },
+      "owned_server_gone": true,
+      "scientific_qualification": false,
+      "live_codespaces_qualification": false,
+      "source_binding": "This scoped runtime receipt does not declare a complete BASE source identity.",
+      "scope": "Actual local HTTP/widget/kernel lifecycle in Actions-interface mode; not hosted calculation execution or live Codespaces qualification.",
+      "receipt": "sibling-evidence/base-actions-mode-interface-runtime.json"
+    },
+    "new_BASE_complete_regression": "pending; preceding full run and scoped interface checks do not establish final edited-source success"
+  }
 }

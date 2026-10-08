@@ -1,0 +1,60 @@
+{
+  "mode": "github-actions",
+  "supervisor_pid": 165579,
+  "canonical_launcher_pid": 165596,
+  "launcher_exit_code": 0,
+  "actual_server": {
+    "pid": 165625,
+    "port": 60127,
+    "create_time": 1791471673.56,
+    "calculation_environment": "github-actions"
+  },
+  "server_ppid": 165579,
+  "owned_kernel_identities": [
+    {
+      "pid": 165629,
+      "create_time": 1791471677.15
+    }
+  ],
+  "interface_probe": {
+    "status": "INTERFACE_READY",
+    "calculation_environment": "github-actions",
+    "redacted-36136661006502c1": "[redacted sensitive field]",
+    "widget_mime": "application/vnd.jupyter.widget-view+json",
+    "private_staging_panel_visible": true,
+    "base_version": "1.0.1",
+    "voila_version": "0.5.13",
+    "scientific_calculation_qualification": false
+  },
+  "http": {
+    "status": 200,
+    "bytes": 30939,
+    "sha256": "8668d62afb30b7d9e7042f73d27d1ade6f7d09b09721401bcb7887b9c74144b6",
+    "content_type": "text/html"
+  },
+  "checks": {
+    "http_200": true,
+    "jupyter_config": true,
+    "actual_widget_view": true,
+    "cochem_output": true,
+    "no_rendered_traceback": true,
+    "absent_local_registry": true,
+    "no_silo_directory": true,
+    "no_native_engine_installation": true
+  },
+  "scientific_qualification": false,
+  "private_provider_pilot": "unrun",
+  "started_at_unix": 1791471663.7309422,
+  "actual_server_waited": true,
+  "actual_server_wait_status": 0,
+  "shutdown_kernel_observations": [
+    {
+      "pid": 165629,
+      "create_time": 1791471677.15,
+      "original_process_still_live": false
+    }
+  ],
+  "owned_server_gone": true,
+  "elapsed_seconds": 32.57598280906677,
+  "passed": true
+}

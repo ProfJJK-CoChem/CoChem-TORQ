@@ -1,0 +1,20 @@
+{
+  "expected_head": "12dd1089e54946ee8b4b20871576ca82c5e2cf77",
+  "source_head_before": "12dd1089e54946ee8b4b20871576ca82c5e2cf77",
+  "source_status_before": "",
+  "supervisor_pid": 157327,
+  "pytest_pid": 157334,
+  "pytest_create_time": 1791469671.64,
+  "started_at_unix": 1791469672.0533984,
+  "status": "finished",
+  "script": "/workspace/torq-review/completion-next-cycle/run-base-canonical-corrected.sh",
+  "log": "/workspace/torq-review/completion-next-cycle/base-canonical-corrected.log",
+  "junit": "/workspace/torq-review/completion-next-cycle/base-canonical-corrected-junit.xml",
+  "exit_code": 0,
+  "source_head_after": "12dd1089e54946ee8b4b20871576ca82c5e2cf77",
+  "source_status_after": "",
+  "source_changed": [],
+  "source_and_head_preserved": true,
+  "elapsed_seconds": 1127.6118927001953,
+  "junit_sha256": "3b7117f66b9bf3b216f7909e63d326afda5549bcebfb362f85cf783222747337"
+}

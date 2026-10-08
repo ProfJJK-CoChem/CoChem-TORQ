@@ -1,0 +1,148 @@
+{
+  "adapter_source_sha256": "d62d7d517816ee08bf905d1b2858f4e21b85e020ac0063b4cde9c11c2c8e14cf",
+  "basis_definition_sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+  "dipole_debye": [
+    -4.48593202519129e-16,
+    -6.702025309606335e-14,
+    1.7092056959776523
+  ],
+  "dipole_definition": "total electronic plus nuclear density expectation, input Cartesian axes",
+  "dipole_origin_bohr": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "energy_hartree": -74.9659011922968,
+  "engine": "PySCF",
+  "engine_installation_sha256": "4c553ea6ae3b891ede2ffb6153e6c59489307d2b8d0f2164987aec04c6e5f338",
+  "engine_version": "2.14.0",
+  "errors": [],
+  "geometry_bohr": [
+    [
+      7.209957277833505e-16,
+      3.54069299965061e-14,
+      -0.054326093294717756
+    ],
+    [
+      -4.8013064972815556e-14,
+      -1.432568080695352,
+      1.147163046646625
+    ],
+    [
+      4.6902947569049516e-14,
+      1.432568080695332,
+      1.147163046646729
+    ]
+  ],
+  "gradient_hartree_bohr": [
+    [
+      -9.359888736603089e-17,
+      9.020562075076873e-17,
+      4.889815969910671e-07
+    ],
+    [
+      5.2711698504545054e-17,
+      -8.948180314494181e-07,
+      -2.444907998278012e-07
+    ],
+    [
+      4.088718886150832e-17,
+      8.948180312273735e-07,
+      -2.444908007159796e-07
+    ]
+  ],
+  "gradient_translation_residual": 3.555159068351835e-15,
+  "hessian_hartree_bohr2": null,
+  "libxc_version": "7.0.0",
+  "method": {
+    "basis": "sto-3g",
+    "density_fitting": false,
+    "dispersion": null,
+    "frozen_core": false,
+    "name": "hf",
+    "reference": "restricted"
+  },
+  "molecule": {
+    "atom_ids": [
+      "water-oxygen",
+      "water-hydrogen-a",
+      "water-hydrogen-b"
+    ],
+    "charge": 0,
+    "geometry_bohr": [
+      [
+        7.209957277833505e-16,
+        3.54069299965061e-14,
+        -0.054326093294717756
+      ],
+      [
+        -4.8013064972815556e-14,
+        -1.432568080695352,
+        1.147163046646625
+      ],
+      [
+        4.6902947569049516e-14,
+        1.432568080695332,
+        1.147163046646729
+      ]
+    ],
+    "isotope_symbols": [
+      "O",
+      "H",
+      "H"
+    ],
+    "isotopes": [
+      16,
+      1,
+      1
+    ],
+    "multiplicity": 1,
+    "symbols": [
+      "O",
+      "H",
+      "H"
+    ]
+  },
+  "platform": {
+    "machine": "x86_64",
+    "release": "6.18.44",
+    "system": "Linux"
+  },
+  "python_version": "3.12.14",
+  "quality_flags": [
+    "electronic_model_error_uncalibrated"
+  ],
+  "scf": {
+    "converged": true,
+    "cycles": 8,
+    "electron_count": 10,
+    "energy_hartree": -74.9659011922968
+  },
+  "schema_version": "cochem-torq.pyscf-result.v1",
+  "settings": {
+    "check_stability": true,
+    "dft_grid_level": 4,
+    "hessian_convergence_tolerance": 5e-05,
+    "hessian_step_bohr": 0.002,
+    "hessian_symmetry_tolerance": 5e-06,
+    "memory_mb": 2048,
+    "scf_energy_tolerance": 1e-12,
+    "scf_gradient_tolerance": 1e-07,
+    "scf_max_cycle": 100,
+    "threads": 1
+  },
+  "stability": {
+    "external_stable": true,
+    "internal_stable": true,
+    "scope": "restricted real-orbital internal and unrestricted external stability",
+    "status": "stable"
+  },
+  "status": "complete",
+  "units": {
+    "dipole": "debye",
+    "energy": "hartree",
+    "geometry": "bohr",
+    "gradient": "hartree/bohr",
+    "hessian": "hartree/bohr^2"
+  }
+}

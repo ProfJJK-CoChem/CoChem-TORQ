@@ -1,0 +1,45 @@
+{
+  "artifacts": [
+    {
+      "path": "basis-definition.json",
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+      "size_bytes": 774
+    },
+    {
+      "path": "engine-installation.json",
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb",
+      "size_bytes": 67206
+    },
+    {
+      "path": "geometry-bohr.npy",
+      "sha256": "7104a3bd7d2412335ddb55212e2a74550c5b748e5e49123eb8e5bb146c2cd14a",
+      "size_bytes": 200
+    },
+    {
+      "path": "launcher.log",
+      "sha256": "a052b79e36c4f2a29a6b9d92be492b5cecf9e44f04baa79df7625b223bff4439",
+      "size_bytes": 108
+    },
+    {
+      "path": "pyscf.log",
+      "sha256": "5aa0d35f7474ba3e2498122192c698c747c7a3eecc8d260e6d7a7c57182bd2d2",
+      "size_bytes": 4075
+    },
+    {
+      "path": "request.json",
+      "sha256": "c99243756eb4bb541694b8355d29e3b0c20f046cf74a44ded665f19dba6551ab",
+      "size_bytes": 1129
+    },
+    {
+      "path": "result.json",
+      "sha256": "29d8a6eb48ccfccb48303a770624399c584e12e1caaf06bfcd0132a3073642d8",
+      "size_bytes": 2629
+    },
+    {
+      "path": "wavefunction.chk",
+      "sha256": "680340f2c70eaa263e9dff0c072ac5c38e4098df642a1387129b32fdb7c6ab4c",
+      "size_bytes": 10528
+    }
+  ],
+  "schema_version": "cochem-torq.engine-artifacts.v1"
+}

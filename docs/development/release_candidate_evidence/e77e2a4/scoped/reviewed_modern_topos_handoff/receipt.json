@@ -1,0 +1,21 @@
+{
+  "scope": "Exact modern TOPOS installed reviewed-ensemble consumer contract only; scientific method and full TOPOS SRS qualification remain separate",
+  "topos_revision": "ef750eaaf6a990a3b9e1d65eca240ac89b6632ce",
+  "tests": 9,
+  "passed": 9,
+  "skipped": 0,
+  "runtime_replacement_findings": 0,
+  "interruption": "Actual Linux RLIMIT_FSIZE kernel write denial (errno.EFBIG), restored process limits/signals, no committed import or pending stage",
+  "test_xml_sha256": "0e83095b843d86fc5c847398d26902cf5b32936e7f9535648e314e0e70566d63",
+  "policy_report_sha256": "9c04961bbb4b329ce66a792a9eccd6d4a3e83b8b37ca06ca233940ffe4a25c5b",
+  "installation_receipt_sha256": "e79bad722db198438293bf219c263133819d243dfe7126c49397b586af0b3a81",
+  "source_sha256": {
+    "ci_tools/reviewed-topos-modules.json": "d683735f35dfe962532997ceb8e885cfe3f0edefdbb1237d51431946c24ea5ca",
+    "ci_tools/setup_reviewed_topos.py": "c8b771558982738de51de7211d5e90dca88df60e9b6e289e476d04322d73f149",
+    "tests/test_topos_handoff.py": "f4763a4bb15ec432446dcbed228da5ae04fdd10159bce19406a3045d58a15006"
+  },
+  "fixtures_sha256": {
+    "topos_native_xtb_reviewed_water_legacy_pre_abcluster.json": "6953ebda7161a359b6b7a9196948f3b77449105147798e913f63af54ee0f9075",
+    "topos_native_xtb_reviewed_water.json": "d76512c2c41cc796842db7ae0d9458078f74f8bd158f01bf6216e1075f40795c"
+  }
+}

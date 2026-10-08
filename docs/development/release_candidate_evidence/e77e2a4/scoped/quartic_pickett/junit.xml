@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="2.004"><testcase classname="tests.test_pickett_backend" name="test_quartic_native_operators_match_independent_angular_momentum_matrices[A]" time="0.151" /><testcase classname="tests.test_pickett_backend" name="test_quartic_native_operators_match_independent_angular_momentum_matrices[S]" time="0.156" /></testsuite></testsuites>

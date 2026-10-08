@@ -1,0 +1,8 @@
+{
+  "distribution": "CoChem-TORQ",
+  "code_sha256": "0cf46732a243194b85cf6281bc95a81fb4397087461c1b80035cae7e97871ddb",
+  "git_commit": "873e3406639b39359800374621c797074b69a483",
+  "working_tree_dirty": true,
+  "declared_workflow_commit": null,
+  "declared_engine_image": null
+}

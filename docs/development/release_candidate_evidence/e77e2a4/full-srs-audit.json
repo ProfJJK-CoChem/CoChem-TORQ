@@ -76,7 +76,7 @@
     {
       "evidence_ids": [],
       "id": "V-ENGINE",
-      "reason": "Real bounded restricted/open-shell native execution, owned subprocess supervision, actual checkpoint consumption and local host/campaign authority now exist. Complete asynchronous lifecycle, independently qualified advertised tuples and source-bound canonical-platform evidence remain required.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software",
         "real_engine"
@@ -178,7 +178,7 @@
     {
       "evidence_ids": [],
       "id": "V-CP",
-      "reason": "Genuine same-complex-basis ghost-fragment energies, full moving-grid-response gradients and explicit interaction/deformation/De/D0/RRHO calculations exist experimentally. CP geometry optimization, selected composites and authenticated independent method-domain accuracy remain unqualified.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software",
         "real_engine",
@@ -265,7 +265,7 @@
     {
       "evidence_ids": [],
       "id": "V-PLAN",
-      "reason": "Explicit review binds the exact request, current recipe/plan and code source, finite budgets and expiry. Actions transport preserves the same approval; local revocation prevents future work. Full multi-task branch/change-policy semantics, deployed authenticated lifecycle and scientific target achievement remain unqualified.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software"
       ],
@@ -274,7 +274,7 @@
     {
       "evidence_ids": [],
       "id": "V-BUDGET",
-      "reason": "Atomic campaign budget authority and a deployment-wide private local host ledger reserve CPU/RAM/scratch/worker and explicitly probed GPU slots across participating campaigns. Both scan and ordinary workers bind actual process identities and retain unknown launches/nested-child costs; genuine local contention/death tests pass. Complete primitive-stage accounting, GPU-positive qualification, exact lifetime peaks and canonical-platform evidence remain outstanding.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software",
         "platform"
@@ -293,7 +293,7 @@
     {
       "evidence_ids": [],
       "id": "V-STATE",
-      "reason": "Authoritative revision-CAS/events/immutable attempts, fenced publication and verified online SQLite snapshots/new-target offline recovery now exist. Recovery revokes approvals, clears active leases and increments generation fences while preserving history and unknown costs. Every-transition/deployed duplicate-delivery and cross-host ownership qualification remain outstanding.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software"
       ],
@@ -302,7 +302,7 @@
     {
       "evidence_ids": [],
       "id": "V-RESTART",
-      "reason": "Authenticated immutable PySCF checkpoint orbitals now provide an observed initial density genuinely consumed by a fresh SCF, with actual first-callback proof and explicitly allowed geometry projection. Original/sealed inputs and exact state/basis/occupation/native identities remain bound. SCF iteration/DIIS, optimizer and higher-derivative algorithm-state resume, other adapters and deployed recovery qualification remain incomplete.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software"
       ],
@@ -311,7 +311,7 @@
     {
       "evidence_ids": [],
       "id": "V-STORAGE",
-      "reason": "The local sole-merger HDF5 contract now admits genuine native scan points through exact current committed coordinator receipts, preserves absolute-energy/unit/atom/state/native identities and publishes atomically with same-authority orphan recovery. Mathematical samples keep their separate evidence class. Source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and full independent molecular/source-bound qualification remain outstanding.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software"
       ],
@@ -330,7 +330,7 @@
     {
       "evidence_ids": [],
       "id": "V-SPCAT",
-      "reason": "Strict export rejects missing constants. Genuine pinned externally compiled SPCAT/SPFIT executes the bounded supported Hamiltonian and round trips with 52 passing local checks; redistribution permission, independent molecular/consumer conventions, experimental transition/intensity accuracy and complete calibrated identification remain unqualified.",
+      "reason": "Strict export rejects missing constants; genuine pinned SPCAT/SPFIT/reference transition/intensity campaign remains unqualified.",
       "required_evidence_kinds": [
         "software",
         "real_engine",
@@ -350,7 +350,7 @@
     {
       "evidence_ids": [],
       "id": "V-PACKAGE",
-      "reason": "The final e77e2a4 wheel byte-matches all 249 packaged Python sources; selected installed-wheel core checks pass on Python 3.10/3.12 (952 each), and the full current local suite passes 3034 tests without exclusions or skips. Current immutable calculation/interface image runtime and genuine hosted Actions/Codespaces deployment remain unqualified; historical builds cannot qualify later source.",
+      "reason": "The current wheel matches 232 packaged Python files and actual installed files; selected core tests pass on Python3.10/3.12 and the full current local suite passes without exclusions or skips. Current immutable calculation/interface image runtime and genuine hosted Actions/Codespaces deployment remain unqualified; historical builds cannot qualify later source.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -359,7 +359,7 @@
     {
       "evidence_ids": [],
       "id": "V-SECURITY",
-      "reason": "Path/hash/basic isolation checks exist; unauthorized cancel/approval/tenant controls and the complete tested trust-policy/retention boundary remain incomplete.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software",
         "platform"
@@ -379,7 +379,7 @@
     {
       "evidence_ids": [],
       "id": "V-HPC",
-      "reason": "Named Slurm allocation/cancel/requeue/staging and optional GPU/MPS profile credentials/environment evidence remain unavailable.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software",
         "platform"
@@ -389,7 +389,7 @@
     {
       "evidence_ids": [],
       "id": "V-DEPLOY",
-      "reason": "Local shard recovery, WAL-consistent coordinator backup/new-target fenced restore, exact known v0-to-v1 metadata adoption and private shared-host allocation are implemented with real SQLite/process tests. Generic unknown-schema migrations/rollback, remote scheduler authority and actual canonical Codespaces/Actions full operational lifecycle remain outstanding.",
+      "reason": "[redacted sensitive context]",
       "required_evidence_kinds": [
         "software",
         "platform"
@@ -427,46 +427,43 @@
     "implemented_and_qualified": 0,
     "missing_implementation": 1,
     "missing_independent_qualification": 8,
-    "optional_profile_or_credentials": 8,
+    "redacted-eddf0ab496dcf965": "[redacted sensitive field]",
     "partial_supported_scope": 56,
     "total": 73
   },
   "current_collection_observation": {
-    "collected": 3034,
-    "path": "docs/development/release_candidate_evidence/e77e2a4/full-run/summary.json",
+    "collected": 2486,
+    "path": "docs/development/release_candidate_evidence/57c81eb/complete-summary.json",
     "performed": true,
-    "scope": "Genuine complete collection and execution without test exclusions; independent scientific and deployed platform qualification remain distinct.",
-    "sha256": "b2ba6fc574d9e5a36c4bd95e2fd23920c3656bd1b048dbbcd0545848f2c29ae7",
-    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "scope": "Genuine complete collection and execution, not an inferred historical count. Zero collection/execution errors and skips; independent scientific and deployed platform qualification remain distinct.",
+    "sha256": "b9ed1a8b1e12418962945c33e3e8c3dcfcce88f53e7866e406437b0679e117db",
+    "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
     "status": "actual_complete_execution_without_exclusions"
   },
   "current_execution_observation": {
-    "audit_exit_code": 0,
     "errors": 0,
     "failures": 0,
-    "passed": 3034,
-    "path": "docs/development/release_candidate_evidence/e77e2a4/full-run/summary.json",
-    "pytest_exit_code": 0,
-    "scope": "Local all-repository software, mathematical, process and genuine-engine regression. All complete-scope gates retain required missing independent scientific or platform evidence.",
-    "sha256": "b2ba6fc574d9e5a36c4bd95e2fd23920c3656bd1b048dbbcd0545848f2c29ae7",
+    "passed": 2486,
+    "path": "docs/development/release_candidate_evidence/57c81eb/record.json",
+    "scope": "Current all-repository software/mathematical/genuine-engine regression only. Every full-scope acceptance gate retains its missing scientific or platform evidence; no full-SRS certification.",
+    "sha256": "00bf55c0256b0a74314d011278d816de8dfbffe91c06d67fa5025a6d1a00bfc8",
     "skipped": 0,
-    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
     "source_unchanged": true,
     "status": "actual_local_complete_software_execution",
-    "supervisor_exit_code": 0,
-    "tested_source_commit": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
-    "tests": 3034
+    "tested_source_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
+    "tests": 2486
   },
   "current_narrow_test_policy_observation": {
     "command": "python ci_tools/check_scientific_test_policy.py tests",
     "environment_configuration_calls": 2,
     "explicit_runtime_replacement_violations": 0,
-    "files_checked": 136,
-    "path": "docs/development/scientific_test_policy_current.json",
+    "files_checked": 117,
+    "path": "docs/development/release_candidate_evidence/57c81eb/test-policy-inventory.json",
     "performed": true,
-    "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety.",
-    "sha256": "9c04961bbb4b329ce66a792a9eccd6d4a3e83b8b37ca06ca233940ffe4a25c5b",
-    "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
+    "scope": "[redacted sensitive context]",
+    "sha256": "4c1ab2643a4cb88d160bbe523bef628f272a489835bc9633705fac3ffe65a20a",
+    "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
     "status": "current_narrow_ast_observation"
   },
   "historical_collection_observation": {
@@ -485,7 +482,7 @@
     "explicit_runtime_replacement_violations": 0,
     "files_checked": 88,
     "performed": true,
-    "scope": "Historical Narrow AST policy only; not a general scientific-authenticity or no-fabrication certification. This observation predates the current geometry/PES/precursor additions and cannot supply current execution or full-scope qualification.",
+    "scope": "[redacted sensitive context]",
     "status": "historical"
   },
   "implementation_guides": {
@@ -505,8 +502,8 @@
     "status": "historical"
   },
   "legacy_integrity_corrections": {
-    "cascade_policy": "Legacy cascade remains documentary planning data and cannot supply invented vendor code, auxiliary basis filenames or runtime authorization.",
-    "geometry_policy": "Legacy RMSD validates finite nonempty matching shapes, chemistry labels and proper rotation. Legacy pools without graph/stereo/state/map evidence retain candidates; coordinate/formula resemblance cannot authorize deletion.",
+    "cascade_policy": "[redacted sensitive context]",
+    "geometry_policy": "[redacted sensitive context]",
     "mass_policy": "Invalid/conflicting isotope identities and missing exact masses reject; standard atomic weight is separately named. Integer nucleon numbers and arbitrary isotope selection never substitute for tabulated mass.",
     "radii_policy": "Named Pyykko and default van der Waals getters use their actual fields; radius-derived connectivity and rough bond orders remain unverified heuristics.",
     "scope": "Additional public legacy boundaries; these repairs do not qualify absent scientific methods or every result family.",
@@ -662,41 +659,6 @@
     "scope": "All original historical row identities retained. Documentation coverage does not enable a method/engine/property tuple or establish its execution/accuracy.",
     "sha256": "f17fd8cd755719e921be8e59163dbacb0b0c20d97353e4a60c245fb3fb859496"
   },
-  "preceding_57c81eb_current_collection_observation": {
-    "collected": 2486,
-    "path": "docs/development/release_candidate_evidence/57c81eb/complete-summary.json",
-    "performed": true,
-    "scope": "Genuine complete collection and execution, not an inferred historical count. Zero collection/execution errors and skips; independent scientific and deployed platform qualification remain distinct.",
-    "sha256": "b9ed1a8b1e12418962945c33e3e8c3dcfcce88f53e7866e406437b0679e117db",
-    "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
-    "status": "actual_complete_execution_without_exclusions"
-  },
-  "preceding_57c81eb_current_execution_observation": {
-    "errors": 0,
-    "failures": 0,
-    "passed": 2486,
-    "path": "docs/development/release_candidate_evidence/57c81eb/record.json",
-    "scope": "Current all-repository software/mathematical/genuine-engine regression only. Every full-scope acceptance gate retains its missing scientific or platform evidence; no full-SRS certification.",
-    "sha256": "00bf55c0256b0a74314d011278d816de8dfbffe91c06d67fa5025a6d1a00bfc8",
-    "skipped": 0,
-    "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
-    "source_unchanged": true,
-    "status": "actual_local_complete_software_execution",
-    "tested_source_commit": "57c81eb7d699c6717926eeaab25ba0a0a59ca0f9",
-    "tests": 2486
-  },
-  "preceding_57c81eb_current_narrow_test_policy_observation": {
-    "command": "python ci_tools/check_scientific_test_policy.py tests",
-    "environment_configuration_calls": 2,
-    "explicit_runtime_replacement_violations": 0,
-    "files_checked": 117,
-    "path": "docs/development/release_candidate_evidence/57c81eb/test-policy-inventory.json",
-    "performed": true,
-    "scope": "AST imports and common replacement APIs only; no assertion of scientific accuracy, artifact authenticity, or universal no-fabrication safety.",
-    "sha256": "4c1ab2643a4cb88d160bbe523bef628f272a489835bc9633705fac3ffe65a20a",
-    "source_tree_sha256": "28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b",
-    "status": "current_narrow_ast_observation"
-  },
   "preceding_failed_execution_observation": {
     "actual_summary_path": "docs/development/release_candidate_evidence/57c81eb/earlier-mass-fixed-failed-summary.json",
     "actual_summary_sha256": "28ccee680f87b76b9a85b6291f7cda6a219fb8512e19a36ef263085a8ad1e2d6",
@@ -726,7 +688,7 @@
       "frozen/relaxed interaction energetics, genuine ghost-basis energy and gradient calculations",
       "first-order-saddle and downhill endpoint candidates without a falsely asserted verified IRC",
       "exact experimental native capability routing and artifact/source/domain-bound local numerical-integration evidence",
-      "authentic immutable native checkpoint compatibility and separate mutable initial-density preparation genuinely consumed by a fresh SCF, without algorithm-state resume or scientific-accuracy qualification",
+      "[redacted sensitive context]",
       "reversible candidate retention/selection with accessible immutable history and approval invalidation",
       "immutable verified reproducibility export with matching source and explicit missing scientific qualifications",
       "bounded supplied-graph/stereo/isotope proper-rotation comparisons and tolerance-swept nuclear-position symmetry proposals retaining complete originals and ambiguous candidates",
@@ -735,7 +697,7 @@
       "strict geometric precursors and bounded canonical nonresonant Watson/Dirichlet-local operator routes with applicability-gated model products and explicit unavailable B0/alpha for rejected default water"
     ],
     "independent_scientific_qualifications_outstanding": [
-      "exact primary-source revDSD orbital/semilocal/OS/SS/D4/core-definition reconciliation and authenticated independent components/response/higher derivatives",
+      "[redacted sensitive context]",
       "rovibrational alpha/Coriolis, vibration-corrected B0, centrifugal distortion/hyperfine and independently qualified identification catalog",
       "named frozen independent molecular-family benchmark references, accepted observable error/coverage targets and blind validation",
       "coupled molecular large-amplitude kinetic operator, feasible PI symmetry/spin statistics and nuclear-motion convergence",
@@ -830,7 +792,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-SCI-003",
-      "remaining_work": "Single-molecule state/identity checks exist; fragment electronic states, multi-reference diagnostics and every advertised open-shell/element domain need separate authentic profiles.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/domain.py",
         "src/cochem_torq/ecosystem.py",
@@ -909,7 +871,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-ARC-002",
-      "remaining_work": "An authoritative local campaign coordinator now provides revision-CAS lifecycle, lease fencing and reservations; real isolated BASE/TOPOS producer/consumer compatibility is separately testable. The sibling services and deployed multi-worker/remote lifecycle must qualify their own compatible authority contract.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/ecosystem.py",
         "cochem/orchestration/sqlite_queue.py",
@@ -1102,7 +1064,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-METHOD-006",
-      "remaining_work": "Actual native wavefunction/Hessian registration preserves original bytes, creates a new read-only sealed input and fingerprints exact geometry, atom/isotope order, state, basis definitions, method/recipe, engine installation/version, adapter/source and canonical numerical settings. Final-result compatibility requires exact fingerprints; explicitly permitted initial-guess geometry/settings changes still require a new physical calculation and a separate mutable working copy. Native engine consumption/checkpoint continuation is not asserted or implemented; grids/integrals/force-fields/model-checkpoints require separate authentic registration adapters and deployed restart gates.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/capabilities.py",
         "src/cochem_torq/artifacts.py",
@@ -1139,7 +1101,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PLAN-002",
-      "remaining_work": "Campaign consumption/budget authority and an additional shared private local host ledger now atomically reserve CPU/RAM/scratch/worker/GPU slots across participating campaigns. Both local dispatchers use exact host/boot/actor and actual process bindings; unknown launches and nested-child evidence remain held, sampled peaks stay separate from unknown lifetime peaks. Full primitive accounting, positive GPU/native scheduler ceilings and deployed contention/consumption qualification remain required.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/application.py",
         "src/cochem_torq/artifacts.py",
@@ -1162,7 +1124,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PLAN-003",
-      "remaining_work": "Actual explicit approval binds the complete request, current scientific recipe/plan, code identity, finite resource ceilings and aware expiry; the canonical Actions request carries and verifies the same approval. Local authority revocation preserves completed lineage. Complete multi-task scope-change/needs_review policy and remotely authenticated deployed execution remain to be qualified.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/service.py",
         "src/cochem_torq/application.py",
@@ -1183,7 +1145,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PLAN-004",
-      "remaining_work": "Plan/approval digests explicitly do not claim signatures; campaign operator authority is a private opaque capability separate from worker leases. Deployed actor authentication, remote approval/cancellation and platform trust-policy qualification remain required.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/application.py",
         "src/cochem_torq/artifacts.py",
@@ -1248,7 +1210,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-GEO-002",
-      "implemented_scope": "Bounded nuclear-position symmetry proposals retain actual proper/improper orthogonal actions, atom permutations, residuals, closure and enumeration completeness over increasing declared tolerance sweeps. Separate isotope assertions and authentic tabulated-mass actions are recorded. At most 24 nuclear rows are supported; only complete closed rank>=2 actions can assign C1/Cs/Ci/C2/C2v/C2h/D2. Other and linear/continuous groups remain unassigned with review flags.",
+      "implemented_scope": "[redacted sensitive context]",
       "remaining_work": "General group classification, genuine engine computational subgroups, feasible permutation-inversion groups, spin weights and tunneling remain unavailable; nuclear-position actions do not establish graph automorphisms or feasible dynamics. A separately named bounded constrained-HF SLSQP adapter now computes actual residuals, tangent-gradient/KKT and optional Lagrangian-nullspace curvature with genuine native evaluations. General constrained-domain/engine audits and an unconstrained-minimum proof remain independently required.",
       "source_references": [
         "src/cochem_torq/geometry_identity.py",
@@ -1362,8 +1324,8 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PES-003",
-      "implemented_scope": "Sampled extrema produce immutable quarantined input-only ledger candidates with genuine point/native hashes and unchanged original records. Separately approved exact target requests authenticate current retained revisions and atom/state/recipe/constraint-release lineage. Genuine target optimization plus gradient and projected positive Hessian/external-invariance checks can create a separate model-minimum result.",
-      "remaining_work": "General scan/ML/path candidate generation and target-domain stationary/TS qualification remain incomplete. Native relocation requires an authenticated import contract. A sampled extremum is not a stationary point, and a local model minimum does not establish chemical accuracy, a verified TS/IRC, mapped endpoint connectivity or global basin completeness; those require separate genuine implementation/evidence.",
+      "implemented_scope": "[redacted sensitive context]",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/adaptive.py",
         "src/cochem_torq/candidate_ledger.py",
@@ -1438,9 +1400,9 @@
       "acceptance_ids": [
         "V-KINETICS"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-PES-007",
-      "remaining_work": "A PES or rotor kernel does not qualify kinetics. TST/RRKM units, tunneling, state/population assumptions and bifurcation domain require authentic dedicated acceptance cases.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "Libraries/cochem_torq_pipeline.py",
         "Libraries/cochem_jax_builder.py"
@@ -1511,9 +1473,9 @@
       "acceptance_ids": [
         "V-DVR"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-VIB-004",
-      "remaining_work": "Numerical rotor/DVR safeguards do not supply a coupled molecular torsion-rotation or VRT model. PES/kinetic operator, symmetry, spin weights and spectral convergence need authentic domain-specific evidence.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "Libraries/cochem_jax_builder.py"
       ],
@@ -1608,7 +1570,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-SPEC-003",
-      "remaining_work": "Typed partial results preserve earlier physics. Full electronic-to-identification execution remains blocked when authentic later-stage sources or solvers are unavailable.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "Libraries/cochem_torq_spectroscopy.py",
         "src/cochem_torq/domain.py",
@@ -1624,9 +1586,9 @@
       "acceptance_ids": [
         "V-WFN"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-ANA-001",
-      "remaining_work": "Unsupported wavefunction conversion is rejected. Authentic NBO/JANPA/QTAIM adapters, density normalization/basin convergence and scientifically distinct analysis outputs need separate evidence.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "Libraries/cochem_torq_engine.py",
         "Libraries/cochem_tensor_extractor.py"
@@ -1641,9 +1603,9 @@
       "acceptance_ids": [
         "V-ANALYSIS"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-ANA-002",
-      "remaining_work": "Unsupported wavefunction conversion is rejected. Authentic NBO/JANPA/QTAIM adapters, density normalization/basin convergence and scientifically distinct analysis outputs need separate evidence.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "Libraries/cochem_torq_engine.py",
         "Libraries/cochem_tensor_extractor.py"
@@ -1658,9 +1620,9 @@
       "acceptance_ids": [
         "V-ANALYSIS"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-ANA-003",
-      "remaining_work": "Unsupported wavefunction conversion is rejected. Authentic NBO/JANPA/QTAIM adapters, density normalization/basin convergence and scientifically distinct analysis outputs need separate evidence.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "Libraries/cochem_torq_engine.py",
         "Libraries/cochem_tensor_extractor.py"
@@ -1728,7 +1690,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-UQ-004",
-      "remaining_work": "An immutable reproducibility exporter preserves and verifies authentic native/shard bytes, matching scientific source snapshots, actual recipe/engine references, units/isotopes/frames/uncertainty flags and explicitly absent calibration or bibliography. It refuses fabricated scientific qualification and source substitution. A publication-ready scientific bundle still requires independently curated authentic references, preregistered/held-out benchmark results, executed uncertainty analysis and reviewed complete methods text; packaging cannot establish peer-review readiness.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/publication.py",
         "src/cochem_torq/artifacts.py",
@@ -1761,9 +1723,9 @@
       "acceptance_ids": [
         "V-SPCAT"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-EXP-002",
-      "remaining_work": "Bounded genuine pinned SPCAT/SPFIT provisioning and execution now have source-bound local evidence, with strict Hamiltonian/unit/covariance/missingness contracts and measured/predicted distinctions. Redistribution permission, independent experimental convention/reference validation and complete calibrated catalog/identification scope remain release gates.",
+      "remaining_work": "Internal rigid-rotor lines are explicitly screening output. A real pinned SPCAT/SPFIT independent round trip, matched Hamiltonian and measured/predicted distinction remain release gates.",
       "source_references": [
         "Libraries/cochem_torq_spcat.py",
         "Libraries/cochem_spcat_bridge.py",
@@ -1798,7 +1760,7 @@
         "V-STORAGE",
         "V-CONSUMER"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-EXP-004",
       "remaining_work": "BASE compatibility tests exist; the actual versioned SpycFit consumer and its reviewed HDF5 schema must qualify field/frame/state semantics before claiming interoperability.",
       "source_references": [
@@ -1817,7 +1779,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-001",
-      "remaining_work": "The authoritative campaign implements full SRS states, CAS, append-only events and immutable terminal attempts. Verified online WAL snapshots and new-target fenced restore preserve history/unknown costs while revoking approvals, clearing active leases and incrementing worker generations. Full each-transition/duplicate-delivery/deployed service qualification remains outstanding.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "cochem/orchestration/sqlite_queue.py",
         "src/cochem_torq/application.py",
@@ -1861,7 +1823,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-003",
-      "remaining_work": "Both approved scan and ordinary local workers now require campaign authority plus one common private per-uid/host/boot/namespace SQLite allocation ledger, with atomic cross-campaign CPU/RAM/scratch/worker/probed GPU admission, actual PID/create-time bindings, heartbeats and genuine waits. Bound nested constrained children are checked independently; missing/empty pinned inventories, live/unknown processes and expired leases retain resources/costs. Exact lifetime CPU/peak measurements, GPU-positive profiles, remote/multiple-user/namespace coordination and canonical-platform qualification remain outstanding.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "cochem/core/process_reaper.py",
         "Libraries/cochem_torq_engine.py",
@@ -1884,7 +1846,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-004",
-      "remaining_work": "Immutable shards and single-writer storage now include genuine scan-to-PES committed-source admission and typed terminal host provenance. Local interruption, stale-authority, tampering and publication races use real processes/native artifacts. Deployed multi-worker authority/filesystem/filter/durability qualification remains outstanding.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/artifacts.py",
         "cochem/storage/cochem_core_pes_store.py"
@@ -1902,7 +1864,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-005",
-      "remaining_work": "The coordinator-fenced HDF5 contract now consumes genuine native scan points under current exact committed receipts, preserving absolute energies/units, atoms, density/native identities and source provenance. One approved merger verifies private snapshots and atomically publishes; same-authority preserved-byte orphan recovery remains bounded. Source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and independent molecular/source-bound full-scope qualification remain outstanding.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "cochem/storage/fenced_pes.py",
         "cochem/orchestration/campaign.py",
@@ -2044,7 +2006,7 @@
         "V-HPC",
         "V-DEPLOY"
       ],
-      "classification": "optional_profile_or_credentials",
+      "classification": "[redacted sensitive context]",
       "id": "TORQ-DEP-003",
       "remaining_work": "Packaging/configuration and local engine checks cannot qualify an image or remote platform. Actual immutable image build/digest, dependency lock and genuine Actions/Codespaces execution evidence are required; GPU/Slurm profiles remain separately qualified.",
       "source_references": [
@@ -2086,7 +2048,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-SEC-001",
-      "remaining_work": "Request/path/identity validation is present. Deployed tenant isolation, authenticated submission/cancel, secret exposure and restricted-component provisioning require actual boundary tests.",
+      "remaining_work": "[redacted sensitive context]",
       "source_references": [
         "src/cochem_torq/github.py",
         "src/cochem_torq/domain.py",
