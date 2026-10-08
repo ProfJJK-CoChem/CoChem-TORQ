@@ -1,6 +1,7 @@
 """Geometric alignment, Kabsch SO(3) transformation, and distance bounds verification.
 
-Strict adherence to the Zero-Mock mandate with physical distance calculations and proper SO(3) rotations.
+Strict adherence to the Zero-Mock mandate with physical distance calculations and proper
+SO(3) rotations.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from cochem.mobile.assembly.constants import (
 )
 from cochem.mobile.assembly.exceptions import (
     KabschReflectionError,
+    SingularRotationAxisError,
     UnphysicalMonomerSeparationError,
 )
 from cochem.mobile.assembly.models import LigandAttachment
@@ -24,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def rotation_matrix_from_vectors(vec1: np.ndarray, vec2: np.ndarray) -> np.ndarray:
-    """Calculate 3x3 proper rotation matrix that rotates unit vector vec1 to unit vector vec2.
+    """Calculate 3x3 proper rotation matrix that rotates unit vector vec1 to unit vector
+    vec2.
 
     Args:
         vec1: Source 3D vector.
@@ -33,10 +36,26 @@ def rotation_matrix_from_vectors(vec1: np.ndarray, vec2: np.ndarray) -> np.ndarr
     Returns:
         3x3 rotation matrix R in SO(3).
     """
+    if np.iscomplexobj(vec1) or np.iscomplexobj(vec2):
+        raise ValueError("Rotation vectors must be real finite Cartesian vectors.")
+    vec1 = np.asarray(vec1, dtype=np.float64)
+    vec2 = np.asarray(vec2, dtype=np.float64)
+    if (
+        vec1.shape != (3,)
+        or vec2.shape != (3,)
+        or not (np.isfinite(vec1).all() and np.isfinite(vec2).all())
+    ):
+        raise ValueError(
+            "Rotation vectors must be real finite Cartesian vectors of shape (3,)."
+        )
     n1 = float(np.linalg.norm(vec1))
     n2 = float(np.linalg.norm(vec2))
     if n1 < 1e-12 or n2 < 1e-12:
-        return np.eye(3, dtype=np.float64)
+        raise SingularRotationAxisError(
+            "A zero rotation vector cannot define an orientation."
+        )
+    if not (math.isfinite(n1) and math.isfinite(n2)):
+        raise ValueError("Rotation vector norms must be finite.")
 
     a = vec1 / n1
     b = vec2 / n2
@@ -73,7 +92,8 @@ def rotation_matrix_from_vectors(vec1: np.ndarray, vec2: np.ndarray) -> np.ndarr
 def kabsch_fit_proper(
     p_coords: np.ndarray, q_coords: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Perform Kabsch alignment with strict SO(3) sign-correction to prevent improper reflections.
+    """Perform Kabsch alignment with strict SO(3) sign-correction to prevent improper
+    reflections.
 
     Args:
         p_coords: Mobile donor coordinates of shape (M, 3).
@@ -85,6 +105,21 @@ def kabsch_fit_proper(
     Raises:
         KabschReflectionError: If proper SO(3) rotation cannot be achieved.
     """
+    if np.iscomplexobj(p_coords) or np.iscomplexobj(q_coords):
+        raise ValueError(
+            "Kabsch coordinates must be real finite Cartesian coordinates."
+        )
+    p_coords = np.asarray(p_coords, dtype=np.float64)
+    q_coords = np.asarray(q_coords, dtype=np.float64)
+    if (
+        p_coords.ndim != 2
+        or p_coords.shape[1] != 3
+        or len(p_coords) == 0
+        or q_coords.shape != p_coords.shape
+        or not np.isfinite(p_coords).all()
+        or not np.isfinite(q_coords).all()
+    ):
+        raise ValueError("Kabsch inputs require matching nonempty finite (N,3) arrays.")
     p_cent = np.mean(p_coords, axis=0)
     q_cent = np.mean(q_coords, axis=0)
 
@@ -104,23 +139,26 @@ def kabsch_fit_proper(
 
     if abs(det_r - 1.0) > 1e-5:
         raise KabschReflectionError(
-            f"Kabsch alignment failed proper SO(3) rotation constraint: det(R) = {det_r:.6f}"
+            "Kabsch alignment failed proper SO(3) rotation constraint: "
+            f"det(R) = {det_r:.6f}"
         )
 
     return r_mat, p_cent, q_cent
 
 
 def calculate_metal_donor_distance(metal_symbol: str, donor_symbol: str) -> float:
-    """Calculate dynamic equilibrium metal-donor bond distance in Angstroms.
+    """Propose an initial metal-donor distance from tabulated covalent radii.
 
     R_ML = r_cov(Metal) + r_cov(Donor)
+    The specific source is Mendeleev's Pyykkö single-bond radius field.
+    This geometric estimate does not establish an equilibrium bond length.
 
     Args:
         metal_symbol: Transition metal element symbol.
         donor_symbol: Donor atom element symbol.
 
     Returns:
-        Equilibrium bond length in Angstroms.
+        Initial radius-sum distance proposal in Angstroms.
     """
     r_metal = get_covalent_radius_angstrom(metal_symbol)
     r_donor = get_covalent_radius_angstrom(donor_symbol)
@@ -132,7 +170,7 @@ def align_ligand_to_template(
     metal_symbol: str,
     template_vectors: np.ndarray,
 ) -> np.ndarray:
-    """Rigidly align a ligand attachment to the specified coordination template vector slots.
+    """Rigidly align a ligand into an initial, unqualified geometric proposal.
 
     Args:
         ligand: LigandAttachment specification with 3D conformer coordinates.
@@ -144,8 +182,25 @@ def align_ligand_to_template(
 
     Raises:
         KabschReflectionError: If multidentate alignment produces improper reflection.
-        UnphysicalMonomerSeparationError: If COM distance is outside [1.5, 12.0] Angstroms.
+        UnphysicalMonomerSeparationError: If COM distance fails the bounded proposal
+        heuristic.
     """
+    if np.iscomplexobj(template_vectors):
+        raise ValueError("Coordination template vectors must be real.")
+    template_vectors = np.asarray(template_vectors, dtype=np.float64)
+    if (
+        template_vectors.ndim != 2
+        or template_vectors.shape[1] != 3
+        or not np.isfinite(template_vectors).all()
+        or not np.allclose(np.linalg.norm(template_vectors, axis=1), 1.0, atol=1e-12)
+    ):
+        raise ValueError(
+            "Coordination template requires finite Cartesian unit vectors."
+        )
+    if any(
+        slot < 0 or slot >= len(template_vectors) for slot in ligand.target_vector_slots
+    ):
+        raise ValueError("Assigned slot is outside the supplied coordination template.")
     coords = np.array(ligand.coordinates, dtype=np.float64)
     num_atoms = len(coords)
 
@@ -182,8 +237,16 @@ def align_ligand_to_template(
             norm_c = float(np.linalg.norm(c_others))
 
             if norm_c < 1e-12:
-                # Symmetric or linear offset fallback
-                u_dir = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+                # A symmetric centroid has no direction. Use the first actual
+                # nonzero atom displacement as a deterministic proposal axis.
+                offsets = coords_rel[non_donor_indices]
+                nonzero = np.flatnonzero(np.linalg.norm(offsets, axis=1) >= 1e-12)
+                if len(nonzero) == 0:
+                    raise SingularRotationAxisError(
+                        "Coincident ligand atoms cannot define an orientation."
+                    )
+                actual_offset = offsets[nonzero[0]]
+                u_dir = actual_offset / np.linalg.norm(actual_offset)
             else:
                 u_dir = c_others / norm_c
 
@@ -200,7 +263,9 @@ def align_ligand_to_template(
         aligned_coords = ((coords - p_cent) @ r_mat.T) + q_cent
 
         # Orient non-donor backbone atoms outward away from metal origin (0, 0, 0)
-        non_donor_indices = [i for i in range(num_atoms) if i not in ligand.donor_atom_indices]
+        non_donor_indices = [
+            i for i in range(num_atoms) if i not in ligand.donor_atom_indices
+        ]
         if non_donor_indices and len(ligand.donor_atom_indices) == 2:
             norm_q = float(np.linalg.norm(q_cent))
             if norm_q > 1e-6:
@@ -211,7 +276,8 @@ def align_ligand_to_template(
                     axis_unit = d_axis / norm_axis
                     best_theta = 0.0
                     best_proj = -float("inf")
-                    # Sweep angles around donor axis to maximize backbone projection along q_unit
+                    # Sweep angles around donor axis to maximize
+                    # backbone projection along q_unit
                     for deg in range(0, 360, 5):
                         theta_rad = math.radians(deg)
                         cos_t = math.cos(theta_rad)
@@ -268,7 +334,8 @@ def align_ligand_to_template(
                     deviation = abs(angle_calc - angle_tmpl)
                     if deviation > 5.0:
                         logger.warning(
-                            "Bite angle deviation for ligand '%s' between donors (%d, %d): "
+                            "Bite angle deviation for ligand '%s' "
+                            "between donors (%d, %d): "
                             "calc=%.2f deg, template=%.2f deg, diff=%.2f deg",
                             ligand.ligand_id,
                             da_idx,
@@ -278,31 +345,22 @@ def align_ligand_to_template(
                             deviation,
                         )
 
-    # Ensure all hydrogens bonded to donor atoms point outward away from metal (0, 0, 0)
-    for donor_idx in ligand.donor_atom_indices:
-        d_pos = aligned_coords[donor_idx]
-        norm_d = float(np.linalg.norm(d_pos))
-        if norm_d > 1e-12:
-            u_d = d_pos / norm_d
-            for h_idx, sym in enumerate(ligand.atomic_symbols):
-                if sym == "H":
-                    dist_to_donor = float(np.linalg.norm(aligned_coords[h_idx] - d_pos))
-                    if dist_to_donor < 1.30:
-                        w_vec = aligned_coords[h_idx] - d_pos
-                        dot_proj = float(np.dot(w_vec, u_d))
-                        if dot_proj < 0.0:
-                            # Invert component pointing into metal so it points outward
-                            w_corr = w_vec - 2.0 * dot_proj * u_d
-                            aligned_coords[h_idx] = d_pos + w_corr
-
-    # Validate physical asymptotic distance bounds: 1.5 A <= R_COM <= 12.0 A
+    # Preserve every internal conformer distance. XYZ proximity cannot declare
+    # a hydrogen bond or justify moving an individual atom independently.
+    # These historical bounds are only a proposal acceptance heuristic.
     weights = np.array(
-        [get_standard_atomic_weight(sym) for sym in ligand.atomic_symbols], dtype=np.float64
+        [get_standard_atomic_weight(sym) for sym in ligand.atomic_symbols],
+        dtype=np.float64,
     )
     total_mass = float(np.sum(weights))
-    if total_mass <= 0:
-        total_mass = float(len(weights))
-        weights = np.ones(len(weights), dtype=np.float64)
+    if (
+        not np.isfinite(weights).all()
+        or not math.isfinite(total_mass)
+        or total_mass <= 0
+    ):
+        raise ValueError(
+            "A finite positive actual atomic mass is required for center of mass."
+        )
 
     com = np.sum(aligned_coords * weights[:, np.newaxis], axis=0) / total_mass
     r_com = float(np.linalg.norm(com))
@@ -310,7 +368,8 @@ def align_ligand_to_template(
     if not (1.5 <= r_com <= 12.0):
         raise UnphysicalMonomerSeparationError(
             f"Ligand '{ligand.ligand_id}' center-of-mass distance {r_com:.4f} A "
-            f"violates physical asymptotic bounds [1.5, 12.0] A."
+            f"fails the initial-proposal center-of-mass bounds [1.5, 12.0] A; "
+            "these bounds do not establish an equilibrium structure."
         )
 
     final_coords: np.ndarray = np.asarray(aligned_coords, dtype=np.float64)

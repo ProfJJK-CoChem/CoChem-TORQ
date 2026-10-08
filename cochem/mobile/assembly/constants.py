@@ -1,18 +1,20 @@
 """Dynamic physical constants and quantum parity verification backed by Mendeleev.
 
-Strict adherence to the Zero-Mock and Mendeleev Library Mandates with thread-safe LRU caching.
+Actual database values and explicit formal bookkeeping; no substitute values.
 """
 
 from __future__ import annotations
 
 import functools
-from typing import Set
+import math
+from numbers import Real
+from typing import TypedDict
 
 from mendeleev import element
 
 from cochem.mobile.assembly.exceptions import MendeleevLookupError, QuantumParityError
 
-TRANSITION_METAL_ATOMIC_NUMBERS: Set[int] = (
+TRANSITION_METAL_ATOMIC_NUMBERS: set[int] = (
     set(
         range(21, 31)  # 3d: Sc (21) - Zn (30)
     )
@@ -23,6 +25,26 @@ TRANSITION_METAL_ATOMIC_NUMBERS: Set[int] = (
         set(range(71, 81))  # 5d: Lu (71) - Hg (80)
     )
 )
+
+
+class FormalTransitionMetalElectronRecord(TypedDict):
+    """Formal counting model, never a measured or calculated d population."""
+
+    model: str
+    atomic_number: int
+    group_id: int
+    formal_oxidation_state: int
+    formal_valence_electron_count: int
+    d_electron_count: int | None
+    d_electron_count_status: str
+    actual_electronic_population_available: bool
+    total_electron_count: int
+
+
+def _validate_atomic_number(value: object, symbol: str) -> int:
+    if type(value) is not int or not 1 <= value <= 118:
+        raise MendeleevLookupError(f"Invalid atomic number for element '{symbol}'.")
+    return value
 
 
 @functools.lru_cache(maxsize=128)
@@ -40,17 +62,16 @@ def get_atomic_number(symbol: str) -> int:
     """
     try:
         elem = element(symbol)
-        z = elem.atomic_number
-        if z is None or not isinstance(z, int):
-            raise MendeleevLookupError(f"Invalid atomic number for element '{symbol}'.")
-        return int(z)
+        return _validate_atomic_number(elem.atomic_number, symbol)
     except Exception as exc:
-        raise MendeleevLookupError(f"Failed to lookup element '{symbol}': {exc}") from exc
+        raise MendeleevLookupError(
+            f"Failed to lookup element '{symbol}': {exc}"
+        ) from exc
 
 
 @functools.lru_cache(maxsize=128)
 def validate_transition_metal(symbol: str) -> int:
-    """Validate that the given symbol corresponds to a transition metal in Z in [21..30, 39..48, 71..80].
+    """Validate membership of the supported 3d, 4d, or 5d element ranges.
 
     Args:
         symbol: IUPAC element symbol.
@@ -59,7 +80,7 @@ def validate_transition_metal(symbol: str) -> int:
         Atomic number Z.
 
     Raises:
-        MendeleevLookupError: If element is unresolvable or not in transition metal range.
+        MendeleevLookupError: If the element is unknown or unsupported.
     """
     z = get_atomic_number(symbol)
     if z not in TRANSITION_METAL_ATOMIC_NUMBERS:
@@ -70,136 +91,151 @@ def validate_transition_metal(symbol: str) -> int:
     return z
 
 
-@functools.lru_cache(maxsize=128)
-def get_covalent_radius_angstrom(symbol: str) -> float:
-    """Retrieve covalent radius in Angstroms using fallback cascade.
+def _validate_positive_property(
+    value: object, symbol: str, property_name: str
+) -> float:
+    """Validate a named real scalar without changing its definition."""
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise MendeleevLookupError(
+            f"Required Mendeleev property {property_name} "
+            f"is unavailable for '{symbol}'."
+        )
+    try:
+        result = float(value)
+    except OverflowError as exc:
+        raise MendeleevLookupError(
+            f"Mendeleev property {property_name} cannot be represented "
+            f"as a finite value for '{symbol}'."
+        ) from exc
+    if not math.isfinite(result) or result <= 0:
+        raise MendeleevLookupError(
+            f"Mendeleev property {property_name} must be finite and positive "
+            f"for '{symbol}'."
+        )
+    return result
 
-    Fallback cascade:
-        covalent_radius_pyykko -> covalent_radius_cordero -> covalent_radius_slater ->
-        covalent_radius_bragg -> covalent_radius -> atomic_radius.
 
-    Args:
-        symbol: IUPAC element symbol.
+def _validate_positive_radius_pm(
+    value: object, symbol: str, property_name: str
+) -> float:
+    return _validate_positive_property(value, symbol, property_name)
 
-    Returns:
-        Covalent radius in Angstroms (scaled from picometers).
 
-    Raises:
-        MendeleevLookupError: If no covalent radius is resolvable.
-    """
+def _named_radius_angstrom(symbol: str, property_name: str) -> float:
     try:
         elem = element(symbol)
     except Exception as exc:
-        raise MendeleevLookupError(f"Failed to lookup element '{symbol}': {exc}") from exc
+        raise MendeleevLookupError(
+            f"Failed to lookup element '{symbol}': {exc}"
+        ) from exc
+    radius_pm = _validate_positive_radius_pm(
+        getattr(elem, property_name, None), symbol, property_name
+    )
+    radius_angstrom = radius_pm / 100.0
+    if not math.isfinite(radius_angstrom) or radius_angstrom <= 0:
+        raise MendeleevLookupError(
+            f"Mendeleev property {property_name} cannot be represented in Angstroms "
+            f"for '{symbol}'."
+        )
+    return radius_angstrom
 
-    cascade_attrs = [
-        "covalent_radius_pyykko",
-        "covalent_radius_cordero",
-        "covalent_radius_slater",
-        "covalent_radius_bragg",
-        "covalent_radius",
-        "atomic_radius",
-    ]
 
-    for attr in cascade_attrs:
-        val = getattr(elem, attr, None)
-        if val is not None and isinstance(val, (int, float)) and val > 0:
-            return float(val) / 100.0
+@functools.lru_cache(maxsize=128)
+def get_covalent_radius_angstrom(symbol: str) -> float:
+    """Retrieve the named Pyykkö single-bond covalent radius, converted from pm.
 
-    raise MendeleevLookupError(f"No covalent radius resolvable for element '{symbol}'.")
+    Only the installed Mendeleev ``covalent_radius_pyykko`` field is used.
+    A missing or invalid entry raises MendeleevLookupError. This tabulated
+    radius defines a geometric estimate; it does not establish a bond length
+    from an optimized electronic structure.
+    """
+    return _named_radius_angstrom(symbol, "covalent_radius_pyykko")
 
 
 @functools.lru_cache(maxsize=128)
 def get_vdw_radius_angstrom(symbol: str) -> float:
-    """Retrieve van der Waals radius in Angstroms using fallback cascade.
+    """Retrieve the named Mendeleev ``vdw_radius`` field, converted from pm.
 
-    Fallback cascade:
-        vdw_radius -> vdw_radius_alvarez -> vdw_radius_baddi -> vdw_radius_bondi ->
-        vdw_radius_truhlar -> vdw_radius_batsanov -> vdw_radius_uff -> vdw_radius_mm3.
-
-    Args:
-        symbol: IUPAC element symbol.
-
-    Returns:
-        van der Waals radius in Angstroms (scaled from picometers).
-
-    Raises:
-        MendeleevLookupError: If no vdW radius is resolvable.
+    A missing or invalid entry raises MendeleevLookupError. This specific
+    database field is not asserted to constitute a homogeneous Bondi radius
+    dataset or a quantum calculation of a contact distance.
     """
-    try:
-        elem = element(symbol)
-    except Exception as exc:
-        raise MendeleevLookupError(f"Failed to lookup element '{symbol}': {exc}") from exc
-
-    cascade_attrs = [
-        "vdw_radius",
-        "vdw_radius_alvarez",
-        "vdw_radius_baddi",
-        "vdw_radius_bondi",
-        "vdw_radius_truhlar",
-        "vdw_radius_batsanov",
-        "vdw_radius_uff",
-        "vdw_radius_mm3",
-    ]
-
-    for attr in cascade_attrs:
-        val = getattr(elem, attr, None)
-        if val is not None and isinstance(val, (int, float)) and val > 0:
-            return float(val) / 100.0
-
-    raise MendeleevLookupError(f"No van der Waals radius resolvable for element '{symbol}'.")
+    return _named_radius_angstrom(symbol, "vdw_radius")
 
 
 @functools.lru_cache(maxsize=128)
 def get_standard_atomic_weight(symbol: str) -> float:
-    """Retrieve standard atomic weight for a given element symbol.
+    """Retrieve the actual Mendeleev ``atomic_weight`` field.
+
+    This tabulated standard or representative value is not asserted to be
+    an isotope-specific mass.
 
     Args:
         symbol: IUPAC element symbol.
 
     Returns:
-        Standard atomic weight in g/mol.
+        The named database value in g/mol.
 
     Raises:
         MendeleevLookupError: If atomic weight cannot be retrieved.
     """
     try:
         elem = element(symbol)
-        weight = elem.atomic_weight
-        if weight is None or not isinstance(weight, (int, float)) or weight <= 0:
-            raise MendeleevLookupError(f"Invalid atomic weight for element '{symbol}'.")
-        return float(weight)
+        return _validate_positive_property(elem.atomic_weight, symbol, "atomic_weight")
     except Exception as exc:
-        raise MendeleevLookupError(f"Failed to lookup atomic weight for '{symbol}': {exc}") from exc
+        raise MendeleevLookupError(
+            f"Failed to lookup atomic weight for '{symbol}': {exc}"
+        ) from exc
 
 
-@functools.lru_cache(maxsize=128)
-def calculate_d_electron_count(symbol: str, oxidation_state: int) -> tuple[int, int]:
-    """Calculate d-electron count (d^n) and total electron count for transition metal ion.
+def formal_transition_metal_electron_record(
+    symbol: str, oxidation_state: int
+) -> FormalTransitionMetalElectronRecord:
+    """Describe group-minus-formal-oxidation bookkeeping and its applicability.
 
-    Args:
-        symbol: Transition metal symbol.
-        oxidation_state: Formal oxidation state (0 <= oxidation_state <= 7).
-
-    Returns:
-        Tuple of (d_electron_count, total_electron_count).
-
-    Raises:
-        MendeleevLookupError: If symbol is invalid or not a transition metal.
-        ValueError: If oxidation_state is outside [0, 7].
+    The unrestricted formal value is preserved. Values outside 0..10 cannot
+    represent d-shell occupancy and therefore have no assigned d count.
+    Neither value establishes actual electronic population or the physical
+    validity of a caller-declared oxidation state.
     """
-    if not (0 <= oxidation_state <= 7):
-        raise ValueError(f"Oxidation state {oxidation_state} must be in range [0, 7].")
-
+    if type(oxidation_state) is not int or not 0 <= oxidation_state <= 7:
+        raise ValueError("Formal oxidation state must be an integer in [0, 7].")
     z = validate_transition_metal(symbol)
     elem = element(symbol)
     group_id = elem.group_id
-    if group_id is None:
-        raise MendeleevLookupError(f"Could not resolve group_id for element '{symbol}'.")
+    if type(group_id) is not int or not 1 <= group_id <= 18:
+        raise MendeleevLookupError(
+            f"Could not resolve a valid group_id for element '{symbol}'."
+        )
+    formal_count = group_id - oxidation_state
+    d_count = formal_count if 0 <= formal_count <= 10 else None
+    return {
+        "model": "formal_group_minus_oxidation_bookkeeping",
+        "atomic_number": z,
+        "group_id": group_id,
+        "formal_oxidation_state": oxidation_state,
+        "formal_valence_electron_count": formal_count,
+        "d_electron_count": d_count,
+        "d_electron_count_status": (
+            "formal_bookkeeping" if d_count is not None else "outside_d_shell_range"
+        ),
+        "actual_electronic_population_available": False,
+        "total_electron_count": z - oxidation_state,
+    }
 
-    d_count = max(0, int(group_id) - int(oxidation_state))
-    total_electrons = int(z) - int(oxidation_state)
-    return d_count, total_electrons
+
+@functools.lru_cache(maxsize=128, typed=True)
+def calculate_d_electron_count(
+    symbol: str, oxidation_state: int
+) -> tuple[int | None, int]:
+    """Return formal d bookkeeping and the caller-declared metal-ion count.
+
+    The d count is null outside the simple model's 0..10 range. This function
+    is not an electronic population analysis. For the complete model and
+    unbounded formal value use ``formal_transition_metal_electron_record``.
+    """
+    record = formal_transition_metal_electron_record(symbol, oxidation_state)
+    return record["d_electron_count"], record["total_electron_count"]
 
 
 def validate_quantum_parity(total_electrons: int, spin_multiplicity: int) -> None:
@@ -210,12 +246,16 @@ def validate_quantum_parity(total_electrons: int, spin_multiplicity: int) -> Non
         spin_multiplicity: Spin multiplicity (2S + 1).
 
     Raises:
-        QuantumParityError: If 2S is not congruent with total_electrons mod 2.
+        QuantumParityError: If counts, maximum spin, or parity are invalid.
     """
-    if spin_multiplicity < 1:
-        raise QuantumParityError(f"Spin multiplicity {spin_multiplicity} must be >= 1.")
+    if type(total_electrons) is not int or total_electrons < 0:
+        raise QuantumParityError("Total electron count must be a nonnegative integer.")
+    if type(spin_multiplicity) is not int or spin_multiplicity < 1:
+        raise QuantumParityError("Spin multiplicity must be a positive integer.")
 
     two_s = spin_multiplicity - 1
+    if two_s > total_electrons:
+        raise QuantumParityError("Declared 2S cannot exceed the total electron count.")
     if (two_s % 2) != (total_electrons % 2):
         raise QuantumParityError(
             f"Quantum parity violation: 2S={two_s} is not congruent with "

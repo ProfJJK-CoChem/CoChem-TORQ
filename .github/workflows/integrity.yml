@@ -123,6 +123,8 @@ jobs:
             --junitxml "$RUNNER_TEMP/torq-optional-scientific-tests-report.xml" \
             tests/test_additional_physical_integrity.py tests/test_dispersion_reference_integrity.py \
             tests/test_oet_result_integrity.py tests/test_rdkit_result_integrity.py \
+            tests/test_mobile_assembly_constants.py tests/test_mobile_assembly_integrity.py \
+            tests/test_committee_memory_integrity.py \
             tests/test_torq_telemetry.py
           python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-optional-scientific-tests-report.xml"
       - name: Retain optional scientific model evidence
@@ -484,7 +486,13 @@ jobs:
         run: |
           python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
           python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
-          python ci_tools/run_repository_regression.py --output "$RUNNER_TEMP/torq-complete-regression" --basetemp "$RUNNER_TEMP/cochem_exec_complete-regression" --timeout 1800
+          if python ci_tools/run_repository_regression.py --output "$RUNNER_TEMP/torq-complete-regression" --basetemp "$RUNNER_TEMP/cochem_exec_complete-regression" --timeout 1800; then
+            :
+          else
+            torq_command_status=$?
+            python ci_tools/annotate_ci_failure.py --junit "$RUNNER_TEMP/torq-complete-regression/public/junit.xml" || true
+            exit "$torq_command_status"
+          fi
       - name: Retain bounded reports and verified scientific native inventories
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

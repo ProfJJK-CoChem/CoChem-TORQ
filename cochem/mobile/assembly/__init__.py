@@ -1,7 +1,8 @@
 """CoChem Mobile Algorithmic Complex Assembly Engine (SRS Chunk 07).
 
-Production-grade, headless transition metal coordination complex builder adhering strictly
-to the Zero-Mock mandate, Mendeleev Library Mandate, and Method Matrix quantum invariants.
+Headless transition metal coordination geometry proposals using declared charge,
+actual database radii and explicit classical force-field checks. These proposals
+do not establish quantum equilibrium structures or experimental accuracy.
 """
 
 from __future__ import annotations

@@ -1,6 +1,8 @@
-"""Deterministic pairwise Bondi contact clash detection, Rodrigues dihedral sweeps, and UFF relaxation.
+"""Database-radius contact heuristics and genuine graph-qualified UFF relaxation.
 
-Strict adherence to the Zero-Mock mandate with physical force field energy minimization.
+Radius contact checks and template rotations propose geometry, without
+equilibrium-structure or quantum-calculation claims. UFF requires a supplied
+molecular graph; XYZ distances cannot establish one.
 """
 
 from __future__ import annotations
@@ -9,8 +11,8 @@ import logging
 import math
 
 import numpy as np
-from rdkit import Chem, rdBase
-from rdkit.Chem import AllChem, rdDetermineBonds
+from rdkit import Chem
+from rdkit.Chem import AllChem
 from rdkit.Geometry import Point3D
 
 from cochem.mobile.assembly.constants import get_vdw_radius_angstrom
@@ -21,6 +23,55 @@ from cochem.mobile.assembly.exceptions import (
 from cochem.mobile.assembly.models import StericClashReport
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_coordinates(
+    atomic_symbols: list[str], coordinates: np.ndarray
+) -> np.ndarray:
+    if np.iscomplexobj(coordinates):
+        raise ValueError("Coordinates must be real finite Cartesian values.")
+    array = np.asarray(coordinates, dtype=np.float64)
+    if array.shape != (len(atomic_symbols), 3) or not np.isfinite(array).all():
+        raise ValueError("Coordinates must match all atoms in a finite (N,3) array.")
+    return array
+
+
+def _eligible_pairs(
+    num_atoms: int,
+    ligand_slices: list[tuple[int, int]],
+    donor_global_indices: set[int],
+) -> list[tuple[int, int]]:
+    """Return the explicitly defined contact-policy pairs, without inferring bonds."""
+    atom_to_ligand = [-1] * num_atoms
+    covered: set[int] = set()
+    for ligand_index, (start, end) in enumerate(ligand_slices):
+        if (
+            type(start) is not int
+            or type(end) is not int
+            or not (1 <= start < end <= num_atoms)
+        ):
+            raise ValueError(
+                "Ligand slices must be nonempty ranges excluding the metal."
+            )
+        indices = set(range(start, end))
+        if covered & indices:
+            raise ValueError("Ligand slices must not overlap.")
+        covered.update(indices)
+        for index in indices:
+            atom_to_ligand[index] = ligand_index
+    if covered != set(range(1, num_atoms)):
+        raise ValueError("Ligand slices must account for every nonmetal atom.")
+    if any(
+        type(index) is not int or index not in covered for index in donor_global_indices
+    ):
+        raise ValueError("Donor indices must identify actual ligand atoms.")
+    return [
+        (i, j)
+        for i in range(num_atoms)
+        for j in range(i + 1, num_atoms)
+        if (i == 0 and j not in donor_global_indices)
+        or (i != 0 and atom_to_ligand[i] != atom_to_ligand[j])
+    ]
 
 
 def rodrigues_rotate_point(
@@ -42,6 +93,21 @@ def rodrigues_rotate_point(
     Returns:
         Rotated 3D point.
     """
+    for value in (point, origin, unit_axis):
+        if (
+            np.iscomplexobj(value)
+            or np.asarray(value).shape != (3,)
+            or not np.isfinite(value).all()
+        ):
+            raise ValueError(
+                "Rodrigues rotation requires finite real Cartesian vectors."
+            )
+    if not math.isfinite(theta_rad) or not np.isclose(
+        np.linalg.norm(unit_axis), 1.0, atol=1e-12
+    ):
+        raise SingularRotationAxisError(
+            "Rodrigues rotation requires a unit axis and finite angle."
+        )
     if abs(theta_rad) < 1e-12:
         return point.copy()
 
@@ -51,7 +117,11 @@ def rodrigues_rotate_point(
     dot_prod = float(np.dot(v_vec, unit_axis))
     cross_prod = np.cross(unit_axis, v_vec)
 
-    v_rot = (v_vec * cos_t) + (cross_prod * sin_t) + (unit_axis * (dot_prod * (1.0 - cos_t)))
+    v_rot = (
+        (v_vec * cos_t)
+        + (cross_prod * sin_t)
+        + (unit_axis * (dot_prod * (1.0 - cos_t)))
+    )
     result: np.ndarray = np.asarray(origin + v_rot, dtype=np.float64)
     return result
 
@@ -62,8 +132,8 @@ def evaluate_steric_clashes(
     ligand_slices: list[tuple[int, int]],
     donor_global_indices: set[int],
     alpha_vdw: float = 0.60,
-) -> tuple[bool, list[tuple[int, int]], float, float, float]:
-    """Evaluate pairwise non-bonded Bondi contact distances across the assembled complex.
+) -> tuple[bool, list[tuple[int, int]], float | None, float | None, float]:
+    """Evaluate an explicit scaled Mendeleev ``vdw_radius`` contact heuristic.
 
     Non-bonded pairs evaluated:
         - (0, j): Metal to non-donor atom j > 0
@@ -74,64 +144,48 @@ def evaluate_steric_clashes(
         coordinates: Cartesian coordinates array of shape (N, 3).
         ligand_slices: List of (start_idx, end_idx) for each ligand attachment.
         donor_global_indices: Set of global atom indices directly bonded to metal.
-        alpha_vdw: Scaled Bondi contact tolerance factor (default: 0.60).
+        alpha_vdw: Database-radius sum scale factor (default: 0.60).
 
     Returns:
         Tuple of:
-            (clash_detected, clash_pairs, min_observed_distance, bondi_threshold_min, total_penalty)
+            (clash_detected, clash_pairs, min_observed_distance,
+            vdw_cutoff_at_closest_pair, total_penalty)
+            A missing eligible pair has null distance and cutoff.
     """
     num_atoms = len(atomic_symbols)
+    coordinates = _validate_coordinates(atomic_symbols, coordinates)
+    if (
+        isinstance(alpha_vdw, bool)
+        or not math.isfinite(alpha_vdw)
+        or not 0.1 <= alpha_vdw <= 1.0
+    ):
+        raise ValueError("The radius scale must be finite and within [0.1, 1.0].")
+    eligible = _eligible_pairs(num_atoms, ligand_slices, donor_global_indices)
     vdw_radii = [get_vdw_radius_angstrom(sym) for sym in atomic_symbols]
 
-    # Map atom index to ligand index (-1 for metal at index 0)
-    atom_to_ligand = [-1] * num_atoms
-    for lig_idx, (start, end) in enumerate(ligand_slices):
-        for a_idx in range(start, end):
-            atom_to_ligand[a_idx] = lig_idx
-
     clash_pairs: list[tuple[int, int]] = []
-    min_observed_distance = float("inf")
-    bondi_threshold_min = 0.0
+    min_observed_distance: float | None = None
+    vdw_threshold_min: float | None = None
     total_penalty = 0.0
 
-    for i in range(num_atoms):
-        for j in range(i + 1, num_atoms):
-            # Check if pair is non-bonded
-            if i == 0:
-                # Metal-ligand pair
-                if j in donor_global_indices:
-                    # Bonded metal-donor pair: skip
-                    continue
-            else:
-                # Inter-ligand pair check
-                lig_i = atom_to_ligand[i]
-                lig_j = atom_to_ligand[j]
-                if lig_i == lig_j and lig_i >= 0:
-                    # Intra-ligand pair: skip
-                    continue
-
-            dist = float(np.linalg.norm(coordinates[i] - coordinates[j]))
-            cutoff = alpha_vdw * (vdw_radii[i] + vdw_radii[j])
-
-            if dist < min_observed_distance:
-                min_observed_distance = dist
-                bondi_threshold_min = cutoff
-
-            if dist < cutoff:
-                clash_pairs.append((i, j))
-                overlap = cutoff - dist
-                total_penalty += overlap**2
-
-    if min_observed_distance == float("inf"):
-        min_observed_distance = 0.0
-        bondi_threshold_min = 0.0
+    for i, j in eligible:
+        dist = float(np.linalg.norm(coordinates[i] - coordinates[j]))
+        if not math.isfinite(dist):
+            raise ValueError("Contact distances must be finite.")
+        cutoff = alpha_vdw * (vdw_radii[i] + vdw_radii[j])
+        if min_observed_distance is None or dist < min_observed_distance:
+            min_observed_distance = dist
+            vdw_threshold_min = cutoff
+        if dist < cutoff:
+            clash_pairs.append((i, j))
+            total_penalty += (cutoff - dist) ** 2
 
     clash_detected = len(clash_pairs) > 0
     return (
         clash_detected,
         clash_pairs,
         min_observed_distance,
-        bondi_threshold_min,
+        vdw_threshold_min,
         total_penalty,
     )
 
@@ -140,19 +194,23 @@ def perform_rodrigues_dihedral_sweep(
     atomic_symbols: list[str],
     coordinates: np.ndarray,
     ligand_slices: list[tuple[int, int]],
-    monodentate_info: list[tuple[int, int, int]],  # (ligand_idx, start_idx, donor_global_idx)
+    monodentate_info: list[
+        tuple[int, int, int]
+    ],  # (ligand_idx, start_idx, donor_global_idx)
     donor_global_indices: set[int],
     alpha_vdw: float = 0.60,
 ) -> tuple[np.ndarray, bool]:
-    """Perform deterministic 15-degree dihedral sweeps around metal-donor bonds for clashing ligands.
+    """Perform deterministic 15-degree dihedral sweeps around metal-donor bonds for
+    clashing ligands.
 
     Args:
         atomic_symbols: List of elemental symbols.
         coordinates: Mutable or input coordinates array of shape (N, 3).
         ligand_slices: Slices for all ligands.
-        monodentate_info: List of (ligand_idx, start_idx, donor_global_idx) for monodentate ligands.
+        monodentate_info: List of (ligand_idx, start_idx, donor_global_idx) for
+        monodentate ligands.
         donor_global_indices: Set of donor atom indices.
-        alpha_vdw: Bondi tolerance factor.
+        alpha_vdw: Scaled database-radius contact tolerance factor.
 
     Returns:
         Tuple of (optimized_coordinates, any_rotation_applied).
@@ -176,7 +234,8 @@ def perform_rodrigues_dihedral_sweep(
 
         if axis_norm < 1e-12:
             raise SingularRotationAxisError(
-                f"Singular rotation axis for monodentate ligand {lig_idx}: ||u|| = {axis_norm:.6e} < 1e-12"
+                f"Singular rotation axis for monodentate ligand {lig_idx}: "
+                f"||u|| = {axis_norm:.6e} < 1e-12"
             )
 
         unit_axis = axis_vec / axis_norm
@@ -227,61 +286,81 @@ def run_constrained_uff_relaxation(
     atomic_symbols: list[str],
     coordinates: np.ndarray,
     donor_global_indices: set[int],
+    *,
+    molecule: Chem.Mol | None = None,
+    max_iterations: int = 500,
 ) -> tuple[np.ndarray, float | None]:
-    """Execute constrained RDKit UFF energy minimization with fixed metal and donor positions.
+    """Run genuine constrained UFF using an explicit caller-supplied graph.
 
-    Args:
-        atomic_symbols: List of elemental symbols for all N atoms.
-        coordinates: Initial coordinates array of shape (N, 3).
-        donor_global_indices: Set of global indices for donor atoms.
-
-    Returns:
-        Tuple of (relaxed_coordinates, final_uff_energy_kcal_mol).
+    Atom zero and declared donor atoms are fixed. The molecular graph must
+    include every atom in the same order; explicit graph charges and bonds
+    are retained. No connectivity or formal charge is inferred from XYZ.
+    Missing graph returns the unchanged proposal and unavailable energy.
+    An invalid/unparameterized graph or failed minimization raises with a
+    reason. A returned finite energy is the converged UFF model energy at
+    the returned coordinates, not a quantum energy or a certified minimum.
     """
-    blocker = rdBase.BlockLogs()
-    try:
-        num_atoms = len(atomic_symbols)
-        rw_mol = Chem.RWMol()
-        for sym in atomic_symbols:
-            atom = Chem.Atom(sym)
-            atom.SetNoImplicit(True)
-            rw_mol.AddAtom(atom)
-
-        ro_mol = rw_mol.GetMol()
-        conf = Chem.Conformer(num_atoms)
-        for i in range(num_atoms):
-            p = coordinates[i]
-            conf.SetAtomPosition(i, Point3D(float(p[0]), float(p[1]), float(p[2])))
-        ro_mol.AddConformer(conf, assignId=True)
-
-        try:
-            rdDetermineBonds.DetermineConnectivity(ro_mol)
-        except (ValueError, RuntimeError) as exc:
-            logger.debug("rdDetermineBonds could not determine connectivity: %s", exc)
-
-        ro_mol.UpdatePropertyCache(strict=False)
-
-        ff = AllChem.UFFGetMoleculeForceField(ro_mol, confId=0, ignoreInterfragInteractions=False)
-        if ff is None:
-            return coordinates.copy(), None
-
-        # Fix metal (index 0) and all donor atoms
-        ff.AddFixedPoint(0)
-        for d_idx in donor_global_indices:
-            ff.AddFixedPoint(d_idx)
-
-        ff.Initialize()
-        ff.Minimize(maxIts=500, forceTol=1e-4)
-        final_energy = float(ff.CalcEnergy())
-
-        relaxed_positions = ro_mol.GetConformer().GetPositions()
-        return relaxed_positions, final_energy
-
-    except Exception as exc:
-        logger.warning("Constrained UFF relaxation encountered non-fatal error: %s", exc)
+    coordinates = _validate_coordinates(atomic_symbols, coordinates)
+    if type(max_iterations) is not int or not 1 <= max_iterations <= 500:
+        raise ValueError("UFF max_iterations must be an integer within [1,500].")
+    if not atomic_symbols:
+        raise ValueError("UFF requires at least one explicit atom.")
+    if any(
+        type(index) is not int or not 0 < index < len(atomic_symbols)
+        for index in donor_global_indices
+    ):
+        raise ValueError("UFF donor indices must identify actual nonzero atom indices.")
+    if molecule is None:
+        logger.info("UFF unavailable: no explicit molecular graph was declared.")
         return coordinates.copy(), None
-    finally:
-        del blocker
+    if not isinstance(molecule, Chem.Mol):
+        raise ValueError("UFF requires an actual RDKit molecular graph.")
+    graph_symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
+    if graph_symbols != atomic_symbols:
+        raise ValueError(
+            "UFF graph atom order must match every declared coordinate atom."
+        )
+    if any(atom.GetNumImplicitHs() for atom in molecule.GetAtoms()):
+        raise ValueError("UFF graph must explicitly contain all hydrogen atoms.")
+
+    ro_mol = Chem.Mol(molecule)
+    Chem.SanitizeMol(ro_mol)
+    ro_mol.RemoveAllConformers()
+    conf = Chem.Conformer(len(atomic_symbols))
+    for index, position in enumerate(coordinates):
+        conf.SetAtomPosition(index, Point3D(*(float(value) for value in position)))
+    ro_mol.AddConformer(conf, assignId=True)
+    if not AllChem.UFFHasAllMoleculeParams(ro_mol):
+        raise ValueError(
+            "UFF unavailable: the supplied graph lacks complete UFF parameters."
+        )
+    ff = AllChem.UFFGetMoleculeForceField(
+        ro_mol, confId=0, ignoreInterfragInteractions=False
+    )
+    if ff is None:
+        raise ValueError("UFF unavailable: RDKit did not provide a force field.")
+    ff.AddFixedPoint(0)
+    for donor_index in sorted(donor_global_indices):
+        ff.AddFixedPoint(donor_index)
+    ff.Initialize()
+    optimizer_status = ff.Minimize(maxIts=max_iterations, forceTol=1e-4)
+    if optimizer_status != 0:
+        raise RuntimeError(
+            f"UFF minimization did not converge (RDKit status {optimizer_status}); "
+            "no relaxed geometry or energy is qualified."
+        )
+    final_energy = float(ff.CalcEnergy())
+    relaxed_positions = np.asarray(
+        ro_mol.GetConformer().GetPositions(), dtype=np.float64
+    )
+    if not math.isfinite(final_energy) or not np.isfinite(relaxed_positions).all():
+        raise RuntimeError("UFF returned nonfinite coordinates or energy.")
+    fixed_indices = [0, *sorted(donor_global_indices)]
+    if not np.allclose(
+        relaxed_positions[fixed_indices], coordinates[fixed_indices], rtol=0, atol=1e-12
+    ):
+        raise RuntimeError("UFF altered a declared fixed atom; result rejected.")
+    return relaxed_positions, final_energy
 
 
 def resolve_clashes_and_report(
@@ -292,36 +371,25 @@ def resolve_clashes_and_report(
     donor_global_indices: set[int],
     alpha_vdw: float = 0.60,
 ) -> tuple[np.ndarray, StericClashReport, float | None]:
-    """Orchestrate clash evaluation, deterministic dihedral sweep, and UFF relaxation.
+    """Apply the contact heuristic and rigid dihedral sweeps to a proposal.
 
-    Args:
-        atomic_symbols: List of elemental symbols.
-        initial_coordinates: Assembled coordinates array of shape (N, 3).
-        ligand_slices: Slices for all ligands.
-        monodentate_info: Monodentate metadata list.
-        donor_global_indices: Set of donor atom indices.
-        alpha_vdw: Bondi tolerance factor.
-
-    Returns:
-        Tuple of (final_coordinates, StericClashReport, uff_energy).
-
-    Raises:
-        StericClashDetectedError: If steric clash cannot be resolved below threshold.
+    This interface contains no declared molecular graph. UFF energy is
+    therefore unavailable, and unresolved contact conflicts fail explicitly.
+    Internal distances are preserved by rigid rotations; no equilibrium
+    structure or minimum is certified by this geometric procedure.
     """
-    # 1. Initial clash evaluation
-    initial_clash, clash_pairs, min_d, bondi_thresh, penalty = evaluate_steric_clashes(
+    initial_coordinates = _validate_coordinates(atomic_symbols, initial_coordinates)
+    initial_clash, initial_pairs, min_distance, cutoff, _ = evaluate_steric_clashes(
         atomic_symbols,
         initial_coordinates,
         ligand_slices,
         donor_global_indices,
         alpha_vdw,
     )
-
     current_coords = initial_coordinates.copy()
-    uff_energy: float | None = None
-
+    final_clash = initial_clash
+    final_pairs = list(initial_pairs)
     if initial_clash:
-        # 2. Deterministic Rodrigues Dihedral Sweeps
         current_coords, _ = perform_rodrigues_dihedral_sweep(
             atomic_symbols,
             current_coords,
@@ -330,53 +398,31 @@ def resolve_clashes_and_report(
             donor_global_indices,
             alpha_vdw,
         )
-
-        # Re-evaluate
-        clash_detected, clash_pairs, min_d, bondi_thresh, penalty = evaluate_steric_clashes(
+        final_clash, final_pairs, min_distance, cutoff, _ = evaluate_steric_clashes(
             atomic_symbols,
             current_coords,
             ligand_slices,
             donor_global_indices,
             alpha_vdw,
         )
-
-        if clash_detected:
-            # 3. Constrained UFF relaxation
-            current_coords, uff_energy = run_constrained_uff_relaxation(
-                atomic_symbols,
-                current_coords,
-                donor_global_indices,
+        if final_clash:
+            raise StericClashDetectedError(
+                "Scaled database-radius contact conflicts remain "
+                f"for pairs {final_pairs}; "
+                "rigid dihedral sweeps could not resolve them. UFF is unavailable "
+                "without an explicit molecular graph; no force-field or quantum "
+                "result was substituted."
             )
-
-            # Re-evaluate
-            clash_detected, clash_pairs, min_d, bondi_thresh, penalty = evaluate_steric_clashes(
-                atomic_symbols,
-                current_coords,
-                ligand_slices,
-                donor_global_indices,
-                alpha_vdw,
-            )
-
-            if clash_detected:
-                raise StericClashDetectedError(
-                    f"Steric clash detected between atom pairs {clash_pairs} "
-                    f"(min distance {min_d:.3f} A < scaled Bondi threshold {bondi_thresh:.3f} A) "
-                    "that could not be resolved via dihedral sweeps or UFF relaxation."
-                )
-    else:
-        # Calculate baseline UFF energy for the unconstrained/relaxed structure if possible
-        _, uff_energy = run_constrained_uff_relaxation(
-            atomic_symbols,
-            current_coords,
-            donor_global_indices,
-        )
-
     report = StericClashReport(
-        clash_detected=initial_clash,
-        clash_pairs=clash_pairs,
-        min_observed_distance=min_d,
-        bondi_threshold=bondi_thresh,
-        clash_resolved=True,
+        evaluated_pair_count=len(
+            _eligible_pairs(len(atomic_symbols), ligand_slices, donor_global_indices)
+        ),
+        initial_clash_detected=initial_clash,
+        initial_clash_pairs=initial_pairs,
+        clash_detected=final_clash,
+        clash_pairs=final_pairs,
+        min_observed_distance=min_distance,
+        vdw_contact_threshold=cutoff,
+        clash_resolved=initial_clash and not final_clash,
     )
-
-    return current_coords, report, uff_energy
+    return current_coords, report, None
