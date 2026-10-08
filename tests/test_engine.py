@@ -225,17 +225,48 @@ class TestEnvironmentMatrix:
     """Tests 6-Tier Environment Matrix detection, dynamic path resolution, and air-gap integrity."""
 
     def test_environment_tier_detection(self) -> None:
-        os.environ["GITHUB_ACTIONS"] = "true"
-        assert ExecutionContext.detect_tier() == EnvironmentTier.GITHUB_ACTIONS
-        os.environ.pop("GITHUB_ACTIONS", None)
+        """Exercise actual selectors without inheriting or changing host context."""
+        import platform
 
-        os.environ["CODESPACES"] = "true"
-        assert ExecutionContext.detect_tier() == EnvironmentTier.CODESPACES
-        os.environ.pop("CODESPACES", None)
-
-        os.environ["SLURM_JOB_ID"] = "123456"
-        assert ExecutionContext.detect_tier() == EnvironmentTier.HPC_NODES
-        os.environ.pop("SLURM_JOB_ID", None)
+        selectors = (
+            "GITHUB_ACTIONS", "RUNNER_TEMP", "CODESPACES", "CODESPACE_NAME",
+            "SLURM_TMPDIR", "SLURM_JOB_ID", "PFSDIR", "PBS_O_WORKDIR",
+            "WSL_DISTRO_NAME",
+        )
+        host_tier = {
+            "Windows": EnvironmentTier.LOCAL_WINDOWS,
+            "Darwin": EnvironmentTier.LOCAL_MACOS,
+        }.get(platform.system(), EnvironmentTier.LOCAL_LINUX)
+        cases = [
+            ({}, host_tier),
+            ({"GITHUB_ACTIONS": "false", "CODESPACES": "false"}, host_tier),
+            ({"GITHUB_ACTIONS": "true"}, EnvironmentTier.GITHUB_ACTIONS),
+            ({"RUNNER_TEMP": "/tmp"}, EnvironmentTier.GITHUB_ACTIONS),
+            ({"CODESPACES": "true"}, EnvironmentTier.CODESPACES),
+            ({"CODESPACE_NAME": "explicit-test-context"}, EnvironmentTier.CODESPACES),
+            ({"SLURM_TMPDIR": "/tmp"}, EnvironmentTier.HPC_NODES),
+            ({"SLURM_JOB_ID": "123456"}, EnvironmentTier.HPC_NODES),
+            ({"PFSDIR": "/tmp"}, EnvironmentTier.HPC_NODES),
+            ({"PBS_O_WORKDIR": "/tmp"}, EnvironmentTier.HPC_NODES),
+            ({"WSL_DISTRO_NAME": "explicit-test-context"}, EnvironmentTier.LOCAL_WINDOWS),
+            ({"RUNNER_TEMP": "/tmp", "CODESPACES": "true", "SLURM_JOB_ID": "123456"},
+             EnvironmentTier.GITHUB_ACTIONS),
+            ({"CODESPACE_NAME": "explicit-test-context", "SLURM_JOB_ID": "123456",
+              "WSL_DISTRO_NAME": "explicit-test-context"}, EnvironmentTier.CODESPACES),
+            ({"PBS_O_WORKDIR": "/tmp", "WSL_DISTRO_NAME": "explicit-test-context"},
+             EnvironmentTier.HPC_NODES),
+        ]
+        original_env = dict(os.environ)
+        try:
+            for configuration, expected in cases:
+                for key in selectors:
+                    os.environ.pop(key, None)
+                os.environ.update(configuration)
+                assert ExecutionContext.detect_tier() == expected, configuration
+        finally:
+            os.environ.clear()
+            os.environ.update(original_env)
+        assert dict(os.environ) == original_env
 
     @pytest.mark.parametrize(
         "tier",

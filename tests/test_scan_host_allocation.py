@@ -199,6 +199,24 @@ def _stop_exact_worker(row):
         pass
 
 
+def _pause_exact_worker(pid, process_start):
+    worker = psutil.Process(pid)
+    assert worker.create_time() == process_start
+    assert worker.uids().effective == os.getuid()
+    worker.send_signal(signal.SIGSTOP)
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        assert worker.create_time() == process_start
+        if worker.status() == psutil.STATUS_STOPPED:
+            return {
+                "pid": pid,
+                "process_start": process_start,
+                "observed_status": worker.status(),
+            }
+        time.sleep(0.005)
+    raise AssertionError("The exact actual worker was not observed stopped.")
+
+
 @pytest.fixture(scope="module")
 def actual_host_scan(tmp_path_factory):
     root = tmp_path_factory.mktemp("actual-host-scan")
@@ -709,6 +727,7 @@ def test_missing_real_nested_launch_receipts_keep_resources_and_costs_unknown(
     )
     driver.start()
     row = None
+    child = None
     original = {}
     try:
         row = _running_worker(ledger, driver)
@@ -720,14 +739,47 @@ def test_missing_real_nested_launch_receipts_keep_resources_and_costs_unknown(
             Path(row["workspace"]) / "constrained-engine/evaluations/evaluation-0000"
         )
         deadline = time.monotonic() + 30
-        while not (evaluation / "owner-binding.json").is_file():
+        while True:
             assert time.monotonic() < deadline
             assert driver.is_alive()
-            time.sleep(0.005)
+            try:
+                child = read_json(evaluation / "owner-binding.json")
+            except (OSError, ValueError):
+                # Creation of this streamed receipt precedes its complete JSON.
+                # Observe actual complete evidence before sending any signal.
+                time.sleep(0.005)
+                continue
+            assert child["schema_version"] == "cochem.torq.native-owner-binding/1"
+            assert child["owner_pid"] == row["pid"]
+            assert child["owner_create_time"] == row["process_start"]
+            assert psutil.Process(child["worker_pid"]).ppid() == row["pid"]
+            break
+        # Pause the genuine child before its owner, so a fast engine cannot
+        # advance the owner to another evaluation during evidence-loss setup.
+        child_stop = _pause_exact_worker(
+            child["worker_pid"], child["worker_create_time"]
+        )
+        parent_path = evaluation / "parent-process-observation.json"
+        deadline = time.monotonic() + 5
+        while True:
+            try:
+                parent = read_json(parent_path)
+            except (OSError, ValueError):
+                assert time.monotonic() < deadline
+                assert driver.is_alive()
+                # Let the actual owner finish its durable launch observation
+                # while the stopped child cannot complete an evaluation.
+                time.sleep(0.005)
+                continue
+            assert parent["worker_pid"] == child["worker_pid"]
+            assert parent["worker_create_time"] == child["worker_create_time"]
+            break
+        owner_stop = _pause_exact_worker(row["pid"], row["process_start"])
+        (tmp_path / "actual-evidence-loss-stop-observation.json").write_text(
+            json.dumps({"child": child_stop, "owner": owner_stop})
+        )
         # Stop the actual owner so it cannot produce a later wait receipt;
         # the genuine independently sessioned native child remains observable.
-        os.kill(row["pid"], signal.SIGSTOP)
-        child = read_json(evaluation / "owner-binding.json")
         for name in (
             "owner-binding.json",
             "parent-process-observation.json",
@@ -740,7 +792,16 @@ def test_missing_real_nested_launch_receipts_keep_resources_and_costs_unknown(
                 path.unlink()
         if loss == "whole_inventory":
             shutil.rmtree(evaluation.parent)
-        os.kill(row["pid"], signal.SIGKILL)
+        owner = psutil.Process(row["pid"])
+        assert owner.create_time() == row["process_start"]
+        assert owner.uids().effective == os.getuid()
+        owner.kill()
+        try:
+            worker = psutil.Process(child["worker_pid"])
+            if worker.create_time() == child["worker_create_time"]:
+                worker.send_signal(signal.SIGCONT)
+        except psutil.NoSuchProcess:
+            pass
         _wait_actual_dead(child["worker_pid"], child["worker_create_time"], timeout=10)
         status, result = output.get(timeout=60)
         driver.join(timeout=10)
@@ -797,10 +858,22 @@ def test_missing_real_nested_launch_receipts_keep_resources_and_costs_unknown(
         assert recovered["final_observation"]["nested_process_observations"]
         assert ledger.accounting()["active_allocations"] == 0
     finally:
+        if child is not None:
+            _stop_exact_worker(
+                {
+                    "pid": child["worker_pid"],
+                    "process_start": child["worker_create_time"],
+                }
+            )
         if row is not None:
             try:
-                os.kill(row["pid"], signal.SIGCONT)
-            except ProcessLookupError:
+                owner = psutil.Process(row["pid"])
+                if (
+                    owner.create_time() == row["process_start"]
+                    and owner.uids().effective == os.getuid()
+                ):
+                    owner.send_signal(signal.SIGCONT)
+            except psutil.NoSuchProcess:
                 pass
         if driver.is_alive():
             if row is not None:

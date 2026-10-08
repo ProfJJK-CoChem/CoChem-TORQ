@@ -11,6 +11,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 from copy import deepcopy
 from hashlib import sha256
@@ -412,13 +413,82 @@ def test_actual_budget_stop_preserves_available_observations_without_stationarit
 
 @pytest.mark.real_engine
 def test_actual_worker_wall_limit_returns_missing_results(tmp_path):
-    result = execute_constrained_optimization(
-        water(),
-        specification(wall=1),
-        tmp_path / "wall-limited",
-        resources=resources(),
-        profile=get_profile(RECIPE_ID),
-    )
+    workspace = tmp_path / "wall-limited"
+    evaluation = workspace / "evaluations" / "evaluation-0000"
+    owner = psutil.Process()
+    owner_start = owner.create_time()
+    stop_controller = threading.Event()
+    observation = {}
+    control_errors = []
+
+    def pause_observed_native_worker():
+        try:
+            deadline = time.monotonic() + 10
+            while not stop_controller.is_set():
+                assert time.monotonic() < deadline
+                try:
+                    binding = read_json(evaluation / "owner-binding.json")
+                except (OSError, ValueError):
+                    # A streamed file may exist before its JSON is complete.
+                    stop_controller.wait(0.005)
+                    continue
+                assert binding["schema_version"] == (
+                    "cochem.torq.native-owner-binding/1"
+                )
+                assert binding["owner_pid"] == owner.pid
+                assert binding["owner_create_time"] == owner_start
+                worker = psutil.Process(binding["worker_pid"])
+                assert worker.create_time() == binding["worker_create_time"]
+                assert worker.ppid() == owner.pid
+                assert worker.uids().effective == os.getuid()
+                observation.update(binding)
+                worker.send_signal(signal.SIGSTOP)
+                while not stop_controller.is_set():
+                    assert time.monotonic() < deadline
+                    assert worker.create_time() == binding["worker_create_time"]
+                    if worker.status() == psutil.STATUS_STOPPED:
+                        observation["observed_status"] = worker.status()
+                        return
+                    stop_controller.wait(0.005)
+                return
+        except Exception as exc:
+            control_errors.append(exc)
+
+    controller = threading.Thread(target=pause_observed_native_worker, daemon=True)
+    controller.start()
+    try:
+        # Pausing the genuine contained child makes this a process wall-limit
+        # check independent of how quickly a real water SCF could finish.
+        result = execute_constrained_optimization(
+            water(),
+            specification(wall=5),
+            workspace,
+            resources=resources(),
+            profile=get_profile(RECIPE_ID),
+        )
+        if observation:
+            observation["pid_exists_after_production_return"] = psutil.pid_exists(
+                observation["worker_pid"]
+            )
+    finally:
+        stop_controller.set()
+        controller.join(timeout=5)
+        if observation:
+            try:
+                worker = psutil.Process(observation["worker_pid"])
+                if (
+                    worker.create_time() == observation["worker_create_time"]
+                    and worker.uids().effective == os.getuid()
+                    and worker.status() != psutil.STATUS_ZOMBIE
+                ):
+                    worker.kill()
+                    worker.wait(timeout=5)
+            except psutil.NoSuchProcess:
+                pass
+    assert not controller.is_alive()
+    assert not control_errors, control_errors
+    assert observation["observed_status"] == psutil.STATUS_STOPPED
+    assert observation["pid_exists_after_production_return"] is False
     assert result.status == "failed"
     assert result.physical_call_count == 1
     assert result.evaluations[0].status == "failed"
@@ -426,9 +496,18 @@ def test_actual_worker_wall_limit_returns_missing_results(tmp_path):
     assert result.final_molecule is None and result.native_result is None
     assert result.curvature.status == "unavailable"
     assert "wall ceiling" in result.reason
-    assert (
-        tmp_path / "wall-limited" / "evaluations" / "evaluation-0000" / "worker.log"
-    ).is_file()
+    assert (evaluation / "worker.log").is_file()
+    waited = read_json(evaluation / "worker-process.json")
+    assert waited["worker_pid"] == observation["worker_pid"]
+    assert waited["worker_create_time"] == observation["worker_create_time"]
+    assert waited["wait_completed"] is True
+    assert waited["returncode"] == -signal.SIGKILL
+    assert "wall ceiling" in waited["parent_observed_limit_failure"]
+    assert not (evaluation / "native" / "result.json").exists()
+    assert not psutil.pid_exists(observation["worker_pid"])
+    (tmp_path / "actual-worker-stop-observation.json").write_bytes(
+        canonical_json(observation)
+    )
 
 
 @pytest.mark.real_engine

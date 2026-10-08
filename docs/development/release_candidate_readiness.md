@@ -13,8 +13,14 @@ hosted attempt exposed a scratch-filesystem mismatch: `/tmp` is a tmpfs while
 worker staging resides on `/results`. Calculation invocations now set
 `TMPDIR=/results`, preserving the strict filesystem check. The selected native
 CI lane also installs the existing locked interface prerequisites required by
-its genuine widget assertion. New hosted results must establish these deployment
-changes; the Python application implementation remains unchanged.
+its genuine widget assertion. The actual `b0f9d44` hosted run passed seven lanes, including the complete
+offline image pipeline, native-engine checks, both installed-core interpreters,
+CPU checks, sibling consumers and the interface. Its complete regression remains
+separate. Hosted execution also exposed process-test portability concerns: tier
+tests now restore every selector, and native wall/evidence-loss checks observe
+and pause genuine bound processes before exercising their production guards.
+The revised complete regression requires its own receipt; the Python application
+implementation remains unchanged.
 
 The [full-SRS audit](full_srs_requirement_audit.json) covers all **73 normative requirements, 41 acceptance definitions and 140 original historical method-matrix row IDs**. Its current inventory is **56 partial supported scope, one missing full implementation, eight missing independent qualification and eight optional profile/provisioning**. No requirement is classified as implemented and qualified. All 41 complete-scope acceptance gates remain blocked, and the release flag remains false. [Student release scope](student_release_scope.md) provides the complete reconciled requirement-to-code/check map; links are coverage pointers rather than passing gate evidence.
 
