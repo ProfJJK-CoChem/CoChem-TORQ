@@ -167,7 +167,7 @@ jobs:
           cache: pip
       - name: Install the genuine named engine and student contracts
         run: |
-          python -m pip install --require-hashes -r ci_tools/requirements-pyscf-py312.txt
+          python -m pip install --require-hashes -r ci_tools/requirements-pyscf-py312.txt -r ci_tools/requirements-interface-py312.txt
           python -m pip install --no-deps .
           python -m pip install 'pytest>=8,<10'
           python -m pip check
@@ -305,6 +305,7 @@ jobs:
             --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
             --mount "type=bind,src=$RUNNER_TEMP/torq-image-input,dst=/input,readonly" \
             --mount "type=bind,src=$RUNNER_TEMP/torq-image-results,dst=/results" \
+            --env TMPDIR=/results \
             --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
             --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-image-evidence/image-id.txt")" \
             torq-pyscf:${GITHUB_SHA} execute --request /input/request.json \

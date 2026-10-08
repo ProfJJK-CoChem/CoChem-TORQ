@@ -319,6 +319,10 @@ private allocation ledger can be created in the bounded writable tmpfs. This
 state lasts only for that container; it does not establish shared admission
 across independently launched containers or persist a deployment ledger.
 The image home and application filesystem remain read-only.
+The calculation invocation sets `TMPDIR=/results`, the writable results mount,
+so its measured scratch policy and worker staging share the actual filesystem.
+The strict filesystem admission check remains enabled. Preparation and native
+qualification retain their separate bounded temporary directories.
 
 The following local image and hosted results describe earlier tested source
 snapshots. Their original identities and numerical records are retained for

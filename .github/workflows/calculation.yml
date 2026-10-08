@@ -92,6 +92,7 @@ jobs:
             --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
             --mount "type=bind,src=$RUNNER_TEMP/torq-input,dst=/input,readonly" \
             --mount "type=bind,src=$RUNNER_TEMP/torq-results,dst=/results" \
+            --env TMPDIR=/results \
             --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
             --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-evidence/image-id.txt")" \
             torq-pyscf:${GITHUB_SHA} execute --request /input/request.json \
