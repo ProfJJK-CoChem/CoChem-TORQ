@@ -415,6 +415,22 @@ def _death_observation(pid: int, process_start: float) -> dict[str, Any]:
     )
 
 
+def _valid_process_start_time(value: Any, *, nullable: bool = False) -> bool:
+    """Accept either finite JSON number representation of an observed timestamp.
+
+    RFC8785 encodes integral observed floats as integer tokens. Numeric identity
+    equality remains exact; booleans and nonfinite/overflowing values are invalid.
+    """
+    if nullable and value is None:
+        return True
+    if type(value) not in (int, float) or value <= 0:
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _nested_death_observations(
     workspace: Path, owner_pid: int, owner_start: float, *, required: bool = False
 ) -> list[dict[str, Any]]:
@@ -454,9 +470,7 @@ def _nested_death_observations(
             ) from exc
 
     def identity(value: Any, *, nullable: bool = False) -> bool:
-        return (nullable and value is None) or (
-            type(value) is float and math.isfinite(value) and value > 0
-        )
+        return _valid_process_start_time(value, nullable=nullable)
 
     for root in sorted(evaluations.iterdir()):
         if (

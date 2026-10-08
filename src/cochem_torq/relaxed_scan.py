@@ -19,6 +19,8 @@ from typing import Any
 
 import numpy as np
 
+from cochem.orchestration.host_allocation import _valid_process_start_time
+
 from .domain import CalculationRequest, Molecule, Resources, digest
 from .registry import get_profile
 from .scan import (
@@ -449,9 +451,7 @@ def _launch_receipts(
     waited = receipts.get("worker-process.json")
 
     def valid_start(value: Any, nullable: bool = False) -> bool:
-        return (nullable and value is None) or (
-            type(value) is float and math.isfinite(value) and value > 0
-        )
+        return _valid_process_start_time(value, nullable=nullable)
 
     for observed in (binding, parent):
         if observed is not None and (
@@ -557,9 +557,7 @@ def collect_relaxed_point(
         if (
             type(owner_pid) is not int
             or owner_pid <= 0
-            or type(owner_create_time) is not float
-            or not math.isfinite(owner_create_time)
-            or owner_create_time <= 0
+            or not _valid_process_start_time(owner_create_time)
         ):
             raise ValueError("Actual bound outer worker process identity is required.")
         if deadline_monotonic is not None and (

@@ -26,11 +26,46 @@ from cochem.orchestration.host_allocation import (
     HostCapacityError,
     HostRevisionConflict,
     ObservedHostUsage,
+    _valid_process_start_time,
     bootstrap_host_allocation,
     probe_host_resources,
 )
+from cochem_torq.domain import canonical_json
 
 ACTOR = f"local-os-user:{os.getuid()}"
+
+
+def test_rfc8785_timestamp_number_identity_and_invalid_numeric_inputs():
+    """Pure numeric serialization checks do not invent process receipts."""
+    observed = psutil.Process().create_time()
+    # This integral number exercises the representation that caused the
+    # genuine W07 ownership failure; it does not assert a live process identity.
+    integral = 1791499565.0
+    encoded = canonical_json({"timestamp": integral})
+    decoded = json.loads(encoded)["timestamp"]
+    assert type(decoded) is int
+    assert decoded == integral
+    for number in (decoded, integral, observed):
+        round_trip = json.loads(canonical_json({"timestamp": number}))["timestamp"]
+        assert round_trip == number
+        assert _valid_process_start_time(number)
+        assert _valid_process_start_time(round_trip)
+    for invalid in (
+        True,
+        False,
+        0,
+        -1,
+        None,
+        "1791499565",
+        float("inf"),
+        float("-inf"),
+        float("nan"),
+        10**400,
+    ):
+        assert not _valid_process_start_time(invalid)
+    assert not _valid_process_start_time(None)
+    assert _valid_process_start_time(None, nullable=True)
+    assert not _valid_process_start_time(True, nullable=True)
 
 
 def _policy(tmp_path, **changes):
