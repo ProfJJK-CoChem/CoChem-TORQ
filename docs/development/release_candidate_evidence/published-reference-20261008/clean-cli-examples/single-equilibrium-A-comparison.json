@@ -1,0 +1,318 @@
+{
+  "comparison_context": {
+    "basis_labels_match": false,
+    "basis_mismatch": true,
+    "comparison_scope": "cross_method_descriptive",
+    "geometry_correspondence": "different_retained_coordinate_digest",
+    "geometry_digest_interpretation": "Digest comparison includes coordinate ordering, orientation and numerical representation. Different digests do not prove a physical geometry difference.",
+    "geometry_digest_match": false,
+    "method_labels_match": false,
+    "method_mismatch": true,
+    "native_basis": "sto-3g",
+    "native_method": "hf",
+    "quality_flags": [
+      "different_method_labels",
+      "different_basis_labels",
+      "different_geometry_coordinate_digest"
+    ],
+    "reference_basis": "6-31G(2df,p)",
+    "reference_method": "B3LYP",
+    "reference_origin": "published_theoretical",
+    "reference_theoretical_provenance": {
+      "basis": "6-31G(2df,p)",
+      "engine": null,
+      "engine_information_status": "not_reported",
+      "engine_version": null,
+      "geometry_description": "Published relaxed equilibrium geometry, XYZ lines3-5. Digest uses coordinates converted to Bohr with the recorded PySCF BOHR constant.",
+      "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+      "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5; original README equilibrium geometry description",
+      "independence_review": "Raw publisher XYZ/README omit engine/version, isotope/mass convention and explicit state. Cross-method comparison is descriptive only.",
+      "independence_status": "not_established",
+      "method": "B3LYP",
+      "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+      "quantity_convention": "Computed equilibrium A/B/C from relaxed DFT geometry; source GHz converted exactly to MHz; no vibration-corrected B0 claim."
+    },
+    "same_method_numerical_reproduction_established": false
+  },
+  "comparison_kind": "descriptive_single_case",
+  "created_at": "2026-10-08T20:18:31.778169+00:00",
+  "derived_text_artifacts": [],
+  "experimental_accuracy_established": false,
+  "external_curation_attestation_present": false,
+  "held_out_benchmark": false,
+  "human_review_independently_authenticated": false,
+  "interpretation": "One descriptive residual does not establish method accuracy, molecular identification, confidence coverage or exact method reproduction. Publication metadata and review records are declared provenance; hashes bind bytes. Retain the original reference source and native bundle.",
+  "original_private_comparison_sha256": "65e37bd1dee25f932ec46396cb34f3644d1e1378b37200860dd6d95bf68df14d",
+  "pdf_text_derivation_replayed": false,
+  "prediction": {
+    "approximation_context": {
+      "constant_observable": "Be",
+      "vibrational_correction_applied": false
+    },
+    "benchmark_freeze_sha256": null,
+    "calculation_provenance": {
+      "basis_definition_sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5",
+      "calculated_geometry_sha256": "862aeed29b5d83c0ea99db6b5cb4ed65d70856efbe82fc31abb6ef0e62cd94f2",
+      "engine": "PySCF",
+      "engine_version": "2.14.0",
+      "initial_geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+      "native_method": {
+        "basis": "sto-3g",
+        "density_fitting": false,
+        "dispersion": null,
+        "frozen_core": false,
+        "name": "hf",
+        "reference": "restricted"
+      },
+      "native_settings": {
+        "check_stability": true,
+        "dft_grid_level": 4,
+        "hessian_convergence_tolerance": 5e-05,
+        "hessian_step_bohr": 0.002,
+        "hessian_symmetry_tolerance": 5e-06,
+        "memory_mb": 1024,
+        "scf_energy_tolerance": 1e-11,
+        "scf_gradient_tolerance": 1e-07,
+        "scf_max_cycle": 100,
+        "threads": 1
+      },
+      "recipe": {
+        "accuracy": "uncalibrated; no laboratory/astronomical identification claim",
+        "availability": "experimental",
+        "basis": "sto-3g",
+        "citation": "Roothaan, Rev. Mod. Phys. 23, 69 (1951), doi:10.1103/RevModPhys.23.69",
+        "constraints": "none",
+        "density_fitting": false,
+        "derivatives": {
+          "gradient": "analytic",
+          "hessian": "analytic"
+        },
+        "dispersion": null,
+        "elements": [
+          "H",
+          "He",
+          "Li",
+          "Be",
+          "B",
+          "C",
+          "N",
+          "O",
+          "F",
+          "Ne"
+        ],
+        "engine": "PySCF",
+        "engine_version": "2.14.0",
+        "frozen_core": false,
+        "geometry_method_equals_property_method": true,
+        "harmonic_external_residual_relative_tolerance": 0.0001,
+        "id": "hf-sto-3g-education",
+        "label": "RHF / STO-3G teaching calculation",
+        "matrix_refs": [],
+        "max_atoms": 12,
+        "method": "hf",
+        "method_family": null,
+        "multiplicity": 1,
+        "numerical": {
+          "check_stability": true,
+          "scf_energy_tolerance": 1e-11,
+          "scf_gradient_tolerance": 1e-07
+        },
+        "optimizer": "geomeTRIC",
+        "optimizer_version": "1.1.1",
+        "products": [
+          "geometry",
+          "harmonic",
+          "equilibrium_constants",
+          "rigid_rotor_catalog"
+        ],
+        "reason": "Real restricted HF teaching baseline. Numerical qualification is scoped to tested molecules; experimental spectroscopy accuracy is uncalibrated.",
+        "recipe_sha256": "d2bd5f61cf884daf2f3d973b93bbac42673dfa61bebb9a043aba80056322e893",
+        "reference": "restricted",
+        "relativity": "none",
+        "runnable": true,
+        "solvent": null,
+        "version": 1
+      },
+      "request_recipe": "hf-sto-3g-education"
+    },
+    "identity": {
+      "charge": 0,
+      "component": "A",
+      "conformer": "single bent water structure from QM9 member 000003",
+      "electronic_state": "requested closed-shell ground singlet; publisher state not explicit",
+      "family_id": "neutral-closed-shell-small-molecules",
+      "hamiltonian_convention": "equilibrium rigid-rotor and harmonic models; no VPT2 corrections",
+      "harmonic_mode_assignment": null,
+      "harmonic_mode_index": null,
+      "isotope_numbers": [
+        16,
+        1,
+        1
+      ],
+      "multiplicity": 1,
+      "observable": "equilibrium_rotational_constant",
+      "parent_id": "water",
+      "rigid_rotor_selection": null,
+      "symbols": [
+        "O",
+        "H",
+        "H"
+      ],
+      "tunneling_state": "not-applicable for this declared water comparison",
+      "unit": "MHz",
+      "vibrational_state": "equilibrium Born-Oppenheimer model; not experimental v=0"
+    },
+    "publication_manifest_sha256": "e4658a20f15e72d88b5a3304ddd106b4be186d1f91ceee59b7b0aa282ab7eb6c",
+    "quality_flags": [
+      "vibrational_correction_not_applied",
+      "accuracy_uncalibrated"
+    ],
+    "reason": null,
+    "recipe_sha256": "d2bd5f61cf884daf2f3d973b93bbac42673dfa61bebb9a043aba80056322e893",
+    "reference_anchors": [],
+    "shard_manifest_sha256": "b386597894944fee270a19ec12e555ff664d07428bd7d2c3a7b6d7a4c402ad1c",
+    "source_code_sha256": "a630a3b8eff94abf1fbdf6c4fc10465fa81b50e0f1540e01d48e18adf4973676",
+    "source_commit": "00aa3ffcc8f3c218752791861f8f4363f3af383a",
+    "status": "available",
+    "uncertainty": {
+      "status": "uncalibrated"
+    },
+    "value": 698404.8917091425
+  },
+  "prediction_independence_established": false,
+  "private_native_bundle_path_and_duplicate_manifest_text_omitted": true,
+  "reference": {
+    "correction_sources": [],
+    "covariance_status": "unavailable",
+    "datum_locator": "dsgdb9nsd_000003.xyz line2 property3 (A); publisher README GHz unit",
+    "identity": {
+      "charge": 0,
+      "component": "A",
+      "conformer": "single bent water structure from QM9 member 000003",
+      "electronic_state": "requested closed-shell ground singlet; publisher state not explicit",
+      "family_id": "neutral-closed-shell-small-molecules",
+      "hamiltonian_convention": "equilibrium rigid-rotor and harmonic models; no VPT2 corrections",
+      "harmonic_mode_assignment": null,
+      "harmonic_mode_index": null,
+      "isotope_numbers": [
+        16,
+        1,
+        1
+      ],
+      "multiplicity": 1,
+      "observable": "equilibrium_rotational_constant",
+      "parent_id": "water",
+      "rigid_rotor_selection": null,
+      "symbols": [
+        "O",
+        "H",
+        "H"
+      ],
+      "tunneling_state": "not-applicable for this declared water comparison",
+      "unit": "MHz",
+      "vibrational_state": "equilibrium Born-Oppenheimer model; not experimental v=0"
+    },
+    "reference_id": "qm9-water-Be-A",
+    "source_sha256": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c",
+    "standard_uncertainty": null,
+    "theoretical_provenance": {
+      "basis": "6-31G(2df,p)",
+      "engine": null,
+      "engine_information_status": "not_reported",
+      "engine_version": null,
+      "geometry_description": "Published relaxed equilibrium geometry, XYZ lines3-5. Digest uses coordinates converted to Bohr with the recorded PySCF BOHR constant.",
+      "geometry_sha256": "ea29f17a635d4428c44dbb52781cc0a46ab1968541fc1611c2a433bfb1261967",
+      "geometry_source_locator": "dsgdb9nsd_000003.xyz lines3-5; original README equilibrium geometry description",
+      "independence_review": "Raw publisher XYZ/README omit engine/version, isotope/mass convention and explicit state. Cross-method comparison is descriptive only.",
+      "independence_status": "not_established",
+      "method": "B3LYP",
+      "method_details": "Publisher README DFT/B3LYP/6-31G(2df,p). VWN flavor, grids and engine/version absent in acquired files.",
+      "quantity_convention": "Computed equilibrium A/B/C from relaxed DFT geometry; source GHz converted exactly to MHz; no vibration-corrected B0 claim."
+    },
+    "uncertainty_kind": null,
+    "uncertainty_status": "unavailable",
+    "value": 799588.12
+  },
+  "reference_anchors_present": false,
+  "reference_authorship_independently_authenticated": false,
+  "reference_covariance_status": "unavailable",
+  "reference_identity_evidence": {
+    "context_source_sha256": [
+      "0ee83fc21faa9527ebe89fad0ce8f2bd2da1cbd35a3c7edc199f4ad21d31d97a",
+      "8efa1d122deb6f2ae35e3161dd781ff37723d576d8e2097bfff05e017d8017c0"
+    ],
+    "datum_locator": "dsgdb9nsd_000003.xyz line2 property3 (A); publisher README GHz unit",
+    "extraction_method": "Deterministic original XYZ line2 whitespace field extraction; original README property order/units retained",
+    "extraction_text_sha256": null,
+    "harmonic_mode_correspondence": "not_applicable",
+    "harmonic_mode_correspondence_record": "No source mode assignment is established.",
+    "identity_sha256": "ff5c0d92d018a68d1062f335046daf4d25c76921fe1352aec0812440ed1d87ca",
+    "isotope_identity_evidence": "not_reported",
+    "isotope_identity_record": "Publisher raw XYZ/README do not report isotopes or masses. Declared 16O/1H/1H is a requested comparison convention, not an explicit publisher statement.",
+    "raw_source_format": "qm9_extended_xyz",
+    "reference_id": "qm9-water-Be-A",
+    "source_excerpt_utf8": "gdb 3\t799.58812\t437.90386\t282.94545\t1.8511\t6.31\t-0.2928\t0.0687\t0.3615\t19.0002\t0.021375\t-76.404702\t-76.401867\t-76.400922\t-76.422349\t6.002\t",
+    "source_isotope_numbers": null,
+    "source_line_number": 2,
+    "source_sha256": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c",
+    "source_standard_uncertainty": null,
+    "source_uncertainty_literal": null,
+    "source_uncertainty_token_index": null,
+    "source_unit": "GHz",
+    "source_value": 799.58812,
+    "source_value_literal": "799.58812",
+    "source_value_token_index": 1,
+    "standard_uncertainty": null,
+    "state_identity_evidence": "inferred_chemical_ground_state",
+    "state_identity_record": "Neutral water formula and closed-shell ground-singlet request; publisher acquired files omit explicit electronic state/multiplicity.",
+    "unit": "MHz",
+    "unit_conversion_multiplier": 1000,
+    "value": 799588.12
+  },
+  "reference_identity_quality_flags": [
+    "isotope_identity_not_explicit_in_original_source",
+    "state_identity_not_explicit_in_original_source"
+  ],
+  "reference_manifest_sha256": "65c5280b4e3b5e0a644f94ee304cadcf71328de2daeba930587a88631a8eabaa",
+  "reference_review_kind": "automated_extraction",
+  "reference_review_sha256": "135b9a58c04a3779d8cb01da6a39c249835f4f88d9d72cf896196b51eaf1df80",
+  "reference_source": {
+    "citation": "Ramakrishnan, Dral, Rupp, von Lilienfeld, Scientific Data 1, 140022 (2014), doi:10.1038/sdata.2014.22; QM9 publisher dataset member 000003",
+    "origin": "published_theoretical",
+    "persistent_identifier": "doi:10.6084/m9.figshare.978904_D12",
+    "retrieved_at": "2026-10-08T18:04:23.573934Z",
+    "reuse_permission": "CC0, https://creativecommons.org/publicdomain/zero/1.0/; publisher Figshare metadata retained",
+    "source_sha256": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c",
+    "version": "Figshare original archive file3195389; dsgdb9nsd_000003.xyz"
+  },
+  "reference_standard_uncertainty": null,
+  "release_qualification_enabled": false,
+  "residual_unit": "MHz",
+  "residuals": {
+    "absolute_residual": 101183.22829085751,
+    "relative_residual": -0.1265441866380625,
+    "relative_residual_absence_reason": null,
+    "relative_residual_definition": "(prediction - reference) / abs(reference)",
+    "relative_residual_ppm": -126544.1866380625,
+    "residual_over_reference_standard_uncertainty": null,
+    "signed_residual": -101183.22829085751,
+    "uncertainty_ratio_interpretation": "Reference standard uncertainty is unavailable; no ratio is computed."
+  },
+  "schema_version": "cochem.torq.descriptive-published-reference-comparison/1",
+  "scientific_method_qualified": false,
+  "source_artifacts": [
+    {
+      "byte_count": 5198,
+      "source_sha256": "0ee83fc21faa9527ebe89fad0ce8f2bd2da1cbd35a3c7edc199f4ad21d31d97a"
+    },
+    {
+      "byte_count": 4245,
+      "source_sha256": "8efa1d122deb6f2ae35e3161dd781ff37723d576d8e2097bfff05e017d8017c0"
+    },
+    {
+      "byte_count": 372,
+      "source_sha256": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c"
+    }
+  ],
+  "status": "available"
+}

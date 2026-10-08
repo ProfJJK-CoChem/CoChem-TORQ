@@ -6,6 +6,51 @@
       "sha256": "d22c674bbf6b1674f07d3c59954af8b2f40519e05a44b0ce53a8184e4a84f9f3"
     },
     {
+      "bytes": 1175,
+      "path": "clean-cli-examples/actual-published-readme-retrieval.json",
+      "sha256": "0efcc2703205716d19af0b229e1b9b24c2084b4de4cb8b623d8038067da1c430"
+    },
+    {
+      "bytes": 471,
+      "path": "clean-cli-examples/execution.json",
+      "sha256": "146849ef95441b9d6fb9d802e4c66e7deb0519bc47e9ac35c57a690d5dc2133e"
+    },
+    {
+      "bytes": 14377,
+      "path": "clean-cli-examples/single-equilibrium-A-comparison.json",
+      "sha256": "e940472e616e1b29e1ea0664b5f5cd85c70108640e797179d6acb739ba207be5"
+    },
+    {
+      "bytes": 1690,
+      "path": "clean-native-examples/execution-summary.json",
+      "sha256": "6477e653eea4627890402a7b642a9ad8752fed408da47246fdd2e83d81e75b90"
+    },
+    {
+      "bytes": 3759,
+      "path": "clean-native-examples/qcarchive-components-execution.json",
+      "sha256": "18561b8b6311d594355f222b2a8a2e15e476a190ab4f61126d8bd51488fe9634"
+    },
+    {
+      "bytes": 7149,
+      "path": "clean-native-examples/qcarchive-density-fitted-comparison.json",
+      "sha256": "8a7c78dbd33a818b047f67eb0e2fac56935c4baffaaa29c68be778755b7c6b4b"
+    },
+    {
+      "bytes": 4259,
+      "path": "clean-native-examples/qcarchive-existing-torq-comparison.json",
+      "sha256": "4c96fe013ce65823b4752a07eb39afc0c14642098a6bdb4840bc8adc93bab35a"
+    },
+    {
+      "bytes": 1544,
+      "path": "clean-native-examples/qcarchive-original-source-values.json",
+      "sha256": "9893aa385d135778b484075e2071595edc9954aa84b91adb8dcabb3e7eb23f9a"
+    },
+    {
+      "bytes": 40211,
+      "path": "clean-native-examples/water-six-descriptive-comparisons.json",
+      "sha256": "ae99260de5c49a3ba7dcb1396520140342e1757b1f1f42d566e716495ebce305"
+    },
+    {
       "bytes": 557055,
       "path": "corrected-complete-regression/junit.xml",
       "sha256": "ba4864bb5986f871e938121e8597227c2cfc056401c660e65e50f0cc85a93cd0"
@@ -29,6 +74,11 @@
       "bytes": 2632,
       "path": "corrected-static-checks/summary.json",
       "sha256": "a80167116c7491cc76109655dcf3700d6185714b8fe0ce77dbd29da884465031"
+    },
+    {
+      "bytes": 890,
+      "path": "environment/current-editable-install.json",
+      "sha256": "d35b4a08301bd627386856223c59cfbaf968cfac2f67693d8a6aa358ed5e42a7"
     },
     {
       "bytes": 555692,
@@ -86,6 +136,11 @@
       "sha256": "c5b4dc02f6a83b59b0d9258c0a05303d85b0b4ad4c0346382bf258800d677686"
     },
     {
+      "bytes": 2281,
+      "path": "pre-native-local-summary.json",
+      "sha256": "22f67ebe792cdc19d5868dc05822c3a1cf2caea617aa903bd19a219b958b8b6d"
+    },
+    {
       "bytes": 12883,
       "path": "reference-reviews/primary-chloroethanol-independent-review.json",
       "sha256": "6c4e6f4889adfb184cfbaa7d3098cbec7c848d7fe654a3e430cfe3d17b7a7b53"
@@ -104,6 +159,11 @@
       "bytes": 4961,
       "path": "reference-reviews/readonly-source-and-context-checks.json",
       "sha256": "9bf7a017b0a7eb219fc681c19f4736487b417ee62286a4207a047d0d513d311c"
+    },
+    {
+      "bytes": 374,
+      "path": "reference-reviews/relocated-primary-import-proof.json",
+      "sha256": "fb89c2325a48c2638eea478be2285f1bc5f37a50262b1a6a92c1579d6ee7d8aa"
     },
     {
       "bytes": 9166,
@@ -176,9 +236,9 @@
       "sha256": "05fa531026978c2851670cc3b8079c924d22e65e99660c2a52011de628af8c31"
     },
     {
-      "bytes": 2281,
+      "bytes": 3360,
       "path": "summary.json",
-      "sha256": "22f67ebe792cdc19d5868dc05822c3a1cf2caea617aa903bd19a219b958b8b6d"
+      "sha256": "672f80e4c1c33cf2374a980a5cf93590adcd5112af4bd8f87c71d6b21b7b81c9"
     }
   ],
   "schema_version": "cochem.public-evidence-file-index/1"

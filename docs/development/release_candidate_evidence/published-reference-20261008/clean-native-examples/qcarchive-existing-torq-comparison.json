@@ -1,0 +1,91 @@
+{
+  "actual_scf_converged": true,
+  "benchmark_acceptance": false,
+  "comparison_tolerance": null,
+  "components_and_residuals": {
+    "double_hybrid_total_energy": {
+      "calculated_hartree": -56.53809997289345,
+      "calculated_minus_source_hartree": -8.676133511187345e-06,
+      "source_psi4_hartree_as_printed": "-56.5380912967599372"
+    },
+    "hybrid_reference_energy": {
+      "calculated_hartree": -56.460589046592915,
+      "calculated_minus_source_hartree": 1.947765426280057e-06,
+      "source_psi4_hartree_as_printed": "-56.4605909943583413"
+    },
+    "mp2_correlation_energy": {
+      "calculated_hartree": -0.2870775048168025,
+      "calculated_minus_source_hartree": -3.934777384839716e-05,
+      "source_psi4_hartree_as_printed": "-0.2870381570429541"
+    },
+    "mp2_opposite_spin_energy": {
+      "calculated_hartree": -0.22275128821719242,
+      "calculated_minus_source_hartree": -5.2746735234920905e-05,
+      "source_psi4_hartree_as_printed": "-0.2226985414819575"
+    },
+    "mp2_same_spin_energy": {
+      "calculated_hartree": -0.06432621659961005,
+      "calculated_minus_source_hartree": 1.33989613865515e-05,
+      "source_psi4_hartree_as_printed": "-0.0643396155609966"
+    },
+    "orbital_scf_energy": {
+      "calculated_hartree": -56.460589046592915,
+      "calculated_minus_source_hartree": 1.947765426280057e-06,
+      "source_psi4_hartree_as_printed": "-56.4605909943583413"
+    },
+    "scaled_mp2_correlation": {
+      "calculated_hartree": -0.07751092630053667,
+      "calculated_minus_source_hartree": -1.0623898939077225e-05,
+      "source_psi4_hartree_as_printed": "-0.0775003024015976"
+    }
+  },
+  "convention_differences": [
+    "TORQ conventional SCF/PT2 integrals; Psi4 used JKFIT/RI density fitting",
+    "TORQ grid_level5/default pruning; Psi4 printed flat 100x302 Treutler",
+    "Historical Psi4 version, basis bytes and partition identity absent"
+  ],
+  "curator_attestation": false,
+  "engine_source_sha256_after": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+  "engine_source_sha256_before": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+  "engine_source_unchanged": true,
+  "exact_revdsd_claimed": false,
+  "native_artifact_directory": "torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671",
+  "native_gradient_or_hessian_computed": false,
+  "orbital_reference_stability": {
+    "artifact_sha256": "4a7ac0c41bd02f288aac67525a5e3fc783e29191d601ba07dac10898c5cb512a",
+    "checkpoint_sha256_after": "979bf2c77b73643f4b255738099a203d51d819307a65d6ff37eade7792fe62f0",
+    "checkpoint_sha256_before": "979bf2c77b73643f4b255738099a203d51d819307a65d6ff37eade7792fe62f0",
+    "controls": {
+      "external": true,
+      "internal": true,
+      "nroots": 3,
+      "return_status": true,
+      "tol": 0.0001
+    },
+    "error": null,
+    "external_scope": "native returned RHF/RKS -> UHF/UKS status",
+    "full_correlated_energy_stability": "not_evaluated",
+    "internal_scope": "restricted real-orbital variations",
+    "internal_stable": true,
+    "native_log": "pyscf.log",
+    "orbital_reference_unchanged": true,
+    "orbital_state_sha256_after": "ac3ab7b50bb51f7663cf75348bab5f8de3d04e7b0dcfc4ddcfbddee50036e640",
+    "orbital_state_sha256_before": "ac3ab7b50bb51f7663cf75348bab5f8de3d04e7b0dcfc4ddcfbddee50036e640",
+    "orbital_xc": "0.53*HF + 0.47*B88, 0.73*LYP",
+    "pyscf_version": "2.14.0",
+    "real_to_complex_status": "not_separately_extracted",
+    "recipe_sha256": "63b4f66cf5f2e2c57f87310bed2d55a597ba3e48b2cb3cdacc8a37bf7d7e3228",
+    "requested": true,
+    "restricted_to_unrestricted_stable": true,
+    "returned_candidate_orbitals_applied": false,
+    "scope": "orbital-generating HF/GKS reference only",
+    "solver": "PySCF RHF/RKS stability",
+    "solver_source_sha256": "58ceea68eb56702ec41fa0a844b60c225ef53800ed4fb5b1fea307cd5bc50674",
+    "status": "stable"
+  },
+  "original_private_comparison_sha256": "a60813676dc83a5761976801e7b7f79d06898731e8fb5d2138ddaaecee93a523",
+  "recipe": "qca-nh3-b2plyp-component-reproduction-research",
+  "recipe_sha256": "63b4f66cf5f2e2c57f87310bed2d55a597ba3e48b2cb3cdacc8a37bf7d7e3228",
+  "scientific_profile_qualification": false,
+  "status": "completed unqualified existing TORQ energy comparison"
+}

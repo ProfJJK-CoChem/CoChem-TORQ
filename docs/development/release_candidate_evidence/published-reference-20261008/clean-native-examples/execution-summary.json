@@ -1,0 +1,37 @@
+{
+  "all_commands_finished": true,
+  "all_commands_succeeded": true,
+  "commands": [
+    {
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true,
+      "elapsed_seconds": 11.922902824997436,
+      "log_sha256": "5da0395dea3ab17f33be6210750baca3c39058b4f3ccd26a1066dd80f826552a",
+      "module_executed": "scripts.run_qm9_water_comparison",
+      "name": "water",
+      "started_at": "2026-10-08T20:16:47.302815+00:00"
+    },
+    {
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true,
+      "elapsed_seconds": 92.35554200399201,
+      "log_sha256": "80b7430e2bd1e3df404218d74c7d7a9159158a62c5e474f0b752b7d1a77cac73",
+      "module_executed": "scripts.run_qcarchive_component_comparison",
+      "name": "qcarchive-components",
+      "started_at": "2026-10-08T20:16:59.226910+00:00"
+    }
+  ],
+  "full_srs_release_qualified": false,
+  "native_payloads_or_logs_included": false,
+  "original_private_receipt_sha256": "3eee5e092a179dc0d3e93efaa877b3576d999a5d5fec19140980c810a7230a32",
+  "private_command_environment_and_output_paths_omitted": true,
+  "scientific_accuracy_qualified": false,
+  "scope": "Actual clean-commit published-source native examples; no scientific accuracy or full-SRS qualification",
+  "source_commit_after": "00aa3ffcc8f3c218752791861f8f4363f3af383a",
+  "source_commit_before": "00aa3ffcc8f3c218752791861f8f4363f3af383a",
+  "source_status_after": "",
+  "source_tree_sha256_after": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "source_tree_sha256_before": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "source_unchanged_and_clean": true,
+  "student_deployment_performed": false
+}

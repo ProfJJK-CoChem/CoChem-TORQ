@@ -1,0 +1,25 @@
+{
+  "scope": "actual current main Python3.12 environment editable install refresh, no fresh-environment restoration or full saved install-script replay",
+  "editable_modules_from_current_checkout": {
+    "client": "src/cochem_torq/reference_sources.py",
+    "comparison": "src/cochem_torq/reference_comparison.py",
+    "driver": "scripts/run_qm9_water_comparison.py"
+  },
+  "actual_probe_exit_code": 0,
+  "distribution_version": "0.1.0",
+  "build_backend_version": "84.0.0",
+  "source_tree_sha256": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "scientific_accuracy_qualified": false,
+  "actual_additional_checks": [
+    {
+      "name": "dependency-check",
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true
+    },
+    {
+      "name": "installed-cli-help",
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true
+    }
+  ]
+}

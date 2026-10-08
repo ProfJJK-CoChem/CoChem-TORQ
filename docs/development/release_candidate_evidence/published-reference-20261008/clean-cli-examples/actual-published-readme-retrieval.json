@@ -1,0 +1,22 @@
+{
+  "actual_original_source_bytes_readback_verified": true,
+  "bytes": 5198,
+  "citation": "QM9 README DOI10.6084/m9.figshare.978904_D7; paper DOI10.1038/sdata.2014.22",
+  "completed_at": "2026-10-08T20:18:33.072249+00:00",
+  "expected_sha256": "0ee83fc21faa9527ebe89fad0ce8f2bd2da1cbd35a3c7edc199f4ad21d31d97a",
+  "independent_reference_qualification": false,
+  "inherited_proxy_preserved": true,
+  "max_bytes": 16777216,
+  "media_type": "binary/octet-stream",
+  "observed_sha256": "0ee83fc21faa9527ebe89fad0ce8f2bd2da1cbd35a3c7edc199f4ad21d31d97a",
+  "original_private_retrieval_receipt_sha256": "4322449c25b9c3d665065f3da56eb6586a089b373d9000c2cf5cdd4cb939aafc",
+  "requested_url": "https://ndownloader.figshare.com/files/3195392",
+  "response_url_without_query": "https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/3195392/readme.txt",
+  "reuse_permission": "CC0 as declared by original publisher article1057641",
+  "schema_version": "cochem.torq.reference-retrieval/1",
+  "source_bytes_included_in_this_public_bundle": false,
+  "source_path": "source.bin",
+  "started_at": "2026-10-08T20:18:32.104371+00:00",
+  "status": "retrieved",
+  "tls_verification": true
+}

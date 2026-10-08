@@ -1,0 +1,100 @@
+{
+  "actual_original_worker_waited": true,
+  "all_original_native_inventory_sizes_and_hashes_readback_verified": true,
+  "benchmark_acceptance": false,
+  "budget_stop_reason": null,
+  "curator_attestation": false,
+  "elapsed_seconds": 92.22783469699789,
+  "exit_code": 0,
+  "native_inventory_file_count": 16,
+  "native_inventory_total_bytes": 2372135,
+  "native_output_inventory": [
+    {
+      "path": "native/density-fitted/actual-basis-orbitals-grid.npz",
+      "sha256": "f1180954dcdcb822a21ad08ebf5c6df74ed188657d98acf4fe904f8f193071e1",
+      "size_bytes": 2036662
+    },
+    {
+      "path": "native/density-fitted/actual-expanded-bases.json",
+      "sha256": "d8a887f3fb81785c2fa5f9fe88cd6c375d6216f1c42979dc2107c4218834a503",
+      "size_bytes": 10049
+    },
+    {
+      "path": "native/density-fitted/comparison.json",
+      "sha256": "aa689b3f8e46c01336dc3ffef5fee684d0addc59a65d1e1ffb7b2fbba98566f9",
+      "size_bytes": 6822
+    },
+    {
+      "path": "native/density-fitted/converged-rks.chk",
+      "sha256": "e976f3449220b8e3b99fc2b3e90fbc804417bee2750f43f99b636a63085edc6f",
+      "size_bytes": 120192
+    },
+    {
+      "path": "native/density-fitted/pyscf-native.log",
+      "sha256": "70811eed1391353955082cffd815787f3a2e25c81fe8dba2b1b96722e8bf5c88",
+      "size_bytes": 30615
+    },
+    {
+      "path": "native/scientific-input.json",
+      "sha256": "577874aa0111fd9c85a94e65c7888990c505a2ecbd857640486446c1e5157e82",
+      "size_bytes": 2006
+    },
+    {
+      "path": "native/torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671/basis.json",
+      "sha256": "3698a654278d7e2a6ce4f20dd441658570db27645ba57f3ae933f6562fa8b9ad",
+      "size_bytes": 2175
+    },
+    {
+      "path": "native/torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671/input.json",
+      "sha256": "e93b54ef24f1ee56c01ba7c2615bd38a7eb6dd9d2d973afd92a7f63ee8462f57",
+      "size_bytes": 1365
+    },
+    {
+      "path": "native/torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671/orbitals.chk",
+      "sha256": "979bf2c77b73643f4b255738099a203d51d819307a65d6ff37eade7792fe62f0",
+      "size_bytes": 120224
+    },
+    {
+      "path": "native/torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671/pyscf.log",
+      "sha256": "be9527683fdea1ad0c6324d61cd3c454ab72a8e4046f4718bd63e1278b9e2282",
+      "size_bytes": 30658
+    },
+    {
+      "path": "native/torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671/reference-stability.json",
+      "sha256": "4a7ac0c41bd02f288aac67525a5e3fc783e29191d601ba07dac10898c5cb512a",
+      "size_bytes": 1360
+    },
+    {
+      "path": "native/torq/double-hybrid-5318ee9d75e44fc4967fd0306ad89671/result.json",
+      "sha256": "1854305b31aeadd5403ad4fb757a27a1347e5062cb833e265c8364564b88b14f",
+      "size_bytes": 3965
+    },
+    {
+      "path": "native/torq-comparison.json",
+      "sha256": "a60813676dc83a5761976801e7b7f79d06898731e8fb5d2138ddaaecee93a523",
+      "size_bytes": 4151
+    },
+    {
+      "path": "process-start.json",
+      "sha256": "7afecfe1c7329dbe4bca87d1a942abe8849055a8d2031625914412506ff93682",
+      "size_bytes": 228
+    },
+    {
+      "path": "verified-source.json",
+      "sha256": "3f99736ad1f9f8eec9036d6ecf42627e6113197a1ff815a98ac87bc44ea7f84f",
+      "size_bytes": 1423
+    },
+    {
+      "path": "worker.log",
+      "sha256": "fea0f056533952653ad16eacef1c7ab6c7b0a03ce0706d8199b989b9612aea53",
+      "size_bytes": 240
+    }
+  ],
+  "original_private_execution_receipt_sha256": "16bb31e6099af62ce87273ed0f5478cb3e642612dc6123b7ade9cf67fce23e28",
+  "peak_sampled_owned_tree_rss_bytes": 786640896,
+  "remaining_observed_descendants": [],
+  "scientific_profile_qualification": false,
+  "status": "completed",
+  "underlying_native_arrays_checkpoints_or_logs_included": false,
+  "worker_script_unchanged": true
+}

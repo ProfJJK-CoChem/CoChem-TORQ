@@ -1,0 +1,17 @@
+{
+  "commands": [
+    {
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true,
+      "command": "compare"
+    },
+    {
+      "actual_exit_code": 0,
+      "actual_original_command_waited": true,
+      "command": "fetch"
+    }
+  ],
+  "original_private_execution_receipt_sha256": "fb6ffa2bcdf7814fc7cfb84fc38069cf3f7faa899672acd1403fa9024fdc71c7",
+  "scientific_accuracy_qualified": false,
+  "source_commit": "00aa3ffcc8f3c218752791861f8f4363f3af383a"
+}

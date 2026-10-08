@@ -1,13 +1,7 @@
 {
-  "actual_clean_cli_fetch_and_compare_completed": true,
-  "actual_native_example_parent_and_worker_exits_all_zero": true,
-  "actual_published_readme_fetched_bytes": 5198,
-  "actual_relocated_primary_datums_strictly_imported": 6,
   "additional_readonly_source_and_context_review_checks": 9,
   "application_code_sha256": "a630a3b8eff94abf1fbdf6c4fc10465fa81b50e0f1540e01d48e18adf4973676",
   "benchmark_design_proposal_scientifically_accepted": false,
-  "clean_commit_native_examples_source_commit": "00aa3ffcc8f3c218752791861f8f4363f3af383a",
-  "clean_commit_native_examples_source_tree_sha256": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
   "corrected_complete_repository_outcome": {
     "errors": 0,
     "failed": 0,
@@ -33,7 +27,7 @@
     "python312_passed": 1072
   },
   "native_bytes_or_raw_logs_included": false,
-  "native_clean_commit_examples_included": true,
+  "native_clean_commit_examples_included": false,
   "native_inventory_bound": 64,
   "native_inventory_truncated": true,
   "original_draft_file_index_sha256": "856995e0de95e77df85ece9bd1034314a68d3436c6d918dfd80569702b687bc9",
@@ -44,22 +38,14 @@
     "passed": 3182,
     "skipped": 0
   },
-  "pre_native_file_index_sha256": "063b26293de7b76a53770088b4f742e8f98a40b6ce1a75c744cfd43c2ab374df",
-  "pre_native_local_summary_sha256": "22f67ebe792cdc19d5868dc05822c3a1cf2caea617aa903bd19a219b958b8b6d",
   "primary_chloroethanol_original_value_and_context_review_checks": 13,
   "python310_validation_environment_retired": true,
-  "qcarchive_actual_NPZ_arrays_readback_verified": 14,
-  "qcarchive_actual_native_inventory_bytes_verified": 2372135,
-  "qcarchive_actual_native_inventory_files_verified": 16,
-  "recorded_at": "2026-10-08T20:23:14.172791+00:00",
-  "schema_version": "cochem.published-reference-evidence-local-native/1",
+  "recorded_at": "2026-10-08T20:14:51.100959+00:00",
+  "schema_version": "cochem.published-reference-evidence-complete-local/1",
   "scientific_method_qualified": false,
-  "scope": "Completed genuine local software tests, installed-wheel proof, original published-source reviews, clean-commit native descriptive examples and real published-source CLI retrieval/comparison. No full-SRS scientific release, preregistered accuracy acceptance, hosted CI validation or student deployment is established by this bundle.",
+  "scope": "Genuine completed local software tests, installed-wheel proof and original published-source reviews. This bounded public bundle is not a full-SRS scientific release, a preregistered accuracy result, hosted CI validation, or student deployment.",
   "source_tree_sha256_observed_after": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
   "source_tree_sha256_observed_before": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
   "source_unchanged_during_curation": true,
-  "student_private_deployment_performed": false,
-  "water_actual_available_descriptive_comparison_count": 6,
-  "water_publication_inventory_bytes_verified": 2030523,
-  "water_publication_inventory_files_verified": 97
+  "student_private_deployment_performed": false
 }

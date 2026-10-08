@@ -1,0 +1,8 @@
+{
+  "actual_relocated_datums_verified": 6,
+  "native_prediction_computed": false,
+  "original_private_relocation_receipt_sha256": "2073eead1518c34102c2eb850c0527d21b2fec51ed6abe81a3524b5a683483c8",
+  "review_kind": "automated_extraction",
+  "scientific_accuracy_qualified": false,
+  "source_tree_sha256": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484"
+}
