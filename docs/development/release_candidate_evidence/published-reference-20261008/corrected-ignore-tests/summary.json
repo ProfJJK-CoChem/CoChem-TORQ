@@ -1,0 +1,19 @@
+{
+  "corrected_test_source_sha256_observed_now": "931906f1f7e07a20e23e3f7460e33423bfadba250d133bef08fef833b6976ef7",
+  "junit_receipt": {
+    "counts": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 75,
+      "skipped": 0,
+      "tests": 75
+    },
+    "failed_test_identities": [],
+    "public_report_policy": "Actual outcomes, class names, base test names and durations. Captured output, traces and properties excluded. Every parameter literal replaced by its SHA-256 to keep private paths and credential test strings out of the public report.",
+    "public_report_sha256": "d297b2315f16ff84c3a903f622a7b30e25b7af09478e45a7590f1c97064fb7b6",
+    "raw_report_sha256": "9e8924f73435806b00c18129283f595627bdb430dc1a044c70e40347fde3674f"
+  },
+  "schema_version": "cochem.actual-scoped-test-receipt/1",
+  "scientific_qualification": false,
+  "scope": "Actual corrected ignore-file test report only; full corrected repository rerun is separate."
+}

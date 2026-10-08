@@ -1,0 +1,45 @@
+{
+  "all_indexed_files_readback_verified": true,
+  "automated_review_sha256": "60a2439932e7627c759f5207e2892189ee0b63f5ac3b548e9cdd382b1b0194e9",
+  "change_kind": "Editorial clarification of publisher sigma_fit statistic; no scientific values, original source member bytes or reference/review pins changed",
+  "changed_files": [
+    "file-index.json",
+    "README.md"
+  ],
+  "derived_file_index_sha256": "8129a3f11d5cb16fa3ac611f1630141aa5cf2c4254468bfc0f5d9b86a0ab85ac",
+  "derived_packet": "reviewed public chloroethanol packet",
+  "derived_packet_bytes": 4071154,
+  "derived_packet_files": 18,
+  "derived_readme": {
+    "bytes": 3127,
+    "sha256": "adc1b6f930ca285422ea0970aced8887132a1507585a862e8d62059f3b59e6b6"
+  },
+  "native_calculations_performed": 0,
+  "original_file_index_sha256": "9b188fbff90ba17142db5ad27a2129fb642d85a5e8d49b019b098adf0ccc63af",
+  "original_ground_state_files_retained_byte_identical": [
+    "35ClEtOH_gs.int",
+    "35ClEtOH_gs.par",
+    "35ClEtOH_gs.res",
+    "37ClEtOH_gs.int",
+    "37ClEtOH_gs.par",
+    "37ClEtOH_gs.res"
+  ],
+  "original_packet_preserved_byte_identical": true,
+  "original_private_receipt_sha256": "5bae92bd644418c2002e80cefa983a086f72a71e84c03951b18ff2b0e3f0781f",
+  "original_readme": {
+    "bytes": 3071,
+    "sha256": "c7f9a52048571c79557012c63e1b7b2c0022334002680014adfd6d5d7bdbc53e"
+  },
+  "previous_prose": "The publisher abstract itself reports fit challenges and larger-than-expected residuals up to 0.060 MHz.",
+  "recorded_at_utc": "2026-10-08T20:10:17.529366+00:00",
+  "reference_manifest_sha256": "e964aec0c4e2c91047a7204c1c8b18206ff7e1eded7e519f95360e9acf1ab2e0",
+  "reference_pins_sha256": "df7814f4725766dfc7a22d2f1f4039932f1ff1b277a9f6fa7b997789802e9cfa",
+  "repository_edits": false,
+  "revised_prose": "The publisher abstract itself reports fit challenges and a larger-than-expected fit RMS (sigma_fit), up to 0.060 MHz; this is not a maximum individual residual.",
+  "schema_version": "cochem.torq.public-reference-editorial-derivation/1",
+  "scientific_qualification": false,
+  "scientific_values_changed": false,
+  "source_member_index_sha256": "615ebaa7da1198308c5319b5a14e94afa3ad4536143176f17c9dd2ba40c8cb96",
+  "source_packet": "original primary chloroethanol typed packet",
+  "standard_uncertainty_or_covariance_created": false
+}

@@ -68,6 +68,7 @@ jobs:
             tests/test_campaign_coordinator.py tests/test_campaign_backup.py tests/test_host_allocation.py tests/test_release_evidence_validator.py \
             tests/test_advanced_scientific_results.py tests/test_ecosystem_serialization_profile.py \
             tests/test_units.py tests/test_asymmetric_rotor.py tests/test_ingestion_integrity.py \
+            tests/test_qm9_sources.py tests/test_reference_sources.py tests/test_reference_comparison.py \
             tests/test_topology_mass_integrity.py tests/test_goat_rmsd_integrity.py \
             tests/test_ipc_mass_integrity.py \
             tests/test_cascade_admission_integrity.py \
@@ -192,6 +193,7 @@ jobs:
             tests/test_rovibrational_solver.py tests/test_rovibrational_perturbation.py \
             tests/test_watson_pipeline.py tests/test_landscape_inspection.py \
             tests/test_benchmarking_integrity.py tests/test_revdsd_exact_milestones.py \
+            tests/test_reference_comparison.py tests/test_qm9_water_example.py \
             tests/test_operations_integrity.py tests/test_chain.py \
             tests/test_energetics_integration.py tests/test_pathway_diagnostics_integration.py \
             tests/test_goal_execution_integrity.py \

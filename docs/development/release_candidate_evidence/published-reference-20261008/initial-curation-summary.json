@@ -1,0 +1,35 @@
+{
+  "application_code_sha256": "a630a3b8eff94abf1fbdf6c4fc10465fa81b50e0f1540e01d48e18adf4973676",
+  "corrected_complete_repository_run_included": false,
+  "corrected_ignore_scoped_outcome": {
+    "errors": 0,
+    "failed": 0,
+    "passed": 75,
+    "skipped": 0
+  },
+  "experimental_accuracy_established": false,
+  "full_srs_release_qualified": false,
+  "hosted_run_performed": false,
+  "installed_wheel_256_current_source_files_byte_identical": true,
+  "installed_wheel_cores": {
+    "python310_passed": 1072,
+    "python312_passed": 1072
+  },
+  "native_bytes_or_raw_logs_included": false,
+  "original_failed_reports_retained": true,
+  "original_initial_complete_outcome": {
+    "errors": 0,
+    "failed": 2,
+    "passed": 3182,
+    "skipped": 0
+  },
+  "python310_validation_environment_retired": true,
+  "recorded_at": "2026-10-08T19:45:29.438616+00:00",
+  "schema_version": "cochem.published-reference-evidence-draft/1",
+  "scientific_method_qualified": false,
+  "scope": "Bounded read-only public derivation of completed genuine test and packaging originals. The corrected complete repository run is pending and intentionally omitted until its original process completes.",
+  "source_tree_sha256_observed_after": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "source_tree_sha256_observed_before": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "source_unchanged_during_curation": true,
+  "student_private_deployment_performed": false
+}

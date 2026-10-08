@@ -1,0 +1,51 @@
+{
+  "additional_readonly_source_and_context_review_checks": 9,
+  "application_code_sha256": "a630a3b8eff94abf1fbdf6c4fc10465fa81b50e0f1540e01d48e18adf4973676",
+  "benchmark_design_proposal_scientifically_accepted": false,
+  "corrected_complete_repository_outcome": {
+    "errors": 0,
+    "failed": 0,
+    "passed": 3192,
+    "skipped": 0
+  },
+  "corrected_complete_repository_run_included": true,
+  "corrected_ignore_scoped_outcome": {
+    "errors": 0,
+    "failed": 0,
+    "passed": 75,
+    "skipped": 0
+  },
+  "corrected_repository_runner_exit_code": 0,
+  "corrected_static_checks_completed": 4,
+  "experimental_accuracy_established": false,
+  "full_srs_release_qualified": false,
+  "hosted_run_performed": false,
+  "initial_curated_receipt_summary_sha256": "8eaab5d081403213a73b7704221ef911af0a5f2f30a4fed324590fd57616d0a3",
+  "installed_wheel_256_current_source_files_byte_identical": true,
+  "installed_wheel_cores": {
+    "python310_passed": 1072,
+    "python312_passed": 1072
+  },
+  "native_bytes_or_raw_logs_included": false,
+  "native_clean_commit_examples_included": false,
+  "native_inventory_bound": 64,
+  "native_inventory_truncated": true,
+  "original_draft_file_index_sha256": "856995e0de95e77df85ece9bd1034314a68d3436c6d918dfd80569702b687bc9",
+  "original_failed_reports_retained": true,
+  "original_initial_complete_outcome": {
+    "errors": 0,
+    "failed": 2,
+    "passed": 3182,
+    "skipped": 0
+  },
+  "primary_chloroethanol_original_value_and_context_review_checks": 13,
+  "python310_validation_environment_retired": true,
+  "recorded_at": "2026-10-08T20:14:51.100959+00:00",
+  "schema_version": "cochem.published-reference-evidence-complete-local/1",
+  "scientific_method_qualified": false,
+  "scope": "Genuine completed local software tests, installed-wheel proof and original published-source reviews. This bounded public bundle is not a full-SRS scientific release, a preregistered accuracy result, hosted CI validation, or student deployment.",
+  "source_tree_sha256_observed_after": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "source_tree_sha256_observed_before": "6a2bd28829ca376b879e8f4b726c0516a3ca62fec52ef76d08205cbc6a25b484",
+  "source_unchanged_during_curation": true,
+  "student_private_deployment_performed": false
+}

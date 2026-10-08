@@ -1,0 +1,124 @@
+{
+  "actual_observed_denied_hosts": [
+    "api.crossref.org",
+    "api.qcarchive.molssi.org",
+    "api.semanticscholar.org",
+    "arxiv.org",
+    "cccbdb.nist.gov",
+    "cdms.astro.uni-koeln.de",
+    "hitran.org",
+    "pubs.rsc.org",
+    "spec.jpl.nasa.gov",
+    "webbook.nist.gov",
+    "www.ebi.ac.uk",
+    "www.nature.com",
+    "www.sciencedirect.com"
+  ],
+  "automated_reviews_are_human_attestations": false,
+  "denial_kind": "proxy CONNECT403 before origin response; no bypass attempted",
+  "experimental_accuracy_established": false,
+  "full_srs_release_ready": false,
+  "qcschema_role": "interchange schema; not itself a numerical reference database",
+  "remaining_source_retrieval_and_scientific_implementation": "agent work; actual platform policy activation and unavailable lawful access are external prerequisites",
+  "schema_version": "cochem.torq.published-reference-acquisition/1",
+  "scope": "Actual retrieved scientific source material; source-byte integrity and descriptive comparison are separate from independent accuracy qualification.",
+  "sources": [
+    {
+      "archive_retained": false,
+      "archive_sha256": "3a63848ac80691bdb8d41834b575afad345b9300d7a2db0c38adb7f6eaa8360c",
+      "collection": "QM9",
+      "comparison_datum_count": 6,
+      "comparison_protocol": "HF/STO-3G versus published B3LYP/6-31G(2df,p), descriptive only",
+      "dataset_doi": "10.6084/m9.figshare.978904_D12",
+      "kind": "published_theoretical",
+      "original_member_count": 20,
+      "paper_doi": "10.1038/sdata.2014.22",
+      "retained_data_license": "CC0",
+      "source_index_path": "../../benchmarks/published-values/qm9-samples/source-index.json",
+      "source_index_sha256": "e08498eac219191199ea0f59c0a1f3cf35ed39f73f81cb2e8556b4e90c3632f5"
+    },
+    {
+      "baseline_B0_prediction_available": false,
+      "collection": "Piccardo2015",
+      "datum_count": 6,
+      "kind": "secondary_reproduction_of_experimental_ground_state_constants",
+      "license": "CC BY-NC 4.0",
+      "observables": [
+        "B0_A",
+        "B0_B",
+        "B0_C"
+      ],
+      "packet_path": "../../benchmarks/published-values/experimental-b0-water-formaldehyde",
+      "paper_doi": "10.1021/jp511432m",
+      "parents": [
+        "water",
+        "formaldehyde"
+      ],
+      "primary_measurement_article_bytes_retrieved": false,
+      "reference_manifest_sha256": "db9ad6aa3f7f266acdc946da267572f4f9000bfff62b61a7222f210546fa0f82",
+      "reference_review_sha256": "b37a6e98f9b6760cc705db1eeabb30ca311b3750b09e6cee2ba49272d5382f5a",
+      "source_sha256": "e59b65d62b7fd525cc1d143d53ef4916afccbbcdaf80114d20b612e8e62651ce",
+      "standard_uncertainty_confidence_established": false
+    },
+    {
+      "collection": "QCArchive official historical tutorial",
+      "commit": "60ee49a3dc881cd64d42840a2a5f3bf31f7b049f",
+      "historical_engine_version": null,
+      "kind": "historical_computation_mirror",
+      "live_API_record_acquired": false,
+      "packet_path": "../../benchmarks/published-values/qcarchive-nh3",
+      "record_id": 1847316,
+      "repository": "MolSSI/QCArchiveExamples",
+      "source_notebook_sha256": "6358808518e39b6cae4b8375518b784838359b2daa76afc3b3e6d34f9f142427",
+      "source_stdout_sha256": "e8e721e3443e7acdc585c9a88595b18dacb2837bfb404ceb0594b57065d8b4e3"
+    },
+    {
+      "actual_retained_CO_line_candidate_count": 11,
+      "candidate_record_sha256": "304cb6c15cb2cfceb1401182bc571476157fbe28f9eb4ea846156c21a5ec67bd",
+      "collection": "NIST-authored MATS",
+      "commit": "c47e3f95eb7f937dc6c7ee2b63600d7c7c49439b",
+      "eligible_Be_B0_omega_e_record_count": 0,
+      "eligible_independent_benchmark_record_count": 0,
+      "kind": "original_line_candidates_with_incomplete_primary_measurement_provenance",
+      "raw_files_included_in_public_packet": false,
+      "redistribution_and_measurement_provenance": "unresolved; original files retained outside the public repository",
+      "repository": "usnistgov/MATS"
+    },
+    {
+      "accepted_original_D4_electronic_coefficient_count": 0,
+      "collection": "revDSD component source ledger",
+      "kind": "primary_D3_supporting_information_and_separate_official_D4_dispersion_parameters",
+      "ledger_path": "revdsd_component_recipe_ledger.json",
+      "named_method_enabled": false,
+      "official_D4_assignment_count": 8,
+      "paper_doi": "10.1021/acs.jpca.9b03157",
+      "primary_D3_assignment_count": 13,
+      "source_assignment_count": 21
+    },
+    {
+      "actual_strict_import_datum_count": 6,
+      "calibrated_standard_uncertainty_established": false,
+      "collection": "Bunn2026 primary 2-chloroethanol experimental fit",
+      "datum_count": 6,
+      "hamiltonian_convention": "Watson A reduction / I^r representation",
+      "independent_benchmark_acceptance": false,
+      "isotopologues": [
+        "35Cl",
+        "37Cl"
+      ],
+      "kind": "primary_experimental_ground_state_fitted_rotational_constants",
+      "license": "CC BY-NC 4.0",
+      "native_prediction_computed": false,
+      "original_member_files_retained": 6,
+      "original_scientific_archive_in_public_repository": false,
+      "packet_path": "../../benchmarks/published-values/chloroethanol-primary-ground-state",
+      "paper_doi": "10.1021/acsearthspacechem.6c00221",
+      "paper_published_date": "2026-09-21",
+      "reference_manifest_sha256": "e964aec0c4e2c91047a7204c1c8b18206ff7e1eded7e519f95360e9acf1ab2e0",
+      "reference_review_sha256": "60a2439932e7627c759f5207e2892189ee0b63f5ac3b548e9cdd382b1b0194e9",
+      "source_index_sha256": "8129a3f11d5cb16fa3ac611f1630141aa5cf2c4254468bfc0f5d9b86a0ab85ac",
+      "vibrational_state": "ground state"
+    }
+  ],
+  "student_deployment": "on_hold"
+}

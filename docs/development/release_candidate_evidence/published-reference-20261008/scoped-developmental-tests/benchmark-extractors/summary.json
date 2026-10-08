@@ -1,0 +1,20 @@
+{
+  "experimental_accuracy_established": false,
+  "full_srs_release_qualified": false,
+  "junit_receipt": {
+    "counts": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 51,
+      "skipped": 0,
+      "tests": 51
+    },
+    "failed_test_identities": [],
+    "public_report_policy": "Actual outcomes, class names, base test names and durations. Captured output, traces and properties excluded. Every parameter literal replaced by its SHA-256 to keep private paths and credential test strings out of the public report.",
+    "public_report_sha256": "ecaab647aaa7420194f16a54f3333345ee85ceb7e8c3845a67556b1b9c35bfb0",
+    "raw_report_sha256": "7e8bdcfbfcc2eeed75176f5822a8a66bf8baa76695a695ad8e847c6dfa88cd30"
+  },
+  "schema_version": "cochem.actual-scoped-test-receipt/1",
+  "scientific_method_qualified": false,
+  "scope": "Separately preserved developmental scoped report. Execution global source identity was not recorded in this JUnit; it is not invented here. Counts overlap the complete repository suite and must not be summed as independent coverage."
+}

@@ -1,0 +1,82 @@
+{
+  "all_declared_package_python_sources_present": true,
+  "all_packaged_python_bytes_match_frozen_source": true,
+  "application_code_sha256": "a630a3b8eff94abf1fbdf6c4fc10465fa81b50e0f1540e01d48e18adf4973676",
+  "build_exit_code": 0,
+  "complete_declared_python_source_file_count": 256,
+  "cores": {
+    "python310": {
+      "all_installed_python_bytes_match_wheel": true,
+      "all_runtime_package_paths_observed_in_installed_site_packages": true,
+      "counts": {
+        "error": 0,
+        "executed": 1072,
+        "failure": 0,
+        "passed": 1072,
+        "skipped": 0
+      },
+      "no_skips_gate_exit_code": 0,
+      "python_version": "3.10.21",
+      "selected_test_file_count": 44,
+      "summary_path": "python310/summary.json",
+      "tests_exit_code": 0
+    },
+    "python312": {
+      "all_installed_python_bytes_match_wheel": true,
+      "all_runtime_package_paths_observed_in_installed_site_packages": true,
+      "counts": {
+        "error": 0,
+        "executed": 1072,
+        "failure": 0,
+        "passed": 1072,
+        "skipped": 0
+      },
+      "no_skips_gate_exit_code": 0,
+      "python_version": "3.12.14",
+      "selected_test_file_count": 44,
+      "summary_path": "python312/summary.json",
+      "tests_exit_code": 0
+    }
+  },
+  "default_reference_data_scope": "Reference corpus is in the checkout; installed example explicitly takes --example-dir.",
+  "dependency_environment": "Existing build environment reused; no dependency installation or fresh restoration performed.",
+  "experimental_accuracy_established": false,
+  "finished_at": "2026-10-08T19:19:53.423605+00:00",
+  "full_srs_release_qualified": false,
+  "git_commit_observed": "f25ae6e17af4b7f5786274304d036a385359d182",
+  "hosted_run_performed": false,
+  "new_runtime_modules_and_scripts_packaged": [
+    "cochem_torq/__main__.py",
+    "cochem_torq/reference_sources.py",
+    "cochem_torq/reference_comparison.py",
+    "cochem_torq/qm9_sources.py",
+    "scripts/run_published_reference_example.py",
+    "scripts/run_qm9_water_comparison.py",
+    "scripts/run_qcarchive_component_comparison.py"
+  ],
+  "original_build_receipt_sha256": "84ce5351d2f7700c0d381c1d8b0eb29736a23cb838695519fcb8970b33dfe1cf",
+  "packaged_python_file_count": 256,
+  "python312_existing_environment_lock_observation": {
+    "all_declared_package_versions_match": true,
+    "declared_locked_package_count": 31,
+    "fresh_dependency_restoration_performed": false,
+    "python": "3.12",
+    "requirements_file": "ci_tools/requirements-core-py312.txt",
+    "requirements_file_sha256": "773c0c03895406e7ae6116b1d2565032eaeb4032c0a0f8fe7745ab20c9a85159",
+    "schema_version": "cochem.core-environment-version-observation/1",
+    "version_mismatches": {}
+  },
+  "recorded_at": "2026-10-08T19:10:45.796022+00:00",
+  "reference_data_packaged": false,
+  "schema_version": "cochem.published-reference-wheel-build/1",
+  "scientific_method_qualified": false,
+  "scope": "Local immutable wheel build from frozen working source. No hosted, real-engine, scientific-accuracy or full-SRS qualification.",
+  "source_tree_sha256_after": "d01ba28769e5e3879adeaaab7d03f37fe1d958f6608b113e5b8dac8ea0598e45",
+  "source_tree_sha256_before": "d01ba28769e5e3879adeaaab7d03f37fe1d958f6608b113e5b8dac8ea0598e45",
+  "source_unchanged_during_build": true,
+  "student_private_deployment_performed": false,
+  "wheel_bytes": 1226607,
+  "wheel_file": "cochem_torq-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "6029bb8e424aff5f998e54072c0cf4dff877feec3c714b80cfc9f9f28defee52",
+  "working_tree_dirty_observed": true
+}

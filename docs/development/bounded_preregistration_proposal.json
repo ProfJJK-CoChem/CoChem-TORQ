@@ -1,0 +1,842 @@
+{
+  "schema_version": "cochem.torq.bounded-benchmark.design-proposal/1",
+  "proposal_id": "bounded-rotational-design-amendment-proposal-v2",
+  "created_at": "2026-10-08T19:57:51.941822+00:00",
+  "status": "agent_prepared_reviewable_proposal_not_registered",
+  "acceptance_record": null,
+  "registered_digest": null,
+  "registration_location": null,
+  "external_scientific_review_record": null,
+  "human_attestation": false,
+  "fulfils_V_BENCH": false,
+  "experimental_accuracy_established": false,
+  "identification_ready": false,
+  "student_deployment": "on_hold",
+  "decision_basis": {
+    "D10": "accepted bounded preregistration and observable targets; this file does not invent acceptance of new numbers",
+    "ARCH-02": "agent plans actual additional calculations for missing properties under identifiable physics, bounded resources and provenance; no harmonic/B_e substitution for B0"
+  },
+  "evidence_inputs": [
+    {
+      "name": "accepted_decisions",
+      "repository_path": "docs/wiki/review/Decision_Selections.json",
+      "bytes": 5022,
+      "sha256": "456b35c26a7497acbfc32b624d3ed6de271b5f59ed229c3a994758f73e52bec1"
+    },
+    {
+      "name": "existing_proposal",
+      "repository_path": "benchmarks/rotational-identification/preregistration.json",
+      "bytes": 20386,
+      "sha256": "b3853e0d0652345873d116ceb285147c2d49da441f21166ec848cf952f5339dd"
+    },
+    {
+      "name": "matrix_contract",
+      "repository_path": "docs/wiki/Method_Matrix_Implementation_Contract.md",
+      "bytes": 16984,
+      "sha256": "1e68f7853f6e5bc6f40094cfada391a72301994e367f81b8bece56617735cf1a"
+    },
+    {
+      "name": "qm9_source_index",
+      "repository_path": "benchmarks/published-values/qm9-samples/source-index.json",
+      "bytes": 3878,
+      "sha256": "e08498eac219191199ea0f59c0a1f3cf35ed39f73f81cb2e8556b4e90c3632f5"
+    },
+    {
+      "name": "qm9_water_references",
+      "repository_path": "benchmarks/published-values/qm9-water/references.json",
+      "bytes": 13708,
+      "sha256": "65c5280b4e3b5e0a644f94ee304cadcf71328de2daeba930587a88631a8eabaa"
+    },
+    {
+      "name": "experimental_B0_references",
+      "repository_path": "benchmarks/published-values/experimental-b0-water-formaldehyde/references.json",
+      "bytes": 7968,
+      "sha256": "db9ad6aa3f7f266acdc946da267572f4f9000bfff62b61a7222f210546fa0f82"
+    },
+    {
+      "name": "qcarchive_source_metadata",
+      "repository_path": "benchmarks/published-values/qcarchive-nh3/source-metadata.json",
+      "bytes": 2130,
+      "sha256": "e14530938096573426edd9fd2cbea23d222628bb0400685be0f8cdeac66853d9"
+    },
+    {
+      "name": "revdsd_component_ledger",
+      "repository_path": "docs/development/revdsd_component_recipe_ledger.json",
+      "bytes": 28362,
+      "sha256": "358d73b01e2eb3f71c124f0542c1da4b2bf4d656baa528013f1347fcd18b29e8"
+    },
+    {
+      "name": "acquisition_summary",
+      "repository_path": "docs/development/published_reference_acquisition.json",
+      "bytes": 4395,
+      "sha256": "0aef7115d6c85c6afa89e6536787bdf398f82e4ac352c73de7fa1ffceb76517d"
+    }
+  ],
+  "existing_proposal_amendment": {
+    "reason": "Inspected genuine QM9 member 000005 is HCN and member 000010 is CH3CN. All nitrile relatives remain development under the conservative no-leakage policy; existing nitrile held-out labels must not silently survive a new campaign.",
+    "automatic_registration_or_repository_mutation": false,
+    "recommended_parent_limit": 10,
+    "recommended_isotopologue_limit": 13,
+    "line_limit_per_isotopologue": 20,
+    "requires_frozen_versioned_amendment_before_held_out_execution": true,
+    "inspected_QM9_source_members": [
+      {
+        "member": "dsgdb9nsd_000001.xyz",
+        "sha256": "de172c51ea7b5a391b03b8e5bb9d518e6258e374778f0b14f8dbb2a794fbdab3",
+        "atom_counts": {
+          "C": 1,
+          "H": 4
+        },
+        "published_inchi_literals": [
+          "InChI=1S/CH4/h1H4",
+          "InChI=1S/CH4/h1H4"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000002.xyz",
+        "sha256": "8de6f908e39ec1e45dd552f8a68433ad04381821d68fdc8203871ad6cea2268a",
+        "atom_counts": {
+          "N": 1,
+          "H": 3
+        },
+        "published_inchi_literals": [
+          "InChI=1S/H3N/h1H3",
+          "InChI=1S/H3N/h1H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000003.xyz",
+        "sha256": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c",
+        "atom_counts": {
+          "O": 1,
+          "H": 2
+        },
+        "published_inchi_literals": [
+          "InChI=1S/H2O/h1H2",
+          "InChI=1S/H2O/h1H2"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000004.xyz",
+        "sha256": "7fd7f0a775743fb2cd67a090686abc7f38ac1434ce9934b35fdae93061dd23d5",
+        "atom_counts": {
+          "C": 2,
+          "H": 2
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H2/c1-2/h1-2H",
+          "InChI=1S/C2H2/c1-2/h1-2H"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000005.xyz",
+        "sha256": "ca02de71aa57ed315bff88753130cdb5023917f8be61f249a8bc634f3062a4e1",
+        "atom_counts": {
+          "C": 1,
+          "N": 1,
+          "H": 1
+        },
+        "published_inchi_literals": [
+          "InChI=1S/CHN/c1-2/h1H",
+          "InChI=1S/CHN/c1-2/h1H"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000006.xyz",
+        "sha256": "ceb4be421750eb7f9356cd0fe20a050384032d7806be3eec66bb3f375e4fa913",
+        "atom_counts": {
+          "C": 1,
+          "O": 1,
+          "H": 2
+        },
+        "published_inchi_literals": [
+          "InChI=1S/CH2O/c1-2/h1H2",
+          "InChI=1S/CH2O/c1-2/h1H2"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000007.xyz",
+        "sha256": "714a5075119f4e7aa431beffefe008b5552c93d342953eeb2051fa18ce1a1f34",
+        "atom_counts": {
+          "C": 2,
+          "H": 6
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H6/c1-2/h1-2H3",
+          "InChI=1S/C2H6/c1-2/h1-2H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000008.xyz",
+        "sha256": "b73436cf3480e3b95fa1d503f26100f73106acb0885a3d0b995d38439e00af16",
+        "atom_counts": {
+          "C": 1,
+          "O": 1,
+          "H": 4
+        },
+        "published_inchi_literals": [
+          "InChI=1S/CH4O/c1-2/h2H,1H3",
+          "InChI=1S/CH4O/c1-2/h2H,1H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000009.xyz",
+        "sha256": "1844fc7b12188828c74dca76924992856e266d4fb715505b182809ec61bec8f0",
+        "atom_counts": {
+          "C": 3,
+          "H": 4
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C3H4/c1-3-2/h1H,2H3",
+          "InChI=1S/C3H4/c1-3-2/h1H,2H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000010.xyz",
+        "sha256": "0dbc9d6816a38ef69f6fba7756d8629246275558a73f872580e1258b497aff84",
+        "atom_counts": {
+          "C": 2,
+          "N": 1,
+          "H": 3
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H3N/c1-2-3/h1H3",
+          "InChI=1S/C2H3N/c1-2-3/h1H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000011.xyz",
+        "sha256": "26f69ba245af4fd3ac3ccbb6dce267202dd95c5cd9bb1c925bb9a292c4da85e9",
+        "atom_counts": {
+          "C": 2,
+          "O": 1,
+          "H": 4
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H4O/c1-2-3/h2H,1H3",
+          "InChI=1S/C2H4O/c1-2-3/h2H,1H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000012.xyz",
+        "sha256": "da6a4b6d4abdfc06571fab435cd5479e6d14354a51a5318b567e9ffed0e950e7",
+        "atom_counts": {
+          "N": 1,
+          "C": 1,
+          "O": 1,
+          "H": 3
+        },
+        "published_inchi_literals": [
+          "InChI=1S/CH3NO/c2-1-3/h1H,(H2,2,3)",
+          "InChI=1S/CH3NO/c2-1-3/h1H,(H2,2,3)"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000013.xyz",
+        "sha256": "e595194a8dff78a3e2ce720046c7bb76946ecf881e33667bef7902b01990691b",
+        "atom_counts": {
+          "C": 3,
+          "H": 8
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C3H8/c1-3-2/h3H2,1-2H3",
+          "InChI=1S/C3H8/c1-3-2/h3H2,1-2H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000014.xyz",
+        "sha256": "a309736aa50a6b2f5b84e0f2cac05d0ec6255a6f9d66b2879447e580869ad8ee",
+        "atom_counts": {
+          "C": 2,
+          "O": 1,
+          "H": 6
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
+          "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000015.xyz",
+        "sha256": "f0e410db1a87853801b8b80c077591b7415cdbdbb6845abd9b54aa2de8138738",
+        "atom_counts": {
+          "C": 2,
+          "O": 1,
+          "H": 6
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H6O/c1-3-2/h1-2H3",
+          "InChI=1S/C2H6O/c1-3-2/h1-2H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000016.xyz",
+        "sha256": "d1aed8246b8db0c67b77be637bf163ddf402b86c6e956277091fd61e70fdf757",
+        "atom_counts": {
+          "C": 3,
+          "H": 6
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C3H6/c1-2-3-1/h1-3H2",
+          "InChI=1S/C3H6/c1-2-3-1/h1-3H2"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000017.xyz",
+        "sha256": "586ea577bf43580655ca1314055fbfa72377ab6a6b6953f2bbf886431e91b6e6",
+        "atom_counts": {
+          "C": 2,
+          "O": 1,
+          "H": 4
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H4O/c1-2-3-1/h1-2H2",
+          "InChI=1S/C2H4O/c1-2-3-1/h1-2H2"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000018.xyz",
+        "sha256": "5b6831c3073a9f4f4417127e2a16b8c48a43c0e1b82f65e8519db6bd26091a11",
+        "atom_counts": {
+          "C": 3,
+          "O": 1,
+          "H": 6
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C3H6O/c1-3(2)4/h1-2H3",
+          "InChI=1S/C3H6O/c1-3(2)4/h1-2H3"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000019.xyz",
+        "sha256": "877f423a3840e13302649141dabdaab623e3cf2c4a753af096b5f1aff483cb0c",
+        "atom_counts": {
+          "C": 2,
+          "N": 1,
+          "O": 1,
+          "H": 5
+        },
+        "published_inchi_literals": [
+          "InChI=1S/C2H5NO/c1-2(3)4/h1H3,(H2,3,4)",
+          "InChI=1S/C2H5NO/c1-2(3)4/h1H3,(H2,3,4)"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      },
+      {
+        "member": "dsgdb9nsd_000020.xyz",
+        "sha256": "010ca1379eff8882c9e5bc827019e3613cc22dce9b0a0d612399843880d5a07c",
+        "atom_counts": {
+          "N": 2,
+          "C": 1,
+          "O": 1,
+          "H": 4
+        },
+        "published_inchi_literals": [
+          "InChI=1S/CH4N2O/c2-1(3)4/h(H4,2,3,4)",
+          "InChI=1S/CH4N2O/c2-1(3)4/h(H4,2,3,4)"
+        ],
+        "partition_constraint": "development_or_excluded; never called an uninspected held-out family"
+      }
+    ]
+  },
+  "candidate_parents": [
+    {
+      "parent_id": "water",
+      "formula": "H2O",
+      "family_id": "oxygen_hydrides",
+      "proposed_partition": "development",
+      "requested_isotope_compositions_only": [
+        [
+          16,
+          1,
+          1
+        ],
+        [
+          16,
+          2,
+          2
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "formaldehyde",
+      "formula": "CH2O",
+      "family_id": "carbonyls",
+      "proposed_partition": "development",
+      "requested_isotope_compositions_only": [
+        [
+          12,
+          16,
+          1,
+          1
+        ],
+        [
+          13,
+          16,
+          1,
+          1
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "hydrogen-cyanide",
+      "formula": "HCN",
+      "family_id": "nitriles",
+      "proposed_partition": "development",
+      "requested_isotope_compositions_only": [
+        [
+          1,
+          12,
+          14
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "acetonitrile",
+      "formula": "CH3CN",
+      "family_id": "nitriles",
+      "proposed_partition": "development",
+      "requested_isotope_compositions_only": [
+        [
+          12,
+          12,
+          14,
+          1,
+          1,
+          1
+        ],
+        [
+          13,
+          12,
+          14,
+          1,
+          1,
+          1
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "methyl-fluoride",
+      "formula": "CH3F",
+      "family_id": "carbon_fluorides",
+      "proposed_partition": "calibration",
+      "requested_isotope_compositions_only": [
+        [
+          12,
+          19,
+          1,
+          1,
+          1
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "difluoromethane",
+      "formula": "CH2F2",
+      "family_id": "carbon_fluorides",
+      "proposed_partition": "calibration",
+      "requested_isotope_compositions_only": [
+        [
+          12,
+          19,
+          19,
+          1,
+          1
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "fluoroform",
+      "formula": "CHF3",
+      "family_id": "carbon_fluorides",
+      "proposed_partition": "calibration",
+      "requested_isotope_compositions_only": [
+        [
+          12,
+          19,
+          19,
+          19,
+          1
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "nitrous-oxide",
+      "formula": "N2O",
+      "family_id": "nitrogen_oxides",
+      "proposed_partition": "prospective_held_out",
+      "requested_isotope_compositions_only": [
+        [
+          14,
+          14,
+          16
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "nitrogen-trifluoride",
+      "formula": "NF3",
+      "family_id": "heteroatomic_fluorides",
+      "proposed_partition": "prospective_held_out",
+      "requested_isotope_compositions_only": [
+        [
+          14,
+          19,
+          19,
+          19
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    },
+    {
+      "parent_id": "oxygen-difluoride",
+      "formula": "OF2",
+      "family_id": "heteroatomic_fluorides",
+      "proposed_partition": "prospective_held_out",
+      "requested_isotope_compositions_only": [
+        [
+          16,
+          19,
+          19
+        ]
+      ],
+      "source_verified_isotope_identity": false,
+      "primary_reference_status": "not_qualified",
+      "conformer_state_geometry_and_atom_mapping": "must be pinned from authenticated source before registration",
+      "eligibility": "conditional_on_primary_source_and_pinned_physics_diagnostics"
+    }
+  ],
+  "excluded_or_separate_challenges": [
+    {
+      "parent": "ammonia",
+      "reason": "Inspected historical QCArchive/NH3 and QM9 source; inversion/hyperfine/tunneling require separately qualified model; development component consistency only"
+    },
+    {
+      "parent": "methanol",
+      "reason": "Inspected QM9 original source; internal rotation outside semirigid accuracy gate"
+    },
+    {
+      "parent": "water-dimer",
+      "reason": "Large-amplitude/tunneling outside this semirigid gate; same water relatives cannot enter independent held-out group"
+    },
+    {
+      "parent": "hydrogen-fluoride-dimer",
+      "reason": "Weak complex and tunneling need separate profile; unsupported model behavior may be tested without a prediction"
+    },
+    {
+      "parent": "carbon-monoxide",
+      "reason": "Retained NIST-authored line candidates and source searches make it a development source/convention case; 11 incomplete lines are not benchmark-eligible measurements"
+    },
+    {
+      "parent": "ozone",
+      "reason": "Useful later multireference/solver challenge; not an automatic valid single-reference semirigid accuracy case"
+    },
+    {
+      "parent": "2-chloroethanol",
+      "reason": "Parent reports a newly acquired Bunn 2026 primary source; inspected chlorinated-alcohol family is development only. Not integrated as source-qualified here because complete provenance handoff has not yet been read."
+    }
+  ],
+  "proposed_domain": {
+    "phase": "isolated gas phase",
+    "charge": 0,
+    "electronic_state": "closed-shell ground singlet, explicitly source-confirmed before inclusion",
+    "elements": [
+      "H",
+      "C",
+      "N",
+      "O",
+      "F"
+    ],
+    "nuclear_motion": "nonlinear semirigid or separately supported linear rotor; ground vibrational state; no unqualified internal-rotation, inversion, tunneling or nonadiabatic branch",
+    "candidate_band_MHz": [
+      18000,
+      110000
+    ],
+    "max_J_upper_or_lower": 10,
+    "max_Ka_upper_or_lower_for_asymmetric_rotors": 6,
+    "band_is_a_proposed_use_case_not_claimed_user_instrument": true,
+    "measured_lines_only": true,
+    "hyperfine": "resolved measured components only with qualified hyperfine Hamiltonian; otherwise exclude rather than invent a hyperfine-free centroid",
+    "nuclear_spin": "isotope-dependent spin statistical weights and allowed symmetry sectors must be explicit; no ortho/para population inference",
+    "line_selection": "Freeze all eligible source lines in band and quantum-number domain; if over 20, take the first 20 by (frequency, canonical upper/lower quantum tuple, source id) before opening predictions. Publish excluded lines and retained coverage. No residual-dependent line selection."
+  },
+  "products": {
+    "A": "absolute de novo values; no experimental constants, geometry anchors or line shifts used in that prediction",
+    "B": "separately named anchored or semi-experimental inference; all anchor data and propagated covariance identified; anchor observations excluded from independent testing",
+    "C": "isotope/conformer/state differences scored separately with source covariance where available; theory-only and anchored origins distinct",
+    "current_HF_water_scope": "equilibrium B_e and harmonic omega only; no typed B0 and no experimental B0 qualification"
+  },
+  "stages": [
+    {
+      "id": "P0",
+      "name": "source integrity and component consistency",
+      "ready_work": "Replay existing genuinely acquired packets and real bounded native examples; pin complete new-run conventions; descriptive residuals only where historical conventions are missing",
+      "numeric_targets": "SRS inertia relative 1e-10 for well-conditioned same-input numerical kernel; exact source bytes/tokens; displayed historical energy residual without fabricated acceptance threshold",
+      "pros": "Immediately runnable, catches unit/parser/component errors",
+      "cons": "Cannot establish physical spectroscopy accuracy",
+      "risks": "Small residual may be mistaken for exact method identity or uncertainty"
+    },
+    {
+      "id": "P1",
+      "name": "development-only convergence and cost pilot",
+      "ready_work": "Once exact energy/derivative tuple is genuinely implemented and verified, run water/formaldehyde plus explicitly supported development cases; record tightened tolerances, grids, basis/nuclear-motion sensitivity and true budgets",
+      "numeric_targets": "Candidate 1 kHz maximum line change under each final numerical tightening, derived as 1% of the proposed 100 kHz resolution; source and physics prerequisites apply",
+      "pros": "Separates solver/discretization error from model error and exposes cost",
+      "cons": "Higher derivatives can require thousands of primitive calls; pilot cannot validate held-out accuracy",
+      "risks": "Sensitivity plateaus do not prove unbiased physical model or complete resonant VPT2"
+    },
+    {
+      "id": "P2",
+      "name": "bounded prospective family-held-out physical comparison",
+      "ready_work": "Curate primary measurement sources; freeze named recipes and v2 split; seal predictions before held-out scoring; score all intended cases and failures without coverage certification",
+      "numeric_targets": "Proposed 100 kHz line-position use-case target with measured source uncertainty at most 10 kHz and numerical variation at most 1 kHz; all assumptions must be accepted/frozen before evaluation",
+      "pros": "Defensible named-domain error assessment and reproducible publication record",
+      "cons": "Initial one calibration family and two held-out families are much too small for calibrated transfer coverage",
+      "risks": "Target may be unattainable by de novo profile; only prospective frozen amendments may alter it; matching frequency alone is insufficient identification"
+    },
+    {
+      "id": "P3",
+      "name": "identification and uncertainty qualification",
+      "ready_work": "Separate preregistered real spectral challenge set with competitors, negative controls, instrument response/population metadata and adequate independent groups; all physics stages must genuinely exist",
+      "numeric_targets": "Target 95% family-level coverage is a candidate nominal level only. Initial campaign produces no finite conformal interval or scientific coverage claim. Frequency tolerance derives from instrument/linewidth and false-assignment study",
+      "pros": "Tests the practical identification claim and uncertainty instead of constants alone",
+      "cons": "Substantially more primary-source and independent group curation; not scheduled by existing resource budget",
+      "risks": "Spectral confusion, group dependence and chemical transfer invalidate unsupported calibrated claims"
+    }
+  ],
+  "candidate_targets": {
+    "numerical_kernel_rotational_relative": {
+      "value": 1e-10,
+      "basis": "existing SRS V-ROT; same masses/geometry/units, well-conditioned inertia; not experimental accuracy"
+    },
+    "source_exactness": {
+      "fabricated_or_missing_replacements_allowed": 0,
+      "source_digest_and_numeric_token_match": "exact"
+    },
+    "instrument_resolution_assumption": {
+      "value_kHz": 100,
+      "status": "hypothetical instrument use-case; no hardware asserted",
+      "meaning": "absolute line-frequency resolution after stated channelization, instrumental calibration, line-centre extraction and Doppler/pressure treatment"
+    },
+    "experimental_standard_uncertainty_eligibility_kHz": {
+      "maximum": 10,
+      "basis": "10% of proposed use-case resolution",
+      "requires_confirmed_standard_uncertainty": true,
+      "printed_parentheses_not_automatically_standard": true
+    },
+    "numerical_tightening_line_change_kHz": {
+      "maximum": 1,
+      "basis": "1% of proposed resolution; budget allocation rather than published universal molecular accuracy"
+    },
+    "physical_line_position_absolute_residual_kHz": {
+      "maximum": 100,
+      "basis": "proposed ability to place a line within one 100 kHz resolution element; all frozen selected measured lines, no average-error escape",
+      "status": "not_accepted; no claim achievable",
+      "cannot_enable_identification_by_itself": true
+    },
+    "constant_component_MHz_targets": {
+      "A": null,
+      "B": null,
+      "C": null,
+      "derivation": "Compute sensitivities of the qualified selected Hamiltonian to A/B/C, distortion and hyperfine parameters. Fix per-axis engineering allocations through |J delta p| in the specified line domain before held-out evaluation; do not infer a universal percent or ignore correlated constants."
+    },
+    "relative_intensity_target": null,
+    "relative_intensity_reason": "No real line-intensity calibration, temperatures, spin populations or response uncertainty acquired. Dipole-derived catalogue intensities are predictions, not primary measurements.",
+    "discovery_search_window": null,
+    "discovery_search_window_reason": "Must be justified prospectively by measured spectral density/competitor frequencies and development results; no invented universal +/- MHz window"
+  },
+  "convergence_protocol": {
+    "pin_before_run": [
+      "electronic equation and GKS orbitals",
+      "basis and exact primitive/contraction bytes",
+      "auxiliary bases/integral approximation",
+      "spin/frozen-core/relativistic treatment",
+      "dispersion kernel/parameters/charge model/ATM and derivatives",
+      "engine dependency image/source digests",
+      "atomic isotope masses and constants release",
+      "SCF stability and convergence tolerances",
+      "orientation/permutation/Eckart frame",
+      "normal-mode labels and degeneracy",
+      "force-field displacement stencil and actual step sizes",
+      "resonance thresholds and actual diagonalization space",
+      "Watson reduction/axis/centrifugal-distortion/hyperfine treatment"
+    ],
+    "derivative_validation": "Analytic/response derivatives require independent matched finite differences at several actual step sizes, translational/rotational covariance and actual solver-state continuity; calibrate truncation versus roundoff/convergence on development cases. Never use response-incomplete sums as exact revDSD.",
+    "vibrational_sign": "delta_B_vib = B0 - Be; B0 prediction adds actual qualified correction; Be_SE = B0_exp - delta_B_vib_calc is separately anchored Product B",
+    "numerical_sensitivity_is_predictive_uncertainty": false,
+    "same_model_repeat": "Tighten SCF/grid/geometry/resonance/basis-discretization controls separately as permitted by pinned model; a basis or electronic model change is declared model sensitivity, not a pure solver convergence check",
+    "missing_property": "Plan identifiable additional actual calculation with cost and typed provenance; retain earlier valid stages, no B0 or fundamental frequency substitute"
+  },
+  "source_policies": {
+    "QM9": "Original CC0 source and computational metadata are usable as theory-source/parser/development evidence. Unknown B3LYP variant/grid/mass/engine/version prevent an exact same-model numerical acceptance threshold. Harmonic omega is not an observed fundamental; U0 is not pure electronic energy. All 20 retained members and related families are inspected development/excluded data.",
+    "Piccardo2015_secondary_B0": "Six printed secondary experimental constants are descriptive/source extraction evidence only until primary article identity, isotope/state/Hamiltonian and uncertainty convention are reconciled. Current uncertainty null. Same source/family dependence preserved.",
+    "primary_experiment": "Require authentic original measured/fitted-data bytes and explicit molecule/isotope/state/units/assignment/Hamiltonian origin. Resolve original bibliography and fitted covariance/confidence. Distinguish fitted constants from raw measured lines and fit-predicted catalogue entries.",
+    "NIST_WebBook_CCCBDB": "Agent retrieves original entries and cited papers after actual access succeeds; electronic/rovibrational/statistical convention and reported reference version pinned; thermochemical values do not validate line identification.",
+    "JPL_CDMS_HITRAN": "Catalogue predictions and data reformatting do not become independent observations. Follow measurement bibliography, reproduce quantum-number/uncertainty-code interpretation, keep release and permissions; primary fitted lines and anchor overlap determine eligibility.",
+    "QCArchive": "Live record provenance/full engine settings/basis/geometry required for exact computational comparison; historical captured NH3 remains component evidence only. QCSchema is interchange format, not source authorship/database or accuracy certificate."
+  },
+  "blinding_and_grouping": {
+    "unit": "chemical family, joined conservatively by source-dependence graph; never line/axis/isotopologue count",
+    "all_related_states_and_isotopes_same_partition": true,
+    "carbonyl_rule": "All inspected QM9 carbonyl classes and any declared related carbonyl class remain development/excluded; ketene is not silently retained as held-out after a broad carbonyl grouping",
+    "fluoride_rule": "Carbon fluorides and heteroatomic fluorides are proposed separate chemical families, not a verified exchangeable population. If scientific review merges them into one broader fluoride family, the complete joined family is calibration/development and held-out availability shrinks; never split it to preserve counts.",
+    "source_rule": "Shared primary fit, shared measured lines, shared artifacts and transitive source bindings remain grouped. Copying/repacking one dataset cannot create independent groups. Separate underlying primary experiments may be documented honestly, never inferred from different file names.",
+    "prediction_seal": "Immutable prediction and raw-artifact digests before scoring; source curation may see references, prediction tuning may not inspect prospective held-out residuals. No claim of enforced access isolation is made by this proposal alone.",
+    "inspected_case_rule": "Inspected physical held-out values/residuals move affected complete family to development in a versioned future campaign; maintain original trial outcome rather than erasing it"
+  },
+  "metrics_and_failure_policy": {
+    "residual": "prediction minus reference; relative residual divided by absolute(reference) for the descriptive comparison client. Use the campaign implementation documented signed denominator consistently; values here are positive constants/frequencies.",
+    "reports": [
+      "all per-datum signed/absolute residuals",
+      "per-parent equal-weight MAE/RMSE per observable",
+      "per-family equal-weight summaries",
+      "maximum absolute line residual",
+      "intended/executed/failed/blocked/excluded parent and family counts",
+      "band/J/Ka/state coverage",
+      "observed source uncertainty and covariance status",
+      "actual wall/CPU/RSS/scratch and failed attempts"
+    ],
+    "failures": "All preregistered intended eligible cases stay in the denominator; missing physics is failed/blocked/incomplete, never zero residual or pass. Exclusions depend only on frozen identity/source/physics criteria, never error magnitude.",
+    "unknown_uncertainty": "Keep null; report unweighted descriptive values where identity permits, but no standardized score, invented covariance or confidence interval"
+  },
+  "finite_sample_limits": {
+    "nominal_coverage_candidate": 0.95,
+    "split_conformal_rule": "k = ceil((n + 1)*0.95), kth exact family-group score; if k>n, finite threshold unavailable",
+    "minimum_calibration_groups_for_finite_order_statistic": 19,
+    "minimum_is_not_scientific_coverage_qualification": true,
+    "initial_candidate_calibration_family_count_before_source_merging": 1,
+    "initial_candidate_held_out_family_count_before_source_merging": 2,
+    "initial_campaign_finite_95pct_interval_available": false,
+    "exchangeability": "Calibration carbon-fluoride family versus different nitrogen-oxide/heterofluoride families is not an established exchangeable sample; no theorem transfers a finite order statistic to this chemistry automatically.",
+    "empirical_illustration": {
+      "independent_held_out_groups_with_zero_misses": 59,
+      "one_sided_confidence": 0.95,
+      "binomial_lower_coverage_bound": 0.950492390111773,
+      "conditions": "All59 successes of prespecified iid/exchangeable Bernoulli group coverage; illustrates scale only, not a sufficiency rule or assertion such groups exist; selection/dependence/transfer invalidate that interpretation"
+    }
+  },
+  "resource_design": {
+    "new_scientific_allocation_authorized_or_reserved": false,
+    "canonical_calculations": "Named qualified GitHub Actions worker image; development cloud computations do not certify hosted deployment",
+    "canonical_interface": "Codespaces; student pilot remains on hold",
+    "existing_teaching_proposal_not_accepted_budget": {
+      "max_jobs": 64,
+      "max_cores_per_job": 2,
+      "max_memory_MB": 4096,
+      "max_wall_seconds_per_job": 1800,
+      "max_total_cpu_seconds": 230400
+    },
+    "observed_component_runtime_only": {
+      "prior_NH3_corrected_attempt_wall_seconds": 86.067,
+      "prior_sampled_RSS_bytes": 782512128,
+      "scope": "actual earlier acquisition helper; not a promise for newly packaged helper/other molecules/platforms"
+    },
+    "existing_example_limits_not_future_allocations": {
+      "water_wall_seconds": 120,
+      "water_cores": 1,
+      "water_memory_MB": 1024,
+      "NH3_helper_wall_seconds": 300,
+      "NH3_helper_cores": 1,
+      "NH3_helper_sampled_RSS_MiB": 1024,
+      "NH3_minimum_free_scratch_MiB": 256
+    },
+    "QFF_cost_model": {
+      "nonlinear_mode_count": "m=3N-6; linear m=3N-5",
+      "cartesian_dimension": "d=3N",
+      "central_h_and_h_over_2_cartesian_Hessian_calls": "1+4m, for a Hessian-based cubic/semi-diagonal quartic pilot; assumes common equilibrium caching and a correctly validated normal-coordinate formulation",
+      "when_no_analytic_Hessian": "A central numerical Hessian costs approximately 1+2d gradients before state/step validation and caching details. If gradients are also energy differences, a conservative uncached plan is (1+4m)*(1+2d)^2 energy calls; exact executed DAG differs and must be counted.",
+      "water_uncached_nested_energy_call_bound_example": 4693,
+      "formaldehyde_uncached_nested_energy_call_bound_example": 15625,
+      "bound_is_an_executed_count": false,
+      "excluded_costs": [
+        "geometry optimization",
+        "independent derivative stencil checks",
+        "resonance/dipole derivatives",
+        "state failures/restarts",
+        "extra basis/core/relativistic calculations",
+        "finite-field properties",
+        "complete arbitrary quartic force field"
+      ]
+    },
+    "actual_next_pilot_record": "Measure cost per real energy/gradient/Hessian, peak RSS, scratch and convergence failures on development parents. Compile a finite actual DAG with maximum primitive calls, concurrency, CPU-seconds, job walltime and scratch before any force-field campaign. Budget exhaustion retains stages and reports incomplete."
+  },
+  "agent_owned_next_work": [
+    "Resolve primary measurement articles printed by Piccardo SI: Matsushima et al., J Mol Struct 352 371-378 (1995); Brunken et al., PCCP 5 1515-1518 (2003). Do not invent missing DOIs/titles.",
+    "After actual policy activation, crawl NIST/QCArchive/JPL and primary bibliography; independently validate exact source units/isotopes/state/covariance and lawful redistribution.",
+    "Prepare actual per-reference metadata/extraction review and source-dependence graph, proposed independent new family sources and v2 amendment.",
+    "Reconcile original revDSD-D4 electronic/GKS definitions from primary source; implement and independently validate energy then full response derivatives then nuclear-motion/Hamiltonian stages.",
+    "Run development-only genuine convergence/cost pilot, calculate Hamiltonian sensitivity-based targets and produce budgeted finite campaign DAG.",
+    "Create immutable registered design artifact only after concrete target/profile/source acceptance exists; execute prospective blind campaign, preserve failures and score without global SRS promotion."
+  ],
+  "external_prerequisites_not_research_chore_transfer": [
+    "Environment owner publishes saved network draft; actual denied-host requests retried only after meaningful policy change. A saved draft is not an active runtime rule.",
+    "If a specific primary item remains inaccessible by all lawful public/library routes, an owner supplies existing institutional/lawful access or approves an alternative. No blanket request for a human to find literature.",
+    "External acceptance/review authority may sign only their own actual review of the concrete frozen proposal; agents prepare the proposal and all source/coding work. This file supplies no invented signature or registration.",
+    "A genuinely new measurement is human/laboratory work only if no suitable published value exists and that new experimental scope is actually selected; not a present requirement to use acquired public values."
+  ],
+  "actual_observed_network_denials": [
+    "webbook.nist.gov",
+    "cccbdb.nist.gov",
+    "api.qcarchive.molssi.org",
+    "api.crossref.org",
+    "arxiv.org",
+    "hitran.org",
+    "www.nature.com",
+    "www.ebi.ac.uk",
+    "spec.jpl.nasa.gov"
+  ],
+  "network_limit": "Actual recorded proxy CONNECT403 results block those direct sources in this current runtime; no bypass, secret request or claim every cited provider offers a free numerical API. Accessible publisher/authors repositories remain legitimate alternative acquisition routes."
+}

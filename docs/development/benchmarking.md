@@ -5,7 +5,10 @@ accepted design, prediction sealing, numerical scoring, and conservative grouped
 split-conformal diagnostics. It does not supply molecular observations, establish
 reference authorship, choose an accuracy target, or qualify a scientific recipe.
 The [existing proposal](../../benchmarks/rotational-identification/preregistration.json)
-remains proposed, unaccepted, and without curated reference values.
+remains proposed, unaccepted, and without independently curated observations.
+Actual CC0 QM9 source records and a historical QCArchive component example now
+support a separate [descriptive published-value product](published_reference_product.md).
+Its automated review does not supply external acceptance or human attestation.
 
 The implemented sequence is:
 
@@ -62,7 +65,9 @@ operation, not independent accuracy qualification.
 `ReferenceManifest` binds every `ReferenceDatum` to an inventoried raw source
 artifact. Each source requires a citation, DOI or HTTPS locator, exact version,
 retrieval time, source-byte digest, reuse permission, and measured/fitted/
-semi-experimental origin. Each datum records its location within that source,
+semi-experimental or explicitly published-theoretical origin. A theoretical datum
+requires explicit method, basis, geometry, engine and independence provenance,
+with absent original fields declared unavailable. Each datum records its location within that source,
 exact units, parent/family identity, canonical atom order and explicit isotope
 numbers, charge/multiplicity, conformer, electronic/vibrational/tunneling state,
 Hamiltonian convention, observable and component.
@@ -126,12 +131,17 @@ isotope numbers, charge and multiplicity against the original request. Chemical
 labels must already be sealed in `request.source_provenance.benchmark_identity`;
 the importer cannot establish a conformer's scientific identity from a label.
 
-The current scalar extractors support total electronic energy and each defined
-equilibrium rotational constant. Available observables require retained native
-engine evidence. Stationary/nonminimum constants cannot be relabeled `Be`.
+The scalar extractors support total electronic energy, each defined equilibrium
+rotational constant, genuine harmonic mode values, explicitly bounded
+`nonresonant_Watson_model_B0`, and separately named rigid-rotor transition/relative
+intensity quantities. Mode index/assignment, eigenstate labels, temperature,
+normalization, nuclear-spin convention and model limitations accompany the
+corresponding prediction. Available observables require retained native engine
+evidence. Stationary/nonminimum constants cannot be relabeled `Be`.
 An undefined linear-rotor axis or unavailable `B0` remains an explicit absence.
-Available ground-state constants, measured-transition assignments and relative
-intensity products require their own validated extractors before import.
+General identification catalogs and a conversion from model constants to fitted
+experimental Hamiltonian constants remain unsupported. Importing a bounded
+model result does not qualify that model for experimental identification.
 
 `seal_predictions` accepts one actual verified bundle for every selected
 non-anchor reference. The original request must contain
@@ -215,9 +225,16 @@ reference dataset, duplicate manifest members and malformed directly constructed
 reference objects. A genuine bundle corruption check and a static guard-position
 check verify failure handling; no timed concurrent-mutation experiment is claimed.
 
-No experimental benchmark is recorded as completed by this implementation. An
-attempt to retrieve the authoritative NIST WebBook hydrogen reference was denied
-by the environment's network proxy. Reference curation therefore remains pending.
+No experimental benchmark is recorded as completed by this implementation.
+Actual QM9 publisher data have been obtained, source-bound and compared with a
+genuine HF/STO-3G calculation. Those B3LYP source values support a descriptive
+cross-method comparison. The reviewed historical MolSSI notebook supplies a
+separate genuine fixed-geometry B2PLYP component experiment. Neither operation
+accepts the rotational campaign. Direct NIST WebBook/CCCBDB and live QCArchive
+origin access was denied by the environment's proxy; independently hosted
+NIST-authored CO candidates remain ineligible pending their primary measurement,
+state, uncertainty and reuse provenance. Independent campaign curation and
+acceptance remain pending.
 To qualify a campaign, complete external reference review and target acceptance,
 freeze a scientifically defensible design, execute the exact qualified recipes,
 seal authentic predictions, run scoring, and independently review all failures,

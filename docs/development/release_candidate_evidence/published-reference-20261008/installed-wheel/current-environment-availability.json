@@ -1,0 +1,18 @@
+{
+  "cleanup_receipt_sha256": "103d151549afab286ad71b91e1f8c8d7153204b9f9f1274ec36a3fec662f9760",
+  "earlier_blocked_attempt_retained": true,
+  "future_python310_validation_requires_recreation": true,
+  "historical_public_receipt_summary_sha256": "3c389e34586d8c124684d202dd55aa07ac60f16cdec27b592fd542046f224a59",
+  "historical_python310_installed_wheel_passes_retained": true,
+  "historical_python310_results_are_not_a_claim_of_current_installation": true,
+  "immutable_wheel_sha256": "6029bb8e424aff5f998e54072c0cf4dff877feec3c714b80cfc9f9f28defee52",
+  "new_tests_or_scientific_qualification_performed_by_retirement": false,
+  "observed_at": "2026-10-08T19:35:15.367684+00:00",
+  "opaque_root_daemons_fully_inspected": false,
+  "process_non_use_scope": "Closed task-owned core child/supervisor and all readable UID1000 live processes; opaque root Docker daemons were explicitly outside universal-inspection claims.",
+  "python310_validation_environment_retired": true,
+  "python312_core_environment_retired": false,
+  "python312_core_interpreter_present_observed": true,
+  "schema_version": "cochem.validation-environment-current-availability/1",
+  "scientific_originals_retained": true
+}

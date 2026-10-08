@@ -1,0 +1,22 @@
+{
+  "actual_strict_import_completed": true,
+  "all_datum_standard_uncertainty_none": true,
+  "all_original_member_replay_byte_identical": true,
+  "file_index_sha256": "9b188fbff90ba17142db5ad27a2129fb642d85a5e8d49b019b098adf0ccc63af",
+  "human_reviewed": false,
+  "independent_accuracy_campaign_complete": false,
+  "native_calculation_performed": false,
+  "original_private_receipt_sha256": "2cc3aee9a0acd0823ef147d5dbfc8eb1081c7c9938e23541b9c8f642ef8128fb",
+  "packet_bytes": 4071098,
+  "packet_files": 18,
+  "private_packet_path_omitted": true,
+  "reference_manifest_sha256": "e964aec0c4e2c91047a7204c1c8b18206ff7e1eded7e519f95360e9acf1ab2e0",
+  "review_kind": "automated_extraction",
+  "review_sha256": "60a2439932e7627c759f5207e2892189ee0b63f5ac3b548e9cdd382b1b0194e9",
+  "scientific_qualification": false,
+  "strict_importer_unchanged": true,
+  "verified_at_utc": "2026-10-08T20:00:54.427811+00:00",
+  "verified_datums": 6,
+  "verified_original_context_sources": 1,
+  "verified_original_numeric_sources": 2
+}

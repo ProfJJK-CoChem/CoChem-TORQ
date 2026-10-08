@@ -1,0 +1,32 @@
+{
+  "source_pdf": {
+    "name": "semi-experimental-21-molecules.pdf",
+    "url": "https://ndownloader.figshare.com/files/3820969",
+    "retrieved_at_utc": "2026-10-08T19:03:57.519652+00:00",
+    "reuse_permission": "unknown; inspect authoritative source",
+    "no_human_review_asserted": true,
+    "status": "retrieved",
+    "http_status": 200,
+    "sha256": "e59b65d62b7fd525cc1d143d53ef4916afccbbcdaf80114d20b612e8e62651ce",
+    "bytes": 731705,
+    "media_type": "application/pdf",
+    "final_url_without_query": "https://s3-eu-west-1.amazonaws.com/pstorage-acs-6854636/3820969/jp511432m_si_001.pdf"
+  },
+  "publisher_metadata": {
+    "name": "article-2186803.json",
+    "url": "https://api.figshare.com/v2/articles/2186803",
+    "retrieved_at_utc": "2026-10-08T19:03:46.818011+00:00",
+    "reuse_permission": "unknown; inspect authoritative source",
+    "no_human_review_asserted": true,
+    "status": "retrieved",
+    "http_status": 200,
+    "sha256": "bd5a8e2f2d4ba19617f32b458ee0cffa0735c4ad373223e9a5882e4d453552d5",
+    "bytes": 6993,
+    "media_type": "application/json",
+    "final_url_without_query": "https://api.figshare.com/v2/articles/2186803"
+  },
+  "publisher_md5_matches_original_bytes": true,
+  "actual_pdf_text_replay_byte_identical": true,
+  "requests_in_bounded_acquisition": 15,
+  "total_network_bytes_received_in_bounded_acquisition": 885613
+}

@@ -28,7 +28,10 @@ from cochem_torq.benchmarking import (
     ReferenceArtifact,
     ReferenceDatum,
     ReferenceManifest,
+    RigidRotorSelection,
+    RotationalLineSelection,
     SelectedReference,
+    TheoreticalReferenceProvenance,
     VerifiedReferences,
     _metrics,
     _read_frozen,
@@ -63,6 +66,192 @@ def mathematical_identity(**changes):
     }
     fields.update(changes)
     return ObservableIdentity(**fields)
+
+
+def mathematical_theoretical_provenance(**changes):
+    fields = {
+        "method": "mathematical metadata contract; not a published method record",
+        "basis": "mathematical metadata contract; not a published basis record",
+        "method_details": "No physical or independently validated reference asserted.",
+        "geometry_description": "Mathematical context-only geometry declaration.",
+        "geometry_source_locator": "mathematical contract; no experimental source",
+        "engine_information_status": "not_reported",
+        "independence_status": "not_established",
+        "independence_review": "Mathematical contract; no independence asserted.",
+        "quantity_convention": "Mathematical schema example only.",
+    }
+    fields.update(changes)
+    return TheoreticalReferenceProvenance(**fields)
+
+
+def mathematical_reference_manifest(identity, **changes):
+    """Schema-only metadata: no source acquisition, measurement or review claim."""
+    source_digest = sha256(
+        b"mathematical metadata; not a source observation"
+    ).hexdigest()
+    origin = changes.pop("origin", "published_theoretical")
+    fields = {
+        "reference_id": "mathematical-origin-contract-only",
+        "identity": identity,
+        "value": 1.0,
+        "uncertainty_status": "unavailable",
+        "covariance_status": "unavailable",
+        "source_sha256": source_digest,
+        "datum_locator": "mathematical contract; no extracted physical datum",
+        "theoretical_provenance": (
+            mathematical_theoretical_provenance()
+            if origin == "published_theoretical"
+            else None
+        ),
+    }
+    fields.update(changes)
+    source = ReferenceArtifact(
+        source_sha256=source_digest,
+        citation="Mathematical metadata only; not a scientific source citation",
+        persistent_identifier="https://example.org/mathematical-metadata-only",
+        version="mathematical schema contract",
+        retrieved_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        reuse_permission="No acquired source or reuse permission asserted",
+        origin=origin,
+    )
+    return ReferenceManifest(sources=(source,), datums=(ReferenceDatum(**fields),))
+
+
+def test_theoretical_origin_requires_per_datum_computational_context():
+    manifest = mathematical_reference_manifest(mathematical_identity())
+    assert manifest.sources[0].origin == "published_theoretical"
+    assert (
+        manifest.datums[0].theoretical_provenance.independence_status
+        == "not_established"
+    )
+    with pytest.raises(ValidationError, match="computational provenance"):
+        mathematical_reference_manifest(
+            mathematical_identity(), theoretical_provenance=None
+        )
+    with pytest.raises(ValidationError, match="observed references"):
+        mathematical_reference_manifest(
+            mathematical_identity(),
+            origin="measured",
+            theoretical_provenance=mathematical_theoretical_provenance(),
+        )
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"engine_information_status": "reported"},
+        {"engine_information_status": "partial"},
+        {"engine": "undeclared engine"},
+        {"engine_version": "undeclared version"},
+    ],
+)
+def test_missing_engine_facts_are_not_invented(changes):
+    with pytest.raises(ValidationError, match="absent engine information"):
+        mathematical_theoretical_provenance(**changes)
+
+
+def test_reported_computational_uncertainty_cannot_be_measurement_uncertainty():
+    with pytest.raises(ValidationError, match="actual origin"):
+        mathematical_reference_manifest(
+            mathematical_identity(),
+            standard_uncertainty=0.1,
+            uncertainty_status="standard_uncertainty",
+        )
+    manifest = mathematical_reference_manifest(
+        mathematical_identity(),
+        standard_uncertainty=0.1,
+        uncertainty_status="standard_uncertainty",
+        uncertainty_kind="reported_computational_standard_uncertainty",
+    )
+    assert (
+        manifest.datums[0].uncertainty_kind
+        == "reported_computational_standard_uncertainty"
+    )
+
+
+def test_harmonic_and_equilibrium_references_cannot_relabel_observed_quantities():
+    harmonic = mathematical_identity(
+        observable="harmonic_frequency",
+        component="mode:0",
+        unit="cm^-1",
+        harmonic_mode_index=0,
+        harmonic_mode_assignment="mathematical one-mode selection; not source evidence",
+    )
+    equilibrium = mathematical_identity(
+        observable="equilibrium_rotational_constant",
+        component="B",
+        unit="MHz",
+    )
+    for identity in (harmonic, equilibrium):
+        assert mathematical_reference_manifest(identity).datums[0].identity == identity
+        with pytest.raises(ValidationError, match="B0/fundamentals"):
+            mathematical_reference_manifest(identity, origin="measured")
+        assert (
+            mathematical_reference_manifest(
+                identity,
+                origin="semi_experimental",
+                correction_sources=("Mathematical correction metadata only",),
+            )
+            .sources[0]
+            .origin
+            == "semi_experimental"
+        )
+
+
+def test_harmonic_mode_requires_explicit_mapping_and_exact_index():
+    fields = dict(observable="harmonic_frequency", component="mode:0", unit="cm^-1")
+    with pytest.raises(ValidationError, match="mode index"):
+        mathematical_identity(**fields)
+    with pytest.raises(ValidationError, match="mode index"):
+        mathematical_identity(
+            **fields,
+            harmonic_mode_index=1,
+            harmonic_mode_assignment="mathematical declared assignment",
+        )
+    with pytest.raises(ValidationError, match="another observable"):
+        mathematical_identity(harmonic_mode_index=0)
+
+
+def test_screening_transition_and_intensity_conventions_are_explicit():
+    line = RotationalLineSelection(
+        upper_J=1,
+        upper_eigenstate_index=0,
+        lower_J=0,
+        lower_eigenstate_index=0,
+    )
+    selection = RigidRotorSelection(
+        transition=line,
+        constant_observable="Be",
+        temperature_kelvin=10.0,
+    )
+    fields = dict(
+        observable="rigid_rotor_transition",
+        component="frequency",
+        unit="MHz",
+        hamiltonian_convention=selection.model_identity,
+        rigid_rotor_selection=selection,
+    )
+    identity = mathematical_identity(**fields)
+    with pytest.raises(ValidationError, match="theoretical reference"):
+        mathematical_reference_manifest(identity, origin="measured")
+    with pytest.raises(ValidationError, match="normalization transition"):
+        mathematical_identity(
+            **{
+                **fields,
+                "observable": "rigid_rotor_relative_intensity",
+                "component": "relative_absorption_weight_ratio",
+                "unit": "dimensionless",
+            }
+        )
+    with pytest.raises(ValidationError, match="identification product"):
+        mathematical_identity(**{**fields, "observable": "rotational_transition"})
+    with pytest.raises(ValidationError, match="finite-J basis"):
+        RotationalLineSelection(
+            upper_J=1,
+            upper_eigenstate_index=3,
+            lower_J=0,
+            lower_eigenstate_index=0,
+        )
 
 
 def mathematical_design(**changes):
@@ -558,6 +747,234 @@ def test_prediction_import_reads_actual_native_energy_without_accuracy_claim(
     assert not read_json(bundle / "publication.json")[
         "experimental_accuracy_established"
     ]
+    provenance = imported["calculation_provenance"]
+    assert provenance["recipe"]["method"] == "hf"
+    assert provenance["recipe"]["basis"] == "sto-3g"
+    assert provenance["calculated_geometry_sha256"] == digest(
+        result["native_result"]["geometry_bohr"]
+    )
+    assert provenance["engine_version"] == result["native_result"]["engine_version"]
+
+
+@pytest.mark.real_engine
+def test_actual_harmonic_mode_import_retains_native_mode_and_approximation(
+    genuine_hf_benchmark_bundle,
+):
+    bundle, trusted_digest, identity, result = genuine_hf_benchmark_bundle
+    harmonic_identity = ObservableIdentity.model_validate(
+        {
+            **identity.model_dump(),
+            "observable": "harmonic_frequency",
+            "component": "mode:0",
+            "unit": "cm^-1",
+            "harmonic_mode_index": 0,
+            "harmonic_mode_assignment": "The sole actual H2 stretching eigenmode.",
+        }
+    )
+    imported = import_publication_prediction(
+        bundle,
+        expected_manifest_sha256=trusted_digest,
+        identity=harmonic_identity,
+    )
+    harmonic = result["stages"]["harmonic_analysis"]["value"]
+    assert imported["value"] == harmonic["frequencies_cm1"][0]
+    assert imported["approximation_context"]["frequency_kind"] == "harmonic"
+    assert (
+        imported["approximation_context"]["normal_mode_source_digest"]
+        == harmonic["source_digest"]
+    )
+    absent = ObservableIdentity.model_validate(
+        {
+            **harmonic_identity.model_dump(),
+            "component": "mode:9",
+            "harmonic_mode_index": 9,
+        }
+    )
+    with pytest.raises(ValueError, match="eigenmode does not exist"):
+        import_publication_prediction(
+            bundle,
+            expected_manifest_sha256=trusted_digest,
+            identity=absent,
+        )
+
+
+@pytest.fixture(scope="module")
+def genuine_water_catalog_bundle(tmp_path_factory):
+    from cochem_torq.application import execute_request
+
+    root = tmp_path_factory.mktemp("genuine-water-catalog-benchmark-import")
+    identity = mathematical_identity(
+        parent_id="water",
+        family_id="hydrides",
+        symbols=("O", "H", "H"),
+        isotope_numbers=(16, 1, 1),
+        hamiltonian_convention=(
+            "TORQ exact finite-J electric-dipole rigid-rotor screening model v1"
+        ),
+    )
+    labels = identity.model_dump(
+        mode="json",
+        include={
+            "parent_id",
+            "family_id",
+            "conformer",
+            "electronic_state",
+            "vibrational_state",
+            "tunneling_state",
+            "hamiltonian_convention",
+        },
+    )
+    request = CalculationRequest.model_validate(
+        {
+            "molecule": {
+                "symbols": ["O", "H", "H"],
+                "geometry_bohr": [
+                    [0.0, 0.0, 0.0],
+                    [0.0, 1.43, 1.11],
+                    [0.0, -1.43, 1.11],
+                ],
+                "charge": 0,
+                "multiplicity": 1,
+                "isotopes": [16, 1, 1],
+            },
+            "recipe": "hf-sto-3g-education",
+            "products": [
+                "geometry",
+                "harmonic",
+                "equilibrium_constants",
+                "rigid_rotor_catalog",
+            ],
+            "catalog": {"temperature_kelvin": 10.0, "max_j": 5},
+            "resources": {"cores": 1, "memory_mb": 1024, "wall_seconds": 120},
+            "source_provenance": {
+                "benchmark_identity": labels,
+                "purpose": (
+                    "Native screening extraction check; no reference or accuracy claim."
+                ),
+            },
+        }
+    )
+    result = execute_request(request, root / "shard")
+    assert result["stages"]["rigid_rotor_catalog"]["status"] == "available", result[
+        "errors"
+    ]
+    receipt = export_publication_bundle(root / "shard", root / "publication")
+    return root / "publication", receipt["manifest_sha256"], identity, result
+
+
+@pytest.mark.real_engine
+def test_actual_rigid_rotor_frequency_preserves_exact_states_and_model(
+    genuine_water_catalog_bundle,
+):
+    bundle, trusted_digest, identity, result = genuine_water_catalog_bundle
+    catalog = result["stages"]["rigid_rotor_catalog"]["value"]
+    line = catalog["lines"][0]
+    selection = RigidRotorSelection(
+        transition=RotationalLineSelection(
+            **{
+                k: line[k]
+                for k in (
+                    "upper_J",
+                    "upper_eigenstate_index",
+                    "lower_J",
+                    "lower_eigenstate_index",
+                )
+            }
+        ),
+        constant_observable="Be",
+        temperature_kelvin=catalog["temperature_kelvin"],
+    )
+    chosen = ObservableIdentity.model_validate(
+        {
+            **identity.model_dump(),
+            "observable": "rigid_rotor_transition",
+            "component": "frequency",
+            "unit": "MHz",
+            "rigid_rotor_selection": selection,
+        }
+    )
+    imported = import_publication_prediction(
+        bundle,
+        expected_manifest_sha256=trusted_digest,
+        identity=chosen,
+    )
+    assert imported["value"] == line["frequency_mhz"]
+    assert imported["approximation_context"]["constant_observable"] == "Be"
+    assert imported["approximation_context"]["identification_qualified"] is False
+    wrong_basis = ObservableIdentity.model_validate(
+        {
+            **chosen.model_dump(),
+            "rigid_rotor_selection": {
+                **selection.model_dump(),
+                "constant_observable": "B0",
+            },
+        }
+    )
+    with pytest.raises(ValueError, match="population conventions differ"):
+        import_publication_prediction(
+            bundle,
+            expected_manifest_sha256=trusted_digest,
+            identity=wrong_basis,
+        )
+
+
+@pytest.mark.real_engine
+def test_actual_rigid_rotor_intensity_is_normalized_with_population_conventions(
+    genuine_water_catalog_bundle,
+):
+    bundle, trusted_digest, identity, result = genuine_water_catalog_bundle
+    catalog = result["stages"]["rigid_rotor_catalog"]["value"]
+    positive = [
+        line
+        for line in catalog["lines"]
+        if line["relative_absorption_weight_debye2"] > 0
+    ]
+    numerator, denominator = positive[:2]
+    names = ("upper_J", "upper_eigenstate_index", "lower_J", "lower_eigenstate_index")
+    selection = RigidRotorSelection(
+        transition=RotationalLineSelection(**{k: numerator[k] for k in names}),
+        normalization_transition=RotationalLineSelection(
+            **{k: denominator[k] for k in names}
+        ),
+        constant_observable="Be",
+        temperature_kelvin=catalog["temperature_kelvin"],
+    )
+    chosen = ObservableIdentity.model_validate(
+        {
+            **identity.model_dump(),
+            "observable": "rigid_rotor_relative_intensity",
+            "component": "relative_absorption_weight_ratio",
+            "unit": "dimensionless",
+            "rigid_rotor_selection": selection,
+        }
+    )
+    imported = import_publication_prediction(
+        bundle,
+        expected_manifest_sha256=trusted_digest,
+        identity=chosen,
+    )
+    if catalog["partition_converged_at_requested_tolerance"]:
+        assert imported["value"] == (
+            numerator["relative_absorption_weight_debye2"]
+            / denominator["relative_absorption_weight_debye2"]
+        )
+    else:
+        assert imported["value"] is None and "did not converge" in imported["reason"]
+    wrong_temperature = ObservableIdentity.model_validate(
+        {
+            **chosen.model_dump(),
+            "rigid_rotor_selection": {
+                **selection.model_dump(),
+                "temperature_kelvin": 11.0,
+            },
+        }
+    )
+    with pytest.raises(ValueError, match="population conventions differ"):
+        import_publication_prediction(
+            bundle,
+            expected_manifest_sha256=trusted_digest,
+            identity=wrong_temperature,
+        )
 
 
 @pytest.mark.real_engine

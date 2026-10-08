@@ -1,0 +1,185 @@
+{
+  "files": [
+    {
+      "bytes": 1170,
+      "path": "benchmark-design/proposal-integrity.json",
+      "sha256": "d22c674bbf6b1674f07d3c59954af8b2f40519e05a44b0ce53a8184e4a84f9f3"
+    },
+    {
+      "bytes": 557055,
+      "path": "corrected-complete-regression/junit.xml",
+      "sha256": "ba4864bb5986f871e938121e8597227c2cfc056401c660e65e50f0cc85a93cd0"
+    },
+    {
+      "bytes": 10855,
+      "path": "corrected-complete-regression/summary.json",
+      "sha256": "d600ea0ef6635458322d25e77bac8fe35c2d2e02ba223ba57b419bbc791b25a3"
+    },
+    {
+      "bytes": 13595,
+      "path": "corrected-ignore-tests/junit.xml",
+      "sha256": "d297b2315f16ff84c3a903f622a7b30e25b7af09478e45a7590f1c97064fb7b6"
+    },
+    {
+      "bytes": 954,
+      "path": "corrected-ignore-tests/summary.json",
+      "sha256": "9bd49add2393d70f3d29e7287ec423a939842a15ed6e0f03f1f1d2257ae8aa89"
+    },
+    {
+      "bytes": 2632,
+      "path": "corrected-static-checks/summary.json",
+      "sha256": "a80167116c7491cc76109655dcf3700d6185714b8fe0ce77dbd29da884465031"
+    },
+    {
+      "bytes": 555692,
+      "path": "initial-complete-regression/junit.xml",
+      "sha256": "19d09493e46e361bb7bc4cb79c09d5e760e63bcb2c5c19416558976072764bb3"
+    },
+    {
+      "bytes": 11304,
+      "path": "initial-complete-regression/summary.json",
+      "sha256": "b6e6ca3bdc10e39e8c96561e8a26098aeec3ea462e269db247a9ba993a2de6a2"
+    },
+    {
+      "bytes": 1487,
+      "path": "initial-curation-summary.json",
+      "sha256": "8eaab5d081403213a73b7704221ef911af0a5f2f30a4fed324590fd57616d0a3"
+    },
+    {
+      "bytes": 2753,
+      "path": "initial-static-checks/summary.json",
+      "sha256": "b0a437f9a1f06cd2fa120ed1fbff5aa41262356b3a08741ca2b89dc45caa70cb"
+    },
+    {
+      "bytes": 1193,
+      "path": "installed-wheel/current-environment-availability.json",
+      "sha256": "4bde1e12d97ffed012d4dbfeffe1317c4d747cf18a459afa8360d3bfb4243171"
+    },
+    {
+      "bytes": 60566,
+      "path": "installed-wheel/current-source-byte-equivalence.json",
+      "sha256": "3e8058b1dce470de8d89b6d3e4eb512a42be1f42ce5c573ef72c63a868fcf7bb"
+    },
+    {
+      "bytes": 3559,
+      "path": "installed-wheel/original-build-and-core-summary.json",
+      "sha256": "00483a25f788814b252c7c4588a2016bb8c426269f12d0785e8600bad3ecb918"
+    },
+    {
+      "bytes": 203851,
+      "path": "installed-wheel/python310/junit.xml",
+      "sha256": "33d351ea47a0d042cb7ed344aebb8f6ba05b822f3052a28098c0019f3a8a8c2c"
+    },
+    {
+      "bytes": 7356,
+      "path": "installed-wheel/python310/summary.json",
+      "sha256": "63207cdb7593d262c06151ab2b1a3176e5f907b8d3cac3a807e874713804a432"
+    },
+    {
+      "bytes": 203851,
+      "path": "installed-wheel/python312/junit.xml",
+      "sha256": "83089da1e3439240f9478ffc424a1a18ed1f2e48371ab9ba7d09530c497281b4"
+    },
+    {
+      "bytes": 7355,
+      "path": "installed-wheel/python312/summary.json",
+      "sha256": "c5b4dc02f6a83b59b0d9258c0a05303d85b0b4ad4c0346382bf258800d677686"
+    },
+    {
+      "bytes": 12883,
+      "path": "reference-reviews/primary-chloroethanol-independent-review.json",
+      "sha256": "6c4e6f4889adfb184cfbaa7d3098cbec7c848d7fe654a3e430cfe3d17b7a7b53"
+    },
+    {
+      "bytes": 2311,
+      "path": "reference-reviews/primary-public-packet-editorial-derivation.json",
+      "sha256": "90d648b2b7aef12f0c82ebd258c2465dd481e683f72b1603d670b805e884dc84"
+    },
+    {
+      "bytes": 1014,
+      "path": "reference-reviews/primary-typed-packet-verification.json",
+      "sha256": "cb72582fd68ab125a98129fc5e2ad67575d506bdb8733ff0b46219983d996623"
+    },
+    {
+      "bytes": 4961,
+      "path": "reference-reviews/readonly-source-and-context-checks.json",
+      "sha256": "9bf7a017b0a7eb219fc681c19f4736487b417ee62286a4207a047d0d513d311c"
+    },
+    {
+      "bytes": 9166,
+      "path": "scoped-developmental-tests/benchmark-extractors/junit.xml",
+      "sha256": "ecaab647aaa7420194f16a54f3333345ee85ceb7e8c3845a67556b1b9c35bfb0"
+    },
+    {
+      "bytes": 1068,
+      "path": "scoped-developmental-tests/benchmark-extractors/summary.json",
+      "sha256": "2a608b462997c8c976a4595564c03e7a933b66d761fa20ade04a37569e6984db"
+    },
+    {
+      "bytes": 323,
+      "path": "scoped-developmental-tests/client-initial-source-path-collection-failure/junit.xml",
+      "sha256": "3229e5e50ff92df70ed9ecc4920e191987dca964394b31ee408841abe978c413"
+    },
+    {
+      "bytes": 1269,
+      "path": "scoped-developmental-tests/client-initial-source-path-collection-failure/summary.json",
+      "sha256": "9614693431ec8944cae5c1b91a025c1234bb949912f4615c316454f85323d3b4"
+    },
+    {
+      "bytes": 1331,
+      "path": "scoped-developmental-tests/qcarchive-component-source/junit.xml",
+      "sha256": "7c8b0d8765a3c3d1f81e85c21afa02e762783f79a63002401c73fee2314ae14a"
+    },
+    {
+      "bytes": 1066,
+      "path": "scoped-developmental-tests/qcarchive-component-source/summary.json",
+      "sha256": "86b1e6de8e067e352feb3df2aaa12a4f71c81610cbbc14e9b5d9076396284b8c"
+    },
+    {
+      "bytes": 747,
+      "path": "scoped-developmental-tests/qm9-one-command-driver/junit.xml",
+      "sha256": "bb446dd87ec7150e0de4f570c694e32ced1bdadc986269d9a53830bfab844fe8"
+    },
+    {
+      "bytes": 1066,
+      "path": "scoped-developmental-tests/qm9-one-command-driver/summary.json",
+      "sha256": "1c0ab7a10ab3fd8b05f0f0164d54eb7079c3dd055bb9fbfea6a0af1f04f89696"
+    },
+    {
+      "bytes": 12273,
+      "path": "scoped-developmental-tests/qm9-parser-final/junit.xml",
+      "sha256": "a0dfbd1fd7da9498e34e0dbe2e819c15882bec2a8885a1d344c68a221aa3c66a"
+    },
+    {
+      "bytes": 1068,
+      "path": "scoped-developmental-tests/qm9-parser-final/summary.json",
+      "sha256": "f3a31e1c03b1c62686da92afc8aff77dabc53ffbf083d9a154bcfb09c6f2904c"
+    },
+    {
+      "bytes": 5350,
+      "path": "scoped-developmental-tests/reference-client-final-guards/junit.xml",
+      "sha256": "c18416f23b919b37fcf09e61ffd0780f36c21e1aedf24a8a94a1590548472d83"
+    },
+    {
+      "bytes": 1068,
+      "path": "scoped-developmental-tests/reference-client-final-guards/summary.json",
+      "sha256": "38c404f14ae39e7a9a1944ee33abb0a53538f8fa842884d603fa0c3e1f0ba536"
+    },
+    {
+      "bytes": 8325,
+      "path": "scoped-developmental-tests/single-case-comparison/junit.xml",
+      "sha256": "c49b8d2f1f7993a6f8df6fb6800f3647b78ca9477351b9c486d19b0889b89f3a"
+    },
+    {
+      "bytes": 1068,
+      "path": "scoped-developmental-tests/single-case-comparison/summary.json",
+      "sha256": "05fa531026978c2851670cc3b8079c924d22e65e99660c2a52011de628af8c31"
+    },
+    {
+      "bytes": 2281,
+      "path": "summary.json",
+      "sha256": "22f67ebe792cdc19d5868dc05822c3a1cf2caea617aa903bd19a219b958b8b6d"
+    }
+  ],
+  "schema_version": "cochem.public-evidence-file-index/1"
+}

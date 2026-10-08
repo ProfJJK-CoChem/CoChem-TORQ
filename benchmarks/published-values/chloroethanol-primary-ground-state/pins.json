@@ -1,0 +1,27 @@
+{
+  "axis_representation": "Ir",
+  "chlorine_isotope_numbers_explicit_in_original_publisher_metadata": true,
+  "human_reviewed": false,
+  "independent_accuracy_qualification": false,
+  "not_equilibrium_constants": true,
+  "numeric_source_sha256": [
+    "badd57ef59eb940b56f591c60c11eb6bebd1760137237eb7859b7cedec360c1d",
+    "eb2506c91e80757d41d8025644e44a795aac89bd29670067112f1a3f6a137172"
+  ],
+  "original_archive_sha256": "2de98bdd28827c83fc28a47c74cdb420dfb4224af8face85796cfcee45de247e",
+  "printed_fit_errors_are_not_declared_calibrated_standard_uncertainties": true,
+  "reference_ids": [
+    "2-chloroethanol-35Cl-ground-A-Bunn2026-primary",
+    "2-chloroethanol-35Cl-ground-B-Bunn2026-primary",
+    "2-chloroethanol-35Cl-ground-C-Bunn2026-primary",
+    "2-chloroethanol-37Cl-ground-A-Bunn2026-primary",
+    "2-chloroethanol-37Cl-ground-B-Bunn2026-primary",
+    "2-chloroethanol-37Cl-ground-C-Bunn2026-primary"
+  ],
+  "reference_manifest_sha256": "e964aec0c4e2c91047a7204c1c8b18206ff7e1eded7e519f95360e9acf1ab2e0",
+  "requested_light_atom_isotopes_not_verified_from_source": true,
+  "review_sha256": "60a2439932e7627c759f5207e2892189ee0b63f5ac3b548e9cdd382b1b0194e9",
+  "schema_version": "cochem.torq.published-experimental-reference-pins/1",
+  "source_metadata_sha256": "8c4d1129e8c737fad610348cf239386990dd7c4aee82f64105bdea9cf363ac30",
+  "watson_reduction": "A"
+}

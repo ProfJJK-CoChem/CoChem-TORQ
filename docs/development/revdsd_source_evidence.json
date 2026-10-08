@@ -13,7 +13,8 @@
     "retrieval_observation_sha256": "532c1fe7e1c2cce0381d73b717ecb2bb627509fcc39a7b38aecc9810929a56e0",
     "source_url": "https://github.com/MatthiasGolomb/SciPubCrawl/blob/5a00bb4de7a74b76710ff795b9bb00b655b7be89/examples/lithium_metal_anode/search/chemrxiv_dumps/chemrxiv_2019-05-01_2019-06-01.jsonl",
     "target_metadata_sha256": "7684b4643c4e0cfe9b10eab490f75d6b695922daae4b03e5cde991ea78a38521",
-    "technical_primary_article_or_SI_bytes_retrieved": false
+    "technical_primary_article_or_SI_bytes_retrieved": false,
+    "scope": "Historical locator/access attempt; its failed receipt is retained and does not describe the later official SI acquisition."
   },
   "analytic_response_milestone": {
     "GKS_analytic_response_implemented": false,
@@ -132,7 +133,6 @@
     "genuine_TORQ_comparison_observations": {
       "comparisons": [
         {
-          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-d65b183d86ef46079fce4b00d1715f84",
           "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86",
           "orbital_reference_hartree": -1.1494457008895527,
           "reference_difference_from_native_hartree": 6.592258376736382e-05,
@@ -141,10 +141,14 @@
           "scaled_pt2_hartree": -0.020923511905412664,
           "unscaled_os_hartree": -0.035254442974579046,
           "unscaled_ss_hartree": -6.841748743119248e-30,
-          "variant": "GGA_C_P86"
+          "variant": "GGA_C_P86",
+          "retained_artifact_directory": {
+            "logical_name": "double-hybrid-d65b183d86ef46079fce4b00d1715f84",
+            "storage": "External review archive; not distributed at a repository-relative path",
+            "result_sha256": "6ee954f358f60ede09b389557f1217b71a9be7bae8da5b313b0e6449a14397c1"
+          }
         },
         {
-          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-0d99c9b199b8460eb2a5d9ff95db4b02",
           "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86_FT",
           "orbital_reference_hartree": -1.149449878395727,
           "reference_difference_from_native_hartree": 6.174507759304504e-05,
@@ -153,10 +157,14 @@
           "scaled_pt2_hartree": -0.02092353025514565,
           "unscaled_os_hartree": -0.03525447389241053,
           "unscaled_ss_hartree": -6.201342494864707e-30,
-          "variant": "GGA_C_P86_FT"
+          "variant": "GGA_C_P86_FT",
+          "retained_artifact_directory": {
+            "logical_name": "double-hybrid-0d99c9b199b8460eb2a5d9ff95db4b02",
+            "storage": "External review archive; not distributed at a repository-relative path",
+            "result_sha256": "35d9546e7a417924cc4c6456401c2716762d55a406721a6f2f373ab1aaccb3ac"
+          }
         },
         {
-          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-e5f793d94f334101bf7e5f83b2177479",
           "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86VWN",
           "orbital_reference_hartree": -1.1493810861300657,
           "reference_difference_from_native_hartree": 0.0001305373432543,
@@ -165,10 +173,14 @@
           "scaled_pt2_hartree": -0.020924792384084838,
           "unscaled_os_hartree": -0.035256600478660215,
           "unscaled_ss_hartree": -4.736988925740953e-30,
-          "variant": "GGA_C_P86VWN"
+          "variant": "GGA_C_P86VWN",
+          "retained_artifact_directory": {
+            "logical_name": "double-hybrid-e5f793d94f334101bf7e5f83b2177479",
+            "storage": "External review archive; not distributed at a repository-relative path",
+            "result_sha256": "cde6eb37790b13da74c9e56d3d33700b73305e2dd0c49dac1aa2c3b95aa62f32"
+          }
         },
         {
-          "artifact_directory": "/workspace/torq-review/revdsd-independent-native-candidate/genuine-variant-comparisons/double-hybrid-1009b44ef26347049fb8e98da227980e",
           "expression": ".69*HF+.31*GGA_X_PBE,.4224*GGA_C_P86VWN_FT",
           "orbital_reference_hartree": -1.1493852644537261,
           "reference_difference_from_native_hartree": 0.0001263590195939024,
@@ -177,13 +189,18 @@
           "scaled_pt2_hartree": -0.02092481073471685,
           "unscaled_os_hartree": -0.035256631398006485,
           "unscaled_ss_hartree": -7.250040358552946e-30,
-          "variant": "GGA_C_P86VWN_FT"
+          "variant": "GGA_C_P86VWN_FT",
+          "retained_artifact_directory": {
+            "logical_name": "double-hybrid-1009b44ef26347049fb8e98da227980e",
+            "storage": "External review archive; not distributed at a repository-relative path",
+            "result_sha256": "2c9d1268ae0cf0f86fd8b4e707354c9a56fe6cd2784d0ec4fe78db4db5b9c5c4"
+          }
         }
       ],
       "exact_revdsd_qualification": false,
       "limitations": [
         "Native /2021 coefficients differ from2019 target candidate table; no recipe activation.",
-        "Original paper/SI unavailable.",
+        "Original paper/SI unavailable at the time of this historical comparison; later acquired SI contains D3(BJ) samples and still does not resolve the target original2019 D4 electronic/GKS definition.",
         "Native RI/COSX/grid and current conventional-integral/grid definitions differ; not matched exact reference.",
         "H2 has zero same-spin PT2 and no core, so cannot validate SS implementation or core policy.",
         "2021 D4 damping parameters are not printed in the retained output and not guessed.",
@@ -212,7 +229,8 @@
       "source_native_P86_LDA": "VWN-5",
       "source_native_SS_scale": 0.0566,
       "source_native_correlation_fraction": 0.4224,
-      "source_native_method": "ORCA6.1.1 REVDSD-PBEP86-D4/2021, RIJ-COSX and RI-MP2, DefGrid3"
+      "source_native_method": "ORCA6.1.1 REVDSD-PBEP86-D4/2021, RIJ-COSX and RI-MP2, DefGrid3",
+      "scope": "Historical genuine comparison recorded at the retained timestamp; unchanged scientific values and limitations. Later D3-only SI acquisition does not make this a matched original2019 reference."
     },
     "immutable_repository_commit": "edef53de01a5b634ebbf637d73ab8679661b270c",
     "method_identity": "REVDSD-PBEP86-D4/2021",
@@ -257,58 +275,113 @@
   "native_2021_output_retrieved": true,
   "original_publication_doi": "10.1021/acs.jpca.9b03157",
   "original_publication_title": "Minimally Empirical Double-Hybrid Functionals Trained against the GMTKN55 Database: revDSD-PBEP86-D4, revDOD-PBE-D4, and DOD-SCAN-D4",
-  "primary_SI_bytes_retrieved": false,
+  "primary_SI_bytes_retrieved": true,
   "primary_article_and_SI_retrieved": false,
   "primary_publisher_metadata_retrieved": true,
   "primary_source_observation": {
+    "article_id": 8258924,
+    "version": 2,
+    "resource_doi": "10.1021/acs.jpca.9b03157",
     "SI_doi": "10.1021/acs.jpca.9b03157.s001",
+    "publisher_metadata_url": "https://api.figshare.com/v2/articles/8258924",
     "SI_file": {
       "download_url": "https://ndownloader.figshare.com/files/15437975",
       "file_id": 15437975,
-      "local_PDF_checksum_verified": false,
       "name": "jp9b03157_si_001.pdf",
+      "publisher_size_bytes": 787293,
+      "actual_size_bytes": 787293,
       "publisher_computed_md5": "efe4fd1654c9eab5a5f4e9536d433c7f",
-      "publisher_size_bytes": 787293
+      "local_PDF_checksum_verified": true,
+      "sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "retrieved_at_utc": "2026-10-08T17:58:33.857840+00:00",
+      "retained_artifact": {
+        "logical_name": "8258924-jp9b03157_si_001.pdf",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a"
+      },
+      "license": {
+        "value": 10,
+        "name": "CC BY-NC 4.0",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/"
+      }
     },
-    "SI_redirect_host_observation": {
-      "actual_redirects": [
-        {
-          "initial_url": "https://ndownloader.figshare.com/files/15437975",
-          "redirect_host": "s3-eu-west-1.amazonaws.com",
-          "redirect_path_retained": false,
-          "signed_query_retained": false,
-          "status": 302
-        },
-        {
-          "initial_url": "https://api.figshare.com/v2/file/download/15437975",
-          "redirect_host": "ndownloader.figshare.com",
-          "redirect_path_retained": false,
-          "signed_query_retained": false,
-          "status": 302
-        }
-      ],
-      "blocked_destination_host": "s3-eu-west-1.amazonaws.com",
-      "observation_sha256": "37a2721f62c0779bb38c4f6d0877f83725d957d51b1f0e3ad184b6fae1dfaecb",
-      "scope": "Normal official publisher download chain; no signed query, destination path or credential retained."
+    "SI_text": {
+      "sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d",
+      "retained_artifact": {
+        "logical_name": "8258924-SI-extracted.txt",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d"
+      },
+      "extraction": {
+        "tool": "pdftotext",
+        "version": "25.03.0",
+        "arguments": [
+          "-layout"
+        ],
+        "page_count": 28,
+        "reextraction_bytes_equal": true,
+        "line_number_rule": "One-based newline-delimited lines in the SHA-bound extracted text; form-feed characters do not introduce extra counted lines."
+      }
+    },
+    "access": {
+      "official_API_metadata": "Retrieved through normal session proxy with TLS verification",
+      "official_SI_download": "Acquired from the official publisher download chain; exact publisher MD5 and size verified",
+      "main_article_HTML_and_PDF": "Current genuine publisher probe returned HTTP403; primary main-article technical definition remains unavailable"
     },
     "abstract_distinction": "xrevDSD initial orbitals use full DFT correlation; target revDSD is a different method. Abstract does not specify the complete target orbital equation.",
-    "access": {
-      "official_API_metadata": "HTTP200 through normal session proxy",
-      "official_SI_download_redirect": "HTTP403",
-      "publisher_HTML_and_PDF": "HTTP403"
+    "primary_sample_scope": "Gaussian S21 and ORCA S23 specify revDSD-PBEP86-D3(BJ), not the original2019 target D4 electronic/GKS recipe.",
+    "primary_D3_only_sample": {
+      "assignments": {
+        "Exchange": "X_PBE",
+        "Correlation": "C_P86",
+        "ScalHFX": "0.69",
+        "ScalDFX": "0.31",
+        "ScalGGAC": "0.4296",
+        "ScalLDAC": "0.4296",
+        "ScalMP2C": "1.0",
+        "D3S6": "0.4377",
+        "D3A2": "5.5",
+        "D3S8": "0.0",
+        "D3A1": "0.0",
+        "PS": "0.5785",
+        "PT": "0.0799"
+      },
+      "canonical_interpretation": "ScalHFX/ScalDFX specify the literal HF/PBE exchange fractions; ScalGGAC and ScalLDAC both equal0.4296; PS/PT are the reported SCS coefficients0.5785/0.0799. Exact cross-engine OS/SS convention still requires matched native component validation.",
+      "source_pages": {
+        "Gaussian": "S21",
+        "ORCA": "S23"
+      },
+      "excerpt": {
+        "retained_artifact": {
+          "logical_name": "revdsd-reviewed-primary-page-S23.txt",
+          "storage": "External review archive; not distributed at a repository-relative path",
+          "sha256": "62b726a236090a9c1ab69f2ce0c9369f97711492aeb9a46a63a9ae64343d0b6e"
+        },
+        "sha256": "62b726a236090a9c1ab69f2ce0c9369f97711492aeb9a46a63a9ae64343d0b6e",
+        "bytes": 412,
+        "full_text_character_offsets_half_open": [
+          97048,
+          97460
+        ],
+        "serialization": "Exact UTF-8 bytes of the specified Unicode substring of the SHA-bound full text; no added/removed whitespace or newline.",
+        "full_text_sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d",
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "source_url": "https://ndownloader.figshare.com/files/15437975"
+      },
+      "P86_LibXC_mapping": null,
+      "target_D4_transfer_authorized": false,
+      "CO_geometry_is_illustrative_not_optimized": true
     },
-    "article_id": 8258924,
-    "first_online": "2019-05-28",
-    "qualification": "Primary metadata only; technical article/SI definitions and native reference components unavailable.",
-    "resource_doi": "10.1021/acs.jpca.9b03157",
-    "version": 2
+    "qualification": "Primary SI bytes and D3(BJ) sample assignments verified; original2019 D4 electronic/GKS definition, exact P86/core conventions and matched native component qualification remain unresolved."
   },
   "remaining_gates": [
-    "Reconcile original article/SI and any 2019/2021 identity difference",
-    "Resolve prescribed orbital-generating functional and P86/FT/VWN mapping",
-    "Fix exact published core/active-orbital convention",
-    "Obtain matched independently implemented native molecular energies/components and raw artifacts",
-    "Accept derivative milestones independently; numerical consistency is not analytic response validation"
+    "Original2019 D4 final-energy cX/cC/cOS/cSS and exact GKS orbital-generation equation",
+    "Exact original P86/LibXC variant and frozen-core shell/orbital convention",
+    "Explicit versioned D4 kernel/EEQ/ATM convention and response, beyond the resolved damping table",
+    "Matched authenticated independent original2019 native energy components across multiple geometries and spin-component cases",
+    "Full moving-grid GKS/OS-SS orbital-response analytic gradient qualification",
+    "Separately qualified Hessian and higher derivatives, spectroscopy and observable-domain uncertainty calibration"
   ],
   "reviewed_on_utc": "2026-10-08",
   "schema_version": "cochem.torq.revdsd-source-evidence/1",
@@ -316,44 +389,207 @@
     {
       "establishes": "secondary ORCA input template; no native output or primary SI",
       "evidence_class": "secondary_software_source",
-      "retained_file": "rev-DSD-PBEP86_D4_sp.sh",
       "sha256": "f51087269c7cf14ed11a0515365da85f8685a4a6f8d328059ae3e41f3a5bcfbc",
-      "url": "https://github.com/baaam24/gellrich_scripts/blob/110278967f64ad6b19be469a9e60804726d35308/custom_2input/rev-DSD-PBEP86_D4_sp.sh"
+      "url": "https://github.com/baaam24/gellrich_scripts/blob/110278967f64ad6b19be469a9e60804726d35308/custom_2input/rev-DSD-PBEP86_D4_sp.sh",
+      "retained_artifact": {
+        "logical_name": "rev-DSD-PBEP86_D4_sp.sh",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "f51087269c7cf14ed11a0515365da85f8685a4a6f8d328059ae3e41f3a5bcfbc"
+      }
     },
     {
       "establishes": "secondary semilocal implementation claiming original Table 4; molecular PT2/orbital/core validation absent",
       "evidence_class": "secondary_software_source",
-      "retained_file": "hybrids.rs",
       "sha256": "843717c0f8786ab22ab0c607ef3f892d00ecc2445219727b7f34354d7c7b7a88",
-      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/functionals/hybrids.rs"
+      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/functionals/hybrids.rs",
+      "retained_artifact": {
+        "logical_name": "hybrids.rs",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "843717c0f8786ab22ab0c607ef3f892d00ecc2445219727b7f34354d7c7b7a88"
+      }
     },
     {
       "establishes": "secondary OS/SS coefficient metadata; not an independent native molecular result",
       "evidence_class": "secondary_software_source",
-      "retained_file": "func.rs",
       "sha256": "0811186e5d6e23ddcdd210517edcb85547c5a96c2a159073f01b98c783e21d11",
-      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/func.rs"
+      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/func.rs",
+      "retained_artifact": {
+        "logical_name": "func.rs",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "0811186e5d6e23ddcdd210517edcb85547c5a96c2a159073f01b98c783e21d11"
+      }
     },
     {
       "establishes": "semilocal reference generation from LibXC mixtures; does not establish complete revDSD recipe or independent-engine agreement",
       "evidence_class": "secondary_software_source",
-      "retained_file": "gen_golden.rs",
       "sha256": "0248b87d0e9d597b6ce033af0ac872977f47d57ae28ad92039791dfa371aeeff",
-      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx-validation/src/bin/gen_golden.rs"
+      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx-validation/src/bin/gen_golden.rs",
+      "retained_artifact": {
+        "logical_name": "gen_golden.rs",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "0248b87d0e9d597b6ce033af0ac872977f47d57ae28ad92039791dfa371aeeff"
+      }
     },
     {
       "establishes": "Authentic title/authors/DOI/abstract/SI file identity; no downloaded SI technical definition or molecular energy reference.",
       "evidence_class": "primary_publisher_metadata",
-      "retained_file": "article-8258924.json",
       "sha256": "9b0425468eef545967c314bd307a7a428691637cb46bdf1e4edfd637a287b97f",
-      "url": "https://api.figshare.com/v2/articles/8258924"
+      "url": "https://api.figshare.com/v2/articles/8258924",
+      "retained_artifact": {
+        "logical_name": "article-8258924.json",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "9b0425468eef545967c314bd307a7a428691637cb46bdf1e4edfd637a287b97f"
+      },
+      "scope": "Historical metadata retrieval; technical SI bytes were acquired in the later observation recorded above."
     },
     {
       "establishes": "Authentic title/authors/DOI/abstract/SI file identity; no downloaded SI technical definition or molecular energy reference.",
       "evidence_class": "primary_publisher_metadata",
-      "retained_file": "version-1.data",
       "sha256": "67e48a58abf6798065f3935d46446b73bcbf9b515370cdef99e0461cef3d9a55",
-      "url": "https://api.figshare.com/v2/articles/8258924/versions/1"
+      "url": "https://api.figshare.com/v2/articles/8258924/versions/1",
+      "retained_artifact": {
+        "logical_name": "version-1.data",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "67e48a58abf6798065f3935d46446b73bcbf9b515370cdef99e0461cef3d9a55"
+      },
+      "scope": "Historical metadata retrieval; technical SI bytes were acquired in the later observation recorded above."
+    },
+    {
+      "evidence_class": "primary_publisher_SI",
+      "url": "https://ndownloader.figshare.com/files/15437975",
+      "sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "retained_artifact": {
+        "logical_name": "8258924-jp9b03157_si_001.pdf",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a"
+      },
+      "establishes": "Genuine original2019 SI bytes; D3(BJ) sample selectors/scales on S21/S23 and FC/noFC variant distinctions. Does not establish the target D4 electronic/GKS definition."
+    },
+    {
+      "evidence_class": "official_upstream_parameter_definition",
+      "url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml",
+      "sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "upstream_commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "retained_artifact": {
+        "logical_name": "dftd4-assets-parameters.toml",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f"
+      },
+      "establishes": "Separate revdsdpbep86 BJ-EEQ-ATM dispersion parameter entry and resolved defaults, not electronic coefficients or derivatives."
+    },
+    {
+      "evidence_class": "official_upstream_parameter_merge_implementation",
+      "url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/python/dftd4/parameters.py",
+      "sha256": "e75c3244aa06d1771796831592aac3d9b3d873a689e667bbeebe7309d8b93e57",
+      "upstream_commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "retained_artifact": {
+        "logical_name": "dftd4-python-dftd4-parameters.py",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "e75c3244aa06d1771796831592aac3d9b3d873a689e667bbeebe7309d8b93e57"
+      },
+      "establishes": "Default-copy then method-entry overlay semantics used to resolve the separate D4 component."
     }
-  ]
+  ],
+  "historical_primary_source_observations": [
+    {
+      "scope": "Earlier denied-download observation; superseded only for SI acquisition by the later genuine PDF retrieval.",
+      "source_ledger_sha256_before_update": "354125caeb2c578d5947b7048c5370cfe1c54bb6baca4b4f488ffd63d364e29d",
+      "observation": {
+        "SI_doi": "10.1021/acs.jpca.9b03157.s001",
+        "SI_file": {
+          "download_url": "https://ndownloader.figshare.com/files/15437975",
+          "file_id": 15437975,
+          "local_PDF_checksum_verified": false,
+          "name": "jp9b03157_si_001.pdf",
+          "publisher_computed_md5": "efe4fd1654c9eab5a5f4e9536d433c7f",
+          "publisher_size_bytes": 787293
+        },
+        "SI_redirect_host_observation": {
+          "actual_redirects": [
+            {
+              "initial_url": "https://ndownloader.figshare.com/files/15437975",
+              "redirect_host": "s3-eu-west-1.amazonaws.com",
+              "redirect_path_retained": false,
+              "signed_query_retained": false,
+              "status": 302
+            },
+            {
+              "initial_url": "https://api.figshare.com/v2/file/download/15437975",
+              "redirect_host": "ndownloader.figshare.com",
+              "redirect_path_retained": false,
+              "signed_query_retained": false,
+              "status": 302
+            }
+          ],
+          "blocked_destination_host": "s3-eu-west-1.amazonaws.com",
+          "observation_sha256": "37a2721f62c0779bb38c4f6d0877f83725d957d51b1f0e3ad184b6fae1dfaecb",
+          "scope": "Normal official publisher download chain; no signed query, destination path or credential retained."
+        },
+        "abstract_distinction": "xrevDSD initial orbitals use full DFT correlation; target revDSD is a different method. Abstract does not specify the complete target orbital equation.",
+        "access": {
+          "official_API_metadata": "HTTP200 through normal session proxy",
+          "official_SI_download_redirect": "HTTP403",
+          "publisher_HTML_and_PDF": "HTTP403"
+        },
+        "article_id": 8258924,
+        "first_online": "2019-05-28",
+        "qualification": "Primary metadata only; technical article/SI definitions and native reference components unavailable.",
+        "resource_doi": "10.1021/acs.jpca.9b03157",
+        "version": 2
+      }
+    }
+  ],
+  "primary_article_bytes_retrieved": false,
+  "reviewed_component_recipe_ledger": {
+    "path": "docs/development/revdsd_component_recipe_ledger.json",
+    "sha256": "358d73b01e2eb3f71c124f0542c1da4b2bf4d656baa528013f1347fcd18b29e8",
+    "review_type": "Agent textual/source review with deterministic extraction and publisher/upstream identity checks; no human curator attestation",
+    "verified_primary_D3_sample_assignment_count": 13,
+    "verified_D4_component_assignment_count": 8,
+    "verified_target_D4_electronic_coefficient_count": 0,
+    "DH0_complete": false,
+    "DH1_independently_qualified": false,
+    "named_recipe_activation": "blocked"
+  },
+  "official_D4_component_observation": {
+    "accepted_dispersion_parameters_for_review": {
+      "s6": 0.5132,
+      "s9": 1.0,
+      "alp": 16.0,
+      "damping": "bj",
+      "mbd": "approx-atm",
+      "s8": 0.0,
+      "a1": 0.44,
+      "a2": 3.6,
+      "doi": "10.1021/acs.jpca.9b03157"
+    },
+    "method_key": "revdsdpbep86",
+    "variant": "bj-eeq-atm",
+    "upstream_commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+    "upstream_release_tag": null,
+    "parameter_source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+    "parameter_units": "Retained unchanged in the upstream API convention; no independently unverified length-unit conversion was applied.",
+    "charge_input_in_current_TORQ": "Molecular integer charge passed as float to native DispersionModel; atomic numbers and coordinates supplied in bohr.",
+    "native_algorithm_primary_equation_review_complete": false,
+    "does_not_establish_electronic_recipe_or_derivatives": true,
+    "upstream_citation_bib_sha256": "70404d8fc7f6a76f5dd4a6611efdfabde793a3816bb282b79678879461aac730",
+    "parameter_source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml",
+    "parameter_retained_artifact": {
+      "logical_name": "dftd4-assets-parameters.toml",
+      "storage": "External review archive; not distributed at a repository-relative path",
+      "sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f"
+    },
+    "default_merge_implementation": {
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/python/dftd4/parameters.py",
+      "sha256": "e75c3244aa06d1771796831592aac3d9b3d873a689e667bbeebe7309d8b93e57",
+      "function": "_get_params",
+      "operation": "Copy the selected default dictionary, then update it with the method-specific entry.",
+      "retained_artifact": {
+        "logical_name": "dftd4-python-dftd4-parameters.py",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "e75c3244aa06d1771796831592aac3d9b3d873a689e667bbeebe7309d8b93e57"
+      }
+    },
+    "citation_source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/CITATION.bib"
+  }
 }

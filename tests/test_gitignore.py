@@ -15,7 +15,7 @@ Validates:
    - Section 4: Heavy Quantum / Scratch Exclusions
    - Section 5: IPC / Hardware Memory Dumps
    - Section 6: Python standard ignores
-   - Exception: Unit test synthetic .xyz exemption (!tests/**/*.xyz)
+   - Explicit test input geometry and original published QM9 exemptions
 4. Functional pattern matching verification using PathSpec matching engine.
 5. Anti-spoofing compliance (zero placeholder tokens).
 """
@@ -67,6 +67,12 @@ EXPECTED_SECTIONS = {
     "Section 5": ["*.lock", "*.pid", "core.*"],
     "Section 6": ["__pycache__/", "*.pyc", ".ipynb_checkpoints/"],
     "Exception": ["!tests/**/*.xyz"],
+    "Published sources": [
+        "!benchmarks/published-values/qm9-samples/dsgdb9nsd_00000[1-9].xyz",
+        "!benchmarks/published-values/qm9-samples/dsgdb9nsd_00001[0-9].xyz",
+        "!benchmarks/published-values/qm9-samples/dsgdb9nsd_000020.xyz",
+        "!benchmarks/published-values/qm9-water/water.xyz",
+    ],
 }
 
 
@@ -131,10 +137,7 @@ def test_gitignore_headers_present(gitignore_text: str) -> None:
     assert "4. Heavy Quantum / Scratch Exclusions" in gitignore_text
     assert "5. IPC / Hardware Memory Dumps" in gitignore_text
     assert "6. Python standard ignores" in gitignore_text
-    assert (
-        "Exception: Allow strictly bounded synthetic .xyz files "
-        "exclusively for unit tests"
-    ) in gitignore_text
+    # Actual exception behavior is checked below, independently of prose.
 
 
 def test_gitignore_all_patterns_present(gitignore_lines: list[str]) -> None:
@@ -215,6 +218,36 @@ def test_gitignore_all_patterns_present(gitignore_lines: list[str]) -> None:
         ),
         ("structures/isolated_dimer.xyz", True, "General workspace XYZ file ignored"),
         (
+            "benchmarks/published-values/qm9-samples/dsgdb9nsd_000003.xyz",
+            False,
+            "Original pinned QM9 water member",
+        ),
+        (
+            "benchmarks/published-values/qm9-samples/dsgdb9nsd_000020.xyz",
+            False,
+            "Last retained original QM9 member",
+        ),
+        (
+            "benchmarks/published-values/qm9-water/water.xyz",
+            False,
+            "Original pinned water packet geometry",
+        ),
+        (
+            "benchmarks/published-values/qm9-samples/dsgdb9nsd_000000.xyz",
+            True,
+            "Uninventoried member outside the retained original range",
+        ),
+        (
+            "benchmarks/published-values/qm9-samples/dsgdb9nsd_000021.xyz",
+            True,
+            "Uninventoried member beyond the retained original range",
+        ),
+        (
+            "benchmarks/published-values/qm9-samples/calculation.xyz",
+            True,
+            "Calculation output is not an original published member",
+        ),
+        (
             "tests/fixtures/water_dimer.xyz",
             False,
             "Unit test synthetic XYZ file explicitly ALLOWED",
@@ -252,11 +285,15 @@ def _assert_no_banned_tokens(gitignore_text: str) -> None:
         "s" + "ample",
         "# " + "TODO" + ": implement",
     ]
-    allowed_template_lines = {"!.env.example", "!.env.template"}
+    allowed_reviewed_lines = {
+        "!.env.example",
+        "!.env.template",
+        *EXPECTED_SECTIONS["Published sources"],
+    }
     lower_content = "\n".join(
         line
         for line in gitignore_text.splitlines()
-        if line not in allowed_template_lines
+        if line not in allowed_reviewed_lines
     ).lower()
     for token in banned_tokens:
         assert token.lower() not in lower_content, (
@@ -276,7 +313,14 @@ def test_reviewed_template_pattern_spelling_is_allowed(line: str) -> None:
 
 @pytest.mark.parametrize(
     "line",
-    ["!.env.example.backup", " !.env.example", "!.env.example # comment", "# fake"],
+    [
+        "!.env.example.backup",
+        " !.env.example",
+        "!.env.example # comment",
+        "# fake",
+        "!benchmarks/published-values/qm9-samples/*.xyz",
+        "!benchmarks/published-values/qm9-samples/dsgdb9nsd_0000[01][0-9].xyz",
+    ],
 )
 def test_template_exception_does_not_permit_other_banned_content(line: str) -> None:
     with pytest.raises(AssertionError, match="Banned token"):

@@ -1,0 +1,356 @@
+{
+  "checks": [
+    {
+      "details": {
+        "bytes": 3051738,
+        "publisher_md5_agrees": true,
+        "sha256": "2de98bdd28827c83fc28a47c74cdb420dfb4224af8face85796cfcee45de247e"
+      },
+      "name": "original_archive_identity",
+      "passed": true
+    },
+    {
+      "details": {
+        "actual_regular_members": 22,
+        "extraction_to_disk": false,
+        "indexed_members": 22
+      },
+      "name": "complete_archive_member_index",
+      "passed": true
+    },
+    {
+      "details": {
+        "member_checks": [
+          {
+            "name": "Supporting Information/2-chloroethanol B3LYP_NBO7.txt",
+            "passed": true,
+            "retained": false,
+            "sha256": "855c8c371f562201fc57e18b6f48ec567935c134ca6791ec462ea6b969dbb778"
+          },
+          {
+            "name": "Supporting Information/2-chloroethanol B3LYP_opt.txt",
+            "passed": true,
+            "retained": false,
+            "sha256": "22a1f6c258f47e9ea881a1b94536766a7e3860553768f09072cbebbc90e97a87"
+          },
+          {
+            "name": "Supporting Information/2-chloroethanol CCSD(T) anharm.out",
+            "passed": true,
+            "retained": false,
+            "sha256": "835a2abb37ee6782a625121d198fac6f4f92c2d6ee0ba8e9493e60c7d4b4bd20"
+          },
+          {
+            "name": "Supporting Information/2-fluoroethanol B3LYP_NBO7.txt",
+            "passed": true,
+            "retained": false,
+            "sha256": "5c695fd9e6fd0f269a5cc23bdd921493dbcd29c2cfbfe6a0a3200561861f2c44"
+          },
+          {
+            "name": "Supporting Information/2-fluoroethanol B3LYP_opt.txt",
+            "passed": true,
+            "retained": false,
+            "sha256": "d95cc9755d2efb5fcae335280ffae0ef07b5350e1f83f35d1dec5b1ca4fc5106"
+          },
+          {
+            "name": "Supporting Information/2-[37Cl]-chloroethanol CCSD(T) anharm.out",
+            "passed": true,
+            "retained": false,
+            "sha256": "bae6d2a455dc0753218639664512247a7d55bb0634d106697f45aa4df7dff526"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_gs.int",
+            "passed": true,
+            "retained": true,
+            "sha256": "2773f6b04cc74548809076bb60bb03afe2a79aa08119ace2ce2d1698738462a8"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_gs.lin",
+            "passed": true,
+            "retained": false,
+            "sha256": "373e8743bfd2310a18d3caecbbf16b217abc91bb2306fb8c2a36ab4fd51c46c3"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_gs.par",
+            "passed": true,
+            "retained": true,
+            "sha256": "6b880333ddd1c141be597d600910fc20dc8411a21944f38290a43026fb99cc68"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_gs.res",
+            "passed": true,
+            "retained": true,
+            "sha256": "badd57ef59eb940b56f591c60c11eb6bebd1760137237eb7859b7cedec360c1d"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_v21_IR-quad.int",
+            "passed": true,
+            "retained": false,
+            "sha256": "cd95c90f767144ff4b5b6ec8daa39e87cc379c7943844f6017ea6b0d419b081c"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_v21_IR-quad.lin",
+            "passed": true,
+            "retained": false,
+            "sha256": "48c1ace1352f19f3b6bb6d837bbe64d1c739f3355d3fce884e847f055ca65aa6"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_v21_IR-quad.par",
+            "passed": true,
+            "retained": false,
+            "sha256": "34c9da1f0951e7329f1003e1cbf2689f0bac814dfbda23a1da1d4d8ac80a8ba8"
+          },
+          {
+            "name": "Supporting Information/35ClEtOH_v21_IR-quad.res",
+            "passed": true,
+            "retained": false,
+            "sha256": "f6dd6164046f1a866cf5af0c9bbbeb740c983cb070357a627fd35c4454738013"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_gs.int",
+            "passed": true,
+            "retained": true,
+            "sha256": "0aae5fc6b8d976abfd524fd3edc2aa0a77c851403a652415d18f900b68acf3a3"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_gs.lin",
+            "passed": true,
+            "retained": false,
+            "sha256": "9333159cf4033c059cbfdd4ff17cd2290a68783f728a451de4a04bdef02fee4c"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_gs.par",
+            "passed": true,
+            "retained": true,
+            "sha256": "b6c2e0661cf0b6cfa9e01c44008044c1e755d5398bf6adede9c1f06f06435553"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_gs.res",
+            "passed": true,
+            "retained": true,
+            "sha256": "eb2506c91e80757d41d8025644e44a795aac89bd29670067112f1a3f6a137172"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_v21.int",
+            "passed": true,
+            "retained": false,
+            "sha256": "239279b0765db73c6ec779a6231cb9a77cb9f2fb48e74e66ee24270dcb7a8a98"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_v21.lin",
+            "passed": true,
+            "retained": false,
+            "sha256": "c0463e33e8d2bafe3af0fbcc5520754c73dc2f7080fd9114a4541545f2da7b38"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_v21.par",
+            "passed": true,
+            "retained": false,
+            "sha256": "f74c48ba02ee1f65c049b17c7ddff9c2d440221ce490d8c1994360635b004cf2"
+          },
+          {
+            "name": "Supporting Information/37ClEtOH_v21.res",
+            "passed": true,
+            "retained": false,
+            "sha256": "e6b0cd58055236aca9bacd776b3ac3f7864613ff9d52bea9cfa914ab3c7fa971"
+          }
+        ],
+        "retained_ground_state_member_count": 6
+      },
+      "name": "all_original_member_hashes_and_retained_byte_replay",
+      "passed": true
+    },
+    {
+      "details": {
+        "actual_files": 18,
+        "index_sha256": "9b188fbff90ba17142db5ad27a2129fb642d85a5e8d49b019b098adf0ccc63af",
+        "indexed_files": 17,
+        "total_bytes": 4071098
+      },
+      "name": "packet_file_index",
+      "passed": true
+    },
+    {
+      "details": {
+        "literal_checks": [
+          {
+            "first_Nlines_table_separately_preserved": true,
+            "literal": "12747.96193(20)",
+            "passed": true,
+            "reference_id": "2-chloroethanol-35Cl-ground-A-Bunn2026-primary",
+            "selected_line": 16571,
+            "selected_table": "PARAMETERS IN FIT WITH STANDARD ERRORS/Ndegf"
+          },
+          {
+            "first_Nlines_table_separately_preserved": true,
+            "literal": "3505.789127(62)",
+            "passed": true,
+            "reference_id": "2-chloroethanol-35Cl-ground-B-Bunn2026-primary",
+            "selected_line": 16572,
+            "selected_table": "PARAMETERS IN FIT WITH STANDARD ERRORS/Ndegf"
+          },
+          {
+            "first_Nlines_table_separately_preserved": true,
+            "literal": "2981.257712(49)",
+            "passed": true,
+            "reference_id": "2-chloroethanol-35Cl-ground-C-Bunn2026-primary",
+            "selected_line": 16573,
+            "selected_table": "PARAMETERS IN FIT WITH STANDARD ERRORS/Ndegf"
+          },
+          {
+            "first_Nlines_table_separately_preserved": true,
+            "literal": "12705.91773(17)",
+            "passed": true,
+            "reference_id": "2-chloroethanol-37Cl-ground-A-Bunn2026-primary",
+            "selected_line": 27810,
+            "selected_table": "PARAMETERS IN FIT WITH STANDARD ERRORS/Ndegf"
+          },
+          {
+            "first_Nlines_table_separately_preserved": true,
+            "literal": "3423.536116(58)",
+            "passed": true,
+            "reference_id": "2-chloroethanol-37Cl-ground-B-Bunn2026-primary",
+            "selected_line": 27811,
+            "selected_table": "PARAMETERS IN FIT WITH STANDARD ERRORS/Ndegf"
+          },
+          {
+            "first_Nlines_table_separately_preserved": true,
+            "literal": "2919.494355(49)",
+            "passed": true,
+            "reference_id": "2-chloroethanol-37Cl-ground-C-Bunn2026-primary",
+            "selected_line": 27812,
+            "selected_table": "PARAMETERS IN FIT WITH STANDARD ERRORS/Ndegf"
+          }
+        ]
+      },
+      "name": "all_six_exact_literals_and_correct_table",
+      "passed": true
+    },
+    {
+      "details": {
+        "isotope_sets": 2,
+        "raw_covariance_created": false,
+        "rounded_source_entries": 6
+      },
+      "name": "printed_correlations_no_covariance",
+      "passed": true
+    },
+    {
+      "details": {
+        "A_reduction_explicit": true,
+        "Ir_representation_explicit": true,
+        "chlorine_isotopes_explicit": [
+          35,
+          37
+        ],
+        "fit_RMS_limitation_MHz": 0.06,
+        "light_atom_isotope_state_conformer_asserted": false,
+        "vibrational_ground_state_explicit": true
+      },
+      "name": "publisher_explicit_identity_and_context",
+      "passed": true
+    },
+    {
+      "details": {
+        "Be_substitution": false,
+        "ground_state_rotational_data": 6,
+        "independent_accuracy_qualification": false,
+        "standard_uncertainty_assigned": false
+      },
+      "name": "unreported_fields_and_qualification_preserved",
+      "passed": true
+    },
+    {
+      "details": {
+        "archive_retained_outside_packet": true,
+        "archive_source_types": [
+          ".int",
+          ".lin",
+          ".out",
+          ".par",
+          ".res",
+          ".txt"
+        ],
+        "attribution_preserved": true,
+        "executable_engine_distribution_present": false,
+        "source_license": "CC BY-NC 4.0"
+      },
+      "name": "publisher_license_attribution_and_no_archives_in_packet",
+      "passed": true
+    },
+    {
+      "details": {
+        "findings": [],
+        "scan_is_universal_secret_detection": false,
+        "scope": "All JSON metadata/receipts/manifests; exact original scientific fitting bytes were replayed, not rewritten"
+      },
+      "name": "metadata_public_scope_scan",
+      "passed": true
+    },
+    {
+      "details": {
+        "context_sha256": "8c4d1129e8c737fad610348cf239386990dd7c4aee82f64105bdea9cf363ac30",
+        "reference_manifest_sha256": "e964aec0c4e2c91047a7204c1c8b18206ff7e1eded7e519f95360e9acf1ab2e0",
+        "review_sha256": "60a2439932e7627c759f5207e2892189ee0b63f5ac3b548e9cdd382b1b0194e9"
+      },
+      "name": "manifest_review_pins",
+      "passed": true
+    },
+    {
+      "details": {
+        "calculation_launched": false,
+        "importer_source_sha256": "e7a013f701ca62f31b52647aa5afe17a3753adc562470452f09caa4bd2cd1f1b",
+        "validator_modified": false,
+        "verified_datums": 6
+      },
+      "name": "independent_unchanged_strict_import",
+      "passed": true
+    },
+    {
+      "details": {
+        "denials": [
+          {
+            "host": "cdms.astro.uni-koeln.de",
+            "proxy_tunnel_403": true,
+            "receipt_sha256": "d76da5887b31ed383e2100289dbc2b8acefeb1d75f7a49b0c5ec376a526115e3",
+            "status": "proxy_failure"
+          },
+          {
+            "host": "pubs.rsc.org",
+            "proxy_tunnel_403": true,
+            "receipt_sha256": "68bf32910d860b7c9b9cb3fd83b1718c6fba562cbef8d192ac61db315a591c74",
+            "status": "proxy_failure"
+          },
+          {
+            "host": "www.sciencedirect.com",
+            "proxy_tunnel_403": true,
+            "receipt_sha256": "c8e03e19ff3881954a0341bdff76135429b234206836d0592be6aae4cba9e2ee",
+            "status": "proxy_failure"
+          },
+          {
+            "host": "api.semanticscholar.org",
+            "proxy_tunnel_403": true,
+            "receipt_sha256": "cb48288120ade56f9a8289152f40aca9ab14d6092e9fd16a2bf647f3a71cdb51",
+            "status": "proxy_failure"
+          }
+        ],
+        "denials_are_not_origin_http_response": true
+      },
+      "name": "four_additional_actual_denied_hosts",
+      "passed": true
+    }
+  ],
+  "checks_failed": 0,
+  "checks_passed": 13,
+  "first_verification_receipt_sha256": "2cc3aee9a0acd0823ef147d5dbfc8eb1081c7c9938e23541b9c8f642ef8128fb",
+  "human_review": false,
+  "native_calculations_performed": 0,
+  "original_private_receipt_sha256": "6e28d29d22f0a676668754be42ad0c2707492a018fe7a972107556bdfd1382dc",
+  "recorded_at_utc": "2026-10-08T20:06:33.599404+00:00",
+  "repo_source_edits": false,
+  "review_kind": "original archive and source/identity/provenance read-back plus unchanged strict importer",
+  "reviewer": "independent Codex agent",
+  "schema_version": "cochem.torq.independent-primary-reference-review/1",
+  "scientific_release_qualification": false,
+  "source_packet_bytes": 4071098,
+  "source_packet_files": 18
+}

@@ -1,0 +1,193 @@
+{
+  "checks": [
+    {
+      "details": {
+        "source_index_sha256": "e08498eac219191199ea0f59c0a1f3cf35ed39f73f81cb2e8556b4e90c3632f5",
+        "total_files": 23,
+        "xyz_files": 20
+      },
+      "name": "qm9_bundled_files",
+      "passed": true
+    },
+    {
+      "details": {
+        "datum_count": 6,
+        "numeric_values": [
+          799588.12,
+          437903.86,
+          282945.45,
+          1671.4222,
+          3803.6305,
+          3907.698
+        ],
+        "raw_water_sha256": "904d7aafbbe7f8ca0cc23e92569aba27083d9ce0d53505a28f9f7f46e8562d7c"
+      },
+      "name": "qm9_six_datum_values",
+      "passed": true
+    },
+    {
+      "details": {
+        "datum_count": 6,
+        "pdf_replay_performed_by_this_review": false,
+        "pdf_sha256": "e59b65d62b7fd525cc1d143d53ef4916afccbbcdaf80114d20b612e8e62651ce",
+        "source_literals": [
+          "835839.10(13)",
+          "435347.353(27)",
+          "278139.826(57)",
+          "281970.5578(61)",
+          "38833.98715(31)",
+          "34004.24349(31)"
+        ],
+        "standard_uncertainty_inferred": false,
+        "text_sha256": "3aa545a02491883d731fe20674236241ce709ae542750f1040dd29b1af5abdf5"
+      },
+      "name": "experimental_six_source_literals",
+      "passed": true
+    },
+    {
+      "details": {
+        "file_count": 3,
+        "independent_accuracy_qualification": false,
+        "live_api_retrieved": false
+      },
+      "name": "qcarchive_original_files",
+      "passed": true
+    },
+    {
+      "details": {
+        "rewritten_stdout": false,
+        "stdout_sha256": "e8e721e3443e7acdc585c9a88595b18dacb2837bfb404ceb0594b57065d8b4e3"
+      },
+      "name": "qcarchive_notebook_stdout",
+      "passed": true
+    },
+    {
+      "details": {
+        "assignments": [
+          {
+            "id": "SI-D3-Exchange",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-Correlation",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-ScalHFX",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-ScalDFX",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-ScalGGAC",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-ScalLDAC",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-ScalMP2C",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-D3S6",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-D3A2",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-D3S8",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-D3A1",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-PS",
+            "passed": true
+          },
+          {
+            "id": "SI-D3-PT",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-s6",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-s8",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-s9",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-a1",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-a2",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-alp",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-damping",
+            "passed": true
+          },
+          {
+            "id": "D4-UPSTREAM-mbd",
+            "passed": true
+          }
+        ],
+        "primary_target_D4_electronic_coefficients_verified": 0
+      },
+      "name": "revdsd_21_literal_assignments",
+      "passed": true
+    },
+    {
+      "details": {
+        "pdf_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+        "text_sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d"
+      },
+      "name": "revdsd_primary_bytes",
+      "passed": true
+    },
+    {
+      "details": {
+        "parameters_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f"
+      },
+      "name": "revdsd_official_parameter_bytes",
+      "passed": true
+    },
+    {
+      "details": {
+        "full_srs_ready": false,
+        "gates": 41,
+        "missing_gates": [],
+        "missing_requirements": [],
+        "requirements": 73
+      },
+      "name": "complete_context_73_requirements_41_gates",
+      "passed": true
+    }
+  ],
+  "genuine_scientific_inputs_verified": true,
+  "native_calculations": 0,
+  "new_network_retrieval": false,
+  "original_private_receipt_sha256": "acc1b3e04c69bde5d033c808b9b1a5fdebd34ef6da4a66bf9b66222015055f84",
+  "recorded_at_utc": "2026-10-08T19:45:22.232777+00:00",
+  "repo_edits": false,
+  "reviewer": "independent Codex agent",
+  "schema_version": "cochem.torq.readonly-context-review/1",
+  "scientific_release_qualification": false
+}

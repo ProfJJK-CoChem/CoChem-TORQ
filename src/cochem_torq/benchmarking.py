@@ -24,7 +24,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AfterValidator, Field, StrictFloat, StrictInt, model_validator
 from typing_extensions import Self
 
-from .domain import ATOMIC_NUMBERS, canonical_json, digest, read_json
+from .domain import ATOMIC_NUMBERS, StageResult, canonical_json, digest, read_json
 from .publication import verify_publication_bundle
 from .scientific_contracts import Name, ScientificContract, Unit
 
@@ -43,8 +43,11 @@ Observable = Literal[
     "electronic_energy",
     "equilibrium_rotational_constant",
     "ground_state_rotational_constant",
+    "harmonic_frequency",
     "rotational_transition",
     "relative_line_intensity",
+    "rigid_rotor_transition",
+    "rigid_rotor_relative_intensity",
 ]
 
 
@@ -66,6 +69,52 @@ def _decode(raw: bytes) -> Any:
     return json.loads(raw, object_pairs_hook=unique)
 
 
+class RotationalLineSelection(ScientificContract):
+    """Exact finite-J eigenstate identity, without invented Ka/Kc assignments."""
+
+    upper_J: StrictInt = Field(ge=1, le=30)  # noqa: N815
+    upper_eigenstate_index: StrictInt = Field(ge=0)
+    lower_J: StrictInt = Field(ge=0, le=30)  # noqa: N815
+    lower_eigenstate_index: StrictInt = Field(ge=0)
+
+    @model_validator(mode="after")
+    def bounds(self) -> Self:
+        if (
+            abs(self.upper_J - self.lower_J) > 1
+            or self.upper_eigenstate_index > 2 * self.upper_J
+            or self.lower_eigenstate_index > 2 * self.lower_J
+        ):
+            raise ValueError("Line identity exceeds the exact finite-J basis.")
+        return self
+
+
+class RigidRotorSelection(ScientificContract):
+    transition: RotationalLineSelection
+    constant_observable: Literal["Be", "B0"]
+    temperature_kelvin: StrictFloat = Field(gt=0)
+    normalization_transition: RotationalLineSelection | None = None
+    model_identity: Literal[
+        "TORQ exact finite-J electric-dipole rigid-rotor screening model v1"
+    ] = "TORQ exact finite-J electric-dipole rigid-rotor screening model v1"
+    quantum_number_convention: Literal[
+        "J and sorted Hamiltonian eigenstate index; no inferred Ka/Kc assignment"
+    ] = "J and sorted Hamiltonian eigenstate index; no inferred Ka/Kc assignment"
+    intensity_convention: Literal[
+        "sum over M and three lab polarizations; Boltzmann population times "
+        "stimulated-emission correction; no instrument model"
+    ] = (
+        "sum over M and three lab polarizations; Boltzmann population times "
+        "stimulated-emission correction; no instrument model"
+    )
+    nuclear_spin_convention: Literal[
+        "nuclear-spin weights excluded; every rotational eigenstate weight one; "
+        "no permutation-symmetry restrictions applied"
+    ] = (
+        "nuclear-spin weights excluded; every rotational eigenstate weight one; "
+        "no permutation-symmetry restrictions applied"
+    )
+
+
 class ObservableIdentity(ScientificContract):
     parent_id: Name
     family_id: Name
@@ -81,6 +130,9 @@ class ObservableIdentity(ScientificContract):
     observable: Observable
     component: Name
     unit: Unit
+    harmonic_mode_index: StrictInt | None = Field(default=None, ge=0)
+    harmonic_mode_assignment: Name | None = None
+    rigid_rotor_selection: RigidRotorSelection | None = None
 
     @model_validator(mode="after")
     def physical_identity(self) -> Self:
@@ -98,8 +150,11 @@ class ObservableIdentity(ScientificContract):
             "electronic_energy": "hartree",
             "equilibrium_rotational_constant": "MHz",
             "ground_state_rotational_constant": "MHz",
+            "harmonic_frequency": "cm^-1",
             "rotational_transition": "MHz",
             "relative_line_intensity": "dimensionless",
+            "rigid_rotor_transition": "MHz",
+            "rigid_rotor_relative_intensity": "dimensionless",
         }[self.observable]
         if self.unit != required_unit:
             raise ValueError("Use the exact declared benchmark observable unit.")
@@ -109,6 +164,75 @@ class ObservableIdentity(ScientificContract):
             "C",
         }:
             raise ValueError("A rotational constant requires its A/B/C component.")
+        if self.observable == "harmonic_frequency":
+            if (
+                self.harmonic_mode_index is None
+                or self.harmonic_mode_assignment is None
+                or self.component != f"mode:{self.harmonic_mode_index}"
+            ):
+                raise ValueError(
+                    "A harmonic frequency requires an exact zero-based mode index "
+                    "and a separately recorded source-mode assignment."
+                )
+        elif (
+            self.harmonic_mode_index is not None
+            or self.harmonic_mode_assignment is not None
+        ):
+            raise ValueError("Harmonic mode selection cannot label another observable.")
+        if self.observable.startswith("rigid_rotor_"):
+            selection = self.rigid_rotor_selection
+            if (
+                selection is None
+                or self.hamiltonian_convention != selection.model_identity
+            ):
+                raise ValueError("A rigid-rotor comparison requires its exact model.")
+            intensity = self.observable == "rigid_rotor_relative_intensity"
+            if (
+                self.component
+                != ("relative_absorption_weight_ratio" if intensity else "frequency")
+                or (selection.normalization_transition is not None) != intensity
+            ):
+                raise ValueError(
+                    "A relative rigid-rotor intensity requires an explicit "
+                    "normalization transition; frequency selection forbids one."
+                )
+        elif self.rigid_rotor_selection is not None:
+            raise ValueError("A screening line cannot label an identification product.")
+        return self
+
+
+class TheoreticalReferenceProvenance(ScientificContract):
+    """Reported computational context; absent engine facts remain absent."""
+
+    method: Name
+    basis: Name
+    method_details: Name
+    geometry_description: Name
+    geometry_source_locator: Name
+    geometry_sha256: Sha256 | None = None
+    engine: Name | None = None
+    engine_version: Name | None = None
+    engine_information_status: Literal["reported", "partial", "not_reported"]
+    independence_status: Literal[
+        "independent_implementation", "shared_implementation", "not_established"
+    ]
+    independence_review: Name
+    quantity_convention: Name
+
+    @model_validator(mode="after")
+    def truthful_engine_information(self) -> Self:
+        if (
+            (
+                self.engine_information_status == "reported"
+                and (self.engine is None or self.engine_version is None)
+            )
+            or (self.engine_information_status == "partial" and self.engine is None)
+            or (
+                self.engine_information_status == "not_reported"
+                and (self.engine is not None or self.engine_version is not None)
+            )
+        ):
+            raise ValueError("Retain the actual reported or absent engine information.")
         return self
 
 
@@ -120,7 +244,11 @@ class ReferenceArtifact(ScientificContract):
     retrieved_at: datetime
     reuse_permission: Name
     origin: Literal[
-        "measured", "experimentally_fitted", "semi_experimental", "catalogue_prediction"
+        "measured",
+        "experimentally_fitted",
+        "semi_experimental",
+        "published_theoretical",
+        "catalogue_prediction",
     ]
 
     @model_validator(mode="after")
@@ -141,6 +269,14 @@ class ReferenceDatum(ScientificContract):
     source_sha256: Sha256
     datum_locator: Name
     correction_sources: tuple[Name, ...] = ()
+    theoretical_provenance: TheoreticalReferenceProvenance | None = None
+    uncertainty_kind: (
+        Literal[
+            "measurement_standard_uncertainty",
+            "reported_computational_standard_uncertainty",
+        ]
+        | None
+    ) = None
 
     @model_validator(mode="after")
     def uncertainty_and_sign(self) -> Self:
@@ -150,6 +286,10 @@ class ReferenceDatum(ScientificContract):
             raise ValueError("Unavailable uncertainty must remain absent.")
         if self.identity.observable != "electronic_energy" and self.value <= 0:
             raise ValueError("This observable requires a positive reference value.")
+        if self.standard_uncertainty is None and self.uncertainty_kind is not None:
+            raise ValueError(
+                "Absent uncertainty cannot have a declared uncertainty kind."
+            )
         return self
 
 
@@ -175,12 +315,42 @@ class ReferenceManifest(ScientificContract):
                 raise ValueError(
                     "Catalogue predictions are not independent observations."
                 )
-            if datum.identity.observable == "equilibrium_rotational_constant" and (
-                source.origin != "semi_experimental" or not datum.correction_sources
+            theoretical = source.origin == "published_theoretical"
+            if theoretical != (datum.theoretical_provenance is not None):
+                raise ValueError(
+                    "Published theoretical references require exact computational "
+                    "provenance; observed references cannot inherit that origin."
+                )
+            if datum.standard_uncertainty is not None:
+                expected_kind = (
+                    "reported_computational_standard_uncertainty"
+                    if theoretical
+                    else "measurement_standard_uncertainty"
+                )
+                if datum.uncertainty_kind not in (
+                    expected_kind,
+                    *(() if theoretical else (None,)),
+                ):
+                    raise ValueError(
+                        "Reference standard uncertainty must retain its actual origin."
+                    )
+            if (
+                datum.identity.observable
+                in {"equilibrium_rotational_constant", "harmonic_frequency"}
+                and not theoretical
+                and (
+                    source.origin != "semi_experimental" or not datum.correction_sources
+                )
             ):
                 raise ValueError(
-                    "Equilibrium references require independent correction provenance; "
-                    "ground-state fits cannot be relabeled equilibrium constants."
+                    "Equilibrium/harmonic references require independent correction "
+                    "provenance or explicit published theory; B0/fundamentals cannot "
+                    "be relabeled Be/harmonic frequencies."
+                )
+            if datum.identity.observable.startswith("rigid_rotor_") and not theoretical:
+                raise ValueError(
+                    "A rigid-rotor screening product requires a theoretical "
+                    "reference, not a measured identification line or intensity."
                 )
         if set(sources) != {datum.source_sha256 for datum in self.datums}:
             raise ValueError(
@@ -446,6 +616,97 @@ def _read_frozen(
     return design, frozen_at
 
 
+def _context_matches_prediction(
+    context: Any, identity: ObservableIdentity, result: Mapping[str, Any]
+) -> None:
+    if (
+        context.evidence_class != "engine_calculation"
+        or tuple(context.symbols) != identity.symbols
+        or tuple(context.isotope_numbers) != identity.isotope_numbers
+        or context.charge != identity.charge
+        or context.multiplicity != identity.multiplicity
+        or context.recipe_sha256 != result["recipe_sha256"]
+        or context.geometry_sha256 != digest(result["native_result"]["geometry_bohr"])
+    ):
+        raise ValueError("Typed product changed the actual native molecular context.")
+
+
+def _select_rigid_rotor_line(catalog: Any, selection: RotationalLineSelection) -> Any:
+    matches = [
+        line
+        for line in catalog.lines
+        if all(
+            getattr(line, name) == value
+            for name, value in selection.model_dump().items()
+        )
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "The exact selected transition is absent from the native catalog."
+        )
+    return matches[0]
+
+
+def _rigid_rotor_scalar(
+    stage: StageResult, identity: ObservableIdentity, result: Mapping[str, Any]
+) -> tuple[float | None, str | None, dict[str, Any]]:
+    from .spectroscopy.results import RigidRotorCatalogData
+
+    if stage.observable != "rigid_rotor_transitions":
+        raise ValueError("A screening line requires the typed rigid-rotor product.")
+    catalog = RigidRotorCatalogData.model_validate_json(canonical_json(stage.value))
+    _context_matches_prediction(catalog.scientific_context, identity, result)
+    selection = identity.rigid_rotor_selection
+    if selection is None or any(
+        getattr(catalog, name) != getattr(selection, name)
+        for name in (
+            "model_identity",
+            "constant_observable",
+            "temperature_kelvin",
+            "quantum_number_convention",
+            "intensity_convention",
+            "nuclear_spin_convention",
+        )
+    ):
+        raise ValueError("Catalog and comparison model/population conventions differ.")
+    line = _select_rigid_rotor_line(catalog, selection.transition)
+    context = {
+        "model_identity": catalog.model_identity,
+        "constant_observable": catalog.constant_observable,
+        "temperature_kelvin": catalog.temperature_kelvin,
+        "quantum_number_convention": catalog.quantum_number_convention,
+        "intensity_convention": catalog.intensity_convention,
+        "nuclear_spin_convention": catalog.nuclear_spin_convention,
+        "identification_qualified": catalog.identification_qualified,
+        "partition_relative_tail_indicator": catalog.partition_relative_tail_indicator,
+        "partition_converged_at_requested_tolerance": (
+            catalog.partition_converged_at_requested_tolerance
+        ),
+    }
+    if identity.observable == "rigid_rotor_transition":
+        return line.frequency_mhz, None, context
+    if selection.normalization_transition is None:
+        raise ValueError("Intensity normalization requires an exact transition.")
+    normalization = _select_rigid_rotor_line(
+        catalog, selection.normalization_transition
+    )
+    if not catalog.partition_converged_at_requested_tolerance:
+        return None, "The finite-J population partition did not converge.", context
+    if normalization.relative_absorption_weight_debye2 <= 0:
+        return None, "The normalization transition has zero absorption weight.", context
+    ratio = (
+        line.relative_absorption_weight_debye2
+        / normalization.relative_absorption_weight_debye2
+    )
+    if not math.isfinite(ratio) or ratio <= 0:
+        return (
+            None,
+            "The selected absorption-weight ratio is zero or nonfinite.",
+            context,
+        )
+    return ratio, None, context
+
+
 def import_publication_prediction(
     bundle: str | Path, *, expected_manifest_sha256: str, identity: ObservableIdentity
 ) -> dict[str, Any]:
@@ -494,17 +755,29 @@ def import_publication_prediction(
         "electronic_energy": "electronic_structure",
         "equilibrium_rotational_constant": "equilibrium_constants",
         "ground_state_rotational_constant": "ground_state_constants",
+        "harmonic_frequency": "harmonic_analysis",
         "rotational_transition": "identification_catalog",
         "relative_line_intensity": "identification_catalog",
+        "rigid_rotor_transition": "rigid_rotor_catalog",
+        "rigid_rotor_relative_intensity": "rigid_rotor_catalog",
     }
-    stage = result["stages"][stages[identity.observable]]
+    stage = result["stages"].get(stages[identity.observable])
+    if stage is None:
+        stage = {
+            "status": "unavailable",
+            "observable": stages[identity.observable],
+            "value": None,
+            "reason": "The genuine calculation did not produce this requested stage.",
+        }
     value: float | None = None
     reason = stage.get("reason")
+    approximation_context: dict[str, Any] = {}
     if stage["status"] == "available":
         if not read_json(root / "publication.json")["native_engine_evidence"]:
             raise ValueError(
                 "Available prediction requires genuine retained native evidence."
             )
+        checked = StageResult.model_validate_json(canonical_json(stage))
         if identity.observable == "electronic_energy":
             if identity.component != "total_electronic_energy":
                 raise ValueError(
@@ -519,6 +792,90 @@ def import_publication_prediction(
             value = stage["value"]["constants_mhz"]["ABC".index(identity.component)]
             if value is None:
                 reason = "The chosen rotational axis is undefined for this rotor."
+            approximation_context = {
+                "constant_observable": "Be",
+                "vibrational_correction_applied": False,
+            }
+        elif identity.observable == "harmonic_frequency":
+            from .scientific_values import HarmonicData
+
+            if checked.observable != "harmonic_frequencies":
+                raise ValueError(
+                    "Harmonic extraction cannot use an anharmonic fundamental."
+                )
+            harmonic = HarmonicData.model_validate_json(canonical_json(checked.value))
+            derivative = result.get("harmonic_native_result") or result["native_result"]
+            if (
+                derivative.get("status") != "complete"
+                or derivative.get("hessian_hartree_bohr2") is None
+                or harmonic.coordinates_bohr != derivative.get("geometry_bohr")
+                or harmonic.coordinates_bohr != result["native_result"]["geometry_bohr"]
+                or harmonic.isotope_masses_u
+                != [record["mass_u"] for record in result["resolved_isotopes"]]
+            ):
+                raise ValueError(
+                    "Harmonic prediction requires its actual isotope/geometry-bound "
+                    "native Hessian."
+                )
+            tolerance = result["recipe"].get(
+                "harmonic_external_residual_relative_tolerance"
+            )
+            if (
+                isinstance(tolerance, bool)
+                or not isinstance(tolerance, (int, float))
+                or not math.isfinite(tolerance)
+                or tolerance <= 0
+            ):
+                raise ValueError("The harmonic recipe has no valid invariance gate.")
+            index = identity.harmonic_mode_index
+            if index is None or index >= len(harmonic.frequencies_cm1):
+                raise ValueError("The selected harmonic eigenmode does not exist.")
+            approximation_context = {
+                "frequency_kind": "harmonic",
+                "mode_index": index,
+                "source_mode_assignment": identity.harmonic_mode_assignment,
+                "normal_mode_convention": harmonic.convention,
+                "normal_mode_source_digest": harmonic.source_digest,
+                "stationary_character": harmonic.stationary_character,
+                "external_residual_relative": harmonic.external_residual_relative,
+            }
+            if (
+                harmonic.stationary_character != "positive_definite_vibrational_hessian"
+                or harmonic.external_residual_relative > tolerance
+                or "hessian_external_invariance_failed" in checked.quality_flags
+                or "nonminimum_or_unresolved_stationary_point" in checked.quality_flags
+            ):
+                reason = "Minimum and harmonic invariance gates must both pass."
+            else:
+                value = harmonic.frequencies_cm1[index]
+        elif identity.observable == "ground_state_rotational_constant":
+            from .spectroscopy.advanced_products import ModelGroundStateConstants
+
+            if checked.observable != "nonresonant_Watson_model_B0":
+                raise ValueError("No validated extractor exists for this B0 product.")
+            model = ModelGroundStateConstants.model_validate_json(
+                canonical_json(checked.value)
+            )
+            _context_matches_prediction(model.scientific_context, identity, result)
+            if identity.hamiltonian_convention != model.observable:
+                raise ValueError(
+                    "Model B0 requires its actual nonresonant Watson convention; "
+                    "no fitted Hamiltonian/reduction conversion is inferred."
+                )
+            value = model.constants_mhz["ABC".index(identity.component)]
+            approximation_context = {
+                "constant_observable": model.observable,
+                "independent_scientific_qualification": False,
+                "identification_ready": False,
+                "expansion_convention": model.watson_result.expansion_convention,
+                "axes_convention": model.watson_result.axes_convention,
+                "full_resonant_GVPT2": model.watson_result.full_resonant_GVPT2,
+                "limitations": list(model.watson_result.limitations),
+            }
+        elif identity.observable.startswith("rigid_rotor_"):
+            value, reason, approximation_context = _rigid_rotor_scalar(
+                checked, identity, result
+            )
         else:
             raise ValueError(
                 "This available observable has no validated benchmark scalar extractor."
@@ -538,7 +895,25 @@ def import_publication_prediction(
             "benchmark_freeze_sha256"
         ),
         "quality_flags": stage.get("quality_flags", []),
+        "approximation_context": approximation_context,
         "uncertainty": stage.get("uncertainty"),
+        "calculation_provenance": {
+            "request_recipe": request["recipe"],
+            "recipe": result["recipe"],
+            "initial_geometry_sha256": digest(molecule["geometry_bohr"]),
+            "calculated_geometry_sha256": digest(
+                result["native_result"]["geometry_bohr"]
+            )
+            if (result.get("native_result") or {}).get("geometry_bohr") is not None
+            else None,
+            "engine": (result.get("native_result") or {}).get("engine"),
+            "engine_version": (result.get("native_result") or {}).get("engine_version"),
+            "native_method": (result.get("native_result") or {}).get("method"),
+            "native_settings": (result.get("native_result") or {}).get("settings"),
+            "basis_definition_sha256": (result.get("native_result") or {}).get(
+                "basis_definition_sha256"
+            ),
+        },
         "reference_anchors": request.get("scientific_goal", {}).get("anchors", [])
         if request.get("scientific_goal")
         else [],
@@ -756,6 +1131,7 @@ def score_benchmark(
     ):
         raise ValueError("Scoring references differ from the frozen curated manifest.")
     datums = {r.reference_id: r for r in references.manifest.datums}
+    reference_sources = {r.source_sha256: r for r in references.manifest.sources}
     selected = {r.reference_id: r for r in design.selected_references}
     for reference_id, ref in selected.items():
         datum = datums.get(reference_id)
@@ -840,6 +1216,18 @@ def score_benchmark(
             "unit": ref.identity.unit,
             "prediction": value,
             "reference": reference.value,
+            "reference_origin": reference_sources[reference.source_sha256].origin,
+            "reference_theoretical_provenance": (
+                reference.theoretical_provenance.model_dump(mode="json")
+                if reference.theoretical_provenance is not None
+                else None
+            ),
+            "reference_uncertainty_kind": reference.uncertainty_kind
+            or (
+                "measurement_standard_uncertainty"
+                if reference.standard_uncertainty is not None
+                else None
+            ),
             "error": error,
             "relative_error_ppm": error / reference.value * 1e6
             if reference.value != 0
@@ -955,6 +1343,8 @@ def score_benchmark(
             "No covariance-aware difference or intensity likelihood is inferred.",
             "Observed target comparisons cannot independently qualify "
             "a method or deployment.",
+            "Published theoretical references establish computational differences "
+            "or reproduction evidence, not agreement with independent measurements.",
         ],
     }
     result_sha256 = _write_once(destination, result)

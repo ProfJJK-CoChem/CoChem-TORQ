@@ -13,6 +13,12 @@ The implemented teaching route does not establish identification accuracy or
 complete the full research SRS. Advanced products retain explicit qualification
 gates and scientifically valid earlier results when a later stage is unavailable.
 
+**Student deployment testing is currently on hold.** Start with the
+[genuine published-value comparison guide](docs/development/published_reference_product.md)
+for the base calculation product and retrieved peer-reviewed QM9 data. The
+[researcher context](docs/development/agent_and_researcher_context.md) records
+remaining agent implementation and the specific owner/researcher prerequisites.
+
 **Author/PI:** Dr. Joshua John Klaassen
 **ORCiD:** [0009-0007-1506-4401](https://orcid.org/0009-0007-1506-4401)
 

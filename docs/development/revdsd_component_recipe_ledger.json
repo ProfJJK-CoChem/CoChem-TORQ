@@ -1,0 +1,618 @@
+{
+  "schema_version": "cochem.torq.reviewed-component-recipe/1",
+  "recorded_at": "2026-10-08T18:16:58.587604+00:00",
+  "review_type": "Agent textual/source review with deterministic extraction and publisher/upstream identity checks; no human curator attestation",
+  "target": "revDSD-PBEP86-D4, original 2019 definition",
+  "repository_HEAD": "f25ae6e17af4b7f5786274304d036a385359d182",
+  "reviewed_working_tree_subset_sha256": {
+    "src/cochem_torq/engines/revdsd.py": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+    "src/cochem_torq/registry.py": "c1edb2a7bb82a4b8370816f86230fd064b3774ecaa932b62fd07f0e7bb0d7c56",
+    "src/cochem_torq/capabilities.py": "31f8f2a0097ee12e0a97b7f8954b11b285708de05f8f6d8e83f08f0af5cfbde7",
+    "docs/wiki/CoChem-TORQ_Implementation_SRS.md": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536",
+    "docs/wiki/RevDSD_Spectroscopy_Protocol.md": "0f04fc1d5ed3f886ee51f79f3baf50afac217aaeb531078e91055f73a3e11f5c",
+    "docs/wiki/Method_Matrix.md": "f17fd8cd755719e921be8e59163dbacb0b0c20d97353e4a60c245fb3fb859496",
+    "docs/wiki/Method_Matrix_Implementation_Contract.md": "1e68f7853f6e5bc6f40094cfada391a72301994e367f81b8bece56617735cf1a",
+    "docs/development/revdsd_source_evidence.json": "354125caeb2c578d5947b7048c5370cfe1c54bb6baca4b4f488ffd63d364e29d"
+  },
+  "primary_source": {
+    "citation": "Santra, Sylvetsky and Martin, J. Phys. Chem. A 123 (2019), 5129-5143",
+    "article_doi": "10.1021/acs.jpca.9b03157",
+    "SI_doi": "10.1021/acs.jpca.9b03157.s001",
+    "SI_pdf_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+    "SI_publisher_MD5_verified": true,
+    "SI_text_sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d",
+    "SI_license": {
+      "value": 10,
+      "name": "CC BY-NC 4.0",
+      "url": "https://creativecommons.org/licenses/by-nc/4.0/"
+    },
+    "original_primary_article_equation_number": null,
+    "original_primary_D4_coefficient_table_verified": false,
+    "publisher_metadata_url": "https://api.figshare.com/v2/articles/8258924",
+    "SI_download_url": "https://ndownloader.figshare.com/files/15437975",
+    "SI_retrieved_at_utc": "2026-10-08T17:58:33.857840+00:00",
+    "SI_bytes": 787293,
+    "SI_publisher_MD5": "efe4fd1654c9eab5a5f4e9536d433c7f",
+    "SI_retained_artifact": {
+      "logical_name": "8258924-jp9b03157_si_001.pdf",
+      "storage": "External review archive; not distributed at a repository-relative path",
+      "sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a"
+    },
+    "SI_text_retained_artifact": {
+      "logical_name": "8258924-SI-extracted.txt",
+      "storage": "External review archive; not distributed at a repository-relative path",
+      "sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d"
+    },
+    "SI_text_extraction": {
+      "tool": "pdftotext",
+      "version": "25.03.0",
+      "arguments": [
+        "-layout"
+      ],
+      "page_count": 28,
+      "reextraction_bytes_equal": true,
+      "line_number_rule": "One-based newline-delimited lines in the SHA-bound extracted text; form-feed characters do not introduce extra counted lines."
+    }
+  },
+  "orbital_generation": {
+    "accepted_GKS_functional": null,
+    "accepted_orbital_exchange_scale": null,
+    "accepted_orbital_P86_correlation_scale": null,
+    "reason": "The acquired SI's GKS input is the D3(BJ) sample. The primary publisher abstract distinguishes xrevDSD full-correlation orbitals but does not specify the target D4 GKS equation.",
+    "abstract_source": {
+      "sha256": "9b0425468eef545967c314bd307a7a428691637cb46bdf1e4edfd637a287b97f",
+      "JSON_pointer": "/description",
+      "retained_artifact": {
+        "logical_name": "figshare-article-8258924.json",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "9b0425468eef545967c314bd307a7a428691637cb46bdf1e4edfd637a287b97f"
+      },
+      "url": "https://api.figshare.com/v2/articles/8258924"
+    },
+    "xrevDSD_full_DFT_correlation_is_not_authorized_as_target": true
+  },
+  "final_energy": {
+    "TORQ_specification_template": "E_NN + E_1e + E_J + cX*Ex_HF + (1-cX)*Ex_PBE + cC*Ec_P86 + cOS*E_OS_PT2 + cSS*E_SS_PT2 + E_D4",
+    "template_source": "docs/wiki/RevDSD_Spectroscopy_Protocol.md section 1",
+    "template_is_not_a_verified_primary_equation": true,
+    "accepted_target_coefficients": {
+      "cX": null,
+      "PBE_exchange_scale": null,
+      "cC": null,
+      "cOS": null,
+      "cSS": null
+    },
+    "secondary_candidate_coefficients_not_activated": {
+      "cX": 0.69,
+      "PBE_exchange_scale": 0.31,
+      "cC": 0.421,
+      "cOS": 0.5922,
+      "cSS": 0.0636
+    },
+    "secondary_candidate_sources": [
+      {
+        "establishes": "secondary ORCA input template; no native output or primary SI",
+        "evidence_class": "secondary_software_source",
+        "sha256": "f51087269c7cf14ed11a0515365da85f8685a4a6f8d328059ae3e41f3a5bcfbc",
+        "url": "https://github.com/baaam24/gellrich_scripts/blob/110278967f64ad6b19be469a9e60804726d35308/custom_2input/rev-DSD-PBEP86_D4_sp.sh",
+        "retained_artifact": {
+          "logical_name": "rev-DSD-PBEP86_D4_sp.sh",
+          "storage": "External review archive; not distributed at a repository-relative path",
+          "sha256": "f51087269c7cf14ed11a0515365da85f8685a4a6f8d328059ae3e41f3a5bcfbc"
+        }
+      },
+      {
+        "establishes": "secondary semilocal implementation claiming original Table 4; molecular PT2/orbital/core validation absent",
+        "evidence_class": "secondary_software_source",
+        "sha256": "843717c0f8786ab22ab0c607ef3f892d00ecc2445219727b7f34354d7c7b7a88",
+        "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/functionals/hybrids.rs",
+        "retained_artifact": {
+          "logical_name": "hybrids.rs",
+          "storage": "External review archive; not distributed at a repository-relative path",
+          "sha256": "843717c0f8786ab22ab0c607ef3f892d00ecc2445219727b7f34354d7c7b7a88"
+        }
+      },
+      {
+        "establishes": "secondary OS/SS coefficient metadata; not an independent native molecular result",
+        "evidence_class": "secondary_software_source",
+        "sha256": "0811186e5d6e23ddcdd210517edcb85547c5a96c2a159073f01b98c783e21d11",
+        "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/func.rs",
+        "retained_artifact": {
+          "logical_name": "func.rs",
+          "storage": "External review archive; not distributed at a repository-relative path",
+          "sha256": "0811186e5d6e23ddcdd210517edcb85547c5a96c2a159073f01b98c783e21d11"
+        }
+      },
+      {
+        "establishes": "semilocal reference generation from LibXC mixtures; does not establish complete revDSD recipe or independent-engine agreement",
+        "evidence_class": "secondary_software_source",
+        "sha256": "0248b87d0e9d597b6ce033af0ac872977f47d57ae28ad92039791dfa371aeeff",
+        "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx-validation/src/bin/gen_golden.rs",
+        "retained_artifact": {
+          "logical_name": "gen_golden.rs",
+          "storage": "External review archive; not distributed at a repository-relative path",
+          "sha256": "0248b87d0e9d597b6ce033af0ac872977f47d57ae28ad92039791dfa371aeeff"
+        }
+      }
+    ],
+    "required_primary_evidence": "Accessible original main-article method definition and D4 coefficient table, or primary author material explicitly resolving the original2019 target; current publisher probe returned HTTP403."
+  },
+  "primary_D3_only_sample": {
+    "assignments": {
+      "Exchange": "X_PBE",
+      "Correlation": "C_P86",
+      "ScalHFX": "0.69",
+      "ScalDFX": "0.31",
+      "ScalGGAC": "0.4296",
+      "ScalLDAC": "0.4296",
+      "ScalMP2C": "1.0",
+      "D3S6": "0.4377",
+      "D3A2": "5.5",
+      "D3S8": "0.0",
+      "D3A1": "0.0",
+      "PS": "0.5785",
+      "PT": "0.0799"
+    },
+    "canonical_interpretation": "ScalHFX/ScalDFX specify the literal HF/PBE exchange fractions; ScalGGAC and ScalLDAC both equal0.4296; PS/PT are the reported SCS coefficients0.5785/0.0799. Exact cross-engine OS/SS convention still requires matched native component validation.",
+    "source_pages": {
+      "Gaussian": "S21",
+      "ORCA": "S23"
+    },
+    "excerpt": {
+      "retained_artifact": {
+        "logical_name": "revdsd-reviewed-primary-page-S23.txt",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "62b726a236090a9c1ab69f2ce0c9369f97711492aeb9a46a63a9ae64343d0b6e"
+      },
+      "sha256": "62b726a236090a9c1ab69f2ce0c9369f97711492aeb9a46a63a9ae64343d0b6e",
+      "bytes": 412,
+      "full_text_character_offsets_half_open": [
+        97048,
+        97460
+      ],
+      "serialization": "Exact UTF-8 bytes of the specified Unicode substring of the SHA-bound full text; no added/removed whitespace or newline.",
+      "full_text_sha256": "211ae0dcf8d6aedeb2ba36c95ead480931ae108a6ddf2285f1aa01bd0e4e963d",
+      "printed_page": "S23",
+      "PDF_page": 23,
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    "P86_LibXC_mapping": null,
+    "target_D4_transfer_authorized": false,
+    "CO_geometry_is_illustrative_not_optimized": true
+  },
+  "D4_component": {
+    "accepted_dispersion_parameters_for_review": {
+      "s6": 0.5132,
+      "s9": 1.0,
+      "alp": 16.0,
+      "damping": "bj",
+      "mbd": "approx-atm",
+      "s8": 0.0,
+      "a1": 0.44,
+      "a2": 3.6,
+      "doi": "10.1021/acs.jpca.9b03157"
+    },
+    "method_key": "revdsdpbep86",
+    "variant": "bj-eeq-atm",
+    "upstream_commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+    "upstream_release_tag": null,
+    "parameter_source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+    "parameter_units": "Retained unchanged in the upstream API convention; no independently unverified length-unit conversion was applied.",
+    "charge_input_in_current_TORQ": "Molecular integer charge passed as float to native DispersionModel; atomic numbers and coordinates supplied in bohr.",
+    "native_algorithm_primary_equation_review_complete": false,
+    "does_not_establish_electronic_recipe_or_derivatives": true,
+    "upstream_citation_bib_sha256": "70404d8fc7f6a76f5dd4a6611efdfabde793a3816bb282b79678879461aac730",
+    "parameter_source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml",
+    "parameter_retained_artifact": {
+      "logical_name": "dftd4-assets-parameters.toml",
+      "storage": "External review archive; not distributed at a repository-relative path",
+      "sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f"
+    },
+    "default_merge_implementation": {
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/python/dftd4/parameters.py",
+      "sha256": "e75c3244aa06d1771796831592aac3d9b3d873a689e667bbeebe7309d8b93e57",
+      "function": "_get_params",
+      "operation": "Copy the selected default dictionary, then update it with the method-specific entry.",
+      "retained_artifact": {
+        "logical_name": "dftd4-python-dftd4-parameters.py",
+        "storage": "External review archive; not distributed at a repository-relative path",
+        "sha256": "e75c3244aa06d1771796831592aac3d9b3d873a689e667bbeebe7309d8b93e57"
+      }
+    },
+    "citation_source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/CITATION.bib"
+  },
+  "core_and_reference": {
+    "published_SI_distinguishes_FC_and_noFC": true,
+    "locators": [
+      {
+        "table": "S13",
+        "printed_page": "S14",
+        "PDF_page": 14
+      },
+      {
+        "table": "S17",
+        "printed_page": "S18",
+        "PDF_page": 18
+      }
+    ],
+    "accepted_target_frozen_core_orbital_selection": null,
+    "accepted_P86_LibXC_flavor": null,
+    "accepted_original2019_vs_2021_equivalence": false
+  },
+  "current_implementation_review": {
+    "ResearchRecipe_separates_orbital_xc_and_energy_xc": true,
+    "named_revDSD_and_revDOD_custom_names_rejected": true,
+    "exact_named_recipe_function_raises": true,
+    "registry_availability": "documented",
+    "registry_runnable": false,
+    "registry_products": [],
+    "actual_research_domain": "Restricted real canonical GKS/HF orbitals, conventional PT2, first-row H-Ne, singlet, explicit frozen occupied indices; HF/LDA/GGA hybrids only, no range separation.",
+    "GKS_analytic_response_available": false,
+    "HF_PT2_analytic_response_is_a_separate_narrow_milestone": true,
+    "numerical_energy_derivatives_do_not_establish_exact_method_identity": true,
+    "capability_tuple_requires": [
+      "method",
+      "basis",
+      "ecp",
+      "electronic_reference",
+      "property",
+      "derivative",
+      "engine",
+      "engine_version",
+      "optimizer_version",
+      "hardware",
+      "recipe_sha256"
+    ],
+    "future_recipe_digest_must_bind_full_verified_component_recipe_and_dispersion_table": true
+  },
+  "verified_artifact_assignments": [
+    {
+      "id": "SI-D3-Exchange",
+      "artifact_assignment": "Exchange",
+      "reported_value": "X_PBE",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1298
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-Correlation",
+      "artifact_assignment": "Correlation",
+      "reported_value": "C_P86",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1299
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-ScalHFX",
+      "artifact_assignment": "ScalHFX",
+      "reported_value": "0.69",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1300
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-ScalDFX",
+      "artifact_assignment": "ScalDFX",
+      "reported_value": "0.31",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1301
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-ScalGGAC",
+      "artifact_assignment": "ScalGGAC",
+      "reported_value": "0.4296",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1302
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-ScalLDAC",
+      "artifact_assignment": "ScalLDAC",
+      "reported_value": "0.4296",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1303
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-ScalMP2C",
+      "artifact_assignment": "ScalMP2C",
+      "reported_value": "1.0",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1304
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-D3S6",
+      "artifact_assignment": "D3S6",
+      "reported_value": "0.4377",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1305
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-D3A2",
+      "artifact_assignment": "D3A2",
+      "reported_value": "5.5",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1306
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-D3S8",
+      "artifact_assignment": "D3S8",
+      "reported_value": "0.0",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1307
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-D3A1",
+      "artifact_assignment": "D3A1",
+      "reported_value": "0.0",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1308
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-PS",
+      "artifact_assignment": "PS",
+      "reported_value": "0.5785",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1313
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "SI-D3-PT",
+      "artifact_assignment": "PT",
+      "reported_value": "0.0799",
+      "evidence_class": "primary_publisher_SI",
+      "method_scope": "revDSD-PBEP86-D3(BJ), not the target D4 recipe",
+      "locator": {
+        "printed_page": "S23",
+        "PDF_page": 23,
+        "extracted_text_line": 1314
+      },
+      "source_sha256": "e386997549ceb0655248f53a4ccfffdbce1656398aabd9a378bf28e016910c7a",
+      "source_url": "https://ndownloader.figshare.com/files/15437975"
+    },
+    {
+      "id": "D4-UPSTREAM-s6",
+      "artifact_assignment": "s6",
+      "reported_value": 0.5132,
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 444,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-s8",
+      "artifact_assignment": "s8",
+      "reported_value": 0.0,
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 444,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-s9",
+      "artifact_assignment": "s9",
+      "reported_value": 1.0,
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 6,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-a1",
+      "artifact_assignment": "a1",
+      "reported_value": 0.44,
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 444,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-a2",
+      "artifact_assignment": "a2",
+      "reported_value": 3.6,
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 444,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-alp",
+      "artifact_assignment": "alp",
+      "reported_value": 16.0,
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 6,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-damping",
+      "artifact_assignment": "damping",
+      "reported_value": "bj",
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 6,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    },
+    {
+      "id": "D4-UPSTREAM-mbd",
+      "artifact_assignment": "mbd",
+      "reported_value": "approx-atm",
+      "evidence_class": "official_upstream_parameter_definition",
+      "method_scope": "revdsdpbep86 BJ-EEQ-ATM dispersion component only",
+      "locator": {
+        "path": "assets/parameters.toml",
+        "entry_line": 6,
+        "default_selector_line": 2,
+        "merge_implementation": "python/dftd4/parameters.py _get_params"
+      },
+      "commit": "d5f891808c2145becdcce742f67ecc7e711067d7",
+      "source_sha256": "8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f",
+      "source_url": "https://github.com/dftd4/dftd4/blob/d5f891808c2145becdcce742f67ecc7e711067d7/assets/parameters.toml"
+    }
+  ],
+  "verified_artifact_assignment_count": 21,
+  "verified_primary_D3_sample_assignment_count": 13,
+  "verified_D4_component_assignment_count": 8,
+  "verified_target_D4_electronic_coefficient_count": 0,
+  "remaining_gates": [
+    "Original2019 D4 final-energy cX/cC/cOS/cSS and exact GKS orbital-generation equation",
+    "Exact original P86/LibXC variant and frozen-core shell/orbital convention",
+    "Explicit versioned D4 kernel/EEQ/ATM convention and response, beyond the resolved damping table",
+    "Matched authenticated independent original2019 native energy components across multiple geometries and spin-component cases",
+    "Full moving-grid GKS/OS-SS orbital-response analytic gradient qualification",
+    "Separately qualified Hessian and higher derivatives, spectroscopy and observable-domain uncertainty calibration"
+  ],
+  "DH0_complete": false,
+  "DH1_independently_qualified": false,
+  "named_recipe_activation": "blocked",
+  "student_deployment_performed_by_this_review": false,
+  "native_calculations_performed_by_this_review": 0,
+  "repository_edits_performed_by_this_review": false,
+  "reviewed_working_tree_subset_unchanged": true,
+  "reviewed_working_tree_subset_scope": "Snapshot before this documentation integration. Source-code, SRS and method-matrix hashes remain binding; the two existing documentation files are intentionally updated.",
+  "source_review_provenance": {
+    "logical_name": "revdsd-reviewed-component-recipe-ledger.json",
+    "storage": "External review archive; not distributed at a repository-relative path",
+    "sha256": "8fa4de81a9431ad714f6a0df176be88eedcea9293b3294ac6c14ecb4af1866ab",
+    "independent_agent_check": "A second agent checked all literal assignments and the exact UTF-8 excerpt binding; this is source review, not a human curator attestation or independent-engine qualification."
+  },
+  "historical_documentation_observations_before_integration": [
+    "The existing repo source ledger still has primary_SI_bytes_retrieved=false; the current actual PDF acquisition now supersedes that historical access observation.",
+    "Original main-article D4 identity remains unresolved; documentation should narrow the previous article/SI access blocker rather than activating DH0/DH1."
+  ],
+  "public_documentation_integration": {
+    "date_utc": "2026-10-08",
+    "scope": "Source evidence, protocol and component-recipe ledger documentation only",
+    "runtime_source_changed": false,
+    "SRS_and_method_matrix_changed": false,
+    "named_recipe_activation": "blocked",
+    "original_source_review_metadata_is_historical": true
+  }
+}

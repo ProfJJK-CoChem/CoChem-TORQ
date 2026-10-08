@@ -1,0 +1,46 @@
+{
+  "copyright": "2019, The Molecular Science Software Institute",
+  "human_reviewed": false,
+  "independent_accuracy_qualification": false,
+  "license": "BSD-3-Clause",
+  "license_matches_pinned_archive_member": true,
+  "live_api_observation": "Proxy CONNECT returned 403; no live API response body acquired",
+  "live_api_record_retrieved": false,
+  "notebook_matches_pinned_archive_member": true,
+  "reference_kind": "historical official tutorial mirror of real computational output",
+  "reuse_note": "Notebook and its captured output redistributed with the original pinned repository BSD-3-Clause license; no endorsement implied.",
+  "schema_version": 1,
+  "source_archive_acquired_at_utc": "2026-10-08T17:58:51.966921+00:00",
+  "source_archive_http_status": 200,
+  "source_archive_inherited_proxy_preserved": true,
+  "source_archive_sha256": "0ecb81c263f219cedc27c4ea10cf304e4aab9947ab35fb0756b6f0cb4cfa682d",
+  "source_archive_size_bytes": 5171864,
+  "source_archive_tls_verification": true,
+  "source_archive_url": "https://codeload.github.com/MolSSI/QCArchiveExamples/zip/60ee49a3dc881cd64d42840a2a5f3bf31f7b049f",
+  "source_commit": "60ee49a3dc881cd64d42840a2a5f3bf31f7b049f",
+  "source_files": [
+    {
+      "path": "source-notebook.ipynb",
+      "sha256": "6358808518e39b6cae4b8375518b784838359b2daa76afc3b3e6d34f9f142427",
+      "size_bytes": 26594,
+      "upstream_path": "cookbook/molecule_records.ipynb"
+    },
+    {
+      "path": "source-license.txt",
+      "sha256": "8d857c958223fcba344ad384d87824bfd1cd5e1bfef804463f14042c48f82257",
+      "size_bytes": 1540,
+      "upstream_path": "LICENSE"
+    },
+    {
+      "path": "source-stdout.txt",
+      "sha256": "e8e721e3443e7acdc585c9a88595b18dacb2837bfb404ceb0594b57065d8b4e3",
+      "size_bytes": 13771,
+      "upstream_path": "cookbook/molecule_records.ipynb#cell-7"
+    }
+  ],
+  "source_molecule_id": 2,
+  "source_record_id": 1847316,
+  "source_repository": "MolSSI/QCArchiveExamples",
+  "source_repository_url": "https://github.com/MolSSI/QCArchiveExamples",
+  "stdout_extraction": "Exact concatenation of text fields in outputs of zero-based notebook cell 7"
+}

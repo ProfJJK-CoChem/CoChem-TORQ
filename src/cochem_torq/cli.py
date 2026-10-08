@@ -241,6 +241,35 @@ def _parser() -> argparse.ArgumentParser:
     interface.add_argument("--host", default="127.0.0.1")
     interface.add_argument("--port", type=int, default=8888)
     interface.add_argument("--notebook", type=Path, default=Path("UI/Start_TORQ.ipynb"))
+    reference_fetch = commands.add_parser(
+        "reference-fetch", help="Retrieve bounded actual HTTPS publication bytes"
+    )
+    reference_fetch.add_argument("--url", required=True)
+    reference_fetch.add_argument("--citation", required=True)
+    reference_fetch.add_argument("--reuse-permission", required=True)
+    reference_fetch.add_argument("--output-dir", required=True, type=Path)
+    reference_fetch.add_argument("--expected-sha256")
+    reference_fetch.add_argument("--max-bytes", type=int, default=16 * 1024 * 1024)
+    reference_fetch.add_argument("--timeout-seconds", type=float, default=30.0)
+    reference_compare = commands.add_parser(
+        "reference-compare", help="Compare genuine predictions with published values"
+    )
+    for name in (
+        "reference-manifest",
+        "review",
+        "sources",
+        "publication-bundle",
+        "output",
+    ):
+        reference_compare.add_argument("--" + name, type=Path, required=True)
+    reference_compare.add_argument("--derived-texts", type=Path)
+    reference_compare.add_argument("--reference-id", required=True)
+    for name in (
+        "reference-manifest",
+        "review",
+        "publication-manifest",
+    ):
+        reference_compare.add_argument("--expected-" + name + "-sha256", required=True)
     for name in (
         "benchmark-references",
         "benchmark-freeze",
@@ -305,6 +334,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             from .registry import matrix_index
 
             emit(matrix_index())
+        elif arguments.command == "reference-fetch":
+            from .reference_sources import execute_reference_fetch
+
+            fetched = execute_reference_fetch(arguments)
+            emit(fetched, status=fetched["status"])
+            return 0 if fetched["status"] == "retrieved" else 3
+        elif arguments.command == "reference-compare":
+            from .reference_comparison import execute_reference_compare
+
+            emit(execute_reference_compare(arguments), status="descriptive_comparison")
         elif arguments.command.startswith("benchmark-"):
             from .benchmark_cli import execute_benchmark_command
 

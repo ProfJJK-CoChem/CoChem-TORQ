@@ -66,5 +66,11 @@ vendor-assets/
 *[cC][fF][oO][uU][rR]*.tar*
 *[cC][fF][oO][uU][rR]*.tgz
 
-# Exception: Allow strictly bounded synthetic .xyz files exclusively for unit tests
+# Explicit molecular input geometries used by contract tests.
 !tests/**/*.xyz
+
+# Original CC0 QM9 source members: public scientific inputs, not engine outputs.
+!benchmarks/published-values/qm9-samples/dsgdb9nsd_00000[1-9].xyz
+!benchmarks/published-values/qm9-samples/dsgdb9nsd_00001[0-9].xyz
+!benchmarks/published-values/qm9-samples/dsgdb9nsd_000020.xyz
+!benchmarks/published-values/qm9-water/water.xyz

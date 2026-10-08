@@ -1,0 +1,221 @@
+{
+  "actual_exit_code": 0,
+  "actual_original_worker_waited": true,
+  "actual_peak_owned_tree_rss_bytes": 782512128,
+  "benchmark_acceptance": false,
+  "budget_stop_reason": null,
+  "comparison_tolerance": null,
+  "curator_attestation": false,
+  "elapsed_seconds": 86.06687760353088,
+  "exact_revdsd_claimed": false,
+  "limitations": [
+    "TORQ uses conventional SCF/PT2 integrals; archived Psi4 used JKFIT/RI density fitting",
+    "TORQ uses PySCF grid_level5/default pruning; archived Psi4 printed unpruned100x302Treutler",
+    "Engine/version,exact basis bytes and partition convention identity unavailable for historical Psi4",
+    "Historical computational tutorial output is not an independently calibrated peer-reviewed acceptance campaign.",
+    "Original Psi4 version and original basis bytes are unavailable.",
+    "Density-fitted PySCF partition is documented but not proven identical to the original Psi4 partition.",
+    "Preceding native attempt failed during JSON serialization after genuine SCF/PT2; original failure and partial evidence were retained."
+  ],
+  "native_artifact_inventory_verified": true,
+  "native_gradient_or_hessian_computed": false,
+  "native_output_inventory": [
+    {
+      "path": "actual-basis-orbitals-grid.npz",
+      "sha256": "f1180954dcdcb822a21ad08ebf5c6df74ed188657d98acf4fe904f8f193071e1",
+      "size_bytes": 2036662
+    },
+    {
+      "path": "actual-expanded-bases.json",
+      "sha256": "d8a887f3fb81785c2fa5f9fe88cd6c375d6216f1c42979dc2107c4218834a503",
+      "size_bytes": 10049
+    },
+    {
+      "path": "actual-torq-orbitals.npz",
+      "sha256": "514903754febbcad9ed57b95e6220210f633cdc20dc7315c0382d626f204f2c6",
+      "size_bytes": 104347
+    },
+    {
+      "path": "comparison.json",
+      "sha256": "547460bd3c85656e9432d293a9f29dbe2d5087867e4e6b04f33fe3ed1e66c209",
+      "size_bytes": 7610
+    },
+    {
+      "path": "converged-rks.chk",
+      "sha256": "b9f0a24334dcd5ac90bd3418f0a92be7c00a11e1673459b767790e0359cfa69d",
+      "size_bytes": 120192
+    },
+    {
+      "path": "existing-torq-engine/double-hybrid-9547b8e17d4f48e79269bb8fe89bc0cf/basis.json",
+      "sha256": "3698a654278d7e2a6ce4f20dd441658570db27645ba57f3ae933f6562fa8b9ad",
+      "size_bytes": 2175
+    },
+    {
+      "path": "existing-torq-engine/double-hybrid-9547b8e17d4f48e79269bb8fe89bc0cf/input.json",
+      "sha256": "e93b54ef24f1ee56c01ba7c2615bd38a7eb6dd9d2d973afd92a7f63ee8462f57",
+      "size_bytes": 1365
+    },
+    {
+      "path": "existing-torq-engine/double-hybrid-9547b8e17d4f48e79269bb8fe89bc0cf/orbitals.chk",
+      "sha256": "979bf2c77b73643f4b255738099a203d51d819307a65d6ff37eade7792fe62f0",
+      "size_bytes": 120224
+    },
+    {
+      "path": "existing-torq-engine/double-hybrid-9547b8e17d4f48e79269bb8fe89bc0cf/pyscf.log",
+      "sha256": "932406af8b44a7c1696cbc4b46201a9390ff3e6347dd3cf2d70d568f83d3fbc6",
+      "size_bytes": 17979
+    },
+    {
+      "path": "existing-torq-engine/double-hybrid-9547b8e17d4f48e79269bb8fe89bc0cf/reference-stability.json",
+      "sha256": "4a7ac0c41bd02f288aac67525a5e3fc783e29191d601ba07dac10898c5cb512a",
+      "size_bytes": 1360
+    },
+    {
+      "path": "existing-torq-engine/double-hybrid-9547b8e17d4f48e79269bb8fe89bc0cf/result.json",
+      "sha256": "7321d817e2577e327e530f1bbfc249ab522ab7d3e9ef09470a13f03bee5c0098",
+      "size_bytes": 4014
+    },
+    {
+      "path": "pyscf-native.log",
+      "sha256": "73d9b79264b4eef18643d54b8e813a1c17b6a01bfe20a6049b7bcc38c9dbb1d3",
+      "size_bytes": 51526
+    },
+    {
+      "path": "reference-native-stdout.txt",
+      "sha256": "e8e721e3443e7acdc585c9a88595b18dacb2837bfb404ceb0594b57065d8b4e3",
+      "size_bytes": 13771
+    },
+    {
+      "path": "scientific-input.json",
+      "sha256": "261ea0da79275650087d2aa0f66bb342485e933bda006dfd4b064bde76f52bcd",
+      "size_bytes": 2152
+    },
+    {
+      "path": "torq-comparison.json",
+      "sha256": "6b87d0eb48a76bf5940ce084c633c720b8efabd44be236ff0dabef3dc2fef78b",
+      "size_bytes": 4903
+    }
+  ],
+  "native_receipt_scope": "Original acquisition-helper execution; this is not a receipt claiming that the subsequently packaged runnable helper has executed",
+  "orbital_reference_stability": {
+    "artifact_sha256": "4a7ac0c41bd02f288aac67525a5e3fc783e29191d601ba07dac10898c5cb512a",
+    "checkpoint_sha256_after": "979bf2c77b73643f4b255738099a203d51d819307a65d6ff37eade7792fe62f0",
+    "checkpoint_sha256_before": "979bf2c77b73643f4b255738099a203d51d819307a65d6ff37eade7792fe62f0",
+    "controls": {
+      "external": true,
+      "internal": true,
+      "nroots": 3,
+      "return_status": true,
+      "tol": 0.0001
+    },
+    "error": null,
+    "external_scope": "native returned RHF/RKS -> UHF/UKS status",
+    "full_correlated_energy_stability": "not_evaluated",
+    "internal_scope": "restricted real-orbital variations",
+    "internal_stable": true,
+    "native_log": "pyscf.log",
+    "orbital_reference_unchanged": true,
+    "orbital_state_sha256_after": "ac3ab7b50bb51f7663cf75348bab5f8de3d04e7b0dcfc4ddcfbddee50036e640",
+    "orbital_state_sha256_before": "ac3ab7b50bb51f7663cf75348bab5f8de3d04e7b0dcfc4ddcfbddee50036e640",
+    "orbital_xc": "0.53*HF + 0.47*B88, 0.73*LYP",
+    "pyscf_version": "2.14.0",
+    "real_to_complex_status": "not_separately_extracted",
+    "recipe_sha256": "63b4f66cf5f2e2c57f87310bed2d55a597ba3e48b2cb3cdacc8a37bf7d7e3228",
+    "requested": true,
+    "restricted_to_unrestricted_stable": true,
+    "returned_candidate_orbitals_applied": false,
+    "scope": "orbital-generating HF/GKS reference only",
+    "solver": "PySCF RHF/RKS stability",
+    "solver_source_sha256": "58ceea68eb56702ec41fa0a844b60c225ef53800ed4fb5b1fea307cd5bc50674",
+    "status": "stable"
+  },
+  "original_native_worker_sha256": "bda02618a33939539d582d240ae8a5368cb1bd6aba0aa6f6339e2c41f0dcb2d3",
+  "original_native_worker_source_unchanged": true,
+  "original_supervisor_receipt_sha256": "6d4b4a7e8263cc8dcaa6466852dae5c0d1d1bc44612fd793fb007f01bf99b723",
+  "rss_budget_bytes": 1073741824,
+  "schema_version": 1,
+  "scientific_profile_qualification": false,
+  "scope": "Fixed-geometry NH3 B2PLYP SCF and PT2 energy components only",
+  "source_stdout_sha256": "e8e721e3443e7acdc585c9a88595b18dacb2837bfb404ceb0594b57065d8b4e3",
+  "standalone_components_and_residuals": {
+    "double_hybrid_total_energy": {
+      "pyscf_hartree": -56.5380913934205,
+      "pyscf_minus_source_hartree": -9.666056399737499e-08,
+      "source_psi4_hartree_as_printed": "-56.5380912967599372"
+    },
+    "mp2_correlation_energy": {
+      "pyscf_hartree": -0.28703813392081934,
+      "pyscf_minus_source_hartree": 2.3122134762409985e-08,
+      "source_psi4_hartree_as_printed": "-0.2870381570429541"
+    },
+    "mp2_opposite_spin_energy": {
+      "pyscf_hartree": -0.22269852498343434,
+      "pyscf_minus_source_hartree": 1.6498523158769984e-08,
+      "source_psi4_hartree_as_printed": "-0.2226985414819575"
+    },
+    "mp2_same_spin_energy": {
+      "pyscf_hartree": -0.064339608937385,
+      "pyscf_minus_source_hartree": 6.6236116036400006e-09,
+      "source_psi4_hartree_as_printed": "-0.0643396155609966"
+    },
+    "orbital_scf_energy": {
+      "pyscf_hartree": -56.46059109726188,
+      "pyscf_minus_source_hartree": -1.0290354168773774e-07,
+      "source_psi4_hartree_as_printed": "-56.4605909943583413"
+    },
+    "scaled_mp2_correlation": {
+      "pyscf_hartree": -0.07750029615862122,
+      "pyscf_minus_source_hartree": 6.242976371972908e-09,
+      "source_psi4_hartree_as_printed": "-0.0775003024015976"
+    }
+  },
+  "status": "actual precommit native research calculations completed; unqualified",
+  "torq_components_and_residuals": {
+    "double_hybrid_total_energy": {
+      "source_psi4_hartree_as_printed": "-56.5380912967599372",
+      "torq_hartree": -56.53809997289345,
+      "torq_minus_source_hartree": -8.676133511187345e-06
+    },
+    "hybrid_reference_energy": {
+      "source_psi4_hartree_as_printed": "-56.4605909943583413",
+      "torq_hartree": -56.460589046592915,
+      "torq_minus_source_hartree": 1.947765426280057e-06
+    },
+    "mp2_correlation_energy": {
+      "source_psi4_hartree_as_printed": "-0.2870381570429541",
+      "torq_hartree": -0.2870775048168025,
+      "torq_minus_source_hartree": -3.934777384839716e-05
+    },
+    "mp2_opposite_spin_energy": {
+      "source_psi4_hartree_as_printed": "-0.2226985414819575",
+      "torq_hartree": -0.22275128821719242,
+      "torq_minus_source_hartree": -5.2746735234920905e-05
+    },
+    "mp2_same_spin_energy": {
+      "source_psi4_hartree_as_printed": "-0.0643396155609966",
+      "torq_hartree": -0.06432621659961005,
+      "torq_minus_source_hartree": 1.33989613865515e-05
+    },
+    "orbital_scf_energy": {
+      "source_psi4_hartree_as_printed": "-56.4605909943583413",
+      "torq_hartree": -56.460589046592915,
+      "torq_minus_source_hartree": 1.947765426280057e-06
+    },
+    "scaled_mp2_correlation": {
+      "source_psi4_hartree_as_printed": "-0.0775003024015976",
+      "torq_hartree": -0.07751092630053667,
+      "torq_minus_source_hartree": -1.0623898939077225e-05
+    }
+  },
+  "torq_engine_source_sha256_after": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+  "torq_engine_source_sha256_before": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+  "torq_engine_source_unchanged": true,
+  "versions": {
+    "libxc": "7.0.0",
+    "numpy": "2.5.3",
+    "pyscf": "2.14.0",
+    "python": "3.12.14",
+    "scipy": "1.18.1"
+  },
+  "wall_budget_seconds": 287
+}

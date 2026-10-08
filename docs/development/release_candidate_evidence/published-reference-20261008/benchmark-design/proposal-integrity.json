@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "bytes": 22620,
+      "path": "bounded-preregistration-proposal.md",
+      "sha256": "955dd83c161a2fabe31b80a3e254a9a27cefbe472e8ec6c8ae995a751185c977"
+    },
+    {
+      "bytes": 40783,
+      "path": "bounded-preregistration-proposal.json",
+      "sha256": "0a20e8e89750caf61c22bc9b903eed3183f314696acbbbcad1d221fdcf6f9d9f"
+    }
+  ],
+  "limitations": [
+    "Not an independently accepted or registered benchmark",
+    "Only file/hash/count/algebra checks; no physical campaign executed",
+    "No available finite 95-percent coverage interval or identification claim"
+  ],
+  "numeric_counts": {
+    "calibration_families_before_merge": 1,
+    "candidate_isotopologues": 13,
+    "candidate_parents": 10,
+    "inspected_QM9_members": 20,
+    "prospective_held_out_families_before_merge": 2
+  },
+  "original_private_receipt_sha256": "845b1828497c89ed77e99adc9cb4cb2b85fb224194a57a391e5ae067638f4b10",
+  "registration_completed": false,
+  "schema_version": "cochem.torq.bounded-design-proposal-integrity/1",
+  "scientific_acceptance": false,
+  "source_binding_count": 9,
+  "status": "proposal_internal_consistency_and_source_bindings_verified"
+}

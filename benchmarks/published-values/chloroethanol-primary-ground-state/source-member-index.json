@@ -1,0 +1,186 @@
+{
+  "original_archive_sha256": "2de98bdd28827c83fc28a47c74cdb420dfb4224af8face85796cfcee45de247e",
+  "original_archive_MD5": "c1340eda41e9383e7912be80b24b554f",
+  "original_archive_bytes": 3051738,
+  "source_url": "https://ndownloader.figshare.com/files/69169933",
+  "source_article_metadata_url": "https://api.figshare.com/v2/articles/33950719",
+  "member_selection_policy": "Original complete ground-state 35Cl/37Cl .par/.res/.int files only. Original .lin and excited-state/quantum-chemical output members remain available in the preserved publisher archive, not copied into this bounded public packet.",
+  "members": [
+    {
+      "archive_member": "Supporting Information/2-chloroethanol B3LYP_NBO7.txt",
+      "uncompressed_bytes": 756515,
+      "compressed_bytes": 134802,
+      "sha256": "855c8c371f562201fc57e18b6f48ec567935c134ca6791ec462ea6b969dbb778",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/2-chloroethanol B3LYP_opt.txt",
+      "uncompressed_bytes": 153675,
+      "compressed_bytes": 29604,
+      "sha256": "22a1f6c258f47e9ea881a1b94536766a7e3860553768f09072cbebbc90e97a87",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/2-chloroethanol CCSD(T) anharm.out",
+      "uncompressed_bytes": 4594572,
+      "compressed_bytes": 769862,
+      "sha256": "835a2abb37ee6782a625121d198fac6f4f92c2d6ee0ba8e9493e60c7d4b4bd20",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/2-fluoroethanol B3LYP_NBO7.txt",
+      "uncompressed_bytes": 680416,
+      "compressed_bytes": 149268,
+      "sha256": "5c695fd9e6fd0f269a5cc23bdd921493dbcd29c2cfbfe6a0a3200561861f2c44",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/2-fluoroethanol B3LYP_opt.txt",
+      "uncompressed_bytes": 176061,
+      "compressed_bytes": 37727,
+      "sha256": "d95cc9755d2efb5fcae335280ffae0ef07b5350e1f83f35d1dec5b1ca4fc5106",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/2-[37Cl]-chloroethanol CCSD(T) anharm.out",
+      "uncompressed_bytes": 42696,
+      "compressed_bytes": 12041,
+      "sha256": "bae6d2a455dc0753218639664512247a7d55bb0634d106697f45aa4df7dff526",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_gs.int",
+      "uncompressed_bytes": 157,
+      "compressed_bytes": 111,
+      "sha256": "2773f6b04cc74548809076bb60bb03afe2a79aa08119ace2ce2d1698738462a8",
+      "retained_in_packet": true,
+      "packet_path": "35ClEtOH_gs.int"
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_gs.lin",
+      "uncompressed_bytes": 1271115,
+      "compressed_bytes": 188307,
+      "sha256": "373e8743bfd2310a18d3caecbbf16b217abc91bb2306fb8c2a36ab4fd51c46c3",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_gs.par",
+      "uncompressed_bytes": 2105,
+      "compressed_bytes": 695,
+      "sha256": "6b880333ddd1c141be597d600910fc20dc8411a21944f38290a43026fb99cc68",
+      "retained_in_packet": true,
+      "packet_path": "35ClEtOH_gs.par"
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_gs.res",
+      "uncompressed_bytes": 1498844,
+      "compressed_bytes": 256769,
+      "sha256": "badd57ef59eb940b56f591c60c11eb6bebd1760137237eb7859b7cedec360c1d",
+      "retained_in_packet": true,
+      "packet_path": "35ClEtOH_gs.res"
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_v21_IR-quad.int",
+      "uncompressed_bytes": 294,
+      "compressed_bytes": 180,
+      "sha256": "cd95c90f767144ff4b5b6ec8daa39e87cc379c7943844f6017ea6b0d419b081c",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_v21_IR-quad.lin",
+      "uncompressed_bytes": 1645114,
+      "compressed_bytes": 220133,
+      "sha256": "48c1ace1352f19f3b6bb6d837bbe64d1c739f3355d3fce884e847f055ca65aa6",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_v21_IR-quad.par",
+      "uncompressed_bytes": 3997,
+      "compressed_bytes": 1257,
+      "sha256": "34c9da1f0951e7329f1003e1cbf2689f0bac814dfbda23a1da1d4d8ac80a8ba8",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/35ClEtOH_v21_IR-quad.res",
+      "uncompressed_bytes": 1942304,
+      "compressed_bytes": 308857,
+      "sha256": "f6dd6164046f1a866cf5af0c9bbbeb740c983cb070357a627fd35c4454738013",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_gs.int",
+      "uncompressed_bytes": 131,
+      "compressed_bytes": 98,
+      "sha256": "0aae5fc6b8d976abfd524fd3edc2aa0a77c851403a652415d18f900b68acf3a3",
+      "retained_in_packet": true,
+      "packet_path": "37ClEtOH_gs.int"
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_gs.lin",
+      "uncompressed_bytes": 2136881,
+      "compressed_bytes": 228875,
+      "sha256": "9333159cf4033c059cbfdd4ff17cd2290a68783f728a451de4a04bdef02fee4c",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_gs.par",
+      "uncompressed_bytes": 3047,
+      "compressed_bytes": 917,
+      "sha256": "b6c2e0661cf0b6cfa9e01c44008044c1e755d5398bf6adede9c1f06f06435553",
+      "retained_in_packet": true,
+      "packet_path": "37ClEtOH_gs.par"
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_gs.res",
+      "uncompressed_bytes": 2481018,
+      "compressed_bytes": 323679,
+      "sha256": "eb2506c91e80757d41d8025644e44a795aac89bd29670067112f1a3f6a137172",
+      "retained_in_packet": true,
+      "packet_path": "37ClEtOH_gs.res"
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_v21.int",
+      "uncompressed_bytes": 132,
+      "compressed_bytes": 99,
+      "sha256": "239279b0765db73c6ec779a6231cb9a77cb9f2fb48e74e66ee24270dcb7a8a98",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_v21.lin",
+      "uncompressed_bytes": 1473172,
+      "compressed_bytes": 159998,
+      "sha256": "c0463e33e8d2bafe3af0fbcc5520754c73dc2f7080fd9114a4541545f2da7b38",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_v21.par",
+      "uncompressed_bytes": 2324,
+      "compressed_bytes": 776,
+      "sha256": "f74c48ba02ee1f65c049b17c7ddff9c2d440221ce490d8c1994360635b004cf2",
+      "retained_in_packet": false,
+      "packet_path": null
+    },
+    {
+      "archive_member": "Supporting Information/37ClEtOH_v21.res",
+      "uncompressed_bytes": 1714078,
+      "compressed_bytes": 222269,
+      "sha256": "e6b0cd58055236aca9bacd776b3ac3f7864613ff9d52bea9cfa914ab3c7fa971",
+      "retained_in_packet": false,
+      "packet_path": null
+    }
+  ]
+}

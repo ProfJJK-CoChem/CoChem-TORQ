@@ -1,0 +1,79 @@
+{
+  "commands": [
+    {
+      "actual_exit_code": 0,
+      "command": [
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "src/cochem_torq",
+        "cochem/orchestration/campaign.py",
+        "cochem/orchestration/campaign_backup.py",
+        "cochem/orchestration/host_allocation.py",
+        "cochem/storage/fenced_pes.py",
+        "ci_tools/validate_release_evidence.py",
+        "ci_tools/run_repository_regression.py",
+        "ci_tools/setup_reviewed_topos.py",
+        "ci_tools/provision_pickett_validation.py"
+      ],
+      "elapsed_seconds": 0.06525256999884732,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "name": "ruff"
+    },
+    {
+      "actual_exit_code": 0,
+      "command": [
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "src/cochem_torq",
+        "cochem/orchestration/campaign.py",
+        "cochem/orchestration/campaign_backup.py",
+        "cochem/orchestration/host_allocation.py",
+        "cochem/storage/fenced_pes.py",
+        "ci_tools/validate_release_evidence.py",
+        "ci_tools/run_repository_regression.py",
+        "ci_tools/setup_reviewed_topos.py",
+        "ci_tools/provision_pickett_validation.py"
+      ],
+      "elapsed_seconds": 0.06507280500954948,
+      "log_sha256": "43476fb9601a542841f6cba73a03155ef5792f5324f2380538c7f276a7b8ed2f",
+      "name": "format"
+    },
+    {
+      "actual_exit_code": 0,
+      "command": [
+        "python",
+        "-m",
+        "mypy",
+        "src/cochem_torq",
+        "--follow-imports=silent",
+        "--ignore-missing-imports"
+      ],
+      "elapsed_seconds": 11.971732777979923,
+      "log_sha256": "80244665c7088b2cce8820f63a43e8138804ae2a8a670798bf2704dd2a9a50a9",
+      "name": "mypy"
+    },
+    {
+      "actual_exit_code": 0,
+      "command": [
+        "python",
+        "ci_tools/check_scientific_test_policy.py",
+        "tests"
+      ],
+      "elapsed_seconds": 0.9182698799995705,
+      "log_sha256": "219401cd182c87727833361f9f3cb9042bbe0552a12fe6a26ad3ee0cb08b8f01",
+      "name": "test-policy"
+    }
+  ],
+  "original_private_summary_sha256": "65b57559c1748ae0ef0ad1c38bffb45c25bbeacd306d7ee28d7112919ee16c04",
+  "passed": true,
+  "scope": "configured canonical application static checks and AST replacement API inventory; no scientific qualification",
+  "scope_of_source_hash": "Original pre-correction global source hash retained. Current corrected static verification, if performed, is a distinct receipt.",
+  "source_tree_sha256_after": "d01ba28769e5e3879adeaaab7d03f37fe1d958f6608b113e5b8dac8ea0598e45",
+  "source_tree_sha256_before": "d01ba28769e5e3879adeaaab7d03f37fe1d958f6608b113e5b8dac8ea0598e45",
+  "source_unchanged": true
+}

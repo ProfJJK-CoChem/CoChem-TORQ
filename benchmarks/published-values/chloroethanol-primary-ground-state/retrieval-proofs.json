@@ -1,0 +1,120 @@
+{
+  "scientific_data_archive": {
+    "requested_url": "https://ndownloader.figshare.com/files/69169933",
+    "retrieved_at_utc": "2026-10-08T19:51:33.552193+00:00",
+    "timeout_seconds": 20,
+    "max_bytes": 4194304,
+    "max_redirects": 3,
+    "tls_verification_enabled": true,
+    "inherited_proxy_and_ca_preserved": true,
+    "reuse_permission": "CC BY-NC4.0; actual publisher article33950719 metadata retained",
+    "source_peerreviewed_doi": "10.1021/acsearthspacechem.6c00221",
+    "human_reviewed": false,
+    "scientific_acceptance_eligible": false,
+    "http_status": 200,
+    "content_type": "application/zip",
+    "redirect_origins": [
+      {
+        "scheme": "https",
+        "host": "ndownloader.figshare.com",
+        "http_status": 302
+      }
+    ],
+    "final_origin": {
+      "scheme": "https",
+      "host": "s3-eu-west-1.amazonaws.com"
+    },
+    "bytes": 3051738,
+    "source_sha256": "2de98bdd28827c83fc28a47c74cdb420dfb4224af8face85796cfcee45de247e",
+    "source_md5": "c1340eda41e9383e7912be80b24b554f",
+    "publisher_md5": "c1340eda41e9383e7912be80b24b554f",
+    "publisher_md5_agrees": true,
+    "status": "retrieved",
+    "archive_executed": false,
+    "archive_type": "Original peer-reviewed scientific calculation and least-squares fitting files; not an engine distribution"
+  },
+  "publisher_fit_metadata_receipt": {
+    "name": "experimental-chloroethanol-metadata1",
+    "url": "https://api.figshare.com/v2/articles/33950719",
+    "request_payload": null,
+    "description": "Original ACS ground/excited-state high-resolution rotor analysis SI metadata; actual contents to inspect",
+    "retrieved_at_utc": "2026-10-08T19:50:18.318935+00:00",
+    "tls_verification_enabled": true,
+    "inherited_proxy_and_ca_preserved": true,
+    "redirects_followed": false,
+    "reuse_permission": "Unknown; inspect original metadata before redistribution",
+    "human_reviewed": false,
+    "scientific_values_extracted": false,
+    "max_bytes": 4194304,
+    "timeout_seconds": 20,
+    "http_status": 200,
+    "content_type": "application/json",
+    "declared_content_length": null,
+    "status": "retrieved",
+    "bytes": 9475,
+    "sha256": "8c4d1129e8c737fad610348cf239386990dd7c4aee82f64105bdea9cf363ac30"
+  },
+  "publisher_pdf_metadata_receipt": {
+    "name": "experimental-chloroethanol-metadata2",
+    "url": "https://api.figshare.com/v2/articles/33950716",
+    "request_payload": null,
+    "description": "Alternate SI of same original experimental rotor paper; source metadata only",
+    "retrieved_at_utc": "2026-10-08T19:50:18.320291+00:00",
+    "tls_verification_enabled": true,
+    "inherited_proxy_and_ca_preserved": true,
+    "redirects_followed": false,
+    "reuse_permission": "Unknown; inspect original metadata before redistribution",
+    "human_reviewed": false,
+    "scientific_values_extracted": false,
+    "max_bytes": 4194304,
+    "timeout_seconds": 20,
+    "http_status": 200,
+    "content_type": "application/json",
+    "declared_content_length": null,
+    "status": "retrieved",
+    "bytes": 9602,
+    "sha256": "a20972dde9a7c526f22e8550cda91ae2a1c92552892cc0024ca6b89dfcc16439"
+  },
+  "additional_original_pdf_receipt": {
+    "requested_url": "https://ndownloader.figshare.com/files/69169930",
+    "retrieved_at_utc": "2026-10-08T19:50:50.506819+00:00",
+    "timeout_seconds": 20,
+    "max_bytes": 4194304,
+    "max_redirects": 3,
+    "tls_verification_enabled": true,
+    "inherited_proxy_and_ca_preserved": true,
+    "reuse_permission": "CC BY-NC4.0; actual publisher article33950716 metadata retained",
+    "source_peerreviewed_doi": "10.1021/acsearthspacechem.6c00221",
+    "human_reviewed": false,
+    "scientific_acceptance_eligible": false,
+    "http_status": 200,
+    "content_type": "application/pdf",
+    "redirect_origins": [
+      {
+        "scheme": "https",
+        "host": "ndownloader.figshare.com",
+        "http_status": 302
+      }
+    ],
+    "final_origin": {
+      "scheme": "https",
+      "host": "s3-eu-west-1.amazonaws.com"
+    },
+    "bytes": 2247067,
+    "source_sha256": "a4449a0ada17f04bfceb828d07737e544aa2fd1a9a9dd7769e25bc78af9d2fb4",
+    "source_md5": "7b17e5151f8202c300164a6f34f764e2",
+    "publisher_md5": "7b17e5151f8202c300164a6f34f764e2",
+    "publisher_md5_agrees": true,
+    "status": "retrieved",
+    "extraction_tool_version": "pdftotext version 25.03.0",
+    "extraction_arguments": [
+      "-layout",
+      "-enc",
+      "UTF-8"
+    ],
+    "extracted_text_bytes": 16492,
+    "extracted_text_sha256": "edf3c30448023e6fd4b8cedf971b1dc887edada31aa3c7b91373058cfef64d50",
+    "independent_pdf_replay_byte_identical": true
+  },
+  "source_qualification": false
+}
