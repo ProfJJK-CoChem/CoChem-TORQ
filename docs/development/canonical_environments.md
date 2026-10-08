@@ -314,6 +314,12 @@ identity and verification evidence. Its water request has two cores, 2048 MiB
 application memory and a 600-second deadline; Docker enforces two cores and
 3 GiB total memory. It requires no private sibling credential.
 
+The read-only calculation image sets `XDG_STATE_HOME=/tmp/cochem-state` so its
+private allocation ledger can be created in the bounded writable tmpfs. This
+state lasts only for that container; it does not establish shared admission
+across independently launched containers or persist a deployment ledger.
+The image home and application filesystem remain read-only.
+
 The following local image and hosted results describe earlier tested source
 snapshots. Their original identities and numerical records are retained for
 provenance. Current image and hosted acceptance require their own completed
