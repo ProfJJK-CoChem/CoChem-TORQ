@@ -50,8 +50,8 @@ jobs:
           cat "$RUNNER_TEMP/torq-full-srs-audit.json"
       - name: Require application implementation lint and formatting
         run: |
-          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
-          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
       - name: Run core scientific-data and persistence regression tests
         run: |
           if python -I -c 'import sys, pytest; import cochem_torq, Libraries, cochem, core, orchestrator, UI, scripts; packages=(cochem_torq,Libraries,cochem,core,orchestrator,UI,scripts); [setattr(package,"__path__",list(package.__path__)) for package in packages]; raise SystemExit(pytest.main(sys.argv[1:]))' -q -m 'not cpu_ml and not real_engine and not ecosystem' \
@@ -65,7 +65,7 @@ jobs:
             tests/test_operations_integrity.py tests/test_chain.py \
             tests/test_service_lifecycle.py tests/test_service_input_integrity.py \
             tests/test_canonical_serialization.py tests/test_scientific_contracts.py \
-            tests/test_campaign_coordinator.py tests/test_release_evidence_validator.py \
+            tests/test_campaign_coordinator.py tests/test_campaign_backup.py tests/test_host_allocation.py tests/test_release_evidence_validator.py \
             tests/test_advanced_scientific_results.py tests/test_ecosystem_serialization_profile.py \
             tests/test_units.py tests/test_asymmetric_rotor.py tests/test_ingestion_integrity.py \
             tests/test_topology_mass_integrity.py tests/test_goat_rmsd_integrity.py \
@@ -182,6 +182,13 @@ jobs:
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
             tests/test_application_contracts.py tests/test_actions_request.py \
             tests/test_artifact_publication.py tests/test_anharmonic_research.py \
+            tests/test_internal_coordinate_scans.py tests/test_native_pes_storage.py \
+            tests/test_native_checkpoint_consumption.py tests/test_constrained_optimization.py \
+            tests/test_constrained_service.py tests/test_scan_host_allocation.py \
+            tests/test_open_shell_engine.py tests/test_open_shell_service.py \
+            tests/test_rovibrational_solver.py tests/test_rovibrational_perturbation.py \
+            tests/test_watson_pipeline.py tests/test_landscape_inspection.py \
+            tests/test_benchmarking_integrity.py tests/test_revdsd_exact_milestones.py \
             tests/test_operations_integrity.py tests/test_chain.py \
             tests/test_energetics_integration.py tests/test_pathway_diagnostics_integration.py \
             tests/test_goal_execution_integrity.py \
@@ -514,8 +521,8 @@ jobs:
           PY
       - name: Require complete source-bound regression with zero skips
         run: |
-          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
-          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
+          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py cochem/orchestration/campaign_backup.py cochem/orchestration/host_allocation.py cochem/storage/fenced_pes.py ci_tools/validate_release_evidence.py ci_tools/run_repository_regression.py
           python -m mypy src/cochem_torq --follow-imports=silent --ignore-missing-imports
           if python ci_tools/run_repository_regression.py --output "$RUNNER_TEMP/torq-complete-regression" --basetemp "$RUNNER_TEMP/cochem_exec_complete-regression" --timeout 1800; then
             :
