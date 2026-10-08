@@ -189,8 +189,13 @@ def test_crest_geometry_title_number_is_not_an_energy():
     assert records[0].energy_hartree is None
     assert records[0].energy_kcal_rel is None
     assert records[0].origin_engine == "IMPORTED"
-    with pytest.raises(ValueError, match="energy unavailable"):
-        CregenReferee().referee_ensemble(records)
+    original = records[0].model_dump(mode="json")
+    retained = CregenReferee().referee_ensemble(records)
+    assert len(retained) == len(records)
+    assert retained[0] is records[0]
+    assert retained[0].model_dump(mode="json") == original
+    assert retained[0].energy_hartree is None
+    assert retained[0].energy_kcal_rel is None
 
 
 def test_crest_actual_missing_executable_does_not_create_result(tmp_path):
