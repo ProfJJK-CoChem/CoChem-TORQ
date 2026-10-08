@@ -1,5 +1,11 @@
 # Student guide
 
+**Student deployment is on hold.** The instructions below describe the intended
+Codespaces and Actions workflow; its live student journey remains unverified.
+For the completed local published-value examples and the remaining scientific
+work, read the [published-reference product](development/published_reference_product.md)
+and [researcher context](development/agent_and_researcher_context.md).
+
 Open the course repository in GitHub Codespaces and wait for its setup to finish.
 Open the private forwarded port 8888, open `UI/Start_TORQ.ipynb` in JupyterLab,
 and run its launch cell. Codespaces provides the interface. GitHub Actions
@@ -22,14 +28,15 @@ TORQ distribution contain overlapping shared package paths, so the modern TORQ
 student module must stay in its separate environment. The mandatory TOPOS kit's
 compatibility importer remains distinct from this student calculation interface.
 
-The current `57c81eb` candidate passed all 2486 local repository tests with zero
-failures/errors/skips, plus selected installed-wheel, real candidate-refinement
-CLI and authenticated notebook checks. The [recorded results](development/release_candidate_check_results.json)
-qualify that local scope. Hosted jobs were blocked before execution
-by billing, the default-branch calculation endpoint returns 404, and Codespaces
-machine access returns 403; no live Codespace was provisioned. The canonical
-student journey remains unverified. See the
-[readiness report](development/release_candidate_readiness.md) before starting.
+The `7bcc043` merged snapshot has a genuine installed Python 3.12 wheel check: **1,072
+passed, 63 explicitly deselected, zero failures/errors/skips**, plus eight
+passing installed-source provenance checks. These overlapping checks establish
+their recorded software scope; they do not qualify every scientific method or
+the student platform. The earlier complete **3,192-pass** regression belongs to
+the earlier source snapshot, and the final integrated full regression is pending. See the
+[source-bound validation record](development/published_reference_product.md#completed-local-software-validation)
+for exact hashes, prerequisites and retained history. All 41 full-SRS gates
+remain blocked; student deployment stays on hold.
 
 ## Your first calculation
 
@@ -169,6 +176,11 @@ TORQ results. The new recipe's capability and chemistry checks still apply.
 Native wavefunction checkpoint continuation uses the separately qualified API;
 arbitrary external Hessian, force-field or spectroscopy files require their own
 typed evidence adapter and are not accepted as computed stages by this importer.
+
+Installed TORQ records hashes of its actual Python source bytes. A wheel
+installation outside its owning source checkout leaves Git commit and checkout
+state unavailable instead of attributing an unrelated parent repository.
+Declared workflow commits and engine images remain separate provenance fields.
 
 ## Reading scientific results
 

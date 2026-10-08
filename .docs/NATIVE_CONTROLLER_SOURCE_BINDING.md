@@ -44,8 +44,10 @@ stored CLI login; explicit environment selection remains available. Actions
 retains its owning job's authentication. Credential values are never read or
 included in result diagnostics.
 
-Focused tests use genuine local HF shards and real local Git objects for the
-transport boundaries, including separate-commit and direct-workflow positives,
-changed/resealed provenance, altered original bytes, symlink sidecars and
-authentication selection. They do not claim an actual hosted calculation was
-performed. A real student-project Actions run remains deployment acceptance.
+Focused tests translate real local Git objects into the source validator's
+input format and check genuine HF shards and publication exports, including
+separate source identities, altered original bytes and unsafe retained files.
+They contain no simulated GitHub API, workflow run or artifact download. These
+local checks do not establish live submission, authentication selection or
+retrieval. A real student-project Actions journey remains unrun while student
+deployment is on hold.
