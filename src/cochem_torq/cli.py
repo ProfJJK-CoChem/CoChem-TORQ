@@ -105,6 +105,20 @@ def _parser() -> argparse.ArgumentParser:
         "verify", help="Verify the complete inventory of an immutable worker shard"
     )
     verify.add_argument("directory", type=Path)
+    reviewed = commands.add_parser(
+        "import-topos-reviewed",
+        help="Preserve an exact reviewed TOPOS member as a new TORQ request",
+    )
+    reviewed.add_argument("--handoff", required=True, type=Path)
+    reviewed.add_argument("--producer-python", required=True, type=Path)
+    reviewed.add_argument("--member", required=True)
+    reviewed.add_argument("--recipe", required=True)
+    reviewed.add_argument("--product", action="append", required=True)
+    reviewed.add_argument("--output-dir", required=True, type=Path)
+    reviewed.add_argument("--expected-handoff-sha256")
+    reviewed.add_argument("--cores", type=int, default=1)
+    reviewed.add_argument("--memory-mb", type=int, default=2048)
+    reviewed.add_argument("--wall-seconds", type=int, default=600)
     merge = commands.add_parser(
         "merge", help="Merge independently sealed, matching worker shards"
     )
@@ -700,6 +714,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                 {
                     "request": request,
                     "output_file": str(arguments.output),
+                    "requires_plan_review": True,
+                },
+                status="needs_review",
+            )
+        elif arguments.command == "import-topos-reviewed":
+            from .reviewed_topos import import_reviewed_topos_member
+
+            request = import_reviewed_topos_member(
+                arguments.handoff,
+                arguments.output_dir,
+                producer_python=arguments.producer_python,
+                member_id=arguments.member,
+                recipe=arguments.recipe,
+                products=arguments.product,
+                resources={
+                    "cores": arguments.cores,
+                    "memory_mb": arguments.memory_mb,
+                    "wall_seconds": arguments.wall_seconds,
+                },
+                expected_handoff_sha256=arguments.expected_handoff_sha256,
+            )
+            emit(
+                {
+                    "request": request,
+                    "import_directory": str(arguments.output_dir.absolute()),
+                    "computation_performed": False,
                     "requires_plan_review": True,
                 },
                 status="needs_review",

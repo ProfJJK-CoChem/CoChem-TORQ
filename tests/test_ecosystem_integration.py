@@ -37,7 +37,7 @@ from cochem_torq.ecosystem import (
 from Libraries.cochem_torq_engine import _read_orca_engrad
 
 REPOSITORY = Path(__file__).resolve().parents[1]
-BASE_REVISION = "1a3c633f6cb0c6256223298ed95d71196ffc3689"
+BASE_REVISION = "83462724849f1ef0be8c70ffcad6265d6af99388"
 TOPOS_REVISION = "6a01b0f2adb7cff02edda6e339facf3d6f93904d"
 SYMBOLS = ["C", "C", "O", "O", "H", "H", "H", "H", "H", "H"]
 ATOM_IDS = [f"archive-atom-{index}" for index in range(10)]

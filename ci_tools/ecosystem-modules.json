@@ -3,7 +3,7 @@
   "modules": {
     "base": {
       "repository": "ProfJJK-CoChem/CoChem-BASE",
-      "revision": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+      "revision": "83462724849f1ef0be8c70ffcad6265d6af99388",
       "distribution": "CoChem-BASE",
       "adapter": null,
       "adapter_requirements": [],

@@ -138,7 +138,7 @@ def test_actual_base_producer_runs_isolated_and_preserves_pending_geometry(
     assert [atom.atom_id for atom in record.molecule.atoms] == ["h-a", "h-b"]
     assert observed["options"]["atoms"][0]["atom_id"] == "h-a"
     assert (
-        record.source.repository_revision == "1a3c633f6cb0c6256223298ed95d71196ffc3689"
+        record.source.repository_revision == "83462724849f1ef0be8c70ffcad6265d6af99388"
     )
     assert read_json(package / "torq-conformer.json")["energy"] is None
     assert (package / "artifact.xyz").read_bytes() == seed.read_bytes()

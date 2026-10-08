@@ -22,6 +22,7 @@ from uuid import UUID
 
 from .artifacts import verify_shard
 from .domain import PrerequisiteError, canonical_json, digest, read_json
+from .github_auth import private_gh_environment
 
 
 class GitHubAccessError(PrerequisiteError):
@@ -74,6 +75,7 @@ class GitHubActions:
                 input=canonical_json(data) if data is not None else None,
                 capture_output=True,
                 timeout=45,
+                env=private_gh_environment(),
             )
         except subprocess.TimeoutExpired as exc:
             raise GitHubAccessError(

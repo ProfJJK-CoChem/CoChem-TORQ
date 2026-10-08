@@ -25,7 +25,7 @@ from .ecosystem import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-BASE_REVISION = "1a3c633f6cb0c6256223298ed95d71196ffc3689"
+BASE_REVISION = "83462724849f1ef0be8c70ffcad6265d6af99388"
 # Actual reviewed installer bytes at this immutable BASE source revision.
 BASE_INSTALLER_SHA256 = (
     "7a22fc5fe91cbae865d3781f3899b38acc69f8cd9fb66648b8ea9c3eb54d9432"

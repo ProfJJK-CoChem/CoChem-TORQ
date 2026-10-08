@@ -459,6 +459,39 @@ class StudentSession:
             }
         )
 
+    def prepare_reviewed_topos(
+        self,
+        handoff_path: str | Path,
+        *,
+        producer_python: str | Path,
+        member_id: str,
+        recipe: str,
+        products: list[str],
+        cores: int,
+        memory_mb: int,
+        wall_seconds: int,
+        expected_handoff_sha256: str | None = None,
+    ) -> dict[str, Any]:
+        """Import a reviewed external geometry without reusing prior results."""
+        from .reviewed_topos import import_reviewed_topos_member
+
+        destination = self.results_directory.parent / "topos-imports" / str(uuid4())
+        request = import_reviewed_topos_member(
+            handoff_path,
+            destination,
+            producer_python=producer_python,
+            member_id=member_id,
+            recipe=recipe,
+            products=products,
+            resources={
+                "cores": cores,
+                "memory_mb": memory_mb,
+                "wall_seconds": wall_seconds,
+            },
+            expected_handoff_sha256=expected_handoff_sha256,
+        )
+        return self.load_request(request)
+
     def validate(self) -> dict[str, Any]:
         from cochem_torq.application import validate_request
 
@@ -610,6 +643,7 @@ def launch_student_app(
             ("TORQ request JSON", "json"),
             ("BASE handoff manifest", "base"),
             ("TOPOS HDF5", "topos"),
+            ("Reviewed TOPOS ensemble JSON", "reviewed_topos"),
         ],
         description="Input",
     )
@@ -624,6 +658,20 @@ def launch_student_app(
         description="Handoff",
         layout=widgets.Layout(width="100%", height="110px"),
     )
+    reviewed_python = widgets.Text(
+        description="TOPOS Python",
+        placeholder="Absolute Python path in the installed TOPOS environment",
+        layout=widgets.Layout(width="100%"),
+    )
+    reviewed_upload = widgets.FileUpload(accept=".json", multiple=False)
+    reviewed_member = widgets.Dropdown(
+        options=[], description="TOPOS member", layout=widgets.Layout(width="100%")
+    )
+    inspect_reviewed = widgets.Button(description="Inspect reviewed TOPOS ensemble")
+    reviewed_selection: dict[str, str | None] = {"handoff_sha256": None}
+    reviewed_controls = widgets.VBox(
+        [reviewed_python, reviewed_upload, inspect_reviewed, reviewed_member]
+    )
 
     def explain_source(*_: Any) -> None:
         handoff_metadata.layout.display = (
@@ -631,8 +679,11 @@ def launch_student_app(
         )
         source.placeholder = (
             "Enter the local handoff file path."
-            if source_kind.value in {"base", "topos"}
+            if source_kind.value in {"base", "topos", "reviewed_topos"}
             else "Paste one XYZ geometry or the complete TORQ request JSON."
+        )
+        reviewed_controls.layout.display = (
+            "" if source_kind.value == "reviewed_topos" else "none"
         )
 
     source_kind.observe(explain_source, names="value")
@@ -940,6 +991,25 @@ def launch_student_app(
                     memory_mb=memory.value,
                     wall_seconds=wall.value,
                 )
+            elif source_kind.value == "reviewed_topos":
+                if (
+                    reviewed_selection["handoff_sha256"] is None
+                    or not reviewed_member.value
+                ):
+                    raise ValueError(
+                        "Inspect the reviewed TOPOS ensemble and select a member first."
+                    )
+                session.prepare_reviewed_topos(
+                    reviewed_source(),
+                    producer_python=reviewed_python.value.strip(),
+                    member_id=reviewed_member.value,
+                    recipe=recipe.value,
+                    products=list(products.value),
+                    cores=cores.value,
+                    memory_mb=memory.value,
+                    wall_seconds=wall.value,
+                    expected_handoff_sha256=reviewed_selection["handoff_sha256"],
+                )
             else:
                 from cochem_torq.ecosystem import (
                     MethodProvenance,
@@ -971,11 +1041,70 @@ def launch_student_app(
                 )
             redraw()
             return {
-                "input": "Imported; this geometry has not been optimized.",
+                "input": "Imported as a new input; the target calculation has not run.",
                 "request": session.request,
             }
 
         action(perform)
+
+    def reviewed_source() -> Path:
+        if not reviewed_upload.value:
+            return Path(source.value.strip()).expanduser()
+        from .ecosystem import MAX_ARTIFACT_BYTES
+
+        payload = bytes(reviewed_upload.value[0]["content"])
+        if not 0 < len(payload) <= MAX_ARTIFACT_BYTES:
+            raise ValueError(
+                "Upload one nonempty TOPOS JSON handoff of at most 16 MiB."
+            )
+        directory = session.results_directory.parent / "topos-uploads"
+        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path = directory / f"{sha256(payload).hexdigest()}.json"
+        if path.is_symlink():
+            raise ValueError("A TOPOS upload destination cannot be a symlink.")
+        if path.exists():
+            if path.read_bytes() != payload:
+                raise ValueError(
+                    "Retained TOPOS upload differs from its content identity."
+                )
+        else:
+            with path.open("xb") as stream:
+                stream.write(payload)
+            path.chmod(0o444)
+        return path
+
+    def inspect_topos(_: Any) -> None:
+        def perform() -> dict[str, Any]:
+            from .reviewed_topos import inspect_reviewed_topos
+
+            report = inspect_reviewed_topos(
+                reviewed_source(), producer_python=reviewed_python.value.strip()
+            )
+            handoff = report["handoff"]
+            reviewed_member.options = [
+                (m["member_id"], m["member_id"]) for m in handoff["members"]
+            ]
+            reviewed_selection["handoff_sha256"] = handoff["handoff_sha256"]
+            return {
+                "handoff_sha256": handoff["handoff_sha256"],
+                "members": [m["member_id"] for m in handoff["members"]],
+                "producer": report["producer"],
+                "computation_performed": False,
+                "next_step": (
+                    "Choose a member and target recipe, then Import and preview."
+                ),
+            }
+
+        action(perform)
+
+    inspect_reviewed.on_click(inspect_topos)
+
+    def clear_reviewed_selection(_: Any) -> None:
+        reviewed_selection["handoff_sha256"] = None
+        reviewed_member.options = []
+
+    for control in (source_kind, source, reviewed_python, reviewed_upload):
+        control.observe(clear_reviewed_selection, names="value")
 
     def send(_: Any) -> None:
         def perform() -> dict[str, Any]:
@@ -1122,6 +1251,9 @@ def launch_student_app(
         source_kind,
         source,
         handoff_metadata,
+        reviewed_python,
+        reviewed_upload,
+        reviewed_member,
         charge,
         multiplicity,
         recipe,
@@ -1155,6 +1287,7 @@ def launch_student_app(
             source_kind,
             source,
             handoff_metadata,
+            reviewed_controls,
             widgets.HBox([charge, multiplicity]),
             recipe,
             recipe_note,
