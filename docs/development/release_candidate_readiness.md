@@ -1,13 +1,13 @@
 # Release candidate readiness and exact closure gates
 
-Reviewed 2026-10-08. **The complete SRS is not yet qualified for release.** The current-source complete local regression passed 2486 tests with zero failures/errors/skips; selected installed-wheel, CLI/notebook and isolated sibling checks also passed. The deployed student journey and independent scientific qualification remain incomplete. The [aggregate results](release_candidate_check_results.json) distinguish local implementation evidence from release qualification; neither source presence nor a software regression establishes scientific accuracy.
+Reviewed 2026-10-08. **The complete SRS is not yet qualified for release.** The preceding complete local regression at `57c81eb` passed 2486 tests with zero failures/errors/skips; its selected installed-wheel, CLI/notebook and sibling checks remain historical evidence. The expanded implementation has new bounded local milestones and separately recorded current-source checks; the final complete-repository run must be recorded for the new candidate. The deployed student journey and independent scientific qualification remain incomplete. The [aggregate results](release_candidate_check_results.json) distinguish local implementation evidence from release qualification; neither source presence nor a software regression establishes scientific accuracy.
 
 The [full-SRS audit](full_srs_requirement_audit.json) covers all **73 normative requirements, 41 acceptance definitions and 140 original historical method-matrix row IDs**. Its current inventory is **56 partial supported scope, one missing full implementation, eight missing independent qualification and eight optional profile/provisioning**. No requirement is classified as implemented and qualified. All 41 complete-scope acceptance gates remain blocked, and the release flag remains false. [Student release scope](student_release_scope.md) provides the complete reconciled requirement-to-code/check map; links are coverage pointers rather than passing gate evidence.
 
-The supplied-candidate workflow already computes genuine bounded restricted electronic structure, optimized geometry, isotope-specific equilibrium constants, harmonic results and finite-J rigid-rotor screening using actual dipoles. Other explicitly named local validation profiles compute actual numerical derivatives, bounded vibrational force fields/VPT2, ghost-basis interaction quantities and saddle/downhill endpoint candidates. New bounded geometry/PES profiles retain supplied-graph mapping, nuclear-position symmetry proposals, approved fixed H2 observations, adaptive physical anchors and separately approved target minimum checks. Geometric rovibrational precursors retain their mathematical evidence class. Missing later scientific stages retain earlier results and explicit reasons. Exact revDSD, general B0/rovibrational spectroscopy, calibrated identification accuracy and automated completeness claims remain disabled.
+The supplied-candidate workflow already computes genuine bounded restricted electronic structure, optimized geometry, isotope-specific equilibrium constants, harmonic results and finite-J rigid-rotor screening using actual dipoles. Other explicitly named local validation profiles compute actual numerical derivatives, bounded vibrational force fields/VPT2, ghost-basis interaction quantities and saddle/downhill endpoint candidates. New bounded geometry/PES profiles retain supplied-graph mapping, nuclear-position symmetry proposals, nonperiodic fixed valence-coordinate observations, actual prior-density continuation, adaptive physical anchors, constrained-HF residual/KKT/curvature evidence and separately approved target minimum checks. Genuine native points bridge to sole-merger HDF5 storage under current committed coordinator admission. Canonical nonresonant Watson and a separate local Dirichlet variational route retain bounded operator/applicability evidence; default HF/STO-3G water fails the reviewed coupling gate and keeps model B0/alpha/semirigid outputs unavailable. Missing later scientific stages retain earlier results and explicit reasons. Exact revDSD, general B0/rovibrational spectroscopy, calibrated identification accuracy and automated completeness claims remain disabled.
 
-The current frozen candidate is `57c81eb7d699c6717926eeaab25ba0a0a59ca0f9`,
-with complete source SHA-256
+The preceding complete-repository candidate was `57c81eb7d699c6717926eeaab25ba0a0a59ca0f9`,
+with source SHA-256
 `28aff57e17153244db570058e570e47085707337c3ea5ce7b39d8ba4c8de032b`.
 Its [complete local repository receipt](release_candidate_evidence/57c81eb/record.json)
 records **2486 passed, zero failures/errors/skips**, no marker or name exclusions
@@ -28,7 +28,7 @@ The genuine local CLI exercised 16 command gates, six actual H2 scan calls and a
 separately approved target optimization with six optimizer evaluations and an
 actual Hessian. It preserved the original candidate and registered a separate
 model-minimum result. `criteria_met` is a finite-design numerical stop: its surface
-still had one uncomputed design node and status `partial`. The current installed
+still had one uncomputed design node and status `partial`. The preceding installed
 wheel also passed authenticated local notebook start/check/stop, reviewed notebook
 retrieval with HTTP 200 and unauthenticated rejection with HTTP 403. Genuine
 BASE manifest `fd93301136729913c494ce9b9500c6c96e45f931`, SDK `1a3c633` and
@@ -60,20 +60,20 @@ the corrected test/source identity.
 
 ## Bounded implementations and remaining full-scope closure
 
-Six formerly missing requirements now have partial supported scope. The full
-`TORQ-VIB-003` implementation remains missing. The following closure conditions
+Six formerly missing requirements now have partial supported scope. The complete
+`TORQ-VIB-003` scientific/domain implementation and independent qualification remain incomplete. The following closure conditions
 preserve the unchanged normative SRS and accepted method matrix; unsupported
 constrained or general profiles remain required work, not newly optional scope.
 
 | Requirement | Implemented bounded scope | Remaining work and qualification |
 |---|---|---|
 | `TORQ-GEO-001` Mapping and alignment — partial | [Supplied-graph comparisons](../../src/cochem_torq/geometry_identity.py) validate explicit full-atom topology, isotope/charge consistency and supported asserted tetrahedral/E–Z stereo through genuine RDKit. Each comparison retains both complete original indexed inputs and digests, explicit atom maps, proper SO(3) alignment and thresholds. Unassigned stereo, truncation and ambiguous mappings retain candidates. | General graph/stereo/conformer identity, enhanced relative/non-tetrahedral/atropisomer stereo, constraint-aware/coupled geometry and independent domain/recall qualification remain incomplete. XYZ cannot supply an invented graph or stereo assignment; fingerprints cannot certify equivalence. |
-| `TORQ-GEO-002` Symmetry — partial | [Nuclear-position proposals](../../src/cochem_torq/geometry_identity.py) record proper/improper actions, permutations, residuals, closure and enumeration completeness over declared tolerance sweeps. Separate isotope and authentic mass actions are retained. The ≤24-atom profile assigns only C1/Cs/Ci/C2/C2v/C2h/D2 when rank/completeness/closure permit; other or linear groups remain unassigned. | General classification, actual engine subgroup, dynamically feasible PI groups, spin weights and tunneling rules are absent. Nuclear-position actions do not establish chemical graph automorphisms or feasible nuclear dynamics. Constraint metadata does not implement a constrained optimizer, engine constraint audit or unconstrained minimum proof. |
-| `TORQ-PES-001` Scan definition — partial | [Approved immutable scans](../../src/cochem_torq/scan.py) declare atom indices, units, domains, finite design/pass order, state, constraints, initial-guess policy and actual-call budget. The executable local profile is neutral singlet H2, RHF/STO-3G, one fixed nonperiodic bond and independent minao restarts, retaining genuine forward/reverse/challenge observations without symmetry division. | General relaxed/constrained, periodic and coupled multidimensional execution remains absent. Declaration syntax does not enable those profiles. A real constrained optimizer requires residual/curvature evidence; density continuation and other native guesses remain unsupported. Full molecular/deployed scan qualification is outstanding. |
-| `TORQ-PES-002` Surface identity — partial | [Immutable point/surface contracts](../../src/cochem_torq/scan.py) bind exact recipe/state/source, native inventories, pass lineage, absolute electronic energies and actual AO density records. Same-geometry independent restarts expose observed energy/density discrepancies. Failed or colliding observations stay explicit. | Density continuation and electronic-state/branch tracking are absent; independent restarts cannot establish their completeness. General multistate/coupled/periodic/relaxed/composite surfaces and independent physical challenge/applicability campaigns remain required. |
+| `TORQ-GEO-002` Symmetry — partial | [Nuclear-position proposals](../../src/cochem_torq/geometry_identity.py) record proper/improper actions, permutations, residuals, closure and enumeration completeness over declared tolerance sweeps. Separate isotope and authentic mass actions are retained. The ≤24-atom profile assigns only C1/Cs/Ci/C2/C2v/C2h/D2 when rank/completeness/closure permit; other or linear groups remain unassigned. | General classification, actual engine subgroup, dynamically feasible PI groups, spin weights and tunneling rules are absent. Nuclear-position actions do not establish chemical graph automorphisms or feasible nuclear dynamics. A separate bounded HF SLSQP adapter now computes actual constraint residuals, KKT/tangent gradients and optional Lagrangian-nullspace curvature. General engine/constraint-domain qualification and an unconstrained-minimum proof remain required. |
+| `TORQ-PES-001` Scan definition — partial | [Approved immutable scans](../../src/cochem_torq/scan.py) declare atom indices, units, domains, finite design/pass order, state, constraints, initial-guess policy and actual-call budget. Bounded closed-shell RHF/STO-3G H2 and nonperiodic fixed bond/angle/dihedral profiles retain actual coordinate residuals, forward/reverse/challenge observations and exact prior-density versus independent-restart policies without unproved symmetry division. | Standalone constrained HF optimization exists with native residual/curvature evidence, but does not imply general relaxed PES execution. Periodic/multistate/relaxed and general coupled-domain applicability, branch completeness and canonical-platform qualification remain outstanding. |
+| `TORQ-PES-002` Surface identity — partial | [Immutable point/surface contracts](../../src/cochem_torq/scan.py) bind exact recipe/state/source, native inventories, pass lineage, absolute electronic energies and actual AO density records. Same-geometry independent restarts expose observed energy/density discrepancies. Failed or colliding observations stay explicit. | Actual previous-checkpoint orbital/density consumption in a fresh SCF and a genuine native-point-to-HDF5 bridge now exist under exact committed lineage. Neither establishes branch completeness. General multistate/periodic/relaxed/composite surfaces and independent applicability/deployment campaigns remain required. |
 | `TORQ-PES-003` Candidate versus stationary point — partial | [Ledger-linked refinement](../../src/cochem_torq/adaptive.py) preserves sampled extrema as quarantined input-only candidates and verifies original point/native bytes, retained CAS revision and exact separately approved target/state/constraint release. Genuine target optimization, gradient and positive projected Hessian/invariance checks can produce a separate model-minimum result. | General scan/ML/path candidates and stationary/TS domains remain incomplete. Relocated native evidence needs authenticated import. A local model minimum does not establish chemical accuracy, a verified TS/IRC or global completeness; mapped endpoint connectivity needs its own evidence. |
 | `TORQ-PES-006` Adaptive algorithm — partial | [Bounded physical acquisition](../../src/cochem_torq/adaptive.py) uses approved seeds, genuine anchors, deterministic maximin diversity, fresh endpoint/frozen interior challenges and actual coordinator budgets. Numerical interpolation is distinctly labeled; `criteria_met`, `budget_exhausted`, `insufficient_coverage` and `failed` remain explicit. No automatic pruning occurs. | No trained surrogate, continuous/between-node error bound, global recall/completeness calibration, grouped molecular-family benchmark or general multidimensional/periodic/relaxed loop exists. `criteria_met` describes finite-design spacing and observed numerical residuals only, not chemical accuracy or complete basin search. |
-| `TORQ-VIB-003` VPT2 profile — missing full implementation | Vibrational-only force-field/perturbation machinery is joined by [geometric Coriolis-zeta and fixed-frame inertia derivatives](../../src/cochem_torq/spectroscopy/rovibrational.py). Strict records bind source/isotope/frame/mode/parent identities, quality residuals and typed unavailable higher products. | The full rovibrational kinetic operator, rotation-vibration alpha, A0/B0/C0, centrifugal distortion and full rovibrational VPT2 remain missing. Genuine molecular force fields, resonance/deperturbation conventions and independent solver/reference comparison are required; mathematical precursors, harmonic Hessians or averaged inertia cannot substitute. |
+| `TORQ-VIB-003` VPT2 profile — missing full implementation | Bounded [canonical nonresonant Watson perturbation](../../src/cochem_torq/spectroscopy/rovibrational_perturbation.py), leading alpha/model B0 and unreduced harmonic quartic response now use strict source/isotope/frame/mode/parent identities and applicability gates. Actual default HF/STO-3G water retains B0/model alpha/semirigid as unavailable because its cubic coupling exceeds the reviewed limit. | Full resonant GVPT2/polyads, A/S reduction-induced shifts, higher distortion/hyperfine/tunneling and independent calibrated spectroscopy/identification remain incomplete. A separate local Dirichlet variational solver does not supply periodic large-amplitude dynamics; harmonic/inertia averages cannot substitute. |
 
 Relevant implementation checks are
 [geometry identity](../../tests/test_geometry_identity_integrity.py),
@@ -96,11 +96,11 @@ geometric precursor contract and its typed unavailable higher products.
 
 `TORQ-OPS-005` is now partial supported scope. The [fenced HDF5 implementation](../../cochem/storage/fenced_pes.py) and [protocol](../../cochem/storage/FENCED_PES_PROTOCOL.md) seal independent supplied or explicitly dimensionless mathematical samples, verify private source snapshots and current committed source admission, and publish a new version through one coordinator-authorized merger with atomic no-replace installation. Real HDF5/SQLite files, competing Linux processes and an abrupt process exit after rename but before SQLite commit exercise ownership, preserved-byte same-owner recovery and elapsed lease/approval expiry or revocation rejection. Current local test pointers are included in the audit; final source-bound release execution receipts remain separate.
 
-These local checks do not establish a molecular PES or a native engine-to-PES sampling integration. Source-schema interoperability, deployed filesystem/NFS locking and durability, HDF5 filter availability and cross-host recovery remain outstanding. Original files are retained, expired/revoked owners cannot recover an orphan as success, and bare artifact presence never supplies coordinator authority. SWMR is not multiwriter safety.
+A genuine bounded scan-to-storage bridge now admits exact native point/native-manifest identities through current coordinator receipts, preserving absolute energies, units, atoms and electronic state. Its genuine local observations do not establish general molecular PES accuracy. Source-schema interoperability, deployed filesystem/NFS locking and durability, HDF5 filter availability and cross-host recovery remain outstanding. Original files are retained, expired/revoked owners cannot recover an orphan as success, and bare artifact presence never supplies coordinator authority. SWMR is not multiwriter safety.
 
 ## Integrity corrections in the release candidate
 
-Publication now rechecks the current worker lease and campaign approval after the actual publication callback, so elapsed expiry cannot commit stale success. Native capability/restart evidence verifies actual nested optimizer/final-calculation provenance, parent-retained byte inventories and matching source/recipe/engine identities; compatibility never asserts engine consumption or transferable scientific accuracy. File snapshots and race checks preserve admitted source bytes rather than accepting a concurrently changed input.
+Publication now rechecks the current worker lease and campaign approval after the actual publication callback, so elapsed expiry cannot commit stale success. Native capability/restart evidence verifies actual nested optimizer/final-calculation provenance, parent-retained byte inventories and matching source/recipe/engine identities; compatibility alone never asserts engine consumption or transferable scientific accuracy. The separate genuine checkpoint adapter now loads exact saved orbitals, forms the observed initial density and proves consumption at the first callback of a fresh SCF; this is not iteration/DIIS, optimizer or higher-derivative algorithm-state resume. File snapshots and race checks preserve admitted source bytes rather than accepting a concurrently changed input.
 
 Scientific missingness also remains explicit: unavailable isotope masses/radii, harmonic frequencies, physical rotor constants and required molecular inputs cannot acquire invented substitutes. Legacy rotor eigenstates retain their mathematical identity without guessed Ka/Kc assignments; unsupported reduction/intensity catalogs fail rather than using arbitrary intensities. Dimensionless storage/DVR/linear-algebra checks retain their mathematical evidence class and cannot be relabelled native molecular observations. These corrections improve integrity; they do not establish unrun scientific or deployed qualification.
 
@@ -115,6 +115,37 @@ metrics remain advisory: unknown graph/stereo/state candidates are retained, and
 unverified molecular populations/entropy remain unavailable. Actual declared-state
 mathematics is separately labeled. These repairs do not qualify general chemical
 identity, conformer completeness or the historical method matrix.
+
+## Current local operations and source-bound milestones
+
+The frozen Python application at `b8f8a23` has source digest
+`fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9`.
+Seventeen genuine shared-host/native dispatch cases passed with that digest
+unchanged before and after: real competing campaigns, owned SIGKILL/waits,
+SQLite-blocked exit races in both dispatchers, retained scratch-failure reasons,
+zero engine consumption before dispatch, independently observed constrained-child
+termination and missing whole-inventory retention. The separate source-activated
+storage/process lane passed 100 cases covering host allocation, WAL-consistent
+coordinator backup/fenced restore and campaign lifecycle. These bounded lanes
+are not a complete-repository or independent scientific qualification; overlapping
+counts must not be summed with any final repository run.
+
+[Coordinator recovery](campaign_backup.md) revokes all restored approvals and
+active leases, increments generation fences and preserves historical outcomes
+and unknown physical costs in a new offline target. It supports exactly known
+v0-to-v1 metadata adoption; generic future migrations are not implemented.
+[Shared local host allocation](host_allocation.md) is additional campaign
+resource authority, with actual host/boot/actor/process binding and atomic
+cross-campaign CPU/RAM/scratch/worker/probed-GPU admission. Missing launches,
+expired leases and missing/empty pinned constrained inventories remain held.
+A campaign restore neither clones the host ledger nor proves original workers
+or independently sessioned native children dead.
+
+Both services remain bounded local Linux deployment implementations. Separate
+users/namespaces/ledger roots, positive GPU qualification, remote scheduler
+coordination, exact lifetime resource peaks and canonical-platform operational
+qualification need independent evidence. None of these milestones enables an
+unqualified named method or calibrated astronomical/laboratory identification.
 
 ## Independent scientific qualification
 

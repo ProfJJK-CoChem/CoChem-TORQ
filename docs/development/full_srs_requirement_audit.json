@@ -58,7 +58,7 @@
     {
       "evidence_ids": [],
       "id": "V-SYM",
-      "reason": "Bounded tolerance-swept nuclear-position groups and separately resolved isotope/mass actions exist. General point/engine subgroups, feasible PI symmetry, spin weights, tunneling and constrained-curvature qualification remain unavailable.",
+      "reason": "Bounded tolerance-swept nuclear-position/isotope/mass actions and separately named constrained-HF residual/Lagrangian-curvature calculations exist. General point/engine subgroups, feasible permutation-inversion symmetry, spin weights, tunneling and independent constrained-domain qualification remain unavailable.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -76,7 +76,7 @@
     {
       "evidence_ids": [],
       "id": "V-ENGINE",
-      "reason": "Real baseline engine execution exists; complete asynchronous adapter lifecycle and source-bound evidence for all advertised tuples remain required.",
+      "reason": "Real bounded restricted/open-shell native execution, owned subprocess supervision, actual checkpoint consumption and local host/campaign authority now exist. Complete asynchronous lifecycle, independently qualified advertised tuples and source-bound canonical-platform evidence remain required.",
       "required_evidence_kinds": [
         "software",
         "real_engine"
@@ -126,7 +126,7 @@
     {
       "evidence_ids": [],
       "id": "V-VPT2",
-      "reason": "Vibrational perturbation and strictly identified geometric Coriolis/inertia-derivative precursors exist. Full rovibrational operator/alpha/B0/distortion/GVPT2 and independent molecular solver-reference qualification remain missing; higher products stay typed unavailable.",
+      "reason": "Bounded canonical nonresonant Watson semirigid J=0 perturbation (Coriolis/volume terms), leading alpha/model B0 and unreduced harmonic quartic response now exist with mathematical and genuine-input/worker checks. Actual default HF/STO-3G water fails the reviewed coupling gate, so B0/model alpha/semirigid results remain unavailable while valid earlier evidence is retained. Full resonant GVPT2/polyads, reduction-induced shifts, higher distortion/hyperfine/tunneling and independent spectroscopy/identification calibration remain outstanding.",
       "required_evidence_kinds": [
         "software",
         "real_engine",
@@ -137,7 +137,7 @@
     {
       "evidence_ids": [],
       "id": "V-DVR",
-      "reason": "Mathematical limiting cases exist; actual coupled molecular PES/kinetic/spin-sector applicability and convergence evidence remain unqualified.",
+      "reason": "A bounded Dirichlet local variational rovibrational operator/solver and mathematical/native-input checks now exist with explicit boundaries, mode/energy conventions and convergence diagnostics. It is not a periodic large-amplitude model; coupled molecular PES/kinetic/spin-sector applicability and independent spectral qualification remain outstanding.",
       "required_evidence_kinds": [
         "software",
         "independent_reference"
@@ -147,7 +147,7 @@
     {
       "evidence_ids": [],
       "id": "V-PES",
-      "reason": "Approved local neutral-singlet H2 fixed-bond scans retain genuine forward/reverse/challenge energies, AO densities, pass/native lineage and failures. General constrained/relaxed/periodic/coupled scans, density continuation, state/branch tracking and full source-bound molecular/deployed evidence remain incomplete.",
+      "reason": "Approved bounded RHF/STO-3G fixed H2 and nonperiodic internal-coordinate scans retain actual forward/reverse/challenge energies, native densities, exact prior-checkpoint consumption and current coordinator/host provenance. Standalone constrained HF optimization and a genuine point-to-fenced-HDF5 bridge exist. General relaxed/periodic/multistate PES, branch completeness, independent applicability and deployed-platform qualification remain incomplete.",
       "required_evidence_kinds": [
         "software",
         "real_engine"
@@ -274,7 +274,7 @@
     {
       "evidence_ids": [],
       "id": "V-BUDGET",
-      "reason": "Atomic campaign reservations/settlement, real process contention tests and local wall/memory/scratch supervision exist. Cross-campaign host allocation, complete primitive-stage accounting, applicable native/GPU scheduler ceilings and exact source-bound platform evidence remain outstanding.",
+      "reason": "Atomic campaign budget authority and a deployment-wide private local host ledger reserve CPU/RAM/scratch/worker and explicitly probed GPU slots across participating campaigns. Both scan and ordinary workers bind actual process identities and retain unknown launches/nested-child costs; genuine local contention/death tests pass. Complete primitive-stage accounting, GPU-positive qualification, exact lifetime peaks and canonical-platform evidence remain outstanding.",
       "required_evidence_kinds": [
         "software",
         "platform"
@@ -293,7 +293,7 @@
     {
       "evidence_ids": [],
       "id": "V-STATE",
-      "reason": "Authoritative full-state revision-CAS/events/immutable attempts and fenced publication exist. Every-transition crash/restart and deployed duplicate-delivery/ownership qualification remain outstanding.",
+      "reason": "Authoritative revision-CAS/events/immutable attempts, fenced publication and verified online SQLite snapshots/new-target offline recovery now exist. Recovery revokes approvals, clears active leases and increments generation fences while preserving history and unknown costs. Every-transition/deployed duplicate-delivery and cross-host ownership qualification remain outstanding.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -302,7 +302,7 @@
     {
       "evidence_ids": [],
       "id": "V-RESTART",
-      "reason": "Genuine native checkpoint/Hessian fingerprints, original-preserving read-only registration, exact final-result compatibility and distinct mutable initial-guess preparation exist. Explicit initial guesses require recomputation and no engine checkpoint consumption is claimed. Other artifact adapters, actual native checkpoint continuation and deployed crash/state/source/basis rejection campaigns remain unqualified.",
+      "reason": "Authenticated immutable PySCF checkpoint orbitals now provide an observed initial density genuinely consumed by a fresh SCF, with actual first-callback proof and explicitly allowed geometry projection. Original/sealed inputs and exact state/basis/occupation/native identities remain bound. SCF iteration/DIIS, optimizer and higher-derivative algorithm-state resume, other adapters and deployed recovery qualification remain incomplete.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -311,7 +311,7 @@
     {
       "evidence_ids": [],
       "id": "V-STORAGE",
-      "reason": "Immutable shards and a coordinator-fenced HDF5 sole-merger contract now verify current committed source admission, preserved source/sample identities, atomic no-replace publication and same-owner orphan recovery. Genuine local files/processes exercise integrity and ownership only. Native engine-to-PES integration, source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and final source-bound full gate evidence remain outstanding.",
+      "reason": "The local sole-merger HDF5 contract now admits genuine native scan points through exact current committed coordinator receipts, preserves absolute-energy/unit/atom/state/native identities and publishes atomically with same-authority orphan recovery. Mathematical samples keep their separate evidence class. Source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and full independent molecular/source-bound qualification remain outstanding.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -389,7 +389,7 @@
     {
       "evidence_ids": [],
       "id": "V-DEPLOY",
-      "reason": "Local immutable-shard quota/backpressure and backup/restore/rollback are implemented. Coordinator database/schema operational recovery and actual deployed Codespaces/Actions full lifecycle remain outstanding.",
+      "reason": "Local shard recovery, WAL-consistent coordinator backup/new-target fenced restore, exact known v0-to-v1 metadata adoption and private shared-host allocation are implemented with real SQLite/process tests. Generic unknown-schema migrations/rollback, remote scheduler authority and actual canonical Codespaces/Actions full operational lifecycle remain outstanding.",
       "required_evidence_kinds": [
         "software",
         "platform"
@@ -673,7 +673,7 @@
     "tests": 2486
   },
   "release_scope": {
-    "bounded_student_release_qualification": "local current software/engine/wheel/sibling checks pass; independent science and canonical deployed journey remain blocked",
+    "bounded_student_release_qualification": "bounded current local module/process/native checks pass; preceding wheel/sibling checks remain historical; independent science and canonical deployed journey remain blocked",
     "canonical_platform_qualifications_outstanding": [
       "reviewed calculation workflow available on default branch with actual repository Actions access",
       "live Codespaces import/approve/submit/status/cancel/download/export journey",
@@ -688,13 +688,13 @@
       "frozen/relaxed interaction energetics, genuine ghost-basis energy and gradient calculations",
       "first-order-saddle and downhill endpoint candidates without a falsely asserted verified IRC",
       "exact experimental native capability routing and artifact/source/domain-bound local numerical-integration evidence",
-      "authentic native wavefunction/Hessian compatibility, preserved original/sealed inputs and separate initial-guess working-copy preparation without asserted engine consumption",
+      "authentic immutable native checkpoint compatibility and separate mutable initial-density preparation genuinely consumed by a fresh SCF, without algorithm-state resume or scientific-accuracy qualification",
       "reversible candidate retention/selection with accessible immutable history and approval invalidation",
       "immutable verified reproducibility export with matching source and explicit missing scientific qualifications",
       "bounded supplied-graph/stereo/isotope proper-rotation comparisons and tolerance-swept nuclear-position symmetry proposals retaining complete originals and ambiguous candidates",
-      "approved local neutral-singlet H2 fixed-bond RHF/STO-3G scans with genuine forward/reverse/challenge energies and native AO densities",
+      "approved bounded closed-shell H2 and nonperiodic fixed valence-coordinate RHF/STO-3G scans with actual prior-density continuation, independent challenges and genuine native-point-to-fenced-HDF5 admission",
       "approved one-coordinate finite-design physical-anchor/maximin adaptive acquisition with true budgets/explicit stops and separately approved genuine target optimization/Hessian minimum checks",
-      "strictly identified geometric Coriolis-zeta/fixed-frame inertia-derivative precursors with typed unavailable alpha/B0/distortion/full-operator products"
+      "strict geometric precursors and bounded canonical nonresonant Watson/Dirichlet-local operator routes with applicability-gated model products and explicit unavailable B0/alpha for rejected default water"
     ],
     "independent_scientific_qualifications_outstanding": [
       "exact primary-source revDSD orbital/semilocal/OS/SS/D4/core-definition reconciliation and authenticated independent components/response/higher derivatives",
@@ -702,7 +702,7 @@
       "named frozen independent molecular-family benchmark references, accepted observable error/coverage targets and blind validation",
       "coupled molecular large-amplitude kinetic operator, feasible PI symmetry/spin statistics and nuclear-motion convergence",
       "actual pinned external SPCAT/SPFIT and SpycFit consumer convention round trips",
-      "general relaxed/constrained/periodic/coupled geometry and PES, density continuation, actual electronic/branch tracking and independent global coverage/recall calibration"
+      "general constrained-domain/relaxed/periodic/multistate geometry and PES, actual electronic-branch completeness and independent global coverage/recall calibration"
     ]
   },
   "requirements": [
@@ -1101,7 +1101,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PLAN-002",
-      "remaining_work": "The SQLite campaign authority now atomically reserves and settles wall/CPU/GPU consumption and worker/CPU/GPU/RAM/scratch/task capacities, including retry ceilings. Local execution records actual wall/owned-byte consumption and explicitly unknown CPU/exact memory peaks. Cross-campaign host allocation, full primitive-stage accounting, native/GPU scheduler ceilings and deployed contention/consumption evidence remain required.",
+      "remaining_work": "Campaign consumption/budget authority and an additional shared private local host ledger now atomically reserve CPU/RAM/scratch/worker/GPU slots across participating campaigns. Both local dispatchers use exact host/boot/actor and actual process bindings; unknown launches and nested-child evidence remain held, sampled peaks stay separate from unknown lifetime peaks. Full primitive accounting, positive GPU/native scheduler ceilings and deployed contention/consumption qualification remain required.",
       "source_references": [
         "src/cochem_torq/application.py",
         "src/cochem_torq/artifacts.py",
@@ -1211,7 +1211,7 @@
       "classification": "partial_supported_scope",
       "id": "TORQ-GEO-002",
       "implemented_scope": "Bounded nuclear-position symmetry proposals retain actual proper/improper orthogonal actions, atom permutations, residuals, closure and enumeration completeness over increasing declared tolerance sweeps. Separate isotope assertions and authentic tabulated-mass actions are recorded. At most 24 nuclear rows are supported; only complete closed rank>=2 actions can assign C1/Cs/Ci/C2/C2v/C2h/D2. Other and linear/continuous groups remain unassigned with review flags.",
-      "remaining_work": "General group classification, genuine engine computational subgroups, dynamically feasible permutation-inversion groups, nuclear-spin weights and tunneling selection rules remain unavailable. Nuclear-position actions do not establish graph/stereo automorphisms or feasible nuclear dynamics. Supplied constraint references are metadata only: constrained optimization, engine constraint audit and unconstrained-minimum proof still require supported implementation and genuine validation, not optional-profile relabeling.",
+      "remaining_work": "General group classification, genuine engine computational subgroups, feasible permutation-inversion groups, spin weights and tunneling remain unavailable; nuclear-position actions do not establish graph automorphisms or feasible dynamics. A separately named bounded constrained-HF SLSQP adapter now computes actual residuals, tangent-gradient/KKT and optional Lagrangian-nullspace curvature with genuine native evaluations. General constrained-domain/engine audits and an unconstrained-minimum proof remain independently required.",
       "source_references": [
         "src/cochem_torq/geometry_identity.py",
         "src/cochem_torq/spectroscopy/harmonic.py"
@@ -1229,7 +1229,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-GEO-003",
-      "remaining_work": "Actual restricted SCF stability, projected Hessian stationarity diagnostics and separately labelled first-order saddle candidates are implemented. Full constrained-Lagrangian curvature, target-level domain qualification and verified chemical connectivity remain required.",
+      "remaining_work": "Actual restricted stability/projected stationarity and a bounded constrained-HF adapter now retain native residuals, KKT/tangent gradients and optional two-scale Lagrangian/nullspace curvature; a constrained stationary point never becomes an unconstrained minimum. General constrained/TS chemical domains, target-level independent references and verified connectivity remain outstanding.",
       "source_references": [
         "src/cochem_torq/engines/pyscf_backend.py",
         "src/cochem_torq/spectroscopy/harmonic.py",
@@ -1286,8 +1286,8 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PES-001",
-      "implemented_scope": "Immutable approved atom-indexed coordinate/domain/grid/pass/budget contracts and a local neutral-singlet H2 RHF/STO-3G fixed nonperiodic bond executor retain genuine forward/reverse and independent challenge observations. Unique design nodes and actual physical attempts are distinct; no unproved symmetry divisor is used. Exact source, state, recipe, constraints, initial-guess policy and native inventories remain bound.",
-      "remaining_work": "Executable general relaxed/constrained, periodic and coupled multidimensional scans remain absent. Such scans require a supported constrained optimizer with actual residual/curvature evidence; accepting declaration syntax does not enable execution. Density continuation and other native initial-guess profiles remain unavailable. Full domain and deployed scan qualification remain outstanding.",
+      "implemented_scope": "Immutable approved atom-indexed valence coordinate/grid/pass/domain/budget contracts now execute bounded closed-shell RHF/STO-3G fixed H2 and nonperiodic internal-coordinate observations, with actual coordinate residuals and genuine previous-density versus independent-restart policies. Original geometry, exact source/state/recipe, physical attempt lineage, native inventories and terminal host provenance remain bound; no unproved symmetry divisor or synthetic observation is used.",
+      "remaining_work": "Bounded nonperiodic fixed valence-coordinate RHF/STO-3G scans and genuine previous-density continuation are now executable alongside the H2 profile, with explicit atom identities, observed coordinate residuals, pass budgets and independent challenges. Standalone constrained optimization retains its own actual residual/curvature evidence rather than implying relaxed-scan support. General relaxed/periodic/multistate/coupled-domain coverage and canonical-platform qualification remain outstanding.",
       "source_references": [
         "src/cochem_torq/scan.py",
         "src/cochem_torq/application.py",
@@ -1305,8 +1305,8 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-PES-002",
-      "implemented_scope": "Immutable H2 surface/point identities bind one exact state, recipe and source; pass lineage, actual absolute electronic energies, native AO densities and independent-restart energy/density discrepancy checks are retained. Failed/colliding/incomplete observations remain explicit and cannot become zero-filled or silently interpolated physical data.",
-      "remaining_work": "Independent restarts do not implement density continuation or general electronic-state/branch tracking. General multistate/coupled/periodic/relaxed surfaces, explicit composite/delta execution and independent molecular challenge/applicability campaigns remain incomplete. Native engine-to-shared-PES consumer integration and full deployed surface lifecycle also require qualification.",
+      "implemented_scope": "Immutable bounded point/surface identities retain actual absolute energies, AO densities, native checkpoints and pass/state/source provenance. Previous-density continuation genuinely consumes exact preceding same-pass orbitals in a fresh SCF; challenge restarts remain independent. Genuine points bridge to the sole-merger shared HDF5 contract through exact committed coordinator admission. Missing/colliding/failed observations never become zero-filled or interpolated physical data.",
+      "remaining_work": "Actual saved native density/orbitals now seed fresh SCF under exact preceding same-pass checkpoint/manifest lineage, while independent challenge restarts retain their distinct policy. This does not establish electronic branch completeness. Genuine points can feed the coordinator-fenced shared PES contract; general multistate/periodic/relaxed/composite surfaces, independent applicability/calibration and full deployed lifecycle remain incomplete.",
       "source_references": [
         "src/cochem_torq/scan.py",
         "src/cochem_torq/adaptive.py"
@@ -1452,8 +1452,8 @@
       ],
       "classification": "missing_implementation",
       "id": "TORQ-VIB-003",
-      "implemented_scope": "Actual vibrational-only displacement/VPT2/polyad machinery and geometric Coriolis-zeta/fixed-equilibrium-frame inertia first/second derivatives now exist. Precursor records bind source, isotope, mode order, frame and parent identities and explicitly type unavailable higher products; their evidence class is derived geometric mathematics.",
-      "remaining_work": "The full rovibrational VPT2 implementation remains missing. Geometric precursors do not implement a rovibrational kinetic operator, rotation-vibration alpha, vibration-corrected A0/B0/C0, centrifugal distortion or full rovibrational VPT2. Independently validated molecular force fields, resonance/deperturbation/polyad conventions and solver/reference comparisons remain required; inertia averaging or a harmonic Hessian cannot substitute.",
+      "implemented_scope": "Actual bounded vibrational and canonical nonresonant Watson rovibrational perturbation, leading alpha/model B0 and unreduced harmonic quartic response retain strict source/isotope/mode/frame/parent identities, reviewed small-coupling gates and honest unavailable children. A separate bounded Dirichlet variational solver preserves its local boundary/operator evidence class; neither route establishes general periodic large-amplitude dynamics or calibrated identification accuracy.",
+      "remaining_work": "A bounded canonical nonresonant Watson semirigid J=0 perturbative operator, leading alpha/model B0 and unreduced harmonic quartic response now exist with strict parent/mode/frame/isotope identities, applicability rejection and mathematical/genuine-input checks. Actual default HF/STO-3G water fails the reviewed cubic coupling gate and retains B0/model alpha/semirigid as unavailable, with valid earlier/native diagnostics preserved. Full resonant rovibrational GVPT2/polyads, A/S reduction-induced shifts, higher distortion/hyperfine/tunneling and independently calibrated spectroscopy/identification remain incomplete; harmonic/inertia averages cannot substitute.",
       "source_references": [
         "src/cochem_torq/spectroscopy/forcefield.py",
         "src/cochem_torq/spectroscopy/perturbation.py",
@@ -1779,7 +1779,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-001",
-      "remaining_work": "The authoritative campaign implements all SRS states, revision compare-and-swap, append-only actor/time/reason events and immutable terminal attempts. Full each-transition crash/restart, duplicate-delivery and deployed service evidence remains required.",
+      "remaining_work": "The authoritative campaign implements full SRS states, CAS, append-only events and immutable terminal attempts. Verified online WAL snapshots and new-target fenced restore preserve history/unknown costs while revoking approvals, clearing active leases and incrementing worker generations. Full each-transition/duplicate-delivery/deployed service qualification remains outstanding.",
       "source_references": [
         "cochem/orchestration/sqlite_queue.py",
         "src/cochem_torq/application.py",
@@ -1799,7 +1799,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-002",
-      "remaining_work": "Local campaign tasks have immutable logical identities, explicit worker leases/generations, attempt lineage and owned-process reconciliation; scientific cache identity is separate from submission identity. Native compatible checkpoint restart and deployed multi-worker/source-compatible recovery remain required.",
+      "remaining_work": "Immutable logical task and attempt identities, worker lease/generation fencing, actual fresh-SCF checkpoint consumption and source-bound prior-density scan continuation now exist. Recovery never resumes old approvals or algorithm state. SCF iteration/DIIS, optimizer/higher-derivative algorithm-state resume and deployed multi-worker/source-compatible recovery remain required.",
       "source_references": [
         "cochem/orchestration/sqlite_queue.py",
         "src/cochem_torq/application.py",
@@ -1823,7 +1823,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-003",
-      "remaining_work": "Owned process-group cancellation, wall timeout, sampled resident-memory ceilings, scratch/output backpressure and campaign reservation/settlement are now wired locally. Exact process-tree CPU and memory peak measurements remain explicitly unavailable; cross-campaign host/GPU allocation and canonical-platform qualification remain required.",
+      "remaining_work": "Both approved scan and ordinary local workers now require campaign authority plus one common private per-uid/host/boot/namespace SQLite allocation ledger, with atomic cross-campaign CPU/RAM/scratch/worker/probed GPU admission, actual PID/create-time bindings, heartbeats and genuine waits. Bound nested constrained children are checked independently; missing/empty pinned inventories, live/unknown processes and expired leases retain resources/costs. Exact lifetime CPU/peak measurements, GPU-positive profiles, remote/multiple-user/namespace coordination and canonical-platform qualification remain outstanding.",
       "source_references": [
         "cochem/core/process_reaper.py",
         "Libraries/cochem_torq_engine.py",
@@ -1846,7 +1846,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-004",
-      "remaining_work": "Immutable shards and single-writer storage are implemented. Interrupted merge, stale-attempt publication and coordinator-authority fencing must be qualified through the deployed multi-worker path.",
+      "remaining_work": "Immutable shards and single-writer storage now include genuine scan-to-PES committed-source admission and typed terminal host provenance. Local interruption, stale-authority, tampering and publication races use real processes/native artifacts. Deployed multi-worker authority/filesystem/filter/durability qualification remains outstanding.",
       "source_references": [
         "src/cochem_torq/artifacts.py",
         "cochem/storage/cochem_core_pes_store.py"
@@ -1864,7 +1864,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-005",
-      "remaining_work": "The local coordinator-fenced HDF5 contract now seals independent supplied/mathematical samples, verifies private source snapshots and current committed receipts, publishes under one live approved owner with atomic no-replace versioning, and supports preserved-byte crash recovery only under the same current authority. It does not yet implement a native engine-to-PES sampling bridge or establish source-schema interoperability, deployed NFS/filter/locking/durability or cross-host recovery qualification. Local integrity/process checks do not establish molecular PES accuracy, and final source-bound full gate evidence remains pending.",
+      "remaining_work": "The coordinator-fenced HDF5 contract now consumes genuine native scan points under current exact committed receipts, preserving absolute energies/units, atoms, density/native identities and source provenance. One approved merger verifies private snapshots and atomically publishes; same-authority preserved-byte orphan recovery remains bounded. Source-schema interoperability, deployed NFS/filter/locking/durability, cross-host recovery and independent molecular/source-bound full-scope qualification remain outstanding.",
       "source_references": [
         "cochem/storage/fenced_pes.py",
         "cochem/orchestration/campaign.py",
@@ -1885,7 +1885,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-OPS-006",
-      "remaining_work": "The authority enforces approved retry ceilings, immutable attempts and bounded automatic retry classes; cancellations cannot automatically retry and every settled attempt retains costs/provenance. Full deployed scientific-recipe retry/resume policy, compatible native checkpoints and all recovery classes remain required.",
+      "remaining_work": "Approved retry ceilings, immutable cost-retaining attempts and bounded retry classes coexist with genuine exact-compatible checkpoint initial-density consumption. Cancellation/recovery does not restore old worker success or algorithm state, and unknown nested launches remain charged/held until actual evidence exists. Full deployed retry policy, all artifact/algorithm-state resume classes and recovery qualification remain required.",
       "source_references": [
         "src/cochem_torq/application.py",
         "cochem/orchestration/sqlite_queue.py",
@@ -2028,7 +2028,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-DEP-004",
-      "remaining_work": "Owned artifact quota/backpressure, immutable-shard backup/restore and rollback are implemented and tested locally. Coordinator database backup/restore, schema migration/rollback and actual deployed readiness/quota-exhaustion scenarios remain required.",
+      "remaining_work": "Owned artifact quota/backpressure, shard recovery, WAL-consistent coordinator online backup and new-target fenced restore now exist; restored approvals/leases are revoked and historical results/unknown costs preserved. Exactly known unversioned-schema to version-1 metadata adoption is supported with verified pre-change snapshots and fenced offline rollback targets. Generic unknown/future schema migrations, deployed readiness/quota scenarios and remote host recovery remain outstanding.",
       "source_references": [
         "src/cochem_torq/artifacts.py",
         "src/cochem_torq/github.py",
@@ -2067,7 +2067,7 @@
       ],
       "classification": "partial_supported_scope",
       "id": "TORQ-DEP-005",
-      "remaining_work": "Local campaign records actual worker elapsed time, sampled resident-memory status, observed owned bytes, resource failures and explicitly unknown exact CPU/memory peaks. Full queue/host/contention telemetry, geometry-private summaries and canonical-platform measurement/retention evidence remain required.",
+      "remaining_work": "Local campaign/host records retain actual worker wall and sampled owned RSS/scratch observations, cross-campaign reservations, actor/host/boot/process identities, resource failures and explicit unknown CPU/lifetime peaks. Whole or partial missing constrained launch inventory remains held rather than fabricated. Full deployed queue/host/contention telemetry, geometry-private retention and canonical-platform measurement evidence remain outstanding.",
       "source_references": [
         "src/cochem_torq/artifacts.py",
         "src/cochem_torq/github.py",

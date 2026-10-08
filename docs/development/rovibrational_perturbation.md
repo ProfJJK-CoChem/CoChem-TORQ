@@ -304,6 +304,20 @@ Scoped Ruff, strict mypy with imported-module diagnostics suppressed via
 checks apply to this module, rather than asserting repository-wide type-check
 success.
 
+The separate [actual worker integration tests](../../tests/test_watson_pipeline.py)
+passed **2 tests, zero skips**, using a genuine O-16/H-1/H-1 water request for
+`ground_state_constants`. The worker retained 107 actual displaced calculations,
+typed force field, Eckart precursors, full gated Watson diagnostics and
+unreduced harmonic distortion. It returned **partial** at both application and
+nested research levels: the measured ground cubic coupling ratio
+`0.12263440659989104` exceeded the unchanged 0.1 bound, and ground constants,
+model alpha and semirigid VPT2 stayed null. The tests verified every native
+parent, the actual stationary-reference gradient, derived artifact parents,
+saved stage values and complete research inventory. Before/after scientific
+source identities agreed. This exercises the real application route and its
+strict serialized-result contracts; it does not qualify identification
+accuracy or replace blocked advanced spectroscopy with a harmonic result.
+
 ## Reference expression attribution
 
 The independent closed reference expressions in the tests were adapted from
