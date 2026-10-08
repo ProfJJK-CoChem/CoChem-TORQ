@@ -129,3 +129,53 @@ def test_external_candidate_exclusion_blocks_submission_before_network(tmp_path)
         session.submit()
     assert session.approved_plan is None
     assert session.submission is None
+
+
+def test_cli_retains_quarantined_input_with_current_revision_only(tmp_path):
+    from cochem_torq.candidate_ledger import CandidateLedger
+
+    ledger_path = tmp_path / "actual-retain.sqlite"
+    supplied = read_json(ROOT / "examples/student/water-hf-teaching.json")
+    with CandidateLedger(ledger_path) as ledger:
+        original = ledger.register_request(
+            supplied,
+            actor="actual input reviewer",
+            reason="register the unchanged supplied input",
+        )
+        quarantined = ledger.quarantine(
+            original["candidate_id"],
+            expected_revision=original["revision"],
+            actor="actual input reviewer",
+            reason="await an explicit selection decision",
+        )
+    command = [
+        sys.executable,
+        "-m",
+        "cochem_torq.cli",
+        "--json",
+        "candidates",
+        "retain",
+        "--ledger",
+        str(ledger_path),
+        "--candidate-id",
+        original["candidate_id"],
+        "--revision",
+        str(quarantined["revision"]),
+        "--actor",
+        "actual input reviewer",
+        "--reason",
+        "retain this input for a separately reviewed calculation",
+    ]
+    changed = subprocess.run(command, capture_output=True, text=True, timeout=20)
+    assert changed.returncode == 0, changed.stdout + changed.stderr
+    retained = json.loads(changed.stdout)["data"]
+    assert retained["selection_state"] == "retained"
+    assert retained["review_status"] == "needs_review"
+    assert retained["request"] == original["request"]
+    assert retained["quality"] == original["quality"]
+    stale = subprocess.run(command, capture_output=True, text=True, timeout=20)
+    assert stale.returncode != 0
+    assert json.loads(stale.stdout)["errors"]
+    with CandidateLedger(ledger_path) as ledger:
+        assert ledger.inspect(original["candidate_id"]) == retained
+        assert len(ledger.history(original["candidate_id"])) == 3

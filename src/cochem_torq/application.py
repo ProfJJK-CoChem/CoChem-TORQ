@@ -132,6 +132,26 @@ def validate_request(
         model
     )  # Fail before expensive work if a requested isotope lacks real mass data.
     reasons = list(capabilities["blocking_reasons"])
+    if "pes_scan" in model.products:
+        from .scan import scan_blocking_reasons, scan_definition
+
+        if model.products != ["pes_scan"]:
+            reasons.append(
+                "A PES scan is a separate product from equilibrium spectroscopy."
+            )
+        if model.recipe != "hf-sto-3g-pes-validation":
+            reasons.append(
+                "PES scans require their explicitly named local validation recipe."
+            )
+        reasons.extend(scan_blocking_reasons(model, scan_definition(model)))
+        if execution != "local_validation":
+            reasons.append("PES scans require the explicit local validation workflow.")
+    elif model.recipe == "hf-sto-3g-pes-validation" or any(
+        key in model.source_provenance for key in ("pes_scan", "adaptive_scan")
+    ):
+        reasons.append(
+            "A scan declaration requires the separate pes_scan product and recipe."
+        )
     if model.scientific_goal is not None and any(
         declaration.product_class in {"B", "C", "BENCHMARK"}
         for declaration in model.scientific_goal.products
@@ -210,6 +230,10 @@ def validate_request(
 
 def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[str, Any]:
     """Immutable dependency closure; no unplanned method or engine switching."""
+    if "pes_scan" in request.products:
+        from .scan import scan_plan_for_request
+
+        return scan_plan_for_request(request, profile)
     from .registry import profile_capabilities
 
     needs_hessian = bool(
@@ -445,6 +469,11 @@ def _qcschema(
 
 
 def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, Any]:
+    if "pes_scan" in request.products:
+        raise PrerequisiteError(
+            "PES sampling requires the approved scan executor; "
+            "the spectroscopy worker cannot execute it."
+        )
     validated = validate_request(request, execution="local_validation")
     profile = validated["recipe"]
     result = _empty_result(
@@ -905,6 +934,12 @@ def execute_request(
     model = CalculationRequest.model_validate(checked["request"])
     if not checked["executable"]:
         raise PrerequisiteError("; ".join(checked["blocking_reasons"]))
+    if "pes_scan" in model.products:
+        from .scan import execute_scan_request
+
+        return execute_scan_request(
+            model, output_directory, approved_plan=approved_plan
+        )
     destination = Path(output_directory).absolute()
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(

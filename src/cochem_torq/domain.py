@@ -40,6 +40,7 @@ PRODUCTS = frozenset(
         "vpt2",
         "ground_state_constants",
         "identification_catalog",
+        "pes_scan",
     }
 )
 PRODUCT_TO_STAGE = {
@@ -152,7 +153,7 @@ class CalculationRequest(Contract):
             set(self.products)
         ):
             raise ValueError(
-                "Products must be distinct, supported scientific stage names."
+                "Products must be distinct, supported scientific product names."
             )
         canonical_json(self.source_provenance)
         return self

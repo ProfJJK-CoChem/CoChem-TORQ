@@ -625,7 +625,11 @@ def launch_student_app(
     )
     from cochem_torq.registry import list_method_profiles
 
-    profiles = list_method_profiles()
+    profiles = [
+        profile
+        for profile in list_method_profiles()
+        if profile["id"] != "hf-sto-3g-pes-validation"
+    ]
     recipe = widgets.Dropdown(
         options=[
             (f"{item['label']} ({item['availability']})", item["id"])

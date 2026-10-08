@@ -30,6 +30,7 @@ from .rotational import (
     rigid_rotor_levels,
     wigner_3j,
 )
+from .rovibrational import RovibrationalPrecursors, build_rovibrational_precursors
 
 __all__ = [
     "EquilibriumRotor",
@@ -54,4 +55,6 @@ __all__ = [
     "rigid_rotor_catalog",
     "rigid_rotor_levels",
     "wigner_3j",
+    "RovibrationalPrecursors",
+    "build_rovibrational_precursors",
 ]

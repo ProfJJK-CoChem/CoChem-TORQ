@@ -36,6 +36,9 @@ class _ResearchSettings(TypedDict):
     max_cycle: int
     max_memory_mb: int
     threads: int
+    check_reference_stability: bool
+    stability_tolerance: float
+    stability_nroots: int
 
 
 EXACT_REVDSD_GAPS = (
@@ -123,6 +126,144 @@ def _write_json(path: Path, value: Any) -> None:
 
 def _file_hash(path: Path) -> str:
     return sha256(path.read_bytes()).hexdigest()
+
+
+def _orbital_state_digest(mf: Any) -> str:
+    """Hash the actual orbital coefficients, energies and occupations unchanged."""
+    digest = sha256()
+    for name in ("mo_coeff", "mo_energy", "mo_occ"):
+        values = np.asarray(getattr(mf, name))
+        if np.iscomplexobj(values) or not np.all(np.isfinite(values)):
+            raise ResearchCalculationError("Finite real reference orbitals required")
+        digest.update(
+            json.dumps(
+                {"name": name, "shape": values.shape, "dtype": values.dtype.str},
+                sort_keys=True,
+            ).encode()
+        )
+        digest.update(values.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def _reference_stability(
+    mf: Any,
+    settings: _ResearchSettings,
+    recipe: ResearchRecipe,
+    directory: Path,
+) -> dict[str, Any]:
+    """Diagnose only the supplied HF/GKS reference without replacing orbitals.
+
+    PySCF's returned external flag describes RHF/RKS -> UHF/UKS. Its native
+    routine also logs real-to-complex checks, but does not return their separate
+    flag; the boolean here must not be described as complete external stability.
+    No stability of the full nonvariational correlated energy is established.
+    """
+    from pyscf.scf import stability
+
+    before = _orbital_state_digest(mf)
+    checkpoint_before = _file_hash(directory / "orbitals.chk")
+    record: dict[str, Any] = {
+        "status": "not_requested",
+        "internal_stable": None,
+        "restricted_to_unrestricted_stable": None,
+        "scope": "orbital-generating HF/GKS reference only",
+        "internal_scope": "restricted real-orbital variations",
+        "external_scope": "native returned RHF/RKS -> UHF/UKS status",
+        "real_to_complex_status": "not_separately_extracted",
+        "full_correlated_energy_stability": "not_evaluated",
+        "solver": "PySCF RHF/RKS stability",
+        "pyscf_version": importlib.metadata.version("pyscf"),
+        "solver_source_sha256": _file_hash(Path(stability.__file__)),
+        "orbital_xc": recipe.orbital_xc,
+        "recipe_sha256": recipe.fingerprint,
+        "requested": settings["check_reference_stability"],
+        "controls": {
+            "internal": True,
+            "external": True,
+            "return_status": True,
+            "nroots": settings["stability_nroots"],
+            "tol": settings["stability_tolerance"],
+        },
+        "orbital_state_sha256_before": before,
+        "checkpoint_sha256_before": checkpoint_before,
+        "native_log": "pyscf.log",
+        "error": None,
+    }
+    if settings["check_reference_stability"]:
+        try:
+            _, _, internal, external = mf.stability(**record["controls"])
+            if not all(
+                isinstance(value, (bool, np.bool_)) for value in (internal, external)
+            ):
+                raise ValueError("Native stability solver did not return both flags")
+            record.update(
+                status="stable" if internal and external else "unstable",
+                internal_stable=bool(internal),
+                restricted_to_unrestricted_stable=bool(external),
+            )
+        except (
+            NotImplementedError,
+            RuntimeError,
+            ValueError,
+            np.linalg.LinAlgError,
+        ) as exc:
+            record.update(
+                status="unavailable",
+                error={"type": type(exc).__name__, "message": str(exc)},
+            )
+    after = _orbital_state_digest(mf)
+    checkpoint_after = _file_hash(directory / "orbitals.chk")
+    unchanged = before == after and checkpoint_before == checkpoint_after
+    record.update(
+        orbital_state_sha256_after=after,
+        checkpoint_sha256_after=checkpoint_after,
+        orbital_reference_unchanged=unchanged,
+        returned_candidate_orbitals_applied=False,
+    )
+    if not unchanged:
+        record.update(
+            status="failed", error={"message": "Reference changed during diagnostic"}
+        )
+    path = directory / "reference-stability.json"
+    _write_json(path, record)
+    if not unchanged:
+        raise ResearchCalculationError("Reference changed during stability diagnostic")
+    return {**record, "artifact_sha256": _file_hash(path)}
+
+
+def _summarize_reference_stability(parents: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize actual displaced diagnoses without inferring state continuity."""
+    statuses = ("stable", "unstable", "unavailable", "not_requested")
+    counts = {
+        status: sum(
+            parent["reference_stability_status"] == status for parent in parents
+        )
+        for status in statuses
+    }
+    if sum(counts.values()) != len(parents):
+        raise ResearchCalculationError("A derivative parent lacks a stability status")
+    status = (
+        "unstable"
+        if counts["unstable"]
+        else "unavailable"
+        if counts["unavailable"]
+        else "not_requested"
+        if counts["not_requested"]
+        else "stable"
+        if parents
+        else "not_evaluated"
+    )
+    return {
+        "status": status,
+        "scope": "orbital-generating HF/GKS references at actually evaluated nodes",
+        "evaluation_counts": counts,
+        "evaluations": len(parents),
+        "all_evaluations_stable_within_checked_scope": bool(parents)
+        and counts["stable"] == len(parents),
+        "full_correlated_energy_stability": "not_evaluated",
+        "real_to_complex_status": "not_separately_extracted",
+        "state_continuity": "not_qualified",
+    }
 
 
 def _derivative_steps(steps_bohr: Sequence[float]) -> tuple[float, ...]:
@@ -263,6 +404,9 @@ class ExperimentalDoubleHybrid:
         max_cycle: int = 150,
         max_memory_mb: int = 2000,
         threads: int = 1,
+        check_reference_stability: bool = True,
+        stability_tolerance: float = 1e-4,
+        stability_nroots: int = 3,
     ) -> None:
         if not basis or type(grid_level) is not int or not 0 <= grid_level <= 9:
             raise ValueError("Explicit basis and a valid grid level are required")
@@ -271,12 +415,18 @@ class ExperimentalDoubleHybrid:
             or scf_energy_tolerance <= 0
             or not np.isfinite(scf_gradient_tolerance)
             or scf_gradient_tolerance <= 0
+            or isinstance(stability_tolerance, (bool, np.bool_))
+            or not np.isfinite(stability_tolerance)
+            or stability_tolerance <= 0
         ):
-            raise ValueError("SCF tolerances must be finite and positive")
+            raise ValueError("SCF and stability tolerances must be finite and positive")
         if any(
-            type(x) is not int or x <= 0 for x in (max_cycle, max_memory_mb, threads)
+            type(x) is not int or x <= 0
+            for x in (max_cycle, max_memory_mb, threads, stability_nroots)
         ):
             raise ValueError("Calculation limits must be positive integers")
+        if type(check_reference_stability) is not bool:
+            raise ValueError("check_reference_stability must be boolean")
         self.recipe = recipe
         self.settings: _ResearchSettings = {
             "basis": basis,
@@ -286,6 +436,9 @@ class ExperimentalDoubleHybrid:
             "max_cycle": max_cycle,
             "max_memory_mb": max_memory_mb,
             "threads": threads,
+            "check_reference_stability": check_reference_stability,
+            "stability_tolerance": stability_tolerance,
+            "stability_nroots": stability_nroots,
         }
 
     def evaluate(
@@ -374,6 +527,9 @@ class ExperimentalDoubleHybrid:
                         raise ResearchCalculationError(
                             "Orbital-generating SCF failed to converge"
                         )
+                    reference_stability = _reference_stability(
+                        mf, self.settings, self.recipe, run_dir
+                    )
                     density = mf.make_rdm1()
                     j, k = mf.get_jk(mol, density)
                     one = float(np.einsum("ij,ji->", mf.get_hcore(), density))
@@ -468,7 +624,10 @@ class ExperimentalDoubleHybrid:
                         "components": components,
                         "orbital_generating_energy_hartree": orbital_energy,
                         "scf_converged": True,
-                        "reference_stability": "not_evaluated",
+                        "reference_stability": reference_stability,
+                        "quality_flags": []
+                        if reference_stability["status"] == "stable"
+                        else ["orbital_reference_" + reference_stability["status"]],
                         "gradient_availability": "explicit_numerical_only",
                         "hessian_availability": "explicit_numerical_only",
                         "independent_method_validation": "unavailable",
@@ -553,6 +712,12 @@ class ExperimentalDoubleHybrid:
                                 "result_sha256": _file_hash(
                                     Path(r["artifact_directory"]) / "result.json"
                                 ),
+                                "reference_stability_status": r["reference_stability"][
+                                    "status"
+                                ],
+                                "reference_stability_artifact_sha256": r[
+                                    "reference_stability"
+                                ]["artifact_sha256"],
                             }
                         )
                     gradient[atom, axis] = (displaced[0] - displaced[1]) / (2 * step)
@@ -570,6 +735,7 @@ class ExperimentalDoubleHybrid:
                 max(np.max(np.abs(g - gradients[chosen])) for g in gradients)
             ),
             "convergence_qualified": False,
+            "reference_stability": _summarize_reference_stability(parents),
             "planned_energy_calculations": 6 * len(symbols) * len(steps),
             "energy_calculation_budget": max_energy_calculations,
             "executed_energy_calculations": len(parents),
@@ -641,6 +807,10 @@ class ExperimentalDoubleHybrid:
                     "result_sha256": _file_hash(
                         Path(run["artifact_directory"]) / "result.json"
                     ),
+                    "reference_stability_status": run["reference_stability"]["status"],
+                    "reference_stability_artifact_sha256": run["reference_stability"][
+                        "artifact_sha256"
+                    ],
                 }
             )
             gaps.append(run["components"]["orbital_gap_hartree"])
@@ -712,7 +882,7 @@ class ExperimentalDoubleHybrid:
                 },
                 "minimum_orbital_gap_hartree": min(gaps),
                 "maximum_orbital_gap_hartree": max(gaps),
-                "reference_stability": "not_evaluated",
+                "reference_stability": _summarize_reference_stability(parents),
                 "state_continuity": "not_qualified",
                 "convergence_qualified": False,
                 "harmonic_characterization": "not_performed",

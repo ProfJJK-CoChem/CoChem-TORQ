@@ -71,6 +71,7 @@ jobs:
             tests/test_capability_restart_integrity.py tests/test_candidate_ledger_integrity.py \
             tests/test_candidate_interface_integrity.py tests/test_publication_integrity.py \
             tests/test_fenced_pes_integrity.py tests/test_repository_regression_evidence.py \
+            tests/test_pes_scan_integrity.py tests/test_adaptive_pes_integrity.py \
             tests/torq/test_counterpoise_frozen_monomer.py; then
             python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-core-tests-report.xml"
           else
@@ -113,6 +114,7 @@ jobs:
         run: |
           python -m pytest -q --junitxml "$RUNNER_TEMP/torq-cpu-numerical-report.xml" \
             tests/test_numerical_integrity.py tests/test_surrogate_integrity.py tests/test_remaining_scientific_integrity.py \
+            tests/test_geometry_identity_integrity.py \
             tests/test_dvr.py tests/test_asymmetric_rotor.py tests/test_jax_builder.py tests/test_slicer.py
           python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-cpu-numerical-report.xml"
           python -m pytest -q -m cpu_ml --junitxml "$RUNNER_TEMP/torq-cpu-persistence-report.xml" tests/test_persistence_integrity.py
@@ -171,6 +173,8 @@ jobs:
           if python -m pytest -q -m 'not ecosystem' --basetemp "$RUNNER_TEMP/torq-native-tests" \
             --junitxml "$RUNNER_TEMP/torq-native-tests-report.xml" \
             tests/test_pyscf_integration.py tests/test_revdsd_integration.py \
+            tests/test_double_hybrid_stability_integrity.py tests/test_pes_scan_integrity.py \
+            tests/test_adaptive_pes_integrity.py tests/test_rovibrational_precursors.py \
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
             tests/test_application_contracts.py tests/test_actions_request.py \
             tests/test_artifact_publication.py tests/test_anharmonic_research.py \

@@ -178,6 +178,25 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
 }
 
 
+_PROFILES["hf-sto-3g-pes-validation"] = {
+    **deepcopy(_PROFILES["hf-sto-3g-education"]),
+    "id": "hf-sto-3g-pes-validation",
+    "version": 1,
+    "label": "RHF / STO-3G bounded fixed H2 scan validation",
+    "max_atoms": 2,
+    "elements": ["H"],
+    "optimizer": None,
+    "optimizer_version": None,
+    "constraints": "explicit fixed bond-coordinate sampling; no relaxation",
+    "products": ["pes_scan"],
+    "reason": (
+        "Genuine approved restricted H2 fixed-point energy/gradient sampling. "
+        "No constrained optimizer, state-following, search completeness or "
+        "independent molecular accuracy qualification. Local validation only."
+    ),
+}
+
+
 def get_profile(identifier: str) -> dict[str, Any]:
     if identifier not in _PROFILES:
         raise ValueError(
@@ -213,6 +232,11 @@ def profile_capabilities(identifier: str) -> tuple[CapabilityRecord, ...]:
         ("dipole", "density_expectation"),
         ("optimization", "analytic_gradient_optimization"),
     ):
+        if identifier == "hf-sto-3g-pes-validation" and property_name not in {
+            "energy",
+            "gradient",
+        }:
+            continue
         unsupported = property_name == "dipole" and profile["method"] == "mp2"
         records.append(
             CapabilityRecord(
@@ -272,10 +296,14 @@ def route_profile_capabilities(
     hardware = (
         "linux-x86_64-cpu" if execution == "github_actions" else observed_cpu_hardware()
     )
-    required = {"energy", "gradient", "optimization"}
-    if profile.get("method") != "mp2":
+    selected_products = set(products)
+    if identifier == "hf-sto-3g-pes-validation":
+        required = {"energy", "gradient"}
+    else:
+        required = {"energy", "gradient", "optimization"}
+    if profile.get("method") != "mp2" and identifier != "hf-sto-3g-pes-validation":
         required.add("dipole")  # The actual worker always calculates this property.
-    if set(products) - {"geometry"}:
+    if selected_products - {"geometry"} and identifier != "hf-sto-3g-pes-validation":
         required.add("hessian")
     receipts, reasons = [], []
     records = {

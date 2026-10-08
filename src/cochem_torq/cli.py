@@ -124,7 +124,8 @@ def _parser() -> argparse.ArgumentParser:
         "candidates", help="Inspect and reversibly select actual retained candidates"
     )
     candidates.add_argument(
-        "action", choices=["list", "inspect", "register", "exclude", "restore"]
+        "action",
+        choices=["list", "inspect", "register", "retain", "exclude", "restore"],
     )
     candidates.add_argument("--ledger", required=True, type=Path)
     candidates.add_argument("--candidate-id")
@@ -132,6 +133,38 @@ def _parser() -> argparse.ArgumentParser:
     candidates.add_argument("--request", type=Path)
     candidates.add_argument("--actor")
     candidates.add_argument("--reason")
+    compare = commands.add_parser(
+        "geometry-compare",
+        help="Compare supplied explicit graphs with proper rotations",
+    )
+    compare.add_argument("--source", required=True, type=Path)
+    compare.add_argument("--target", required=True, type=Path)
+    compare.add_argument("--policy", required=True, type=Path)
+    compare.add_argument("--output", type=Path)
+    symmetry = commands.add_parser(
+        "symmetry-proposal",
+        help="Verify finite supplied-graph geometric symmetry actions",
+    )
+    symmetry.add_argument("--geometry", required=True, type=Path)
+    symmetry.add_argument("--policy", required=True, type=Path)
+    symmetry.add_argument("--output", type=Path)
+    candidate_request = commands.add_parser(
+        "candidate-request",
+        help="Export a scan candidate's separate refinement request",
+    )
+    candidate_request.add_argument("--candidate", required=True, type=Path)
+    candidate_request.add_argument("--output", required=True, type=Path)
+    refine = commands.add_parser(
+        "refine-candidate",
+        help="Execute an approved retained candidate and verify its minimum",
+    )
+    refine.add_argument("--candidate", required=True, type=Path)
+    refine.add_argument("--ledger", required=True, type=Path)
+    refine.add_argument("--revision", required=True, type=int)
+    refine.add_argument("--actor", required=True)
+    refine.add_argument("--approved-plan", required=True, type=Path)
+    refine.add_argument("--output-dir", required=True, type=Path)
+    refine.add_argument("--verification-output", required=True, type=Path)
     doctor = commands.add_parser(
         "doctor", help="Inspect actual dependency and canonical execution prerequisites"
     )
@@ -433,6 +466,96 @@ def main(argv: Sequence[str] | None = None) -> int:
                             reason=arguments.reason,
                         )
                     )
+        elif arguments.command == "geometry-compare":
+            from .geometry_identity import (
+                ComparisonPolicy,
+                IndexedGeometry,
+                compare_indexed_geometries,
+            )
+
+            comparison = compare_indexed_geometries(
+                IndexedGeometry.model_validate(read_json(arguments.source)),
+                IndexedGeometry.model_validate(read_json(arguments.target)),
+                ComparisonPolicy.model_validate(read_json(arguments.policy)),
+            ).model_dump(mode="json")
+            if arguments.output:
+                _write_new(arguments.output, comparison)
+            emit(comparison)
+        elif arguments.command == "symmetry-proposal":
+            from .geometry_identity import (
+                IndexedGeometry,
+                SymmetryPolicy,
+                propose_nuclear_symmetry,
+            )
+
+            proposal = propose_nuclear_symmetry(
+                IndexedGeometry.model_validate(read_json(arguments.geometry)),
+                SymmetryPolicy.model_validate(read_json(arguments.policy)),
+            ).model_dump(mode="json")
+            if arguments.output:
+                _write_new(arguments.output, proposal)
+            emit(proposal)
+        elif arguments.command == "candidate-request":
+            from .adaptive import StationaryCandidate
+
+            candidate = StationaryCandidate.model_validate(
+                read_json(arguments.candidate)
+            )
+            candidate_model = candidate.candidate_request
+            request_id = str(candidate_model.request_id)
+            _write_new(arguments.output, candidate_model.model_dump(mode="json"))
+            emit(
+                {
+                    "request": candidate_model.model_dump(mode="json"),
+                    "requires_plan_review": True,
+                },
+                status="needs_review",
+            )
+        elif arguments.command == "refine-candidate":
+            from .adaptive import (
+                StationaryCandidate,
+                validate_candidate_refinement,
+                verify_candidate_minimum,
+            )
+            from .application import execute_request
+            from .candidate_ledger import CandidateLedger
+
+            destination = arguments.output_dir.resolve()
+            verification_path = arguments.verification_output.resolve()
+            if (
+                verification_path == destination
+                or destination in verification_path.parents
+            ):
+                raise ValueError(
+                    "Keep verification output outside the immutable result shard."
+                )
+            if verification_path.exists() or verification_path.is_symlink():
+                raise FileExistsError("Select a new verification output path.")
+            candidate = StationaryCandidate.model_validate(
+                read_json(arguments.candidate)
+            )
+            approval = read_json(arguments.approved_plan)
+            with CandidateLedger(arguments.ledger) as ledger:
+                candidate_model = validate_candidate_refinement(
+                    candidate,
+                    ledger=ledger,
+                    expected_revision=arguments.revision,
+                    approved_plan=approval,
+                )
+                request_id = str(candidate_model.request_id)
+                execute_request(
+                    candidate_model, arguments.output_dir, approved_plan=approval
+                )
+                verification = verify_candidate_minimum(
+                    candidate,
+                    ledger=ledger,
+                    expected_revision=arguments.revision,
+                    approved_plan=approval,
+                    result_shard=arguments.output_dir,
+                    actor=arguments.actor,
+                ).model_dump(mode="json")
+            _write_new(verification_path, verification)
+            emit(verification, status="verified_minimum")
         elif arguments.command == "doctor":
             from .service import doctor
 

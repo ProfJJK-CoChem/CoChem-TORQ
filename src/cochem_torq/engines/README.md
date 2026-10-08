@@ -2,8 +2,9 @@
 
 `PySCFBackend` uses an installed PySCF engine; `optimize` additionally uses
 geomeTRIC. DFT dispersion profiles use the separately installed DFTD4 package.
-Imports do not launch calculations. The application's registry selects the
-qualified method/basis/operation tuple before execution.
+Imports do not launch calculations. The application selects an explicit
+supported method/basis/operation tuple and retains its experimental or
+qualification status before execution.
 
 | Explicit recipe | Energy | Gradient | Cartesian Hessian | Dipole |
 | --- | --- | --- | --- | --- |
