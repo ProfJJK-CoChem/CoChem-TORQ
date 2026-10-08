@@ -31,10 +31,21 @@ through a noneditable TOPOS 0.1.0 wheel (`E=-5.070544054679 Eh`). Contract tests
 consume this retained fixture; they do not rerun xTB or a TORQ solver. The separate
 installed-wheel acceptance performed the actual TOPOS producer → installed TORQ
 consumer → TOPOS receipt-validation round trip with that genuine calculation.
+The [fixture provenance](../tests/fixtures/topos_native_xtb_reviewed_water.PROVENANCE.md)
+records the source revisions, original acceptance and raw artifact hashes, and
+the preserved historical fixture's incompatibility with the current record profile.
 
-Run the focused contract tests using the repository's explicit test-sandbox
-opt-out for this temporary dependency snapshot:
+Run the focused contract tests from an ordinary temporary source snapshot whose
+path satisfies TORQ's sandbox guard. From the TORQ checkout, with the mandatory
+CoChem packages installed in the active Linux environment:
 
 ```bash
-COCHEM_DISABLE_SANDBOX_CHECK=1 python -m pytest tests/test_topos_handoff.py
+cochem_test_snapshot=$(mktemp -d "${TMPDIR:-/tmp}/cochem_exec_torq_handoff.XXXXXX")
+git archive HEAD | tar -x -C "$cochem_test_snapshot"
+cd "$cochem_test_snapshot"
+python -m pytest tests/test_topos_handoff.py
 ```
+
+This copies committed source without creating a Git worktree or changing the
+checkout. Keep the snapshot for inspection after a failure. All producer and
+consumer integrity assertions remain enabled; no sandbox opt-out is needed.
