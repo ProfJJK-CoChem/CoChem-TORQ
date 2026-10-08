@@ -301,7 +301,7 @@ jobs:
             --image-identity "$(cat "$RUNNER_TEMP/torq-image-evidence/image-id.txt")" --source-commit "$GITHUB_SHA"
       - name: Execute the genuine water pipeline offline
         run: |
-          timeout --signal=TERM --kill-after=15s 660s docker run --rm --name torq-image-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
+          if timeout --signal=TERM --kill-after=15s 660s docker run --rm --name torq-image-calculation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
             --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
             --mount "type=bind,src=$RUNNER_TEMP/torq-image-input,dst=/input,readonly" \
             --mount "type=bind,src=$RUNNER_TEMP/torq-image-results,dst=/results" \
@@ -311,7 +311,27 @@ jobs:
             --approved-plan /input/approved-plan.json \
             --expected-approval-sha256 "$(cat "$RUNNER_TEMP/torq-image-input/approved-plan-sha256.txt")" \
             --output-dir /results/water --request-id "$(cat "$RUNNER_TEMP/torq-image-input/request-id.txt")" \
-            --expected-sha256 "$(cat "$RUNNER_TEMP/torq-image-input/request-sha256.txt")"
+            --expected-sha256 "$(cat "$RUNNER_TEMP/torq-image-input/request-sha256.txt")" > "$RUNNER_TEMP/torq-image-evidence/calculation.log" 2>&1; then
+            cat "$RUNNER_TEMP/torq-image-evidence/calculation.log"
+          else
+            torq_calculation_status=$?
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from ci_tools.annotate_ci_failure import annotate
+          path = Path(os.environ['RUNNER_TEMP']) / 'torq-image-evidence/calculation.log'
+          with path.open('rb') as stream:
+              stream.seek(0, 2)
+              offset = max(0, stream.tell() - 24000)
+              stream.seek(offset)
+              diagnostic = stream.read()
+          if offset:
+              boundary = diagnostic.find(b'\n')
+              diagnostic = diagnostic[boundary + 1:] if boundary >= 0 else b''
+          annotate('The actual offline calculation failed. CLI diagnostic:\n' + diagnostic.decode('utf-8', errors='replace'))
+          PY
+            exit "$torq_calculation_status"
+          fi
       - name: Verify the sealed typed artifact in the actual image
         run: |
           timeout --signal=TERM --kill-after=15s 180s docker run --rm -i --name torq-image-verification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
