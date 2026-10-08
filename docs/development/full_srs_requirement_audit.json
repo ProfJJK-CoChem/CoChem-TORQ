@@ -350,7 +350,7 @@
     {
       "evidence_ids": [],
       "id": "V-PACKAGE",
-      "reason": "The final e77e2a4 wheel byte-matches all 249 packaged Python sources; selected installed-wheel core checks pass on Python 3.10/3.12 (952 each), and the full current local suite passes 3034 tests without exclusions or skips. Current immutable calculation/interface image runtime and genuine hosted Actions/Codespaces deployment remain unqualified; historical builds cannot qualify later source.",
+      "reason": "The e77e2a4 wheel byte-matches all 249 packaged Python sources; installed-wheel core lanes pass 952 each and the complete local suite passes 3034 without exclusions/skips. Later main at 5c1da3a passed all eight hosted jobs, including actual offline calculation image/native/core/ecosystem/interface and complete regression. Application Python bytes remain unchanged; hosted artifact bytes and exact case counts remain unverified. Complete live Codespaces/private student journey and scientific qualification remain outstanding.",
       "required_evidence_kinds": [
         "software"
       ],
@@ -456,6 +456,17 @@
     "supervisor_exit_code": 0,
     "tested_source_commit": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
     "tests": 3034
+  },
+  "current_hosted_main_software_observation": {
+    "actual_main_run_id": 37805501782,
+    "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "hosted_artifact_bytes_verified": false,
+    "hosted_test_counts": null,
+    "receipt": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/torq-hosted-observation.json",
+    "reported_hosted_jobs_passed": 8,
+    "scope": "Actual job/step metadata. Scientific and full deployed student gates remain blocked; artifact bytes and hosted case counts are unverified.",
+    "source_tree_sha256": "64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf",
+    "tested_commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e"
   },
   "current_narrow_test_policy_observation": {
     "command": "python ci_tools/check_scientific_test_policy.py tests",

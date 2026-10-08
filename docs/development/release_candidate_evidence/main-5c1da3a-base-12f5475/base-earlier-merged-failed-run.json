@@ -1,0 +1,79 @@
+{
+  "actual_original_child_waited": true,
+  "basetemp": "[private local path omitted]",
+  "elapsed_seconds": 1451.6162638664246,
+  "exit_code": 1,
+  "expected_head": "2a36434cf39522eddc45567b2f1fd134278140a9",
+  "junit": "[private local path omitted]",
+  "junit_counts": {
+    "errors": 0,
+    "failures": 12,
+    "passed": 2298,
+    "skipped": 9,
+    "tests": 2319
+  },
+  "junit_sha256": "055c2e0ceaff8701693c6772190bd4710858e7345552f1f418fba2df8573c7ff",
+  "log": "[private local path omitted]",
+  "private_provider_pilot": "unrun",
+  "pytest_create_time": 1791473422.88,
+  "pytest_pid": 169929,
+  "scientific_method_qualification_from_lightweight_checks": false,
+  "script": "[private local path omitted]",
+  "skipped_cases": [
+    {
+      "classname": "",
+      "message": "collection skipped",
+      "name": "tests.base.test_export_topos_bookkeeping"
+    },
+    {
+      "classname": "tests.base.test_srs_mlff_fallback",
+      "message": "Real isolated MACE Python and g-xTB required",
+      "name": "test_missing_checkpoint_really_executes_gxtb_gradient"
+    },
+    {
+      "classname": "tests.base.test_srs_mlff_fallback",
+      "message": "Real isolated OFF24 medium model required",
+      "name": "test_missing_gxtb_really_executes_off24_medium_gradient"
+    },
+    {
+      "classname": "tests.base.test_srs_mlff_fallback",
+      "message": "Real isolated MACE Python required",
+      "name": "test_corrupt_model_is_aborted_without_masking_integrity_failure"
+    },
+    {
+      "classname": "tests.calc.test_t9_fallback",
+      "message": "Real licensed ORCA and an audited ORCA/PySCF registry are required for end-to-end T9 acceptance",
+      "name": "test_native_service_routes_live_failure_and_publishes_real_t9"
+    },
+    {
+      "classname": "tests.calc.test_recipe_r2_execution",
+      "message": "Actual ORCA and supplied validated CCSD(T)/CBS reference artifacts are required",
+      "name": "test_actual_recipe_r2_orca_five_leg_acceptance"
+    },
+    {
+      "classname": "tests.srs.test_topos_physical_runner",
+      "message": "Real licensed ORCA and CREST engines are required for union acceptance",
+      "name": "test_physical_crest_goat_union"
+    },
+    {
+      "classname": "test_suite.test_cochem_core_hdf5_manager",
+      "message": "Requires physical SLURM node",
+      "name": "test_is_master_node_detection_slurm"
+    },
+    {
+      "classname": "test_suite.test_cochem_core_registry_manager",
+      "message": "Requires physical SLURM node",
+      "name": "test_is_master_node_detection_slurm"
+    }
+  ],
+  "source_and_head_preserved": true,
+  "source_changed": [],
+  "source_head_after": "2a36434cf39522eddc45567b2f1fd134278140a9",
+  "source_head_before": "2a36434cf39522eddc45567b2f1fd134278140a9",
+  "source_status_after": "",
+  "source_status_before": "",
+  "started_at_unix": 1791473423.290942,
+  "status": "finished",
+  "supervisor_create_time": 1791473422.3,
+  "supervisor_pid": 169922
+}

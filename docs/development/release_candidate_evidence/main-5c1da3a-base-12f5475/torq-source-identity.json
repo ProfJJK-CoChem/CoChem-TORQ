@@ -1,0 +1,13 @@
+{
+  "commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e",
+  "source_tree_sha256": "64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf",
+  "application_source_identity": {
+    "distribution": "CoChem-TORQ",
+    "code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "git_commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e",
+    "working_tree_dirty": false,
+    "declared_workflow_commit": null,
+    "declared_engine_image": null
+  },
+  "scope": "Read-only actual source identity, not an execution receipt"
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "cochem.base-authority-refresh/1",
+  "status": "passed",
+  "scope": "Frozen staged tracked source integrity and bootstrap hashes; no native kit installation or scientific qualification",
+  "source_export": "[redacted sensitive context]",
+  "tracked_file_count": 2147,
+  "previous_base_source_content_sha256": "53f497fdbf2f545a904b876fcd78681f5821b7a33d48f3c73287c6dfae242d45",
+  "base_source_content_sha256": "b51bac7f498794a3bada95d32551114f99dd26da4f1a16df0731536152b1d6d6",
+  "base_bootstrap_sha256": {
+    "MANIFEST.in": "a598cbfaa7b98d76bfd8990ed543f3b362ec2daae9275b368a8ddee1abeed997",
+    "cli.py": "a8ed85cc3dfe2d1bc729f1353f51e4a686de04f7c14c802fe995db0ccd8bd20b",
+    "pyproject.toml": "2f0ba51bb3316e165b0e7ec87eaf1ba47483f57f1abcd2514ac517d6c84b4a58",
+    "requirements-ui.txt": "6478c5244db5b86be639651ec3b4968efe30a156d5d9af07adc3eaae19f2a05a",
+    "requirements.txt": "4c46823570124b78a0905ad2de4e6515571437204a15cce65d36b019b65520f7"
+  },
+  "excluded_catalog_path": "scripts/module-distribution.json",
+  "catalog_sha256": "90f3b018bb436b37564bb73e2de7d9758e1fd76c11b2d1480fb51d8d1c8d955f",
+  "staged_tree_oid": "1afd69e765655e551c7357b6238da84dbab97c85",
+  "fixed_point_verified": true,
+  "scientific_torq_revision": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
+  "base_wheel": {
+    "path": "[private local path omitted]",
+    "sha256": "53ffe13e7ca0b9f4945f308bb532eec4a40df3bf184e3846f75ed8ded4c89118",
+    "size_bytes": 2561167,
+    "build_command": [
+      "[private local path omitted]",
+      "-m",
+      "build",
+      "--wheel",
+      "--no-isolation",
+      "--outdir",
+      "[private local path omitted]",
+      "[private local path omitted]"
+    ],
+    "build_log": "[private local path omitted]",
+    "source_binding": "passed",
+    "installed_current_distribution_binding": "not yet run; await root new HEAD and install this actual wheel",
+    "native_mandatory_kit_acceptance": "not run"
+  },
+  "local_source_commit": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+  "committed_tree_binding": "passed",
+  "original_kit_authority_preserved": {
+    "torq_revision": "4f323800227dbde00ffb082bd6d9e44d851e1c7a",
+    "topos_wheel_sha256": "a8e57f4ed91050f5e45be8121ed390de76524377ff7295286a03b9bf892a9f8f",
+    "torq_wheel_sha256": "d5e7ec3f8e1ae8cef85ca7aefe995219d3523e4e1330e465915a3159816fe617",
+    "setup_helper_sha256": "0d7451cef59516b40badc10d34a742cfc8a9b35f4118590c05b839d490eb1730"
+  }
+}

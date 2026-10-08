@@ -2,25 +2,29 @@
 
 Reviewed 2026-10-08. **The complete SRS is not yet qualified for release.** The final complete local regression at `e77e2a4` passed 3034 tests with zero failures/errors/skips, audit and supervising process exit zero, and unchanged tested source. Both final installed-wheel core lanes passed 952 tests each. The preceding complete regression at `57c81eb` and its CLI/notebook and sibling checks remain historical evidence. The deployed student journey and independent scientific qualification remain incomplete. The [aggregate results](release_candidate_check_results.json) distinguish local implementation evidence from release qualification; neither source presence nor a software regression establishes scientific accuracy.
 
-A subsequent image-only fix directs the allocation ledger to the container's
-writable `/tmp` state directory. The first actual hosted image run built the
-image and passed native derivative qualification, then failed the full water
-pipeline on the read-only home directory. Its failure is retained; the new
-image requires its own hosted execution receipt. The application Python bytes
-remain unchanged, and the complete local receipt below remains bound to
-`e77e2a4`, rather than being relabeled for the new Dockerfile. The subsequent
-hosted attempt exposed a scratch-filesystem mismatch: `/tmp` is a tmpfs while
-worker staging resides on `/results`. Calculation invocations now set
-`TMPDIR=/results`, preserving the strict filesystem check. The selected native
-CI lane also installs the existing locked interface prerequisites required by
-its genuine widget assertion. The actual `b0f9d44` hosted run passed seven lanes, including the complete
-offline image pipeline, native-engine checks, both installed-core interpreters,
-CPU checks, sibling consumers and the interface. Its complete regression remains
-separate. Hosted execution also exposed process-test portability concerns: tier
-tests now restore every selector, and native wall/evidence-loss checks observe
-and pause genuine bound processes before exercising their production guards.
-The revised complete regression requires its own receipt; the Python application
-implementation remains unchanged.
+The later main commit
+[`5c1da3a`](https://github.com/ProfJJK-CoChem/CoChem-TORQ/commit/5c1da3a15be1dd6fe8a34c418c739391bfaed44e)
+passed **all eight hosted jobs** in
+[run 37805501782](https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37805501782):
+both installed-core interpreters, CPU checks, genuine native-engine checks,
+ecosystem consumers, interface, offline calculation image and complete repository
+regression. The [final main evidence](release_candidate_evidence/main-5c1da3a-base-12f5475/summary.json)
+retains the actual API job/step metadata and its original digest. The uploaded
+archive download was denied at `productionresultssa7.blob.core.windows.net`;
+its bytes and exact hosted case counts remain unverified. The older local
+3034-case count is not relabeled as a downloaded hosted count.
+
+The first hosted image built and passed native derivatives, then failed on a
+read-only home directory. An intermediate attempt exposed a scratch-filesystem
+mismatch. Allocation state now uses writable `/tmp`, and calculation invocations
+set `TMPDIR=/results` to retain the strict staging-filesystem check. The native CI
+lane installs its existing locked interface prerequisites. Tier tests restore all
+actual environment selectors; wall/evidence-loss tests observe and pause genuine
+bound processes before exercising production guards. Earlier failed runs remain
+preserved. These image/CI/test changes leave application Python bytes unchanged.
+The final successful hosted source SHA-256 is
+`64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf`;
+the local full-suite receipt below remains tied to `e77e2a4`.
 
 The [full-SRS audit](full_srs_requirement_audit.json) covers all **73 normative requirements, 41 acceptance definitions and 140 original historical method-matrix row IDs**. Its current inventory is **56 partial supported scope, one missing full implementation, eight missing independent qualification and eight optional profile/provisioning**. No requirement is classified as implemented and qualified. All 41 complete-scope acceptance gates remain blocked, and the release flag remains false. [Student release scope](student_release_scope.md) provides the complete reconciled requirement-to-code/check map; links are coverage pointers rather than passing gate evidence.
 
@@ -52,16 +56,41 @@ handoff receipts report 52 and nine passing cases respectively, with zero
 failures/errors/skips. Those scoped results do not establish general consumer
 conventions, independent molecular accuracy or a live canonical student platform.
 
-The preceding BASE full run at `12dd1089e54946ee8b4b20871576ca82c5e2cf77`
-executed **1913 cases: 1905 passed, eight skipped, zero failures/errors**, with
-unchanged tested source and exit zero. Its skips and historical source remain
-explicit in the [sibling observations](release_candidate_evidence/e77e2a4/aggregate.json).
-A separate actual local BASE Actions-interface HTTP/widget/kernel lifecycle
-check passed, including owned shutdown and absence of a local calculation-engine
-installation. That scoped receipt does not declare a complete BASE source digest
-or establish hosted calculation execution or a live Codespace. The complete run
-for the subsequently edited BASE interface code remains pending; neither earlier
-observation qualifies those edits or the final deployed student journey.
+BASE main is now
+[`12f5475`](https://github.com/ProfJJK-CoChem/CoChem-BASE/commit/12f54759ea5ae64843fa2b2bcce111fc2a5b38e1).
+Its complete canonical local suite executed **2345 cases: 2337 passed, eight
+skipped, zero failures/errors**. The original Pytest process was waited and
+exited zero; source and HEAD stayed unchanged. The eight genuine prerequisites
+require isolated MACE/OFF24 models, licensed ORCA/reference/union acceptance,
+or physical Slurm. They remain unqualified. A fresh genuine eleven-phase Stage 0
+and strict current-schema registry passed with `DEGRADED_OPERATIONAL`; no missing
+scientific engine or model was invented. The actual installed wheel matches its
+reviewed source and complete payload. Its SHA-256 is
+`53ffe13e7ca0b9f4945f308bb532eec4a40df3bf184e3846f75ed8ded4c89118`.
+
+The same published BASE source passed **all nine bounded hosted jobs** in
+[run 37812840001](https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001):
+source integrity, installed wheels and CI controls across Linux/macOS/Windows,
+and the bounded xTB/PySCF derivative/dashboard route. The new public receipt
+records actual job/step metadata; remote artifact bytes and case counts remain
+unverified. The full local suite above retains its own source-bound receipt.
+
+Only six BASE jobs consuming private staged drafts receive `contents:write`
+and `actions:read`; validation and workflow defaults retain read-only authority.
+The source/wheel/catalog, completed current full suite and preceding failed
+registry/provider/disk attempts are bound in the
+[public evidence index](release_candidate_evidence/main-5c1da3a-base-12f5475/evidence-index.json).
+The unchanged disk guard was satisfied by deleting only owned closed build copies,
+then executing setup again in a new root. The previous 1905-pass BASE run and
+separate real HTTP/widget/kernel lifecycle remain historical scoped observations.
+
+The [student handoff](student_project_handoff.md) identifies a concrete remaining
+integration blocker: TOPOS's standalone licensed callers still use the old BASE
+asset contract. Their complete owning-project receipt, workflow/source/task,
+scientific-request/resource and permission migration requires separate source,
+wheel/catalog and native/provider qualification. A source-pin substitution cannot
+close it. Students use BASE's dedicated private personal ORCA/CFOUR workflows;
+the full coupled licensed route and genuine private student pilot remain incomplete.
 
 The initial expanded full attempt executed **2990 cases: 2987 passed and three
 failed**, with zero errors/skips. Pytest and supervisor exited one; the audit

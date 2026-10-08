@@ -1,0 +1,82 @@
+{
+  "schema_version": "cochem.final-main-implementation-checks/1",
+  "scope": "Completed source-bound software/native observations and hosted job metadata. No full-SRS certification, live private student pilot, experimental accuracy or complete coupled native-kit qualification.",
+  "torq": {
+    "tested_commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e",
+    "source_tree_sha256": "64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf",
+    "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+    "actual_main_run_id": 37805501782,
+    "reported_hosted_jobs_passed": 8,
+    "hosted_test_counts": null,
+    "hosted_artifact_bytes_verified": false
+  },
+  "base": {
+    "tested_commit": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+    "actual_main_run_id": 37812840001,
+    "reported_hosted_jobs_passed": 9,
+    "hosted_test_counts": null,
+    "hosted_artifact_bytes_verified": false,
+    "counts": {
+      "executed": 2345,
+      "failure": 0,
+      "error": 0,
+      "skipped": 8,
+      "passed": 2337
+    },
+    "elapsed_seconds": 1302.8937256336212,
+    "source_and_head_preserved": true,
+    "actual_original_child_waited": true,
+    "prerequisite_skips": [
+      {
+        "classname": "tests.base.test_srs_mlff_fallback",
+        "message": "Real isolated MACE Python and g-xTB required",
+        "name": "test_missing_checkpoint_really_executes_gxtb_gradient"
+      },
+      {
+        "classname": "tests.base.test_srs_mlff_fallback",
+        "message": "Real isolated OFF24 medium model required",
+        "name": "test_missing_gxtb_really_executes_off24_medium_gradient"
+      },
+      {
+        "classname": "tests.base.test_srs_mlff_fallback",
+        "message": "Real isolated MACE Python required",
+        "name": "test_corrupt_model_is_aborted_without_masking_integrity_failure"
+      },
+      {
+        "classname": "tests.calc.test_t9_fallback",
+        "message": "Real licensed ORCA and an audited ORCA/PySCF registry are required for end-to-end T9 acceptance",
+        "name": "test_native_service_routes_live_failure_and_publishes_real_t9"
+      },
+      {
+        "classname": "tests.calc.test_recipe_r2_execution",
+        "message": "Actual ORCA and supplied validated CCSD(T)/CBS reference artifacts are required",
+        "name": "test_actual_recipe_r2_orca_five_leg_acceptance"
+      },
+      {
+        "classname": "tests.srs.test_topos_physical_runner",
+        "message": "Real licensed ORCA and CREST engines are required for union acceptance",
+        "name": "test_physical_crest_goat_union"
+      },
+      {
+        "classname": "test_suite.test_cochem_core_hdf5_manager",
+        "message": "Requires physical SLURM node",
+        "name": "test_is_master_node_detection_slurm"
+      },
+      {
+        "classname": "test_suite.test_cochem_core_registry_manager",
+        "message": "Requires physical SLURM node",
+        "name": "test_is_master_node_detection_slurm"
+      }
+    ],
+    "base_source_content_sha256": "b51bac7f498794a3bada95d32551114f99dd26da4f1a16df0731536152b1d6d6",
+    "catalog_sha256": "90f3b018bb436b37564bb73e2de7d9758e1fd76c11b2d1480fb51d8d1c8d955f",
+    "wheel_sha256": "53ffe13e7ca0b9f4945f308bb532eec4a40df3bf184e3846f75ed8ded4c89118",
+    "stage0_phase_count": 11,
+    "complete_mandatory_kit_native_acceptance": false
+  },
+  "topos_project_revision": "cf5655158456d763453376b108d26efcd748fe4f",
+  "overlapping_lanes_summed": false,
+  "private_student_pilot": "unrun",
+  "complete_srs_acceptance_gates_blocked": 41,
+  "full_srs_release_ready": false
+}

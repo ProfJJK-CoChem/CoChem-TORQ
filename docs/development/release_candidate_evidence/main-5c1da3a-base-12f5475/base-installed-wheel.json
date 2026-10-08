@@ -1,0 +1,9 @@
+{
+  "actual_frozen_head": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+  "wheel": "[private local path omitted]",
+  "wheel_sha256": "53ffe13e7ca0b9f4945f308bb532eec4a40df3bf184e3846f75ed8ded4c89118",
+  "all_actual_installed_payload_matches_reviewed_wheel": true,
+  "readonly_main_dependency_pth_unchanged": true,
+  "isolated_cli_help_exit": 0,
+  "full_mandatory_kit_native_qualification": false
+}

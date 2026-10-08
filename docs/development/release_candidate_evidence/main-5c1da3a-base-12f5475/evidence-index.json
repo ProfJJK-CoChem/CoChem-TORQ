@@ -1,0 +1,135 @@
+{
+  "schema_version": "cochem.public-main-evidence-index/1",
+  "scope": "Completed source-bound software/native observations and hosted job metadata. No full-SRS certification, live private student pilot, experimental accuracy or complete coupled native-kit qualification.",
+  "files": [
+    {
+      "path": "torq-hosted-observation.json",
+      "original_sha256": "206b2cacd9c286ef37323da6cdd1069c004a0f72ea888d3f290b50ae5a4ca828",
+      "public_sha256": "9d8c65141f6007373f3378dbaabe2b18013756db4d910c177eddc04c7016c6b4",
+      "public_size_bytes": 24556,
+      "public_derivative": true
+    },
+    {
+      "path": "torq-hosted-download-outcome.json",
+      "original_sha256": "73bbf3287273b45e15c628789972694709a9b0080dc6b1fa97e09df4565a9a7b",
+      "public_sha256": "73bbf3287273b45e15c628789972694709a9b0080dc6b1fa97e09df4565a9a7b",
+      "public_size_bytes": 1338,
+      "public_derivative": true
+    },
+    {
+      "path": "torq-source-identity.json",
+      "original_sha256": "180af818f02632f47c3af70d241a9a2934e3b52452c6f4c6995731ca49804c68",
+      "public_sha256": "180af818f02632f47c3af70d241a9a2934e3b52452c6f4c6995731ca49804c68",
+      "public_size_bytes": 553,
+      "public_derivative": true
+    },
+    {
+      "path": "torq-test-policy.json",
+      "original_sha256": "9c04961bbb4b329ce66a792a9eccd6d4a3e83b8b37ca06ca233940ffe4a25c5b",
+      "public_sha256": "f0809dc2575828aa1d8153a9413b1b8d326b2402decbd77d0b976417c6fc4eb3",
+      "public_size_bytes": 562,
+      "public_derivative": true
+    },
+    {
+      "path": "base-hosted-observation.json",
+      "original_sha256": "e940753692485d845bb3d06d9d9aad02eaca59070b390a68d80508bc3dae0657",
+      "public_sha256": "e940753692485d845bb3d06d9d9aad02eaca59070b390a68d80508bc3dae0657",
+      "public_size_bytes": 20351,
+      "public_derivative": true
+    },
+    {
+      "path": "base-final-run.json",
+      "original_sha256": "427d299e966d696ec03e6cda81867d1c84ed00ea0fcf0e1de5b711a99e9bc073",
+      "public_sha256": "aa7af60f820696d959c8d0552f17be8ba3b794d646983cf810f3ecf26e7798a9",
+      "public_size_bytes": 2957,
+      "public_derivative": true
+    },
+    {
+      "path": "base-final-junit.xml",
+      "original_sha256": "b8c994545207a462a6c0d468c0ef7f0c3ccc13c0ad302f3258d96b23c35a743d",
+      "public_sha256": "b124d2dd291cb5489a8f7eb05b7745e4540c303d419633ef5c25a6cecb5540c4",
+      "public_size_bytes": 351839,
+      "public_derivative": true
+    },
+    {
+      "path": "base-source-wheel-authority.json",
+      "original_sha256": "6438cc7cf43e09c72b11da6f23b68267701ea8322482d2361303398be0b8a754",
+      "public_sha256": "e33053e5c1eda8e08e8b002d11b94e9ce8ba606ab02aed0aec4aeaed3d1279a9",
+      "public_size_bytes": 2446,
+      "public_derivative": true
+    },
+    {
+      "path": "base-installed-wheel.json",
+      "original_sha256": "9490e3cca0b4ac2d515a30f6bd5402f43815cc04d856b30129a2f778dddbb72e",
+      "public_sha256": "cf5997c9976152a7b0e0c920653303876554e86d250d05d1a5821707db510c69",
+      "public_size_bytes": 396,
+      "public_derivative": true
+    },
+    {
+      "path": "base-current-stage0.json",
+      "original_sha256": "763e9c8992bf12191641f3389e9fb47b3bfc7087580a10ed02d67e0fc6cc62e9",
+      "public_sha256": "1ec08e4a6d647c51d2ad2f1b64b1f1f004c60c9c37850d1eaa457f5a6a1b1c2e",
+      "public_size_bytes": 481,
+      "public_derivative": true
+    },
+    {
+      "path": "base-final-source-audit.json",
+      "original_sha256": "37f67ba46cecdab7eb990797a7600cc57541af5a1f6c7c73a786406bac80cab4",
+      "public_sha256": "77d18109daf06dc4d7d02b633dc36e33f9fba0fb0b550fdae551ea427d80e915",
+      "public_size_bytes": 138,
+      "public_derivative": true
+    },
+    {
+      "path": "base-earlier-merged-failed-run.json",
+      "original_sha256": "2a20703cd2a4ba26f71b20bfce606f4baae4cc33855c3760fe67b00d5ba36f8a",
+      "public_sha256": "9aa301f18b49058f564305e3ca2f606cc8d0213116750b97e5ae4d977188e003",
+      "public_size_bytes": 2927,
+      "public_derivative": true
+    },
+    {
+      "path": "base-earlier-merged-failed-junit.xml",
+      "original_sha256": "055c2e0ceaff8701693c6772190bd4710858e7345552f1f418fba2df8573c7ff",
+      "public_sha256": "5e51d88e77cc3d9a0b4120904e293b4ceae2ada1841b6e5c676563782bc55747",
+      "public_size_bytes": 349104,
+      "public_derivative": true
+    },
+    {
+      "path": "base-earlier-disk-refused-diagnostic.xml",
+      "original_sha256": "973043737d50ded9285703501366cee9c586fb4785ccfd7953fe20d111e4b005",
+      "public_sha256": "40bd3cc83fcbd5009b71aaf4b29a0448a93c2a4a2cd7244ecf4d6eda9f19a92c",
+      "public_size_bytes": 2544,
+      "public_derivative": true
+    },
+    {
+      "path": "base-intermediate-f343-corrected-cases.xml",
+      "original_sha256": "14da4906a6ee81de0bf6b3f15cb5b5fb5f7f338ae3be412d3e0646f28426a296",
+      "public_sha256": "34049427d2dfb53c9798113ca9987d03e8233292532015ceef74c4afec18218b",
+      "public_size_bytes": 1808,
+      "public_derivative": true
+    },
+    {
+      "path": "base-owning-draft-permission-checks.xml",
+      "original_sha256": "9bc5e941c4943c91015df6ed0c694936f9d3c2cd1f877474fd7a976c7156064d",
+      "public_sha256": "b41bbeef849ba86032e8c52a7e59177ff325a2175640333e4044e690fca72771",
+      "public_size_bytes": 17837,
+      "public_derivative": true
+    },
+    {
+      "path": "base-authentic-topos-wheel.json",
+      "original_sha256": "2a3f718a6748e408e4898a4de3769a565f12cb49811a9ceb3cc58463febf7222",
+      "public_sha256": "aa7fa879ce56536867778d897c6b227f05e90ab826ee802596884ee20506bb16",
+      "public_size_bytes": 3859,
+      "public_derivative": true
+    },
+    {
+      "path": "base-owned-build-cleanup.json",
+      "original_sha256": "a478561eaf60d9ae33228deac99fdd6c38249dceafc0ca418a2a82104603d1a6",
+      "public_sha256": "7209a556d2feb82ceb99fc246d7a04db196bf09ec3686dbdaacfd8e62ae5175d",
+      "public_size_bytes": 3588,
+      "public_derivative": true
+    }
+  ],
+  "summary_sha256": "cd6c0ef440d71a7aad20ea0cafb401bb391feaed78ed4700c01edb47b7dbd65e",
+  "originals_preserved": true,
+  "public_policy": "Existing reviewed sanitizer plus explicit local-path omission; non-secret published kit authority fields restored directly from their actual source receipt. Original diagnostic bodies and sensitive contexts remain only in original private receipts. No scientific values or outcomes are substituted."
+}

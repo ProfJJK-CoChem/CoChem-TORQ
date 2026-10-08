@@ -1,0 +1,66 @@
+{
+  "schema_version": "cochem.owned-build-cleanup/1",
+  "scope": "[redacted sensitive context]",
+  "retained_wheel_and_source_archive_sha256": {
+    "[private local path omitted; sha256=d8d759374025e2c43aafc2be1caf7c3c43c9c7e410f608e1b6c1ff682c8adbaa]": "c0e3aadd5d0c8cab51b26bcb451fb2abadab107b2ad39cc8aee4790115af0797",
+    "[private local path omitted; sha256=e963e3778121248e367d59d40c1d191742d1b2ca5831a69fa7955a9aeb7250c3]": "5a707b395527c3d9407fdcca649eeaee0ca3b25c23bfed8215b108e66daa50e4",
+    "[private local path omitted; sha256=20d669f6461b509b0dacadf380c2c7212403b921ddcc88bf893bb4e8c91fe8b0]": "53ffe13e7ca0b9f4945f308bb532eec4a40df3bf184e3846f75ed8ded4c89118",
+    "[private local path omitted; sha256=481977d45580f850c5c41a5fc576078cf32b09c74fef4de77fb191d47dd315ee]": "a8e57f4ed91050f5e45be8121ed390de76524377ff7295286a03b9bf892a9f8f",
+    "[private local path omitted; sha256=226bd89a6a0f20cb4870f72ce9c0267d60366e549f9aabaad103e2527e3c1a78]": "cb0873846c368eaaf5235b12584bd42d0ae4af19d575edffb6d148260d2a915d"
+  },
+  "redacted-adcf88cf690b272e": "[redacted sensitive field]",
+  "public_topos_source_commit": "cf5655158456d763453376b108d26efcd748fe4f",
+  "public_topos_source_tree": "49f184ecc2faafbf9cc2abbd87c51b87ee1ff689",
+  "tmp_available_bytes_before": 961302528,
+  "paths": [
+    {
+      "path": "[private local path omitted]",
+      "allocated_bytes": 50667520,
+      "regular_file_bytes": 44450750,
+      "ownership": "Created by /root/base_release_pin in completed genuine source/build/metadata provisioning; reconstructible from retained frozen Git/wheel identities",
+      "deleted": true
+    },
+    {
+      "path": "[private local path omitted]",
+      "allocated_bytes": 50671616,
+      "regular_file_bytes": 44456911,
+      "ownership": "Created by /root/base_release_pin in completed genuine source/build/metadata provisioning; reconstructible from retained frozen Git/wheel identities",
+      "deleted": true
+    },
+    {
+      "path": "[redacted sensitive context]",
+      "allocated_bytes": 39899136,
+      "regular_file_bytes": 35025647,
+      "ownership": "Created by /root/base_release_pin in completed genuine source/build/metadata provisioning; reconstructible from retained frozen Git/wheel identities",
+      "deleted": true
+    },
+    {
+      "path": "[private local path omitted]",
+      "allocated_bytes": 2842624,
+      "regular_file_bytes": 2415823,
+      "ownership": "Created by /root/base_release_pin in completed genuine source/build/metadata provisioning; reconstructible from retained frozen Git/wheel identities",
+      "deleted": true
+    },
+    {
+      "path": "[private local path omitted]",
+      "allocated_bytes": 6262784,
+      "regular_file_bytes": 4737697,
+      "ownership": "Created by /root/base_release_pin in completed genuine source/build/metadata provisioning; reconstructible from retained frozen Git/wheel identities",
+      "deleted": true
+    },
+    {
+      "path": "[private local path omitted]",
+      "allocated_bytes": 29360128,
+      "regular_file_bytes": 26801443,
+      "ownership": "Created by /root/base_release_pin in completed genuine source/build/metadata provisioning; reconstructible from retained frozen Git/wheel identities",
+      "deleted": true
+    }
+  ],
+  "status": "completed",
+  "tmp_available_bytes_after": 1141006336,
+  "tmp_available_gib_after": 1.0626449584960938,
+  "total_owned_allocated_bytes_removed": 179703808,
+  "retained_payload_hashes_unchanged": true,
+  "redacted-7720c5c01637ac14": "[redacted sensitive field]",
+  "redacted-62003b4560a2b6dd": "[redacted sensitive field]"
+}

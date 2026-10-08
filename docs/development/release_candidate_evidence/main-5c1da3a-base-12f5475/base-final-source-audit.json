@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "stages": {
+    "audit": {
+      "passed": true
+    }
+  },
+  "evidence_directory": "[private local path omitted]"
+}

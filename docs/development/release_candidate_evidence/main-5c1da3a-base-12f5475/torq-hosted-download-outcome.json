@@ -1,0 +1,39 @@
+{
+  "run": {
+    "id": 37805501782,
+    "name": "Scientific data integrity",
+    "head_branch": "main",
+    "head_sha": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-08T16:01:23Z",
+    "updated_at": "2026-10-08T16:23:52Z",
+    "html_url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37805501782",
+    "run_attempt": 1
+  },
+  "observation_sha256": "206b2cacd9c286ef37323da6cdd1069c004a0f72ea888d3f290b50ae5a4ca828",
+  "artifacts": [
+    {
+      "artifact": {
+        "id": 11563504089,
+        "name": "torq-complete-regression-37805501782-1",
+        "size_in_bytes": 3120055,
+        "digest": "sha256:3053326f8689951ebf1091106e7ba47e6cb33e8e2be533dfdef29d85dbebff20",
+        "expired": false,
+        "created_at": "2026-10-08T16:23:46Z",
+        "updated_at": "2026-10-08T16:23:46Z"
+      },
+      "download_exit_code": 1,
+      "archive_verified": false,
+      "observed_download_hosts": [
+        "productionresultssa7.blob.core.windows.net"
+      ],
+      "scope": "Download failed; signed URL diagnostics retained privately."
+    }
+  ],
+  "all_selected_archive_bytes_verified": false,
+  "independent_scientific_qualification": false,
+  "live_codespaces_qualification": false,
+  "full_srs_release_ready": false
+}

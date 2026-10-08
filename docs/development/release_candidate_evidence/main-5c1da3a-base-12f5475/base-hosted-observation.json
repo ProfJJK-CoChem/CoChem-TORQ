@@ -1,0 +1,678 @@
+{
+  "recorded_at": "2026-10-08T17:05:39.022134+00:00",
+  "run": {
+    "id": 37812840001,
+    "name": "CoChem BASE bounded CI",
+    "head_branch": "main",
+    "head_sha": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-08T16:57:34Z",
+    "updated_at": "2026-10-08T17:05:04Z",
+    "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001",
+    "run_attempt": 1
+  },
+  "jobs": [
+    {
+      "id": 113433809533,
+      "name": "Source integrity and complete legacy inventory",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:57:37Z",
+      "completed_at": "2026-10-08T16:57:55Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433809533",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Enforce canonical source and selected-test policy without app imports",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Preserve findings, fixture provenance, and full legacy inventory",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        }
+      ]
+    },
+    {
+      "id": 113433950248,
+      "name": "Installed wheel (ubuntu-24.04)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:57:57Z",
+      "completed_at": "2026-10-08T16:59:04Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433950248",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install isolated build frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Build reviewed source outside checkout and exercise fresh wheel installation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Preserve wheel, dependency resolution and standalone CLI evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 113433950287,
+      "name": "CI controls (macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:58:04Z",
+      "completed_at": "2026-10-08T16:58:31Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433950287",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install only CI-control test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Exercise actual process isolation, canonical guards, and evidence failure modes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 113433950367,
+      "name": "Installed wheel (macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:58:04Z",
+      "completed_at": "2026-10-08T16:59:49Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433950367",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install isolated build frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Build reviewed source outside checkout and exercise fresh wheel installation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Preserve wheel, dependency resolution and standalone CLI evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 113433950427,
+      "name": "Installed wheel (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:57:58Z",
+      "completed_at": "2026-10-08T17:00:13Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433950427",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install isolated build frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Build reviewed source outside checkout and exercise fresh wheel installation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Preserve wheel, dependency resolution and standalone CLI evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 113433950460,
+      "name": "CI controls (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:57:58Z",
+      "completed_at": "2026-10-08T16:58:39Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433950460",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install only CI-control test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Exercise actual process isolation, canonical guards, and evidence failure modes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 113433950555,
+      "name": "CI controls (ubuntu-24.04)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:57:57Z",
+      "completed_at": "2026-10-08T16:58:20Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113433950555",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install only CI-control test dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Exercise actual process isolation, canonical guards, and evidence failure modes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 113434273749,
+      "name": "Bounded free-engine, derivative replay and dashboard acceptance / Small xTB/PySCF calculations and bounded BASE regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T16:58:41Z",
+      "completed_at": "2026-10-08T17:04:57Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113434273749",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Keep calculation artifacts outside the checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Install headless Qt runtime libraries required by the packaged dashboard",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Install dashboard and audit all eleven Stage 0 phases",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Provision verified free engines into isolated environments",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Execute bounded physical calculations and verify numerical outputs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Verify bounded regressions with actual outcomes and unchanged source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9
+        },
+        {
+          "name": "Verify rendered dashboard lifecycle with the audited registry",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Retain calculation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23
+        }
+      ]
+    },
+    {
+      "id": 113437086211,
+      "name": "Bounded public CI complete",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-08T17:05:00Z",
+      "completed_at": "2026-10-08T17:05:03Z",
+      "html_url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001/job/113437086211",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Record the precise validation scope",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11566530163,
+      "name": "ci-controls-windows-latest",
+      "size_in_bytes": 142143,
+      "digest": "sha256:1d52114384bf56de8e666178b34e90d29665a961ee8396c8fdd7d4a6bd46ff83",
+      "expired": false,
+      "created_at": "2026-10-08T16:58:33Z",
+      "updated_at": "2026-10-08T16:58:33Z"
+    },
+    {
+      "id": 11566515138,
+      "name": "ci-controls-ubuntu-24.04",
+      "size_in_bytes": 142463,
+      "digest": "sha256:412b17a3845a2a5d1622ebd6715b05db189857d91a3a57c549935223357d80eb",
+      "expired": false,
+      "created_at": "2026-10-08T16:58:16Z",
+      "updated_at": "2026-10-08T16:58:16Z"
+    },
+    {
+      "id": 11566131422,
+      "name": "installed-wheel-ubuntu-24.04",
+      "size_in_bytes": 8678602,
+      "digest": "sha256:ebc408a1d449af56c021cd389cc4ea15255ad94b1a88c24b247803101f19ca64",
+      "expired": false,
+      "created_at": "2026-10-08T16:59:01Z",
+      "updated_at": "2026-10-08T16:59:01Z"
+    },
+    {
+      "id": 11565921712,
+      "name": "installed-wheel-macos-latest",
+      "size_in_bytes": 8679472,
+      "digest": "sha256:b2fa9d4a5237a0533d717127c2b099f79a2089a6f0cf2dd575b6e551b62128db",
+      "expired": false,
+      "created_at": "2026-10-08T16:59:42Z",
+      "updated_at": "2026-10-08T16:59:42Z"
+    },
+    {
+      "id": 11565871837,
+      "name": "base-source-evidence",
+      "size_in_bytes": 22510,
+      "digest": "sha256:d42b5b24783f1bafdc39e8ed68414e692a7e2589b692f79dd5da0684b0b4b0c9",
+      "expired": false,
+      "created_at": "2026-10-08T16:57:52Z",
+      "updated_at": "2026-10-08T16:57:52Z"
+    },
+    {
+      "id": 11565692420,
+      "name": "ci-controls-macos-latest",
+      "size_in_bytes": 142359,
+      "digest": "sha256:9dc7c1b8e40e083dce4175cf23c930683ef241c0c79541559eb7514f197c7602",
+      "expired": false,
+      "created_at": "2026-10-08T16:58:26Z",
+      "updated_at": "2026-10-08T16:58:26Z"
+    },
+    {
+      "id": 11565602818,
+      "name": "installed-wheel-windows-latest",
+      "size_in_bytes": 8683146,
+      "digest": "sha256:87d6be5c3607312b9538669a99233f0168c03dc4cde48b3b1f5079ab2b938f30",
+      "expired": false,
+      "created_at": "2026-10-08T17:00:07Z",
+      "updated_at": "2026-10-08T17:00:07Z"
+    },
+    {
+      "id": 11565508889,
+      "name": "free-engine-acceptance-37812840001",
+      "size_in_bytes": 266495,
+      "digest": "sha256:8de23c25811678af14c65bce5154414d220ec041bed8ebfb8f082971ea882a4d",
+      "expired": false,
+      "created_at": "2026-10-08T17:04:47Z",
+      "updated_at": "2026-10-08T17:04:47Z"
+    }
+  ],
+  "all_reported_jobs_successful": true,
+  "run_success_observed": true,
+  "artifact_bytes_downloaded_or_verified": false,
+  "test_counts": null,
+  "independent_scientific_qualification": false,
+  "live_codespaces_qualification": false,
+  "full_srs_release_ready": false,
+  "scope": "Actual API job/step/upload metadata only; not artifact bytes or scientific accuracy.",
+  "raw_receipt_sha256": {
+    "artifacts.raw.json": "726bd34ca597a8e2d454508147fd28ea14f122201d8998dde86a1fa25c43df04",
+    "jobs.raw.json": "f10b4a48b322664fce9fdabea1896705ae3b331d07a0fdd485c77c0d2ecb805a",
+    "run.raw.json": "7122df4a8d88d52c8a0a87edec333e5052e7e6c769e5a6bc50622a73388fe7a6"
+  }
+}

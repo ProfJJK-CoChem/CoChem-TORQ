@@ -1,0 +1,76 @@
+{
+  "actual_original_child_waited": true,
+  "basetemp": "[private local path omitted]",
+  "elapsed_seconds": 1302.8937256336212,
+  "exit_code": 0,
+  "expected_head": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+  "junit": "[private local path omitted]",
+  "junit_counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 2337,
+    "skipped": 8,
+    "tests": 2345
+  },
+  "junit_sha256": "b8c994545207a462a6c0d468c0ef7f0c3ccc13c0ad302f3258d96b23c35a743d",
+  "log": "[private local path omitted]",
+  "private_provider_pilot": "unrun",
+  "pytest_create_time": 1791477305.31,
+  "pytest_pid": 177329,
+  "scientific_method_qualification_from_lightweight_checks": false,
+  "script": "[private local path omitted]",
+  "skipped_cases": [
+    {
+      "classname": "tests.base.test_srs_mlff_fallback",
+      "message": "Real isolated MACE Python and g-xTB required",
+      "name": "test_missing_checkpoint_really_executes_gxtb_gradient"
+    },
+    {
+      "classname": "tests.base.test_srs_mlff_fallback",
+      "message": "Real isolated OFF24 medium model required",
+      "name": "test_missing_gxtb_really_executes_off24_medium_gradient"
+    },
+    {
+      "classname": "tests.base.test_srs_mlff_fallback",
+      "message": "Real isolated MACE Python required",
+      "name": "test_corrupt_model_is_aborted_without_masking_integrity_failure"
+    },
+    {
+      "classname": "tests.calc.test_t9_fallback",
+      "message": "Real licensed ORCA and an audited ORCA/PySCF registry are required for end-to-end T9 acceptance",
+      "name": "test_native_service_routes_live_failure_and_publishes_real_t9"
+    },
+    {
+      "classname": "tests.calc.test_recipe_r2_execution",
+      "message": "Actual ORCA and supplied validated CCSD(T)/CBS reference artifacts are required",
+      "name": "test_actual_recipe_r2_orca_five_leg_acceptance"
+    },
+    {
+      "classname": "tests.srs.test_topos_physical_runner",
+      "message": "Real licensed ORCA and CREST engines are required for union acceptance",
+      "name": "test_physical_crest_goat_union"
+    },
+    {
+      "classname": "test_suite.test_cochem_core_hdf5_manager",
+      "message": "Requires physical SLURM node",
+      "name": "test_is_master_node_detection_slurm"
+    },
+    {
+      "classname": "test_suite.test_cochem_core_registry_manager",
+      "message": "Requires physical SLURM node",
+      "name": "test_is_master_node_detection_slurm"
+    }
+  ],
+  "source_and_head_preserved": true,
+  "source_changed": [],
+  "source_head_after": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+  "source_head_before": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+  "source_status_after": "",
+  "source_status_before": "",
+  "started_at_unix": 1791477305.72002,
+  "status": "finished",
+  "supervisor_create_time": 1791477304.32,
+  "supervisor_pid": 177322,
+  "validation_environment": "[private local path omitted]",
+  "validation_environment_sha256": "e03310d123d98a5cdd219a417c5e01b68969f633f338747c467ce8ae09a1e361"
+}

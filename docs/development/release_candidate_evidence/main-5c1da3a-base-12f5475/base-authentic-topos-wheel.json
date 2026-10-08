@@ -1,0 +1,121 @@
+{
+  "schema_version": "cochem.topos-provider-wheel-provisioning/1",
+  "status": "verified-built",
+  "scope": "Source-pinned repeated wheel build and payload ownership; no complete mandatory kit installation or native scientific run",
+  "source_commit": "cf5655158456d763453376b108d26efcd748fe4f",
+  "source_checkout": "[private local path omitted]",
+  "source_clean": true,
+  "build_environment": "[private local path omitted]",
+  "build_log": "[private local path omitted]",
+  "candidate_directory": "[private local path omitted]",
+  "wheel_path": "[private local path omitted]",
+  "wheel_sha256": "a8e57f4ed91050f5e45be8121ed390de76524377ff7295286a03b9bf892a9f8f",
+  "catalog_sha256_matches": true,
+  "repeated_archives_match": true,
+  "base_payload_collisions": [],
+  "requires_dist": [
+    "CoChem-BASE==1.0.1",
+    "CoChem-TORQ==0.1.0",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "networkx>=3.1",
+    "pydantic>=2.4",
+    "h5py>=3.9",
+    "mendeleev>=0.20",
+    "psutil>=5.9",
+    "filelock>=3.13",
+    "MolSym<2,>=1.2",
+    "ase<4,>=3.29",
+    "qcengine==0.51.0",
+    "qcelemental==0.51.2",
+    "streamlit>=1.37; extra == \"ui\"",
+    "pytest>=8; extra == \"dev\"",
+    "pytest-cov>=5; extra == \"dev\"",
+    "ruff>=0.9; extra == \"dev\"",
+    "build>=1.2; extra == \"dev\"",
+    "setuptools>=77; extra == \"dev\"",
+    "wheel>=0.45; extra == \"dev\"",
+    "qcengine==0.51.0; extra == \"external\"",
+    "qcelemental==0.51.2; extra == \"external\""
+  ],
+  "minimal_provider_imports": [
+    "numpy",
+    "pydantic",
+    "h5py",
+    "filelock"
+  ],
+  "scientific_execution_performed": false,
+  "complete_mandatory_kit_installed": false,
+  "validation_environment_dependency_observations": {
+    "numpy": {
+      "version": "2.5.3",
+      "location": "[private local path omitted]"
+    },
+    "pydantic": {
+      "version": "2.13.5",
+      "location": "[private local path omitted]"
+    },
+    "h5py": {
+      "version": "3.16.0",
+      "location": "[private local path omitted]"
+    },
+    "filelock": {
+      "version": "3.32.7",
+      "location": "[private local path omitted]"
+    },
+    "PyYAML": {
+      "version": "6.0.3",
+      "location": "[private local path omitted]"
+    },
+    "py-cpuinfo": {
+      "installed": false
+    },
+    "psutil": {
+      "version": "7.2.2",
+      "location": "[private local path omitted]"
+    },
+    "qcelemental": {
+      "version": "0.51.2",
+      "location": "[private local path omitted]"
+    },
+    "pydantic-settings": {
+      "installed": false
+    },
+    "python-dotenv": {
+      "installed": false
+    },
+    "typing-inspection": {
+      "version": "0.4.4",
+      "location": "[private local path omitted]"
+    },
+    "packaging": {
+      "version": "26.3",
+      "location": "[private local path omitted]"
+    },
+    "MolSym": {
+      "version": "1.2.0",
+      "location": "[private local path omitted]"
+    },
+    "ase": {
+      "version": "3.29.0",
+      "location": "[private local path omitted]"
+    },
+    "CoChem-BASE": {
+      "version": "1.0.1",
+      "location": "[private local path omitted]"
+    },
+    "CoChem-TORQ": {
+      "version": "0.1.0",
+      "location": "[private local path omitted]"
+    }
+  },
+  "required_additive_distribution_pins": [
+    "qcengine==0.51.0",
+    "py-cpuinfo==9.0.0",
+    "pydantic-settings==2.15.0",
+    "python-dotenv==1.2.4"
+  ],
+  "dependency_audit_scope": "Actual importlib.metadata-visible dependencies including established readonly MAIN .pth; the uv resolver does not observe all of these dependencies and must not upgrade them",
+  "install_plan": "Install complete catalog-matched TOPOS wheel and four absent approved dependencies with --no-deps after active failed attempt terminates; verify Python-visible dependency contracts and exact installed provider payloads before full replay",
+  "base_source_commit": "2a36434cf39522eddc45567b2f1fd134278140a9"
+}

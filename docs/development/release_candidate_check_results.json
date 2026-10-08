@@ -1,6 +1,6 @@
 {
   "schema_version": "cochem.torq.release-candidate-review/1",
-  "recorded_at": "2026-10-08T15:03:56.218412+00:00",
+  "recorded_at": "2026-10-08T17:11:16.549283+00:00",
   "tested_code_commit": "e77e2a47d4ef23bb4ad6db72519e656336cf0bb2",
   "source_tree_sha256": "a60885f50fe07dab95a4dbbd0ddab4c0113f7fc93edd689c6f73896c025fc95c",
   "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
@@ -286,7 +286,19 @@
     "hosted_qualified": false,
     "Codespaces_to_Actions_user_journey": "unqualified",
     "historical_observed_access_billing_and_image_records": "docs/development/release_candidate_evidence/57c81eb/aggregate-before-e77-update.json",
-    "scope": "Current live deployment, complete hosted artifact verification and deployed operations remain unqualified; historical access checks are not current-source acceptance."
+    "scope": "Current live deployment, complete hosted artifact verification and deployed operations remain unqualified; historical access checks are not current-source acceptance.",
+    "current_hosted_main_software_observation": {
+      "actual_main_run_id": 37805501782,
+      "application_code_sha256": "fba071ddb96f091cfe6f94ec5872aa40d59421b5f1ffe7025e94f90a8dc3d4a9",
+      "download_outcome": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/torq-hosted-download-outcome.json",
+      "hosted_artifact_bytes_verified": false,
+      "hosted_test_counts": null,
+      "receipt": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/torq-hosted-observation.json",
+      "reported_hosted_jobs_passed": 8,
+      "scope": "Actual eight successful main job conclusions; uploaded artifact bytes and hosted case counts remain unverified. Full Codespaces/private student journey remains unrun.",
+      "source_tree_sha256": "64dcd2e3dd7c958396c39685b4511deae7f9023dd3be9c92bec4b2fd82ec73bf",
+      "tested_commit": "5c1da3a15be1dd6fe8a34c418c739391bfaed44e"
+    }
   },
   "preceding_authenticated_local_interface": {
     "application_code_sha256": "29781314f72092f7994109614ea4b5e5482c04c846bba561027be3f2c05ac91d",
@@ -426,27 +438,27 @@
     "preceding_aggregate_preserved": "docs/development/release_candidate_evidence/57c81eb/aggregate-before-e77-update.json",
     "failed_current_attempts": [
       {
-        "label": "complete_actual_attempt_with_three_gitignore_failures",
-        "role": "retained actual nonpassing/incomplete history",
-        "actual_supervisor_exit_code": 1,
         "actual_junit_counts": {
+          "error": 0,
           "executed": 2990,
           "failure": 3,
-          "error": 0,
-          "skipped": 0,
-          "passed": 2987
-        }
+          "passed": 2987,
+          "skipped": 0
+        },
+        "actual_supervisor_exit_code": 1,
+        "label": "complete_actual_attempt_with_three_gitignore_failures",
+        "role": "retained actual nonpassing/incomplete history"
       },
       {
-        "label": "actual_watson_worker_strict_serialization_failure",
-        "role": "retained actual nonpassing/incomplete history",
         "actual_junit_counts": {
+          "error": 0,
           "executed": 2,
           "failure": 2,
-          "error": 0,
-          "skipped": 0,
-          "passed": 0
-        }
+          "passed": 0,
+          "skipped": 0
+        },
+        "label": "actual_watson_worker_strict_serialization_failure",
+        "role": "retained actual nonpassing/incomplete history"
       }
     ]
   },
@@ -506,6 +518,95 @@
       "scope": "Actual local HTTP/widget/kernel lifecycle in Actions-interface mode; not hosted calculation execution or live Codespaces qualification.",
       "receipt": "sibling-evidence/base-actions-mode-interface-runtime.json"
     },
-    "new_BASE_complete_regression": "pending; preceding full run and scoped interface checks do not establish final edited-source success"
-  }
+    "new_BASE_complete_regression": {
+      "actual_original_child_waited": true,
+      "base_source_content_sha256": "b51bac7f498794a3bada95d32551114f99dd26da4f1a16df0731536152b1d6d6",
+      "catalog_sha256": "90f3b018bb436b37564bb73e2de7d9758e1fd76c11b2d1480fb51d8d1c8d955f",
+      "complete_mandatory_kit_native_acceptance": false,
+      "counts": {
+        "error": 0,
+        "executed": 2345,
+        "failure": 0,
+        "passed": 2337,
+        "skipped": 8
+      },
+      "elapsed_seconds": 1302.8937256336212,
+      "junit": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/base-final-junit.xml",
+      "prerequisite_skips": [
+        {
+          "classname": "tests.base.test_srs_mlff_fallback",
+          "message": "Real isolated MACE Python and g-xTB required",
+          "name": "test_missing_checkpoint_really_executes_gxtb_gradient"
+        },
+        {
+          "classname": "tests.base.test_srs_mlff_fallback",
+          "message": "Real isolated OFF24 medium model required",
+          "name": "test_missing_gxtb_really_executes_off24_medium_gradient"
+        },
+        {
+          "classname": "tests.base.test_srs_mlff_fallback",
+          "message": "Real isolated MACE Python required",
+          "name": "test_corrupt_model_is_aborted_without_masking_integrity_failure"
+        },
+        {
+          "classname": "tests.calc.test_t9_fallback",
+          "message": "Real licensed ORCA and an audited ORCA/PySCF registry are required for end-to-end T9 acceptance",
+          "name": "test_native_service_routes_live_failure_and_publishes_real_t9"
+        },
+        {
+          "classname": "tests.calc.test_recipe_r2_execution",
+          "message": "Actual ORCA and supplied validated CCSD(T)/CBS reference artifacts are required",
+          "name": "test_actual_recipe_r2_orca_five_leg_acceptance"
+        },
+        {
+          "classname": "tests.srs.test_topos_physical_runner",
+          "message": "Real licensed ORCA and CREST engines are required for union acceptance",
+          "name": "test_physical_crest_goat_union"
+        },
+        {
+          "classname": "test_suite.test_cochem_core_hdf5_manager",
+          "message": "Requires physical SLURM node",
+          "name": "test_is_master_node_detection_slurm"
+        },
+        {
+          "classname": "test_suite.test_cochem_core_registry_manager",
+          "message": "Requires physical SLURM node",
+          "name": "test_is_master_node_detection_slurm"
+        }
+      ],
+      "receipt": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/base-final-run.json",
+      "scope": "Current BASE software/free-engine evidence; not complete coupled native-kit acceptance or private student provider qualification",
+      "source_and_head_preserved": true,
+      "stage0_phase_count": 11,
+      "status": "Actual completed current-source canonical local suite passed; genuine prerequisite skips retained",
+      "tested_commit": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+      "wheel_sha256": "53ffe13e7ca0b9f4945f308bb532eec4a40df3bf184e3846f75ed8ded4c89118"
+    },
+    "BASE_current_hosted_main_software_observation": {
+      "actual_main_run_id": 37812840001,
+      "all_reported_jobs_successful": true,
+      "artifact_bytes_downloaded_or_verified": false,
+      "full_srs_release_ready": false,
+      "hosted_test_counts": null,
+      "private_student_pilot": "unrun",
+      "receipt": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/base-hosted-observation.json",
+      "reported_hosted_jobs_passed": 9,
+      "scope": "Actual bounded hosted CI job/step/upload metadata only; the full local suite is recorded separately.",
+      "source_commit": "12f54759ea5ae64843fa2b2bcce111fc2a5b38e1",
+      "url": "https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37812840001"
+    },
+    "TOPOS_private_licensed_caller_contract": {
+      "active_paths": [
+        ".github/workflows/orca_hosted.yml",
+        ".github/workflows/topos_compute.yml",
+        ".github/workflows/topos_orca_acceptance.yml"
+      ],
+      "available_student_licensed_route": "BASE dedicated private personal ORCA/CFOUR workflows",
+      "complete_coupled_native_acceptance": false,
+      "remaining_work": "Migrate complete owning-project receipt/workflow/source/ref/task/typed scientific-request/resource contract, remove legacy selector/input assumptions, and requalify source/wheel/catalog and native/provider acceptance. Pin-only changes or a receipt from another workflow are insufficient.",
+      "source_commit": "cf5655158456d763453376b108d26efcd748fe4f",
+      "status": "blocked for new BASE private staging contract"
+    }
+  },
+  "final_main_evidence_index": "docs/development/release_candidate_evidence/main-5c1da3a-base-12f5475/evidence-index.json"
 }
