@@ -32,7 +32,8 @@ the remote workflow. The interface checks workflow availability before dispatch.
 3. Open [UI/Start_TORQ.ipynb](UI/Start_TORQ.ipynb) and run its launch cell. Import
    an XYZ geometry, a complete request, or a supported BASE/TOPOS handoff. Specify
    charge, multiplicity, method, products and resources explicitly.
-4. Preview the actual three-dimensional mass frame, check the request, and submit
+4. Preview the actual three-dimensional mass frame, review the exact plan and
+   budget, explicitly approve it with your course identity, and submit
    it to Actions. Save the run link, refresh status, download the result, and read
    the scientific stage statuses separately from the Actions job status.
 
@@ -83,10 +84,17 @@ The same application handles the notebook and CLI:
 ```sh
 cochem-torq recipes
 cochem-torq validate --request examples/student/water-hf-teaching.json
-cochem-torq submit --request examples/student/water-hf-teaching.json
+cochem-torq plan --request examples/student/water-hf-teaching.json --output ~/CoChem_Artifacts/water-plan.json
+cochem-torq approve-plan --plan ~/CoChem_Artifacts/water-plan.json --actor COURSE_IDENTITY --output ~/CoChem_Artifacts/water-approved.json
+cochem-torq submit --approved-plan ~/CoChem_Artifacts/water-approved.json --idempotency-key WATER_ATTEMPT_ID
 cochem-torq status RUN_ID
 cochem-torq download RUN_ID --destination ~/CoChem_Artifacts/water-download
 ```
+
+Inspect the plan's tasks, limitations and budget before `approve-plan`. Reuse the
+same idempotency key when retrying that unchanged request; revised calculations
+require a new plan and explicit approval. Approval records a caller's budget
+decision and does not grant GitHub access or certify scientific accuracy.
 
 Set `COCHEM_TORQ_GITHUB_REPOSITORY=OWNER/REPOSITORY` for a course calculation
 repository when it differs from the configured repository. Authentication uses
@@ -137,6 +145,21 @@ preserved; a documented row does not activate a scientific profile. The
 [bounded benchmark plan](benchmarks/rotational-identification/preregistration.json)
 and [unverified-claims register](docs/wiki/review/Unverified_Claims_Register.md)
 state what further evidence is required for publication and identification.
+
+Exact capability tuples and restart compatibility are explicit contracts;
+experimental profiles authorize controlled validation only. Publication exports
+retain genuine inputs, outputs, matching analysis source and unavailable
+uncertainty fields:
+
+```bash
+cochem-torq export RESULT_SHARD --format publication --destination NEW_BUNDLE
+```
+
+The notebook supports reversible candidate exclusions with an immutable history
+and accessible table. Every selection change invalidates the current approval.
+Equivalent headless operations are available through `cochem-torq candidates`.
+These operations preserve originals and do not establish search completeness or
+publication accuracy. See the [complete requirement audit](docs/development/full_srs_requirement_audit.json).
 
 ## BASE and TOPOS interoperability
 

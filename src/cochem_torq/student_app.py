@@ -11,15 +11,18 @@ import json
 import re
 from dataclasses import dataclass
 from hashlib import sha256
+from math import isfinite
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import numpy as np
-from scipy.constants import physical_constants
 
 from Libraries.cochem_isotopes import isotope_mass
 
-BOHR_TO_ANGSTROM = physical_constants["Bohr radius"][0] * 1e10
+from .units import BOHR_ANGSTROM
+
+BOHR_TO_ANGSTROM = BOHR_ANGSTROM
 
 
 def _read_json_text(text: str) -> dict[str, Any]:
@@ -34,7 +37,18 @@ def _read_json_text(text: str) -> dict[str, Any]:
     def reject_nonfinite(value: str) -> None:
         raise ValueError(f"Nonfinite JSON number: {value}")
 
-    value = json.loads(text, object_pairs_hook=unique, parse_constant=reject_nonfinite)
+    def finite_float(text: str) -> float:
+        value = float(text)
+        if not isfinite(value):
+            raise ValueError("JSON numeric values must be finite.")
+        return value
+
+    value = json.loads(
+        text,
+        object_pairs_hook=unique,
+        parse_constant=reject_nonfinite,
+        parse_float=finite_float,
+    )
     if not isinstance(value, dict):
         raise ValueError("A TORQ JSON input must be an object.")
     return value
@@ -193,15 +207,145 @@ def inspect_downloaded_results(paths: list[str | Path]) -> list[dict[str, Any]]:
     return summaries
 
 
+def candidate_raw_data_status(candidate: dict[str, Any]) -> dict[str, Any]:
+    """Observe current raw bytes without rewriting the retained reference/history."""
+    from .artifacts import file_digest, verify_shard
+
+    reference = candidate.get("result_reference")
+    if reference is None:
+        return {"status": "not_computed", "reason": "Supplied input only."}
+    root = Path(reference["directory"])
+    if not root.is_dir() or not (root / "manifest.json").is_file():
+        return {"status": "unavailable", "reason": "Referenced raw files are absent."}
+    try:
+        manifest = verify_shard(root)
+        if (
+            file_digest(root / "manifest.json") != reference["manifest_sha256"]
+            or manifest["files"] != reference["inventory"]
+        ):
+            raise ValueError("Current bytes differ from the retained raw reference.")
+    except OSError as error:
+        return {"status": "unavailable", "reason": str(error)}
+    except ValueError as error:
+        return {"status": "changed_or_invalid", "reason": str(error)}
+    return {"status": "verified_available", "reason": None}
+
+
 class StudentSession:
     """Stateful student workflow; scientific decisions belong to the application."""
 
     def __init__(self, results_directory: str | Path | None = None) -> None:
         self.request: dict[str, Any] | None = None
         self.submission: dict[str, Any] | None = None
+        self.plan_review: dict[str, Any] | None = None
+        self.approved_plan: dict[str, Any] | None = None
+        self.idempotency_key: str | None = None
+        self.active_candidate_id: str | None = None
         self.results_directory = Path(
             results_directory or Path.home() / "CoChem_Artifacts" / "downloads"
         )
+        self.candidate_ledger_path = (
+            self.results_directory.parent / "candidate-selection.sqlite"
+        )
+
+    def _candidate_store(self):
+        from .candidate_ledger import CandidateLedger
+
+        return CandidateLedger(self.candidate_ledger_path)
+
+    def _selection_changed(self, snapshot: dict[str, Any]) -> None:
+        self.plan_review = None
+        self.approved_plan = None
+        self.submission = None
+        if self.request is not None:
+            previous = self.request["request_id"]
+            self.request["request_id"] = str(uuid4())
+            provenance = dict(self.request.get("source_provenance", {}))
+            provenance["candidate_selection"] = {
+                "previous_request_id": previous,
+                "active_candidate_id": self.active_candidate_id,
+                "snapshot": snapshot,
+                "automatic_pruning": False,
+            }
+            self.request["source_provenance"] = provenance
+            self.idempotency_key = self.request["request_id"]
+
+    def register_input_candidate(self, *, actor: str, reason: str) -> dict[str, Any]:
+        if self.request is None:
+            raise ValueError("Import an actual candidate request first.")
+        with self._candidate_store() as ledger:
+            candidate = ledger.register_request(
+                self.request, actor=actor, reason=reason
+            )
+            self.active_candidate_id = candidate["candidate_id"]
+            self._selection_changed(ledger.selection_snapshot())
+            return candidate
+
+    def _check_candidate_selection(self, *, refresh: bool = False) -> None:
+        if self.active_candidate_id is None:
+            return
+        from .domain import PrerequisiteError
+
+        with self._candidate_store() as ledger:
+            candidate = ledger.inspect(self.active_candidate_id)
+            snapshot = ledger.selection_snapshot()
+        if candidate["selection_state"] != "retained":
+            self.plan_review = None
+            self.approved_plan = None
+            raise PrerequisiteError(
+                "The current candidate is excluded or quarantined. "
+                "Restore it or explicitly import a new candidate before review."
+            )
+        recorded = (self._request().get("source_provenance") or {}).get(
+            "candidate_selection", {}
+        )
+        if recorded.get("snapshot") != snapshot:
+            self._selection_changed(snapshot)
+            if not refresh:
+                raise PrerequisiteError(
+                    "Candidate selection changed. Review and approve the revised plan."
+                )
+
+    def inspect_candidates(self) -> list[dict[str, Any]]:
+        if not self.candidate_ledger_path.is_file():
+            return []
+        with self._candidate_store() as ledger:
+            records = ledger.candidates(include_excluded=True)
+        return [
+            {**record, "raw_data_status": candidate_raw_data_status(record)}
+            for record in records
+        ]
+
+    def inspect_candidate(self, candidate_id: str) -> dict[str, Any]:
+        with self._candidate_store() as ledger:
+            candidate = ledger.inspect(candidate_id)
+            return {
+                "candidate": candidate,
+                "history": ledger.history(candidate_id),
+                "selection": ledger.selection_snapshot(),
+                "current_raw_data": candidate_raw_data_status(candidate),
+            }
+
+    def change_candidate_selection(
+        self,
+        candidate_id: str,
+        *,
+        revision: int,
+        action: str,
+        actor: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        if action not in {"retain", "exclude", "restore"}:
+            raise ValueError("Select retain, exclude or restore explicitly.")
+        with self._candidate_store() as ledger:
+            candidate = getattr(ledger, action)(
+                candidate_id,
+                expected_revision=revision,
+                actor=actor,
+                reason=reason,
+            )
+            self._selection_changed(ledger.selection_snapshot())
+            return candidate
 
     def load_request(self, source: str | Path | dict[str, Any]) -> dict[str, Any]:
         if isinstance(source, dict):
@@ -211,9 +355,24 @@ class StudentSession:
         if not isinstance(request, dict):
             raise ValueError("A TORQ request must be a JSON object.")
         input_mass_frame(request["molecule"])
+        request.setdefault("request_id", str(uuid4()))
+        self.active_candidate_id = None
         self.request = request
         self.submission = None
+        self.plan_review = None
+        self.approved_plan = None
+        # Reopening the same explicit UUID retains its transport retry identity.
+        self.idempotency_key = str(request["request_id"])
         return request
+
+    def clear_request(self) -> None:
+        """Changed input cannot retain a previous plan's approval or identity."""
+        self.request = None
+        self.submission = None
+        self.plan_review = None
+        self.approved_plan = None
+        self.idempotency_key = None
+        self.active_candidate_id = None
 
     def prepare_xyz(
         self,
@@ -282,11 +441,63 @@ class StudentSession:
 
     def submit(self) -> dict[str, Any]:
         from cochem_torq.application import submit_request
+        from cochem_torq.service import validate_approved_plan
 
-        # Retain the normalized UUID even when the user bypassed Check request.
-        self.validate()
-        self.submission = submit_request(self._request(), execution="github_actions")
+        self._check_candidate_selection()
+        if self.approved_plan is None or self.idempotency_key is None:
+            raise ValueError(
+                "Review and explicitly approve the current plan before submitting."
+            )
+        try:
+            validate_approved_plan(self.approved_plan, request=self._request())
+        except (ValueError, RuntimeError):
+            self.approved_plan = None
+            self.plan_review = None
+            raise
+        self.submission = submit_request(
+            self._request(),
+            execution="github_actions",
+            approved_plan=self.approved_plan,
+            idempotency_key=self.idempotency_key,
+        )
         return self.submission
+
+    def review_plan(self) -> dict[str, Any]:
+        """Review current scientific tasks and declared calculation limits."""
+        from cochem_torq.service import plan_request
+
+        self._check_candidate_selection(refresh=True)
+        report = plan_request(self._request(), execution="github_actions")
+        self.request = report["plan"]["request"]
+        self.plan_review = report
+        self.approved_plan = None
+        return report
+
+    def approve(self, *, actor: str) -> dict[str, Any]:
+        """Record a caller's explicit decision; checking/submitting never approves."""
+        from cochem_torq.service import approve_plan, validate_approved_plan
+
+        self._check_candidate_selection()
+        if self.plan_review is None:
+            raise ValueError("Review the current plan before approving it.")
+        approved = approve_plan(self.plan_review, actor=actor)
+        validate_approved_plan(approved, request=self._request())
+        self.approved_plan = approved
+        return approved
+
+    def cancel(self, *, reason: str, run_id: str | int | None = None) -> dict[str, Any]:
+        """Request cancellation only through the actual owned hosted-run receipt."""
+        from cochem_torq.github import GitHubActions
+
+        return GitHubActions.from_environment().cancel(
+            self._run_id(run_id), reason=reason
+        )
+
+    def resume(self, run_directory: str | Path) -> dict[str, Any]:
+        """Create a verified new attempt which must be reviewed and approved anew."""
+        from cochem_torq.service import resume_request
+
+        return self.load_request(resume_request(run_directory))
 
     def status(self, run_id: str | int | None = None) -> dict[str, Any]:
         from cochem_torq.application import get_run_status
@@ -453,10 +664,23 @@ def launch_student_app(
     source_kind.observe(update_source_controls, names="value")
     update_source_controls()
     load = widgets.Button(description="Import and preview", button_style="info")
-    validate = widgets.Button(description="Check request")
-    submit = widgets.Button(description="Submit to Actions", button_style="success")
+    validate = widgets.Button(description="Review plan")
+    actor = widgets.Text(
+        description="Approved by", placeholder="Your name or course identity"
+    )
+    approve = widgets.Button(description="Approve this plan", disabled=True)
+    budget = widgets.HTML(
+        "<p>Review the plan to see its calculation budget and blockers.</p>"
+    )
+    submit = widgets.Button(
+        description="Submit to Actions", button_style="success", disabled=True
+    )
     run = widgets.Text(description="Run ID", placeholder="Your GitHub Actions run ID")
     refresh = widgets.Button(description="Refresh status")
+    cancel_reason = widgets.Text(
+        description="Reason", placeholder="Why cancel this owned run?"
+    )
+    cancel = widgets.Button(description="Cancel owned run", button_style="warning")
     download = widgets.Button(description="Download results")
     results = widgets.Text(
         value=str(session.results_directory),
@@ -472,9 +696,97 @@ def launch_student_app(
         layout=widgets.Layout(width="100%"),
     )
     export_base = widgets.Button(description="Export energy to BASE", disabled=True)
+    resume = widgets.Button(description="Prepare new attempt", disabled=True)
     azimuth = widgets.IntSlider(value=-60, min=-180, max=180, description="Rotate")
     elevation = widgets.IntSlider(value=25, min=-90, max=90, description="Tilt")
     output, preview = widgets.Output(), widgets.Output()
+    candidate_choice = widgets.Dropdown(
+        options=[], description="Candidate", layout=widgets.Layout(width="100%")
+    )
+    candidate_reason = widgets.Text(
+        description="Reason", placeholder="Reason for this selection decision"
+    )
+    candidate_table = widgets.HTML(
+        "<p>No candidates are recorded. Imported geometry is an input, "
+        "with no calculated energy or model uncertainty.</p>"
+    )
+    record_candidate = widgets.Button(description="Record input candidate")
+    inspect_candidate = widgets.Button(description="Inspect candidate history")
+    exclude_candidate = widgets.Button(description="Exclude candidate")
+    restore_candidate = widgets.Button(description="Restore candidate")
+    refresh_candidates = widgets.Button(description="Refresh candidates")
+
+    def update_candidates() -> None:
+        import html
+
+        records = session.inspect_candidates()
+        candidate_choice.options = [
+            (
+                f"{record['candidate_id']} · {record['selection_state']}",
+                record["candidate_id"],
+            )
+            for record in records
+        ]
+        rows = "".join(
+            "<tr>"
+            + "".join(
+                f"<td>{html.escape(str(record.get(field)))}</td>"
+                for field in (
+                    "candidate_id",
+                    "selection_state",
+                    "revision",
+                    "geometry_status",
+                    "quality",
+                    "result_reference",
+                    "raw_data_status",
+                )
+            )
+            + "</tr>"
+            for record in records
+        )
+        candidate_table.value = (
+            "<table><caption>Candidate selection history is retained. "
+            "Model uncertainty and search completeness are not established. "
+            "Exclusions do not automatically prune calculations.</caption>"
+            "<thead><tr><th>Candidate</th><th>Selection</th><th>Revision</th>"
+            "<th>Geometry</th><th>Quality</th><th>Raw result reference</th>"
+            "<th>Current raw availability</th>"
+            "</tr></thead><tbody>" + rows + "</tbody></table>"
+        )
+
+    def update_lifecycle() -> None:
+        import html
+
+        approve.disabled = (
+            session.plan_review is None
+            or not session.plan_review["executable"]
+            or not actor.value.strip()
+        )
+        submit.disabled = session.approved_plan is None
+        if session.plan_review is None:
+            budget.value = (
+                "<p>Review the plan to see its calculation budget and blockers.</p>"
+            )
+            return
+        plan = session.plan_review["plan"]
+        limits = plan["resources"]
+        text = (
+            f"Calculation budget: {limits['cores']} cores, {limits['memory_mb']} MB, "
+            f"at most {limits['wall_seconds']} s "
+            f"({limits['cores'] * limits['wall_seconds']} CPU core-seconds); "
+            f"{len(plan['tasks'])} planned tasks. Workflow setup and qualification "
+            "time are additional. Approval permits up to 64 MiB of scratch. "
+        )
+        if session.approved_plan is not None:
+            text += (
+                f"Approved until {session.approved_plan['approval']['expires_at']}. "
+            )
+        else:
+            text += (
+                "Review the scientific warnings and blockers, "
+                "then explicitly approve this plan."
+            )
+        budget.value = "<p>" + html.escape(text) + "</p>"
 
     def show(value: Any) -> None:
         with output:
@@ -490,6 +802,8 @@ def launch_student_app(
             show(callback())
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
             show(f"Unable to complete this step: {exc}")
+        finally:
+            update_lifecycle()
 
     def redraw(*_: Any) -> None:
         if session.request:
@@ -563,10 +877,53 @@ def launch_student_app(
         action(perform)
 
     load.on_click(load_input)
-    validate.on_click(lambda _: action(session.validate))
+    validate.on_click(lambda _: action(session.review_plan))
+    approve.on_click(
+        lambda _: action(lambda: session.approve(actor=actor.value.strip()))
+    )
     submit.on_click(send)
+
+    def candidate_action(operation: str) -> None:
+        def perform() -> dict[str, Any]:
+            if operation == "register":
+                value = session.register_input_candidate(
+                    actor=actor.value.strip(), reason=candidate_reason.value.strip()
+                )
+            else:
+                if candidate_choice.value is None:
+                    raise ValueError("Select a recorded candidate first.")
+                inspected = session.inspect_candidate(candidate_choice.value)
+                if operation == "inspect":
+                    return inspected
+                value = session.change_candidate_selection(
+                    candidate_choice.value,
+                    revision=inspected["candidate"]["revision"],
+                    action=operation,
+                    actor=actor.value.strip(),
+                    reason=candidate_reason.value.strip(),
+                )
+            update_candidates()
+            return {
+                "candidate": value,
+                "next_step": "Review and approve the revised request.",
+            }
+
+        action(perform)
+
+    record_candidate.on_click(lambda _: candidate_action("register"))
+    inspect_candidate.on_click(lambda _: candidate_action("inspect"))
+    exclude_candidate.on_click(lambda _: candidate_action("exclude"))
+    restore_candidate.on_click(lambda _: candidate_action("restore"))
+    refresh_candidates.on_click(lambda _: action(update_candidates))
     refresh.on_click(
         lambda _: action(lambda: session.status(run.value.strip() or None))
+    )
+    cancel.on_click(
+        lambda _: action(
+            lambda: session.cancel(
+                reason=cancel_reason.value.strip(), run_id=run.value.strip() or None
+            )
+        )
     )
 
     def save(_: Any) -> None:
@@ -580,6 +937,7 @@ def launch_student_app(
                 for summary in summaries
             ]
             export_base.disabled = False
+            resume.disabled = False
             base_destination.value = str(
                 session.results_directory
                 / "base-exports"
@@ -600,6 +958,30 @@ def launch_student_app(
             )
         )
     )
+    updating_input = False
+
+    def prepare_again(_: Any) -> None:
+        def perform() -> dict[str, Any]:
+            nonlocal updating_input
+            request = session.resume(verified_run.value)
+            updating_input = True
+            try:
+                source_kind.value = "json"
+                source.value = json.dumps(request, indent=2, allow_nan=False)
+            finally:
+                updating_input = False
+            redraw()
+            return {
+                "input": (
+                    "New same-model attempt prepared. "
+                    "Review and approve it before submission."
+                ),
+                "request": request,
+            }
+
+        action(perform)
+
+    resume.on_click(prepare_again)
     azimuth.observe(redraw, names="value")
     elevation.observe(redraw, names="value")
     if request_path is not None:
@@ -609,15 +991,13 @@ def launch_student_app(
         redraw()
 
     def invalidate_changed_input(_: Any) -> None:
-        if session.request is None:
+        if updating_input or session.request is None:
             return
-        session.request = None
-        session.submission = None
+        session.clear_request()
+        update_lifecycle()
         with preview:
             clear_output(wait=True)
-        show(
-            "Inputs changed. Select Import and preview, then check the revised request."
-        )
+        show("Inputs changed. Import, review and approve the revised request.")
 
     for control in (
         source_kind,
@@ -633,12 +1013,20 @@ def launch_student_app(
     ):
         control.observe(invalidate_changed_input, names="value")
 
+    def invalidate_actor(_: Any) -> None:
+        session.approved_plan = None
+        update_lifecycle()
+
+    actor.observe(invalidate_actor, names="value")
+
     instructions = widgets.HTML(
-        "<h2>CoChem-TORQ</h2><p>Import a molecule, check its state and method, "
+        "<h2>CoChem-TORQ</h2><p>Import a molecule, "
+        "review its state, method and budget, "
         "and submit a calculation to GitHub Actions. Codespaces provides this "
         "interface. A requested scientific product is available only when its "
         "method and backend are qualified.</p><p>Use your institution’s approved "
-        "GitHub repository and Actions runner. Check request reports before "
+        "GitHub repository and Actions runner. "
+        "Explicitly approve the reviewed plan before "
         "submission. A completed workflow can contain partial or unavailable "
         "scientific stages; inspect the downloaded result manifest.</p>"
     )
@@ -653,15 +1041,25 @@ def launch_student_app(
             recipe_note,
             products,
             widgets.HBox([cores, memory, wall]),
-            widgets.HBox([load, validate, submit]),
+            widgets.HBox([load, validate]),
+            budget,
+            widgets.HBox([actor, approve, submit]),
             widgets.HBox([azimuth, elevation]),
             preview,
             widgets.HBox([run, refresh]),
+            widgets.HBox([cancel_reason, cancel]),
             results,
             download,
             verified_run,
             base_destination,
             export_base,
+            resume,
+            widgets.HTML("<h3>Reversible candidate selection</h3>"),
+            candidate_table,
+            candidate_choice,
+            candidate_reason,
+            widgets.HBox([record_candidate, inspect_candidate, refresh_candidates]),
+            widgets.HBox([exclude_candidate, restore_candidate]),
             output,
         ]
     )

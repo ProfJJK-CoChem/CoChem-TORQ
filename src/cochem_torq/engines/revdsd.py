@@ -8,12 +8,13 @@ independent reference evidence have been reconciled.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from hashlib import sha256
 import importlib.metadata
 import json
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass
+from hashlib import sha256
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 from uuid import uuid4
 
 import numpy as np
@@ -114,6 +115,29 @@ def _file_hash(path: Path) -> str:
     return sha256(path.read_bytes()).hexdigest()
 
 
+def _derivative_steps(steps_bohr: Sequence[float]) -> tuple[float, ...]:
+    steps = tuple(float(h) for h in steps_bohr)
+    if (
+        len(steps) < 2
+        or len(set(steps)) != len(steps)
+        or any(not np.isfinite(h) or h <= 0 for h in steps)
+    ):
+        raise ValueError(
+            "At least two distinct finite positive displacement sizes are required"
+        )
+    return steps
+
+
+def _derivative_budget(required: int, maximum: int) -> None:
+    if type(maximum) is not int or maximum < 1:
+        raise ValueError("The numerical derivative energy budget must be positive")
+    if required > maximum:
+        raise ResearchCalculationError(
+            f"Numerical derivative needs {required} complete energy calculations; "
+            f"the explicit budget permits {maximum}"
+        )
+
+
 def restricted_pt2_components(
     mol: Any,
     coefficients: np.ndarray,
@@ -131,6 +155,8 @@ def restricted_pt2_components(
     """
     from pyscf import ao2mo
 
+    if np.iscomplexobj(orbital_energies) or np.iscomplexobj(occupations):
+        raise ValueError("Real orbital energies and occupations are required")
     c = np.asarray(coefficients)
     eps = np.asarray(orbital_energies, dtype=float)
     occ = np.asarray(occupations, dtype=float)
@@ -263,6 +289,8 @@ class ExperimentalDoubleHybrid:
     ) -> dict[str, Any]:
         from pyscf import dft, gto, lib, scf
 
+        if np.iscomplexobj(coordinates_bohr):
+            raise ValueError("Real Cartesian coordinates are required")
         coords = np.asarray(coordinates_bohr, dtype=float)
         if (
             coords.shape != (len(symbols), 3)
@@ -278,7 +306,8 @@ class ExperimentalDoubleHybrid:
             or multiplicity != 1
         ):
             raise ValueError(
-                "This research implementation supports integer charge and multiplicity 1"
+                "This research implementation supports integer charge "
+                "and multiplicity 1"
             )
         if any(gto.charge(s) < 1 or gto.charge(s) > 10 for s in symbols):
             raise ValueError(
@@ -323,7 +352,8 @@ class ExperimentalDoubleHybrid:
                             )
                         if dft.libxc.rsh_coeff(expression)[0] != 0:
                             raise ValueError(
-                                "Range-separated functionals are outside this research domain"
+                                "Range-separated functionals are outside "
+                                "this research domain"
                             )
                     mf.conv_tol = self.settings["scf_energy_tolerance"]
                     mf.conv_tol_grad = self.settings["scf_gradient_tolerance"]
@@ -430,6 +460,7 @@ class ExperimentalDoubleHybrid:
                         "scf_converged": True,
                         "reference_stability": "not_evaluated",
                         "gradient_availability": "explicit_numerical_only",
+                        "hessian_availability": "explicit_numerical_only",
                         "independent_method_validation": "unavailable",
                         "dispersion": d4_record,
                         "artifact_directory": str(run_dir),
@@ -440,7 +471,9 @@ class ExperimentalDoubleHybrid:
                             if d4_record
                             else None,
                             "basis_sha256": _file_hash(run_dir / "basis.json"),
-                            "pt2_approximation": "conventional_real_restricted_GKS_orbitals",
+                            "pt2_approximation": (
+                                "conventional_real_restricted_GKS_orbitals"
+                            ),
                             "frozen_occupied_orbitals": list(
                                 self.recipe.frozen_occupied_orbitals
                             ),
@@ -470,20 +503,20 @@ class ExperimentalDoubleHybrid:
         multiplicity: int,
         artifact_directory: Path | str,
         steps_bohr: Sequence[float],
+        max_energy_calculations: int = 1000,
     ) -> dict[str, Any]:
-        """Two-sided finite differences with explicit multi-step convergence evidence."""
-        steps = tuple(float(h) for h in steps_bohr)
-        if (
-            len(steps) < 2
-            or len(set(steps)) != len(steps)
-            or any(not np.isfinite(h) or h <= 0 for h in steps)
-        ):
-            raise ValueError(
-                "At least two distinct finite positive displacement sizes are required"
-            )
+        """Centered finite differences with explicit multi-step evidence."""
+        steps = _derivative_steps(steps_bohr)
+        if np.iscomplexobj(coordinates_bohr):
+            raise ValueError("Real Cartesian coordinates are required")
         coords = np.asarray(coordinates_bohr, dtype=float)
-        if coords.shape != (len(symbols), 3) or not np.all(np.isfinite(coords)):
+        if (
+            not len(symbols)
+            or coords.shape != (len(symbols), 3)
+            or not np.all(np.isfinite(coords))
+        ):
             raise ValueError("Finite N by 3 coordinates in bohr are required")
+        _derivative_budget(6 * len(symbols) * len(steps), max_energy_calculations)
         gradients, parents = [], []
         for step in steps:
             gradient = np.empty_like(coords)
@@ -527,6 +560,8 @@ class ExperimentalDoubleHybrid:
                 max(np.max(np.abs(g - gradients[chosen])) for g in gradients)
             ),
             "convergence_qualified": False,
+            "planned_energy_calculations": 6 * len(symbols) * len(steps),
+            "energy_calculation_budget": max_energy_calculations,
             "executed_energy_calculations": len(parents),
             "parents": parents,
             "recipe_sha256": self.recipe.fingerprint,
@@ -536,3 +571,159 @@ class ExperimentalDoubleHybrid:
             result,
         )
         return result
+
+    def numerical_hessian(
+        self,
+        symbols: Sequence[str],
+        coordinates_bohr: np.ndarray,
+        *,
+        charge: int,
+        multiplicity: int,
+        artifact_directory: Path | str,
+        steps_bohr: Sequence[float],
+        max_energy_calculations: int = 1000,
+    ) -> dict[str, Any]:
+        """Full Cartesian centered energy Hessian, with no harmonic qualification.
+
+        Diagonals use (E(+h)-2E(0)+E(-h))/h**2; mixed derivatives use
+        four complete energy evaluations at (+/-h,+/-h). Every requested
+        scale is evaluated separately. The reference energy is shared across
+        scales, and the exact cost is 1 + 2*(3*N)**2*number_of_scales.
+        Symmetry is imposed by this stencil, so it is not a validation result.
+        """
+        steps = _derivative_steps(steps_bohr)
+        if np.iscomplexobj(coordinates_bohr):
+            raise ValueError("Real Cartesian coordinates are required")
+        coords = np.asarray(coordinates_bohr, dtype=float)
+        if (
+            not len(symbols)
+            or coords.shape != (len(symbols), 3)
+            or not np.all(np.isfinite(coords))
+        ):
+            raise ValueError("Finite nonempty N by 3 coordinates in bohr are required")
+        dimension = coords.size
+        required = 1 + 2 * dimension**2 * len(steps)
+        _derivative_budget(required, max_energy_calculations)
+        directory = Path(artifact_directory).resolve()
+        directory.mkdir(parents=True, exist_ok=True)
+        derivative_path = directory / ("numerical-hessian-" + uuid4().hex + ".json")
+        parents: list[dict[str, Any]] = []
+        gaps: list[float] = []
+
+        def energy_at(displacements: Sequence[tuple[int, float]]) -> float:
+            geometry = coords.copy().ravel()
+            for coordinate, displacement in displacements:
+                geometry[coordinate] += displacement
+            run = self.evaluate(
+                symbols,
+                geometry.reshape(coords.shape),
+                charge=charge,
+                multiplicity=multiplicity,
+                artifact_directory=directory,
+            )
+            parents.append(
+                {
+                    "displacements": [
+                        {"atom": q // 3, "axis": q % 3, "step_bohr": delta}
+                        for q, delta in displacements
+                    ],
+                    "artifact_directory": run["artifact_directory"],
+                    "result_sha256": _file_hash(
+                        Path(run["artifact_directory"]) / "result.json"
+                    ),
+                }
+            )
+            gaps.append(run["components"]["orbital_gap_hartree"])
+            return float(run["energy_hartree"])
+
+        try:
+            reference_energy = energy_at(())
+            matrices, gradients = [], []
+            for step in steps:
+                matrix = np.empty((dimension, dimension))
+                gradient = np.empty(dimension)
+                for q in range(dimension):
+                    plus = energy_at(((q, step),))
+                    minus = energy_at(((q, -step),))
+                    matrix[q, q] = (plus - 2 * reference_energy + minus) / step**2
+                    gradient[q] = (plus - minus) / (2 * step)
+                    for r in range(q):
+                        mixed = 0.0
+                        for sq, sr in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+                            mixed += (
+                                sq * sr * energy_at(((q, sq * step), (r, sr * step)))
+                            )
+                        matrix[q, r] = matrix[r, q] = mixed / (4 * step**2)
+                if not np.all(np.isfinite(matrix)) or not np.all(np.isfinite(gradient)):
+                    raise ResearchCalculationError("Nonfinite numerical derivative")
+                matrices.append(matrix)
+                gradients.append(gradient.reshape(coords.shape))
+            chosen = int(np.argmin(steps))
+            matrix, gradient = matrices[chosen], gradients[chosen]
+            centered = coords - coords.mean(axis=0)
+            translation_residuals, rotation_residuals = [], []
+            for axis in np.eye(3):
+                translation = np.tile(axis, (len(symbols), 1)).ravel()
+                rotation = np.cross(axis, centered).ravel()
+                expected = np.cross(axis, gradient).ravel()
+                translation_residuals.append(
+                    float(np.max(np.abs(matrix @ translation)))
+                )
+                rotation_residuals.append(
+                    float(np.max(np.abs(matrix @ rotation - expected)))
+                )
+            result = {
+                "status": "success",
+                "qualification": "experimental_unqualified",
+                "derivative": "centered_numerical_energy_hessian",
+                "unit": "hartree/bohr^2",
+                "atom_order": list(symbols),
+                "coordinates_bohr": coords.tolist(),
+                "charge": charge,
+                "multiplicity": multiplicity,
+                "steps_bohr": list(steps),
+                "selected_step_bohr": steps[chosen],
+                "hessian": matrix.tolist(),
+                "hessians_by_step": [m.tolist() for m in matrices],
+                "gradients_by_step_hartree_bohr": [g.tolist() for g in gradients],
+                "max_absolute_step_difference": float(
+                    max(np.max(np.abs(m - matrix)) for m in matrices)
+                ),
+                "symmetry_by_construction": True,
+                "invariance": {
+                    "translation_residual_hartree_bohr2": translation_residuals,
+                    "rotation_covariance_residual_hartree_bohr": rotation_residuals,
+                    "net_gradient_hartree_bohr": gradient.sum(axis=0).tolist(),
+                    "gradient_torque_hartree": np.cross(centered, gradient)
+                    .sum(axis=0)
+                    .tolist(),
+                },
+                "minimum_orbital_gap_hartree": min(gaps),
+                "maximum_orbital_gap_hartree": max(gaps),
+                "reference_stability": "not_evaluated",
+                "state_continuity": "not_qualified",
+                "convergence_qualified": False,
+                "harmonic_characterization": "not_performed",
+                "independent_method_validation": "unavailable",
+                "planned_energy_calculations": required,
+                "executed_energy_calculations": len(parents),
+                "energy_calculation_budget": max_energy_calculations,
+                "parents": parents,
+                "recipe_sha256": self.recipe.fingerprint,
+            }
+            _write_json(derivative_path, result)
+            return result
+        except Exception as exc:
+            _write_json(
+                derivative_path,
+                {
+                    "status": "failed",
+                    "error": str(exc),
+                    "type": type(exc).__name__,
+                    "planned_energy_calculations": required,
+                    "executed_energy_calculations": len(parents),
+                    "parents": parents,
+                    "recipe_sha256": self.recipe.fingerprint,
+                },
+            )
+            raise

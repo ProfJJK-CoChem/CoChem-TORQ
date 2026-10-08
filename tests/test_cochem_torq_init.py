@@ -14,6 +14,8 @@ and subprocess executions within pytest `tmp_path`.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import mmap
 import multiprocessing.shared_memory as sm
 import os
@@ -44,15 +46,17 @@ from Libraries.cochem_torq_init import (
     BootstrapperConfig,
     IPCBufferError,
     IPCBufferMetadata,
+    ProvenanceIntegrityError,
     bootstrap_environment,
     check_airgap,
     cleanup_ipc_scratch,
+    compute_provenance_sha256,
     create_ipc_scratch_buffer,
     get_artifact_directory,
     get_scratch_directory,
     register_ipc_cleanup,
     register_mmap_buffer,
-    unregister_ipc_cleanup,
+    validate_fit_provenance,
     verify_airgap,
 )
 
@@ -60,6 +64,9 @@ from Libraries.cochem_torq_init import (
 @pytest.fixture(autouse=True)
 def clean_ipc_state() -> Generator[None, None, None]:
     """Ensure clean IPC tracking registry state before and after each test."""
+    environment_before = {
+        name: os.environ.get(name) for name in ("COCHEM_ARTIFACTS", "COCHEM_SCRATCH")
+    }
     cleanup_ipc_scratch()
     _ACTIVE_SCRATCH_PATHS.clear()
     _ACTIVE_SHM_NAMES.clear()
@@ -75,6 +82,30 @@ def clean_ipc_state() -> Generator[None, None, None]:
     _ACTIVE_MMAP_OBJECTS.clear()
     _ACTIVE_BUFFERS.clear()
     _ACTIVE_FILE_DESCRIPTORS.clear()
+    for name, value in environment_before.items():
+        if value is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = value
+
+
+def source_integrity_receipt(directory: Path) -> Path:
+    """Bind a process-integrity receipt to genuine repository source bytes.
+
+    This receipt makes no fitted-model or scientific-validation claim.
+    """
+    source = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    receipt = {
+        "kind": "repository-source-integrity",
+        "dataset_hashes": {
+            str(source): hashlib.sha256(source.read_bytes()).hexdigest()
+        },
+    }
+    receipt["sha256"] = compute_provenance_sha256(receipt)
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "fit_provenance.json"
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+    return path
 
 
 # ============================================================================
@@ -134,8 +165,7 @@ class TestAirGapVerification:
         artifacts_dir.mkdir()
 
         assert (
-            verify_airgap(cwd=str(repo_dir), artifacts_dir=str(artifacts_dir))
-            is True
+            verify_airgap(cwd=str(repo_dir), artifacts_dir=str(artifacts_dir)) is True
         )
         assert verify_airgap(cwd=repo_dir, artifacts_dir=str(artifacts_dir)) is True
         assert verify_airgap(cwd=str(repo_dir), artifacts_dir=artifacts_dir) is True
@@ -174,9 +204,7 @@ class TestAirGapVerification:
 class TestDirectoryMapping:
     """Tests verifying dynamic host environment directory mapping without hardcoding."""
 
-    def test_get_artifact_directory_from_env(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_artifact_directory_from_env(self, tmp_path: Path) -> None:
         """get_artifact_directory must respect host environment variable."""
         custom_dir = tmp_path / "env_artifacts"
         os.environ.__setitem__("COCHEM_ARTIFACTS", str(custom_dir))
@@ -186,9 +214,7 @@ class TestDirectoryMapping:
         assert resolved.exists()
         assert resolved.is_dir()
 
-    def test_get_artifact_directory_fallback(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_artifact_directory_fallback(self, tmp_path: Path) -> None:
         """get_artifact_directory must use fallback_dir when env var is unset."""
         os.environ.pop("COCHEM_ARTIFACTS", None)
         fallback = tmp_path / "fallback_artifacts"
@@ -200,26 +226,19 @@ class TestDirectoryMapping:
         assert resolved.exists()
         assert resolved.is_dir()
 
-    def test_get_artifact_directory_default_temp(
-        self
-    ) -> None:
+    def test_get_artifact_directory_default_temp(self) -> None:
         """get_artifact_directory falls back to system temp when unset."""
         os.environ.pop("COCHEM_ARTIFACTS", None)
 
-        resolved = get_artifact_directory(
-            env_var="COCHEM_ARTIFACTS", fallback_dir=None
-        )
+        resolved = get_artifact_directory(env_var="COCHEM_ARTIFACTS", fallback_dir=None)
         expected_parent = Path(tempfile.gettempdir()).resolve()
-        assert (
-            resolved.parent == expected_parent
-            or str(resolved).startswith(str(expected_parent))
+        assert resolved.parent == expected_parent or str(resolved).startswith(
+            str(expected_parent)
         )
         assert "cochem_artifacts" in resolved.name
         assert resolved.exists()
 
-    def test_get_scratch_directory_from_env(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_scratch_directory_from_env(self, tmp_path: Path) -> None:
         """get_scratch_directory must respect host environment variable."""
         scratch = tmp_path / "fast_scratch"
         os.environ.__setitem__("COCHEM_SCRATCH", str(scratch))
@@ -228,9 +247,7 @@ class TestDirectoryMapping:
         assert resolved == scratch.resolve()
         assert resolved.exists()
 
-    def test_get_scratch_directory_fallback(
-        self
-    ) -> None:
+    def test_get_scratch_directory_fallback(self) -> None:
         """get_scratch_directory creates PID-isolated temp scratch folder."""
         os.environ.pop("COCHEM_SCRATCH", None)
 
@@ -492,7 +509,7 @@ class TestDeterministicCleanup:
     def test_targeted_cleanup_does_not_destroy_unrelated_buffers(
         self, tmp_path: Path
     ) -> None:
-        """Targeted cleanup must only destroy requested targets, leaving active buffers intact."""
+        """Targeted cleanup must retain unrelated live buffers."""
         # Create an active buffer
         buf = create_ipc_scratch_buffer(
             name="persistent_buffer",
@@ -524,10 +541,8 @@ class TestDeterministicCleanup:
         assert buf.is_closed is True
         assert buf not in _ACTIVE_BUFFERS
 
-    def test_buffer_unlink_deregisters_from_global_state(
-        self, tmp_path: Path
-    ) -> None:
-        """Calling unlink on a buffer must remove its references from global tracking sets."""
+    def test_buffer_unlink_deregisters_from_global_state(self, tmp_path: Path) -> None:
+        """Unlink must remove the buffer from every global tracking set."""
         buf = create_ipc_scratch_buffer(
             name="unlink_dereg_test",
             size=256,
@@ -633,9 +648,7 @@ sys.exit(0)
 class TestBootstrapEnvironment:
     """Tests verifying the full bootstrap_environment lifecycle."""
 
-    def test_bootstrap_environment_success(
-        self, tmp_path: Path
-    ) -> None:
+    def test_bootstrap_environment_success(self, tmp_path: Path) -> None:
         """bootstrap_environment resolves paths and registers IPC cleanup."""
         artifacts_dir = tmp_path / "artifacts"
         scratch_dir = tmp_path / "scratch"
@@ -646,16 +659,17 @@ class TestBootstrapEnvironment:
             artifacts_env="COCHEM_ARTIFACTS",
             scratch_env="COCHEM_SCRATCH",
             enforce_airgap=True,
+            fit_provenance_path=source_integrity_receipt(artifacts_dir),
         )
         assert isinstance(config, BootstrapperConfig)
         assert config.artifacts_dir == artifacts_dir.resolve()
         assert config.scratch_dir == scratch_dir.resolve()
         assert config.artifacts_dir.exists()
         assert config.scratch_dir.exists()
+        assert config.provenance_report.dataset_hashes_verified == 1
+        assert config.provenance_report.is_valid
 
-    def test_bootstrap_environment_airgap_failure(
-        self, tmp_path: Path
-    ) -> None:
+    def test_bootstrap_environment_airgap_failure(self, tmp_path: Path) -> None:
         """bootstrap_environment raises AirGapViolationError if artifacts in cwd."""
         repo_cwd = Path.cwd()
         nested_artifacts = repo_cwd / "test_nested_artifacts_violation"
@@ -671,27 +685,37 @@ class TestBootstrapEnvironment:
             if nested_artifacts.exists():
                 nested_artifacts.rmdir()
 
-    def test_bootstrap_environment_no_enforce(
-        self, tmp_path: Path
-    ) -> None:
-        """bootstrap_environment proceeds without error if enforce_airgap=False."""
+    def test_bootstrap_environment_no_enforce(self, tmp_path: Path) -> None:
+        """Disabling filesystem isolation does not disable provenance checks."""
         repo_cwd = Path.cwd()
         nested_artifacts = repo_cwd / "test_nested_artifacts_no_enforce"
         os.environ.__setitem__("COCHEM_ARTIFACTS", str(nested_artifacts))
 
-        config = bootstrap_environment(
-            artifacts_env="COCHEM_ARTIFACTS",
-            enforce_airgap=False,
-        )
-        assert config.artifacts_dir == nested_artifacts.resolve()
-        assert config.enforce_airgap is False
-        if nested_artifacts.exists():
-            nested_artifacts.rmdir()
+        try:
+            with pytest.raises(ProvenanceIntegrityError, match="PROVENANCE VALIDATION"):
+                bootstrap_environment(
+                    artifacts_env="COCHEM_ARTIFACTS",
+                    enforce_airgap=False,
+                )
+        finally:
+            if nested_artifacts.exists():
+                nested_artifacts.rmdir()
+
+    def test_missing_referenced_source_fails_integrity(self, tmp_path: Path) -> None:
+        """An unavailable referenced file cannot count as verified provenance."""
+        receipt = source_integrity_receipt(tmp_path)
+        data = json.loads(receipt.read_text())
+        actual_hash = next(iter(data["dataset_hashes"].values()))
+        data["dataset_hashes"] = {str(tmp_path / "unavailable.toml"): actual_hash}
+        data["sha256"] = compute_provenance_sha256(data)
+        receipt.write_text(json.dumps(data), encoding="utf-8")
+        with pytest.raises(ProvenanceIntegrityError, match="unavailable"):
+            validate_fit_provenance(receipt, enforce_dataset_hashes=True)
 
     def test_bootstrap_environment_tripartite_scratch_inside_artifacts_failure(
         self, tmp_path: Path
     ) -> None:
-        """bootstrap_environment raises AirGapViolationError if scratch is inside artifacts."""
+        """Bootstrap rejects scratch nested inside persistent artifacts."""
         artifacts_dir = tmp_path / "artifacts"
         nested_scratch = artifacts_dir / "nested_scratch"
         os.environ.__setitem__("COCHEM_ARTIFACTS", str(artifacts_dir))
@@ -737,6 +761,6 @@ class TestAirGapRepositoryIntegrity:
             for f in (current_repo_files - initial_repo_files)
             if "__pycache__" not in str(f) and ".pytest_cache" not in str(f)
         }
-        assert (
-            len(new_repo_files) == 0
-        ), f"Unexpected runtime files in repository: {new_repo_files}"
+        assert len(new_repo_files) == 0, (
+            f"Unexpected runtime files in repository: {new_repo_files}"
+        )

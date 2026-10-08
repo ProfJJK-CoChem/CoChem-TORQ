@@ -1,346 +1,216 @@
-# Copyright 2026 CoChem Project Family. All rights reserved.
-# Apache License 2.0
-"""
-Comprehensive Physical Verification Test Suite for CoChem-TORQ chain.py.
-# anti-spoof: zero-stub verification suite
+"""Actual isolated BASE handoff and genuine spectroscopy migration.
 
-Validates:
-1. Physical existence, module import, and Method Matrix v4 §8B / §8C specification compliance.
-2. Dynamic Mendeleev elemental and isotopic mass resolution (CoChem Mendeleev Mandate).
-3. Exact spectroscopic property evaluations (A/B/C in MHz, planar moments, inertial defect, Ray's asymmetry).
-4. Mass-weighted Cartesian Hessian diagonalization and harmonic vibrational frequency analysis (cm^-1).
-5. Method Matrix §8B.5 Dangerous Reuse Rules (D1–D5) adversarial audit engine.
-6. ORCA input deck generation with distinct %base names, MO projection (%moinp), and Hessian seeding (%geom InHess).
-7. Execution of the 11-Arrow Canonical Chained Pipeline with HDF5 persistence (/chain/<stage_name>).
-8. Free Isotopologue Force-Field Re-analysis (§8B.4 Arrow 7) at zero electronic structure cost.
-9. Bash driver script generation (chain.sh) conforming to Method Matrix §8B.4.
-10. Command-line interface execution across all supported modes.
+No ORCA execution or eleven-arrow method-matrix qualification is asserted.
+Static geometry arithmetic and genuine engine Hessians have separate scopes.
 """
 
 from __future__ import annotations
 
-import math
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-import h5py
 import numpy as np
-from mendeleev import element
+import pytest
+from scipy.constants import atomic_mass, h, physical_constants, pi
 
-from Libraries.chain import (
-    CanonicalArrow,
-    Chain,
-    CounterpoiseType,
-    Stage,
-    StateChainingAuditor,
-    analyze_hessian_and_normal_modes,
-    compute_rotational_properties,
-    evaluate_vdw_potential_and_derivatives,
-    get_atomic_mass,
-    get_isotopic_mass,
+from cochem_torq.domain import PrerequisiteError, read_json
+from cochem_torq.spectroscopy.harmonic import analyze_hessian, equilibrium_rotor
+from Libraries.chain import BaseHandoffBridge, LegacyChainUnavailableError
+from Libraries.cochem_isotopes import isotope_mass, isotope_record
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_import_does_not_load_sibling_namespace():
+    program = (
+        "import sys; import Libraries.chain; "
+        "assert not any(name=='cochem_base' or name.startswith('cochem_base.') "
+        "for name in sys.modules)"
+    )
+    process = subprocess.run(
+        [sys.executable, "-B", "-c", program],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert process.returncode == 0, process.stderr
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Chain",
+        "evaluate_vdw_potential_and_derivatives",
+        "analyze_hessian_and_normal_modes",
+    ],
 )
+def test_old_in_process_and_invented_physics_apis_are_explicitly_unavailable(name):
+    import Libraries.chain as chain
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPT_PATH = REPO_ROOT / "Libraries" / "chain.py"
-
-
-def test_chain_file_exists() -> None:
-    """Verify that chain.py exists physically in the CoChem-TORQ Libraries directory."""
-    assert SCRIPT_PATH.exists(), f"chain.py missing at {SCRIPT_PATH}"
-    assert SCRIPT_PATH.is_file(), f"{SCRIPT_PATH} is not a regular file"
+    with pytest.raises(LegacyChainUnavailableError, match="isolated environment"):
+        getattr(chain, name)
 
 
-def test_mendeleev_mass_resolution() -> None:
-    """Verify dynamic elemental and isotopic mass resolution via mendeleev library (Mendeleev Mandate)."""
-    h_mass = get_atomic_mass("H")
-    c_mass = get_atomic_mass("C")
-    o_mass = get_atomic_mass("O")
-    n_mass = get_atomic_mass("N")
-
-    assert math.isclose(h_mass, float(element("H").mass), rel_tol=1e-9)
-    assert math.isclose(c_mass, float(element("C").mass), rel_tol=1e-9)
-    assert math.isclose(o_mass, float(element("O").mass), rel_tol=1e-9)
-    assert math.isclose(n_mass, float(element("N").mass), rel_tol=1e-9)
-
-    # Isotopic mass checks
-    d_mass = get_isotopic_mass("H", 2)
-    c13_mass = get_isotopic_mass("C", 13)
-    o18_mass = get_isotopic_mass("O", 18)
-
-    assert d_mass > h_mass
-    assert c13_mass > c_mass
-    assert o18_mass > o_mass
-
-
-def test_spectroscopic_properties_water_dimer() -> None:
-    """Verify calculation of rotational constants, moments of inertia, and planar moments on (H2O)2."""
-    symbols = ["O", "H", "H", "O", "H", "H"]
-    coords = np.array(
-        [
-            [0.0000000000, 0.0000000000, 0.1171720000],
-            [0.0000000000, 0.7569500000, -0.4686880000],
-            [0.0000000000, -0.7569500000, -0.4686880000],
-            [2.9120000000, 0.0000000000, 0.0000000000],
-            [3.4890000000, 0.7600000000, 0.0000000000],
-            [3.4890000000, -0.7600000000, 0.0000000000],
-        ],
-        dtype=np.float64,
+def test_legacy_script_cannot_emit_force_fallback_success(tmp_path):
+    process = subprocess.run(
+        [sys.executable, "-B", str(ROOT / "Libraries/chain.py"), "--force-fallback"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        timeout=30,
     )
-
-    props = compute_rotational_properties(symbols, coords)
-
-    A, B, C = props["rotational_constants_mhz"]
-    assert A >= B >= C, f"Rotational constants must satisfy A >= B >= C: {A}, {B}, {C}"
-    assert A > 10000.0, f"Water dimer A constant should be > 10 GHz, got {A} MHz"
-    assert B > 2000.0, f"Water dimer B constant should be > 2 GHz, got {B} MHz"
-    assert C > 2000.0, f"Water dimer C constant should be > 2 GHz, got {C} MHz"
-
-    # Planar moments: Paa > Pbb > Pcc
-    Paa, Pbb, Pcc = props["planar_moments_amu_ang2"]
-    assert Paa > 0.0 and Pbb > 0.0 and Pcc >= 0.0
-
-    # Ray's asymmetry parameter: -1 <= kappa <= 1
-    kappa = props["rays_asymmetry_kappa"]
-    assert -1.0 <= kappa <= 1.0, f"Ray's kappa must be in [-1, 1], got {kappa}"
+    assert process.returncode != 0
+    assert "unsupported" in process.stderr
+    assert "SUCCESS" not in process.stdout
+    assert not list(tmp_path.iterdir())
 
 
-def test_hessian_and_normal_mode_analysis() -> None:
-    """Verify mass-weighted Cartesian Hessian diagonalization and harmonic frequency extraction."""
-    symbols = ["O", "H", "H"]
-    coords = np.array(
-        [
-            [0.0, 0.0, 0.117],
-            [0.0, 0.757, -0.469],
-            [0.0, -0.757, -0.469],
-        ],
-        dtype=np.float64,
-    )
-
-    e, g, H = evaluate_vdw_potential_and_derivatives(symbols, coords)
-    assert H.shape == (9, 9)
-
-    freqs, normal_modes, softest_fc = analyze_hessian_and_normal_modes(H, symbols)
-    assert len(freqs) == 9
-    assert normal_modes.shape == (9, 9)
-    assert softest_fc >= 0.0
-
-
-def test_d1_to_d5_integrity_audits() -> None:
-    """Verify Method Matrix §8B.5 Rules D1–D5 audit triggers."""
-    # D1: Stationarity
-    ok_d1_pass, msg_d1_pass = StateChainingAuditor.audit_d1_stationarity(
-        5e-6, tol_max_g=1e-5
-    )
-    assert ok_d1_pass is True
-    ok_d1_fail, msg_d1_fail = StateChainingAuditor.audit_d1_stationarity(
-        5e-4, tol_max_g=1e-5
-    )
-    assert ok_d1_fail is False
-
-    # D2: Hessian transfer
-    freqs_clean = [30.0, 85.0, 150.0, 500.0, 1600.0, 3600.0]
-    ok_d2_pass, _ = StateChainingAuditor.audit_d2_hessian_transfer(freqs_clean)
-    assert ok_d2_pass is True
-
-    freqs_imag = [-45.0, 85.0, 150.0, 500.0, 1600.0, 3600.0]
-    ok_d2_fail, msg_d2_fail = StateChainingAuditor.audit_d2_hessian_transfer(freqs_imag)
-    assert ok_d2_fail is False
-    assert "Imaginary modes count: 1" in msg_d2_fail
-
-    # D3: SCF stability
-    ok_d3_pass, _ = StateChainingAuditor.audit_d3_scf_stability(
-        -152.0000001, -152.00000015, tol_e=1e-7
-    )
-    assert ok_d3_pass is True
-    ok_d3_fail, _ = StateChainingAuditor.audit_d3_scf_stability(
-        -152.0000001, -152.0001, tol_e=1e-7
-    )
-    assert ok_d3_fail is False
-
-    # D4: Counterpoise hygiene
-    ok_d4_pass, _ = StateChainingAuditor.audit_d4_counterpoise_hygiene(
-        "s_mono", CounterpoiseType.MONOMER_A, None
-    )
-    assert ok_d4_pass is True
-    ok_d4_fail, _ = StateChainingAuditor.audit_d4_counterpoise_hygiene(
-        "s_mono", CounterpoiseType.MONOMER_A, "s_dimer"
-    )
-    assert ok_d4_fail is False
-
-    # D5: Naming hygiene
-    ok_d5_pass, _ = StateChainingAuditor.audit_d5_naming_hygiene("s3", "s2")
-    assert ok_d5_pass is True
-    ok_d5_fail, _ = StateChainingAuditor.audit_d5_naming_hygiene("s2", "s2")
-    assert ok_d5_fail is False
-
-
-def test_orca_input_builder(tmp_path: Path) -> None:
-    """Verify construction of ORCA input deck with distinct %base, %moinp, and %geom InHess."""
-    c = Chain(
-        workdir=tmp_path / "test_chain", h5_path="test.h5", nproc=8, maxcore_mb=3000
-    )
-
-    st = Stage(
-        name="s3",
-        arrow=CanonicalArrow.ARROW_4_WB97X_V_TZ_OPT,
-        level="wB97X-V def2-TZVPP TightOpt TightSCF DefGrid3",
-        geom_from="s2",
-        mo_from="s2",
-        hess_from="s2",
-    )
-
-    inp = c.build_orca_input(st, "s2.xyz")
-    assert "! wB97X-V def2-TZVPP TightOpt TightSCF DefGrid3 MORead" in inp
-    assert '%base "s3"' in inp
-    assert '%moinp "s2.gbw"' in inp
-    assert "%pal nprocs 8 end" in inp
-    assert "%maxcore 3000" in inp
-    assert "%geom" in inp
-    assert "InHess" in inp
-    assert "* xyzfile 0 1 s2.xyz" in inp
-
-
-def test_canonical_pipeline_and_hdf5_persistence(tmp_path: Path) -> None:
-    """Verify execution of the 11-Arrow Canonical Chained Pipeline and HDF5 persistence."""
-    workdir = tmp_path / "canonical_run"
-    h5_file = "test_campaign.h5"
-
-    seed_xyz = workdir / "water_dimer.xyz"
-    workdir.mkdir(parents=True, exist_ok=True)
-    water_dimer_xyz = (
-        "6\n"
-        "Water dimer seed\n"
-        "O   0.0000000000   0.0000000000   0.1171720000\n"
-        "H   0.0000000000   0.7569500000  -0.4686880000\n"
-        "H   0.0000000000  -0.7569500000  -0.4686880000\n"
-        "O   2.9120000000   0.0000000000   0.0000000000\n"
-        "H   3.4890000000   0.7600000000   0.0000000000\n"
-        "H   3.4890000000  -0.7600000000   0.0000000000\n"
-    )
-    seed_xyz.write_text(water_dimer_xyz, encoding="utf-8")
-
-    c = Chain(workdir=workdir, h5_path=h5_file, nproc=7, maxcore_mb=3400)
-
-    # Run pipeline up to stage 5 (Analytic Hessian)
-    results = c.run_canonical_pipeline(
-        seed_xyz=seed_xyz,
-        target_arrow=CanonicalArrow.ARROW_6_ANALYTIC_DFT_HESS,
-        force_fallback=True,
-    )
-
-    assert "s2" in results
-    assert "s3" in results
-    assert "s4" in results
-    assert "s5" in results
-
-    for _name, res in results.items():
-        assert res.converged is True
-        assert res.energy_hartree is not None
-        assert res.geometry.shape == (6, 3)
-
-    # Verify HDF5 store contents
-    h5_full_path = workdir / h5_file
-    assert h5_full_path.is_file()
-
-    with h5py.File(h5_full_path, "r") as f:
-        assert "chain" in f
-        assert "chain/s2" in f
-        assert "chain/s3" in f
-        assert "chain/s4" in f
-        assert "chain/s5" in f
-
-        grp_s5 = f["chain/s5"]
-        assert "geometry" in grp_s5
-        assert "hessian" in grp_s5
-        assert grp_s5["hessian"].shape == (18, 18)
-        assert bool(grp_s5.attrs["converged"]) is True
-
-
-def test_isotopologue_sweep(tmp_path: Path) -> None:
-    """Verify Method Matrix §8B.4 Arrow 7: Free Isotopologue Force Field Re-analysis."""
-    workdir = tmp_path / "iso_run"
-    workdir.mkdir(parents=True, exist_ok=True)
-    seed_xyz = workdir / "seed.xyz"
-    water_dimer_xyz = (
-        "6\n"
-        "Water dimer seed\n"
-        "O   0.0000000000   0.0000000000   0.1171720000\n"
-        "H   0.0000000000   0.7569500000  -0.4686880000\n"
-        "H   0.0000000000  -0.7569500000  -0.4686880000\n"
-        "O   2.9120000000   0.0000000000   0.0000000000\n"
-        "H   3.4890000000   0.7600000000   0.0000000000\n"
-        "H   3.4890000000  -0.7600000000   0.0000000000\n"
-    )
-    seed_xyz.write_text(water_dimer_xyz, encoding="utf-8")
-
-    c = Chain(workdir=workdir, h5_path="iso_test.h5")
-    c.run_canonical_pipeline(
-        seed_xyz=seed_xyz,
-        target_arrow=CanonicalArrow.ARROW_6_ANALYTIC_DFT_HESS,
-        force_fallback=True,
-    )
-
-    # Run free isotopologue re-analysis
-    iso_results = c.run_isotopologue_sweep(parent_stage_name="s5")
-    assert len(iso_results) >= 3
-
-    parent_res = next(r for r in iso_results if r.isotopologue_id == "Parent")
-    d_mono_res = next(r for r in iso_results if r.isotopologue_id == "D_mono")
-
-    # Deuteration must lower rotational constants and zero-point energy
+def test_isotope_mass_policy_is_explicit_and_reproducible():
+    hydrogen, deuterium = isotope_record("1H"), isotope_record("2H")
+    assert hydrogen["mass_number"] == 1 and deuterium["mass_number"] == 2
+    assert hydrogen["selection_policy"] == "explicit_mass_number"
     assert (
-        d_mono_res.rotational_constants_mhz[0] < parent_res.rotational_constants_mhz[0]
+        hydrogen["source"]["database_sha256"] == deuterium["source"]["database_sha256"]
     )
-    assert d_mono_res.zero_point_energy_hartree < parent_res.zero_point_energy_hartree
+    assert isotope_mass("2H") > isotope_mass("1H")
+    assert isotope_mass("13C") > isotope_mass("12C")
 
 
-def test_generate_shell_script(tmp_path: Path) -> None:
-    """Verify generation of canonical bash driver script chain.sh."""
-    c = Chain(workdir=tmp_path / "script_test", nproc=8, maxcore_mb=3200)
-    script_str = c.generate_shell_script(
-        seed_xyz_path="dimer.xyz", out_script_path="chain.sh"
+def test_explicit_diatomic_inertia_matches_independent_formula_and_isotope_shift():
+    length_bohr = 1.4
+    coordinates = np.array([[0.0, 0.0, -length_bohr / 2], [0.0, 0.0, length_bohr / 2]])
+    mass = isotope_mass("1H")
+    rotor = equilibrium_rotor(coordinates, [mass, mass])
+    expected_moment = mass * length_bohr**2 / 2
+    bohr = physical_constants["Bohr radius"][0]
+    expected_mhz = h / (8 * pi**2 * atomic_mass * bohr**2 * expected_moment * 1e6)
+    assert rotor.rotor_type == "linear" and rotor.constants_mhz[0] is None
+    np.testing.assert_allclose(rotor.constants_mhz[1:], expected_mhz, rtol=1e-12)
+    heavier = equilibrium_rotor(coordinates, [isotope_mass("2H")] * 2)
+    assert heavier.constants_mhz[1] < rotor.constants_mhz[1]
+    assert rotor.observable == "Be"
+
+
+def test_missing_provider_fails_before_any_execution(tmp_path):
+    bridge = BaseHandoffBridge(
+        tmp_path / "missing-modules", ROOT / "ci_tools/ecosystem-modules.json"
     )
-
-    assert "#!/usr/bin/env bash" in script_str
-    assert "chain.sh -- canonical vdW-complex state-chaining pipeline" in script_str
-    assert '%base "s2"' in script_str
-    assert '%base "s3"' in script_str
-    assert '%moinp "s2.gbw"' in script_str
-    assert "%geom" in script_str
-    assert (c.workdir / "chain.sh").is_file()
+    with pytest.raises(PrerequisiteError, match="missing or changed"):
+        bridge.verify(tmp_path / "new-package")
+    assert not list(tmp_path.iterdir())
 
 
-def test_cli_execution(tmp_path: Path) -> None:
-    """Verify CLI interface execution via subprocess."""
-    workdir = tmp_path / "cli_test"
-    workdir.mkdir(parents=True, exist_ok=True)
-    seed_xyz = workdir / "seed.xyz"
-    water_dimer_xyz = (
-        "6\n"
-        "Water dimer seed\n"
-        "O   0.0000000000   0.0000000000   0.1171720000\n"
-        "H   0.0000000000   0.7569500000  -0.4686880000\n"
-        "H   0.0000000000  -0.7569500000  -0.4686880000\n"
-        "O   2.9120000000   0.0000000000   0.0000000000\n"
-        "H   3.4890000000   0.7600000000   0.0000000000\n"
-        "H   3.4890000000  -0.7600000000   0.0000000000\n"
+@pytest.fixture(scope="module")
+def isolated_base_bridge():
+    configured = os.environ.get("COCHEM_MODULE_ROOT")
+    if not configured:
+        pytest.fail(
+            "Set COCHEM_MODULE_ROOT to a real verified isolated BASE installation; "
+            "this integration cannot be qualified without it."
+        )
+    return BaseHandoffBridge(configured)
+
+
+@pytest.mark.ecosystem
+def test_actual_base_producer_runs_isolated_and_preserves_pending_geometry(
+    isolated_base_bridge, tmp_path
+):
+    seed = tmp_path / "input.xyz"
+    seed.write_text(
+        "2\nExplicit geometry only; no calculated energy\nH 0 0 -0.37\nH 0 0 0.37\n"
     )
-    seed_xyz.write_text(water_dimer_xyz, encoding="utf-8")
+    package = tmp_path / "actual-base-package"
+    record = isolated_base_bridge.prepare_geometry(
+        seed,
+        package,
+        molecule_id="geometry-h2",
+        charge=0,
+        multiplicity=1,
+        atom_ids=["h-a", "h-b"],
+    )
+    observed = read_json(package / "handoff.json")
+    assert observed["scientific_execution_performed"] is False
+    assert observed["status"] == "pending_integration"
+    assert record.energy is None and record.source_convergence == "unknown"
+    assert record.molecule.charge == 0 and record.molecule.multiplicity == 1
+    assert [atom.atom_id for atom in record.molecule.atoms] == ["h-a", "h-b"]
+    assert observed["options"]["atoms"][0]["atom_id"] == "h-a"
+    assert (
+        record.source.repository_revision == "1a3c633f6cb0c6256223298ed95d71196ffc3689"
+    )
+    assert read_json(package / "torq-conformer.json")["energy"] is None
+    assert (package / "artifact.xyz").read_bytes() == seed.read_bytes()
+    with pytest.raises(FileExistsError):
+        isolated_base_bridge.prepare_geometry(
+            seed,
+            package,
+            molecule_id="geometry-h2",
+            charge=0,
+            multiplicity=1,
+            atom_ids=["h-a", "h-b"],
+        )
 
-    cmd = [
-        sys.executable,
-        str(SCRIPT_PATH),
-        "--seed",
-        str(seed_xyz),
-        "--workdir",
-        str(workdir),
-        "--target-arrow",
-        "3",
-        "--force-fallback",
-        "--json-summary",
-    ]
 
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    assert res.returncode == 0
-    assert "[SUCCESS] Chaining completed." in res.stdout
+@pytest.mark.ecosystem
+def test_invalid_explicit_state_never_starts_provider(isolated_base_bridge, tmp_path):
+    seed = tmp_path / "input.xyz"
+    seed.write_text("2\nGeometry only\nH 0 0 -0.37\nH 0 0 0.37\n")
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="parity"):
+        isolated_base_bridge.prepare_geometry(
+            seed,
+            tmp_path / "bad-state",
+            molecule_id="h2",
+            charge=0,
+            multiplicity=2,
+            atom_ids=["a", "b"],
+        )
+    assert not (tmp_path / "bad-state").exists()
+
+
+@pytest.fixture(scope="module")
+def actual_water(tmp_path_factory):
+    from cochem_torq.application import execute_request
+    from cochem_torq.artifacts import verify_shard
+
+    request = read_json(ROOT / "examples/student/water-hf-teaching.json")
+    request["resources"]["cores"] = 1
+    destination = tmp_path_factory.mktemp("actual-chain-migration") / "water"
+    result = execute_request(request, destination)
+    assert result["status"] == "complete", result["errors"]
+    verify_shard(destination)
+    return result
+
+
+@pytest.mark.real_engine
+def test_genuine_water_hessian_has_three_internal_modes_and_isotope_reanalysis(
+    actual_water,
+):
+    native = actual_water["harmonic_native_result"]
+    geometry = native["geometry_bohr"]
+    masses = [isotope_mass("16O"), isotope_mass("1H"), isotope_mass("1H")]
+    hessian = native["hessian_hartree_bohr2"]
+    parent = analyze_hessian(geometry, masses, hessian)
+    heavier = analyze_hessian(
+        geometry, [masses[0], isotope_mass("2H"), isotope_mass("2H")], hessian
+    )
+    assert parent.external_rank == 6 and len(parent.frequencies_cm1) == 3
+    assert parent.cartesian_modes.shape == (9, 3)
+    assert parent.stationary_character == "positive_definite_vibrational_hessian"
+    assert np.all(parent.frequencies_cm1 > 0)
+    assert heavier.harmonic_zpe_hartree < parent.harmonic_zpe_hartree
+    light_rotor = equilibrium_rotor(geometry, masses)
+    heavy_rotor = equilibrium_rotor(
+        geometry, [masses[0], isotope_mass("2H"), isotope_mass("2H")]
+    )
+    assert all(
+        a < b
+        for a, b in zip(
+            heavy_rotor.constants_mhz, light_rotor.constants_mhz, strict=True
+        )
+    )
+    assert actual_water["experimental_accuracy_established"] is False
+    assert actual_water["identification_ready"] is False

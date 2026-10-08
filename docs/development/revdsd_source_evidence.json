@@ -1,0 +1,57 @@
+{
+  "corroborated_secondary_candidate": {
+    "exact_exchange_fraction": 0.69,
+    "frozen_core": "unreconciled_with_primary_source",
+    "native_independent_components": "unavailable",
+    "opposite_spin_pt2_scale": 0.5922,
+    "orbital_generating_definition": "unreconciled_with_primary_source",
+    "p86_correlation_fraction": 0.421,
+    "p86_variant": "unresolved",
+    "pbe_exchange_fraction": 0.31,
+    "qualification": "not_an_accepted_recipe",
+    "same_spin_pt2_scale": 0.0636
+  },
+  "independent_native_reference_bundle_available": false,
+  "named_recipe_activation": "blocked",
+  "original_publication_doi": "10.1021/acs.jpca.9b03157",
+  "primary_article_and_SI_retrieved": false,
+  "remaining_gates": [
+    "Reconcile original article/SI and any 2019/2021 identity difference",
+    "Resolve prescribed orbital-generating functional and P86/FT/VWN mapping",
+    "Fix exact published core/active-orbital convention",
+    "Obtain matched independently implemented native molecular energies/components and raw artifacts",
+    "Accept derivative milestones independently; numerical consistency is not analytic response validation"
+  ],
+  "reviewed_on_utc": "2026-10-08",
+  "schema_version": "cochem.torq.revdsd-source-evidence/1",
+  "sources": [
+    {
+      "establishes": "secondary ORCA input template; no native output or primary SI",
+      "evidence_class": "secondary_software_source",
+      "retained_file": "rev-DSD-PBEP86_D4_sp.sh",
+      "sha256": "f51087269c7cf14ed11a0515365da85f8685a4a6f8d328059ae3e41f3a5bcfbc",
+      "url": "https://github.com/baaam24/gellrich_scripts/blob/110278967f64ad6b19be469a9e60804726d35308/custom_2input/rev-DSD-PBEP86_D4_sp.sh"
+    },
+    {
+      "establishes": "secondary semilocal implementation claiming original Table 4; molecular PT2/orbital/core validation absent",
+      "evidence_class": "secondary_software_source",
+      "retained_file": "hybrids.rs",
+      "sha256": "843717c0f8786ab22ab0c607ef3f892d00ecc2445219727b7f34354d7c7b7a88",
+      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/functionals/hybrids.rs"
+    },
+    {
+      "establishes": "secondary OS/SS coefficient metadata; not an independent native molecular result",
+      "evidence_class": "secondary_software_source",
+      "retained_file": "func.rs",
+      "sha256": "0811186e5d6e23ddcdd210517edcb85547c5a96c2a159073f01b98c783e21d11",
+      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/func.rs"
+    },
+    {
+      "establishes": "semilocal reference generation from LibXC mixtures; does not establish complete revDSD recipe or independent-engine agreement",
+      "evidence_class": "secondary_software_source",
+      "retained_file": "gen_golden.rs",
+      "sha256": "0248b87d0e9d597b6ce033af0ac872977f47d57ae28ad92039791dfa371aeeff",
+      "url": "https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx-validation/src/bin/gen_golden.rs"
+    }
+  ]
+}

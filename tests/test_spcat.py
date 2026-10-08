@@ -7,10 +7,12 @@ import numpy as np
 import pytest
 
 from Libraries.cochem_spcat_bridge import (
+    _MOLSYM_AVAILABLE,
     CONSTANTS,
     AirGapViolationError,
     FortranOverflowError,
     LAMTriggerError,
+    SPCATBridgeError,
     TorqSpcatBridge,
     apply_symmetry_divisors,
     build_complete_spcat_payload,
@@ -155,30 +157,42 @@ def test_low_frequency_lam_trap_enforcement() -> None:
     assert stiff == [1500.0, 3600.0]
 
 
-def test_apply_symmetry_divisors_water() -> None:
-    """Verify symmetry and spin weights for water (C2v, sigma=2, '3 1')."""
-    res = apply_symmetry_divisors(H2O_GEOMETRY, H2O_SYMBOLS)
-    assert res.point_group == "C2v"
-    assert res.sigma == 2
-    assert res.spin_weight_ratio_str == "3 1"
-    assert res.effective_divisor == 2.0
+@pytest.mark.parametrize(
+    "geometry,symbols,point_group,sigma",
+    [
+        (H2O_GEOMETRY, H2O_SYMBOLS, "C2v", 2),
+        (NH3_GEOMETRY, NH3_SYMBOLS, "C3v", 3),
+        (C2H4_GEOMETRY, C2H4_SYMBOLS, "D2h", 4),
+    ],
+)
+def test_symmetry_requires_a_real_solver_and_never_guesses_spin_weights(
+    geometry, symbols, point_group, sigma
+) -> None:
+    """Exercise the installed solver, or the explicit missing-solver boundary."""
+    if _MOLSYM_AVAILABLE:
+        result = apply_symmetry_divisors(geometry, symbols)
+        assert result.point_group == point_group
+        assert result.sigma == sigma
+        assert result.spin_statistical_weights is None
+        assert result.spin_weight_ratio_str is None
+        assert result.effective_divisor == sigma
+    else:
+        with pytest.raises(SPCATBridgeError, match="validated point-group solver"):
+            apply_symmetry_divisors(geometry, symbols)
 
 
-def test_apply_symmetry_divisors_ammonia_and_ethylene() -> None:
-    """Verify symmetry and spin weights for NH3 and C2H4."""
-    res_nh3 = apply_symmetry_divisors(NH3_GEOMETRY, NH3_SYMBOLS)
-    assert res_nh3.point_group == "C3v"
-    assert res_nh3.sigma == 3
-    assert res_nh3.spin_weight_ratio_str == "2 1"
+def test_nuclear_spin_weights_require_a_state_resolved_model() -> None:
+    with pytest.raises(SPCATBridgeError, match="state-resolved isotope/permutation"):
+        apply_symmetry_divisors(H2O_GEOMETRY, H2O_SYMBOLS, use_nuclear_spin=True)
 
-    res_c2h4 = apply_symmetry_divisors(C2H4_GEOMETRY, C2H4_SYMBOLS)
-    assert res_c2h4.point_group == "D2h"
-    assert res_c2h4.sigma == 4
 
-    # Nuclear spin flag sets effective divisor to 1.0 to avoid double counting
-    res_spin = apply_symmetry_divisors(H2O_GEOMETRY, H2O_SYMBOLS, use_nuclear_spin=True)
-    assert res_spin.effective_divisor == 1.0
-    assert "EXACT_NUCLEAR_SPIN_APPLIED" in res_spin.guardrail_status
+def model_rotor_partitions(temperatures):
+    """Finite exact sum over declared free-rotor E_m=m² cm⁻¹ model states."""
+    energies = np.arange(-100, 101, dtype=float) ** 2
+    return {
+        temperature: float(np.exp(-CONSTANTS.HC_OVER_KB * energies / temperature).sum())
+        for temperature in temperatures
+    }
 
 
 def test_vibrational_partition_coupling_with_lam_drop() -> None:
@@ -186,11 +200,12 @@ def test_vibrational_partition_coupling_with_lam_drop() -> None:
     temps = [2.0, 10.0, 50.0, 298.15]
     all_freqs = [3100.0, 1500.0, 105.0, 24.5]
     lam_mode = 24.5
-    q_rot_dvr = {2.0: 1.05, 10.0: 4.8, 50.0: 35.2, 298.15: 185.0}
+    q_rot_dvr = model_rotor_partitions(temps)
 
     q_coupled = vibrational_partition_coupling(
         q_rot_dvr=q_rot_dvr,
-        q_vib_orca=all_freqs,
+        q_vib_orca=None,
+        all_frequencies=all_freqs,
         temp_array=temps,
         lam_frequency=lam_mode,
     )
@@ -224,24 +239,20 @@ def test_fortran_overflow_guard_and_formatter() -> None:
     assert "D-04" in single_fmt
 
 
-def test_generate_spcat_var_and_int(tmp_path: Path) -> None:
-    """Verify generation of .var and .int files."""
-    var_file = tmp_path / "scratch" / "test.var"
-    var_content = generate_spcat_var(
-        "H2O", {"A": 825360.0, "B": 435360.0, "C": 278130.0}, filepath=var_file
-    )
-    assert var_file.exists()
-    assert "H2O Ground State" in var_content
-
-    int_file = tmp_path / "scratch" / "test_{T}K.int"
-    int_dict = generate_spcat_int(
-        "H2O",
-        {"mu_a": 0.0, "mu_b": 1.85, "mu_c": 0.0},
-        temperatures=[298.15],
-        filepath_template=int_file,
-    )
-    assert 298.15 in int_dict
-    assert (tmp_path / "scratch" / "test_298.1K.int").exists()
+def test_unqualified_spcat_writers_create_no_native_decks(tmp_path: Path) -> None:
+    """No program defaults may fabricate ground-state/distortion/intensity data."""
+    constants = calculate_rotational_constants_from_geometry(H2O_GEOMETRY, H2O_SYMBOLS)
+    var_path = tmp_path / "scratch" / "unqualified.var"
+    with pytest.raises(NotImplementedError, match="unqualified"):
+        generate_spcat_var("declared geometry", constants, filepath=var_path)
+    with pytest.raises(NotImplementedError, match="unqualified"):
+        generate_spcat_int(
+            "declared geometry",
+            None,
+            temperatures=[298.15],
+            filepath_template=tmp_path / "scratch" / "unqualified_{T}.int",
+        )
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_3tier_routing_protocol() -> None:
@@ -263,51 +274,51 @@ def test_3tier_routing_protocol() -> None:
         route_3tier_abinitio_payload()
 
 
-def test_build_complete_spcat_payload_and_manifest(tmp_path: Path) -> None:
-    """Verify build_complete_spcat_payload creates verified files and cryptographic manifest."""
-    out_dir = tmp_path / "scratch" / "spcat_out"
-    payload = build_complete_spcat_payload(
-        molecule_name="Water",
-        geometry=H2O_GEOMETRY,
-        symbols=H2O_SYMBOLS,
-        rotational_constants_mhz={"A": 825360.0, "B": 435360.0, "C": 278130.0},
-        dipoles_debye={"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.854},
-        harmonic_frequencies_cm1=[1595.0, 3657.0, 3756.0],
-        temperatures=[2.0, 10.0, 298.15],
-        output_dir=out_dir,
-    )
-
-    assert payload.molecule_name == "Water"
-    assert len(payload.sha256_var) == 64
-    assert len(payload.sha256_int) == 3
-    assert Path(payload.var_filepath).exists()
-    assert Path(payload.provenance_filepath).exists()
+@pytest.mark.parametrize("spin,lam", [(False, None), (True, None), (False, 32.0)])
+def test_unqualified_complete_spcat_payload_creates_no_manifest(tmp_path, spin, lam):
+    """Flags cannot bypass missing native deck conventions or fabricate a catalog."""
+    destination = tmp_path / "unqualified-native-decks"
+    constants = calculate_rotational_constants_from_geometry(H2O_GEOMETRY, H2O_SYMBOLS)
+    with pytest.raises(NotImplementedError, match="validated parameter, intensity"):
+        build_complete_spcat_payload(
+            molecule_name="declared geometry",
+            geometry=H2O_GEOMETRY,
+            symbols=H2O_SYMBOLS,
+            rotational_constants_mhz=constants,
+            dipoles_debye=None,
+            harmonic_frequencies_cm1=None,
+            use_nuclear_spin=spin,
+            lam_frequency=lam,
+            output_dir=destination,
+        )
+    assert not destination.exists()
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_mendeleev_dynamic_mass_retrieval() -> None:
-    """Verify dynamic IUPAC atomic mass and isotopic mass retrieval via Mendeleev library."""
-    m_c = get_atomic_mass("C")
-    assert abs(m_c - 12.011) < 0.01
+    """Bare elements select one isotopologue, not a natural-abundance mixture mass."""
+    from mendeleev import element
 
-    m_h = get_atomic_mass("H")
-    assert abs(m_h - 1.008) < 0.01
-
-    m_o = get_atomic_mass("O")
-    assert abs(m_o - 15.999) < 0.01
-
-    # Isotopes
-    m_13c = get_atomic_mass("13C")
-    assert abs(m_13c - 13.00335) < 0.001
-
-    m_18o = get_atomic_mass("18O")
-    assert abs(m_18o - 17.99916) < 0.001
-
-    m_d = get_atomic_mass("D")
-    assert abs(m_d - 2.01410) < 0.001
-
-    m_2h = get_atomic_mass("2H")
-    assert abs(m_2h - 2.01410) < 0.001
-
+    for symbol in ("C", "H", "O"):
+        candidates = [
+            isotope
+            for isotope in element(symbol).isotopes
+            if isotope.abundance is not None
+        ]
+        actual_default = max(candidates, key=lambda isotope: isotope.abundance)
+        assert get_atomic_mass(symbol) == float(actual_default.mass)
+    for symbol, number, alias in [
+        ("C", 13, "13C"),
+        ("O", 18, "18O"),
+        ("H", 2, "D"),
+        ("H", 2, "2H"),
+    ]:
+        actual = next(
+            isotope
+            for isotope in element(symbol).isotopes
+            if isotope.mass_number == number
+        )
+        assert get_atomic_mass(alias) == float(actual.mass)
     with pytest.raises(ValueError):
         get_atomic_mass("???")
 
@@ -336,11 +347,12 @@ def test_multi_rotor_lam_dropping() -> None:
     temps = [2.0, 10.0, 50.0, 298.15]
     all_freqs = [3100.0, 1500.0, 105.0, 38.0, 24.5]
     lam_modes = [24.5, 38.0]
-    q_rot_dvr = {2.0: 1.05, 10.0: 4.8, 50.0: 35.2, 298.15: 185.0}
+    q_rot_dvr = model_rotor_partitions(temps)
 
     q_coupled = vibrational_partition_coupling(
         q_rot_dvr=q_rot_dvr,
-        q_vib_orca=all_freqs,
+        q_vib_orca=None,
+        all_frequencies=all_freqs,
         temp_array=temps,
         lam_frequency=lam_modes,
     )
@@ -352,36 +364,14 @@ def test_multi_rotor_lam_dropping() -> None:
     assert math.isclose(q_coupled[298.15], expected, rel_tol=1e-6)
 
 
-def test_build_complete_spcat_payload_traps_lam() -> None:
-    """Verify build_complete_spcat_payload raises LAMTriggerError when modes < 50 cm^-1 are unhandled."""
-    with pytest.raises(LAMTriggerError) as exc_info:
-        build_complete_spcat_payload(
-            molecule_name="FluxionalMolecule",
-            geometry=H2O_GEOMETRY,
-            symbols=H2O_SYMBOLS,
-            rotational_constants_mhz={"A": 825360.0, "B": 435360.0, "C": 278130.0},
-            dipoles_debye={"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.854},
-            harmonic_frequencies_cm1=[3600.0, 1500.0, 32.0],
-            lam_frequency=None,
+def test_partition_mode_replacement_requires_explicit_frequency_quantity() -> None:
+    with pytest.raises(ValueError, match="explicit all_frequencies"):
+        vibrational_partition_coupling(
+            q_rot_dvr={298.15: 1.0},
+            q_vib_orca=[32.0],
+            temp_array=[298.15],
+            lam_frequency=32.0,
         )
-    assert 32.0 in exc_info.value.details["flagged_frequencies"]
-
-
-def test_build_complete_spcat_payload_nuclear_spin(tmp_path: Path) -> None:
-    """Verify build_complete_spcat_payload respects use_nuclear_spin flag and double counting guardrail."""
-    out_dir = tmp_path / "scratch" / "spcat_spin"
-    payload = build_complete_spcat_payload(
-        molecule_name="WaterSpin",
-        geometry=H2O_GEOMETRY,
-        symbols=H2O_SYMBOLS,
-        rotational_constants_mhz={"A": 825360.0, "B": 435360.0, "C": 278130.0},
-        dipoles_debye={"mu_a": 0.0, "mu_b": 0.0, "mu_c": 1.854},
-        harmonic_frequencies_cm1=[1595.0, 3657.0, 3756.0],
-        temperatures=[298.15],
-        use_nuclear_spin=True,
-        output_dir=out_dir,
-    )
-    assert payload.provenance_manifest["symmetry"]["effective_divisor"] == 1.0
 
 
 def test_airgap_violation_enforcement() -> None:
@@ -396,18 +386,10 @@ def test_airgap_violation_enforcement() -> None:
         validate_airgap_boundary(repo_root)
 
 
-def test_fortran_fixed_header_and_precision_clamp() -> None:
-    """Verify strict 4I5 control line header alignment and 22-column precision clamping."""
-    var_content = generate_spcat_var(
-        "H2O", {"A": 825360.0, "B": 435360.0, "C": 278130.0}
-    )
-    lines = var_content.splitlines()
-    control_line = lines[1]
-    # Control line should have exactly 4 leading fields of width 5 (4I5)
-    # NPAR = 3 -> '    3', NLINE = 100 -> '  100', NOPT = 0 -> '    0', NWARN = 0 -> '    0'
-    assert control_line[:20] == "    3  100    0    0"
-
-    # Extreme exponent formatted double should never exceed 22 columns
-    clamped_str = format_fortran_double(-1.0e-105, width=22, precision=15)
-    assert len(clamped_str) == 22
-    assert clamped_str.strip() == "-1.00000000000000D-105"
+def test_fortran_precision_guard_rejects_unrepresentable_fields() -> None:
+    """Formatting a declared number is allowed; silently truncating it is not."""
+    clamped = format_fortran_double(-1.0e-105, width=22, precision=15)
+    assert len(clamped) == 22
+    assert float(clamped.replace("D", "E")) == -1.0e-105
+    with pytest.raises(FortranOverflowError):
+        format_fortran_double(-1.0e-105, width=4, precision=15)

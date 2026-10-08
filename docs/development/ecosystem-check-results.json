@@ -6,21 +6,53 @@
   "checks_passed": 33,
   "checks_skipped": 0,
   "execution_batches": [
-    {"scope": "forward handoffs and strict schema checks", "passed": 31, "duration_seconds": 47.43},
-    {"scope": "genuine TORQ H2 calculation, reverse BASE consumer, damaged-copy rejection", "passed": 2, "duration_seconds": 6.47}
+    {
+      "scope": "forward handoffs and strict schema checks",
+      "passed": 31,
+      "duration_seconds": 47.43
+    },
+    {
+      "scope": "genuine TORQ H2 calculation, reverse BASE consumer, damaged-copy rejection",
+      "passed": 2,
+      "duration_seconds": 6.47
+    }
   ],
   "sources": {
     "base": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
     "topos": "6a01b0f2adb7cff02edda6e339facf3d6f93904d"
   },
   "installation_mode": "separate verified sibling environments, source imports with bytecode disabled",
-  "engine_evidence": {"engine": "PySCF", "version": "2.14.0", "optimizer": "geomeTRIC", "optimizer_version": "1.1.1", "method": "restricted HF / STO-3G", "molecule": "H2"},
-  "static_checks": {"ruff": "passed", "targeted_mypy_python_3_12": "passed"},
+  "engine_evidence": {
+    "engine": "PySCF",
+    "version": "2.14.0",
+    "optimizer": "geomeTRIC",
+    "optimizer_version": "1.1.1",
+    "method": "restricted HF / STO-3G",
+    "molecule": "H2"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "targeted_mypy_python_3_12": "passed"
+  },
   "scientific_scope": "file, state, recipe and source-integrity interoperability plus bounded genuine teaching calculation",
   "scientific_accuracy_calibrated": false,
   "known_upstream_gaps": [
     "BASE legacy queue lacks fenced worker completion; TORQ uses its standalone fenced coordinator",
-    "BASE upstream module lock must be updated and requalified for the newly published TORQ revision",
+    "BASE companion reviewed pin/integration passed at the recorded TORQ commit; default-branch activation and a new reviewed pin for subsequent source changes remain required.",
     "TOPOS serializer omits state, atom mapping, units, recipe and convergence; explicit external metadata is required"
-  ]
+  ],
+  "latest_hosted_observation": {
+    "run_id": 37701912649,
+    "source_commit": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+    "status": "success",
+    "scope": "Actual mandatory sibling producer/consumer and interface steps passed; hosted JUnit bytes remain undownloaded due network redirect policy.",
+    "evidence_file": "hosted-actions-check-results.json"
+  },
+  "base_companion_observation": {
+    "run_id": 37702143257,
+    "base_revision": "8bd9925902e0771383c7fa1ade5296a630877b69",
+    "pinned_torq_revision": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+    "status": "success",
+    "default_branch_activation_performed": false
+  }
 }

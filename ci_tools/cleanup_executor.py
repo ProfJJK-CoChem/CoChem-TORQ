@@ -17,21 +17,41 @@ Actions by verdict:
 
 import argparse
 import json
-import os
 import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List
 
 
 def load_manifests(manifest_dir: Path) -> list[dict]:
-    """Load all triage manifests from the output directory."""
+    """Load a single manifest or sorted manifests from a directory."""
     manifests = []
-    for f in sorted(manifest_dir.glob("*_triage_manifest.json")):
-        with open(f, "r", encoding="utf-8") as fh:
-            manifests.append(json.load(fh))
+    paths = (
+        [manifest_dir]
+        if manifest_dir.is_file()
+        else sorted(manifest_dir.glob("*_triage_manifest.json"))
+    )
+    for f in paths:
+        with open(f, encoding="utf-8") as fh:
+            value = json.load(fh)
+            if not isinstance(value, dict):
+                raise ValueError(f"Manifest must be an object: {f}")
+            manifests.append(value)
     return manifests
+
+
+def _contained_file(target_dir: Path, entry: str) -> Path:
+    """Reject manifest entries outside their declared root, including symlinks."""
+    if not isinstance(entry, str) or not entry:
+        raise ValueError("Manifest file paths must be nonempty strings")
+    candidate = Path(entry)
+    filepath = target_dir / candidate
+    if filepath.is_symlink():
+        raise ValueError(f"Cleanup does not follow symbolic links: {entry}")
+    filepath = filepath.resolve()
+    if not filepath.is_relative_to(target_dir) or filepath == target_dir:
+        raise ValueError(f"Manifest file escapes its target directory: {entry}")
+    return filepath
 
 
 def plan_actions(manifests: list[dict]) -> dict:
@@ -46,30 +66,49 @@ def plan_actions(manifests: list[dict]) -> dict:
     }
 
     for manifest in manifests:
-        target_dir = Path(manifest["target_dir"])
+        target_dir = Path(manifest["target_dir"]).resolve()
+        if not target_dir.is_dir():
+            raise ValueError(f"Manifest target directory does not exist: {target_dir}")
 
         for filepath_str in manifest.get("files", {}).get("PURGE", []):
-            filepath = target_dir / filepath_str
-            if filepath.exists():
+            filepath = _contained_file(target_dir, filepath_str)
+            if filepath.is_file():
                 plan["purge_files"].append(str(filepath))
 
         for filepath_str in manifest.get("files", {}).get("TRASH", []):
-            filepath = target_dir / filepath_str
-            if filepath.exists():
-                plan["trash_files"].append(str(filepath))
+            filepath = _contained_file(target_dir, filepath_str)
+            if filepath.is_file():
+                plan["trash_files"].append(
+                    {
+                        "src": str(filepath),
+                        "target_dir": str(target_dir),
+                        "rel_path": filepath.relative_to(target_dir).as_posix(),
+                    }
+                )
 
         plan["keep_count"] += manifest.get("counts", {}).get("KEEP", 0)
         plan["triage_count"] += manifest.get("counts", {}).get("TRIAGE", 0)
         plan["exclude_count"] += manifest.get("counts", {}).get("EXCLUDE", 0)
 
     # Optimize: identify entire directories that can be purged at once
+    purge_sources = set(plan["purge_files"])
+    trash_sources = {item["src"] for item in plan["trash_files"]}
+    if purge_sources & trash_sources:
+        raise ValueError(
+            "Files cannot have conflicting PURGE and TRASH classifications"
+        )
+    plan["purge_files"] = sorted(purge_sources)
+    plan["trash_files"] = list(
+        {item["src"]: item for item in plan["trash_files"]}.values()
+    )
     purge_dirs = _find_purgeable_dirs(plan["purge_files"])
     plan["purge_dirs"] = purge_dirs
 
     # Remove individual files that are inside purgeable dirs
     purge_dir_set = {Path(d) for d in purge_dirs}
     plan["purge_files"] = [
-        f for f in plan["purge_files"]
+        f
+        for f in plan["purge_files"]
         if not any(Path(f).is_relative_to(pd) for pd in purge_dir_set)
     ]
 
@@ -80,8 +119,9 @@ def _find_purgeable_dirs(file_list: list[str], min_files: int = 5) -> list[str]:
     """Identify directories where ALL files are being purged."""
     from collections import Counter
 
-    dir_counts: Dict[str, int] = Counter()
-    for f in file_list:
+    dir_counts: dict[str, int] = Counter()
+    files = {Path(f).resolve() for f in file_list}
+    for f in files:
         parent = str(Path(f).parent)
         dir_counts[parent] += 1
 
@@ -91,8 +131,11 @@ def _find_purgeable_dirs(file_list: list[str], min_files: int = 5) -> list[str]:
         if count >= min_files:
             dp = Path(dir_path)
             if dp.exists() and dp.is_dir():
-                actual_count = sum(1 for _ in dp.iterdir() if _.is_file())
-                if actual_count <= count:  # All or nearly all files being purged
+                contents = set(dp.iterdir())
+                if contents and all(
+                    item.is_file() and not item.is_symlink() and item.resolve() in files
+                    for item in contents
+                ):
                     purgeable.append(dir_path)
 
     # Deduplicate: if parent is purgeable, don't list children
@@ -108,8 +151,8 @@ def _find_purgeable_dirs(file_list: list[str], min_files: int = 5) -> list[str]:
 
 def execute_plan(plan: dict, trash_root: Path, dry_run: bool = True) -> dict:
     """Execute the cleanup plan."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    trash_dest = trash_root / timestamp
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    trash_dest = trash_root.resolve() / timestamp
     results = {
         "timestamp": timestamp,
         "dry_run": dry_run,
@@ -127,7 +170,10 @@ def execute_plan(plan: dict, trash_root: Path, dry_run: bool = True) -> dict:
             size = _dir_size(dp)
             if dry_run:
                 file_count = sum(1 for _ in dp.rglob("*") if _.is_file())
-                print(f"  [DRY-RUN] PURGE DIR: {dir_path} ({file_count} files, {_fmt_size(size)})")
+                print(
+                    f"  [DRY-RUN] PURGE DIR: {dir_path} "
+                    f"({file_count} files, {_fmt_size(size)})"
+                )
             else:
                 try:
                     shutil.rmtree(dp)
@@ -156,42 +202,48 @@ def execute_plan(plan: dict, trash_root: Path, dry_run: bool = True) -> dict:
             results["bytes_recovered"] += size
 
     # ── Trash files (safe move) ──
-    if plan["trash_files"]:
-        if not dry_run:
-            trash_dest.mkdir(parents=True, exist_ok=True)
-
-        for filepath in plan["trash_files"]:
-            fp = Path(filepath)
-            if fp.exists():
-                # Preserve relative structure in trash
-                try:
-                    rel = fp.relative_to(Path(plan.get("target_dir", fp.parent)))
-                except ValueError:
-                    rel = Path(fp.name)
-                dest = trash_dest / rel
-                size = fp.stat().st_size
-
-                if dry_run:
-                    print(f"  [DRY-RUN] TRASH: {filepath} -> {dest}")
-                else:
-                    try:
-                        dest.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.move(str(fp), str(dest))
-                    except Exception as e:
-                        results["errors"].append(f"TRASH {filepath}: {e}")
-                        continue
-                results["trashed_files"] += 1
-                results["bytes_recovered"] += size
+    successful_moves = []
+    destinations = set()
+    for item in plan["trash_files"]:
+        try:
+            if isinstance(item, dict):
+                root = Path(item["target_dir"]).resolve()
+                fp = _contained_file(root, item["src"])
+                rel = Path(item["rel_path"])
+                if rel.is_absolute() or rel != fp.relative_to(root):
+                    raise ValueError("Trash relative path does not identify its source")
+            elif isinstance(item, str):
+                fp = Path(item).resolve()
+                root = Path(plan.get("target_dir", fp.parent)).resolve()
+                rel = fp.relative_to(root)
+            else:
+                raise ValueError("Invalid trash record")
+            if not fp.exists():
+                continue
+            if not fp.is_file() or fp.is_symlink():
+                raise ValueError("Trash source must be a regular file")
+            dest = trash_dest / rel
+            if dest in destinations or dest.exists():
+                raise ValueError(f"Trash destination collision: {rel}")
+            destinations.add(dest)
+            size = fp.stat().st_size
+            if dry_run:
+                print(f"  [DRY-RUN] TRASH: {fp} -> {dest}")
+            else:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(fp), str(dest))
+                successful_moves.append({"original": str(fp), "trashed_to": str(dest)})
+            results["trashed_files"] += 1
+            results["bytes_recovered"] += size
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            results["errors"].append(f"TRASH {item}: {error}")
 
     # ── Write undo manifest ──
-    if not dry_run and plan["trash_files"]:
+    if successful_moves:
         undo_manifest = {
             "timestamp": timestamp,
             "trash_dest": str(trash_dest),
-            "files": [
-                {"original": f, "trashed_to": str(trash_dest / Path(f).name)}
-                for f in plan["trash_files"]
-            ],
+            "files": successful_moves,
         }
         undo_path = trash_dest / "_undo_manifest.json"
         with open(undo_path, "w", encoding="utf-8") as fh:
@@ -234,7 +286,8 @@ def print_results(results: dict, plan: dict) -> None:
     print(f"  Directories purged:  {results['purged_dirs']}")
     print(f"  Files purged:        {results['purged_files']}")
     print(f"  Files trashed:       {results['trashed_files']}")
-    print(f"  Space recovered:     {_fmt_size(results['bytes_recovered'])}")
+    label = "Space proposed" if results["dry_run"] else "Space recovered"
+    print(f"  {label}:     {_fmt_size(results['bytes_recovered'])}")
     print(f"  Errors:              {len(results['errors'])}")
     print()
     print(f"  Files kept (KEEP):   {plan['keep_count']}")
@@ -248,10 +301,17 @@ def print_results(results: dict, plan: dict) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="NFTP Phase 3: Cleanup Executor")
-    parser.add_argument("--manifests", required=True, help="Directory containing triage manifests")
-    parser.add_argument("--trash", default=r"D:\__CoChem\.trash", help="Trash root directory")
-    parser.add_argument("--dry-run", action="store_true", default=True, help="Preview only (default)")
-    parser.add_argument("--execute", action="store_true", help="Actually move/delete files")
+    parser.add_argument(
+        "--manifests", required=True, help="Directory containing triage manifests"
+    )
+    parser.add_argument(
+        "--trash", default=r"D:\__CoChem\.trash", help="Trash root directory"
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="Preview only (default)")
+    mode.add_argument(
+        "--execute", action="store_true", help="Actually move/delete files"
+    )
     args = parser.parse_args()
 
     manifest_dir = Path(args.manifests).resolve()
@@ -259,7 +319,7 @@ if __name__ == "__main__":
     dry_run = not args.execute
 
     if not manifest_dir.exists():
-        print(f"ERROR: Manifest directory not found: {manifest_dir}")
+        print(f"ERROR: Manifest path not found: {manifest_dir}")
         sys.exit(1)
 
     manifests = load_manifests(manifest_dir)
@@ -269,8 +329,6 @@ if __name__ == "__main__":
 
     # Inject target_dir into plan for trash pathing
     plan = plan_actions(manifests)
-    if manifests:
-        plan["target_dir"] = manifests[0].get("target_dir", "")
 
     print(f"  Loaded {len(manifests)} manifests")
     print(f"  Mode: {'DRY-RUN' if dry_run else 'EXECUTE'}")
@@ -278,3 +336,4 @@ if __name__ == "__main__":
 
     results = execute_plan(plan, trash_root, dry_run=dry_run)
     print_results(results, plan)
+    sys.exit(1 if results["errors"] else 0)

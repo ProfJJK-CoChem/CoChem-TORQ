@@ -159,11 +159,13 @@ class HarmonicData(PhysicalValue):
                 or self.harmonic_zpe_hartree is None
             ):
                 raise ValueError(
-                    "A minimum requires positive signed vibrational modes and a defined harmonic ZPE."
+                    "A minimum requires positive signed vibrational modes "
+                    "and a defined harmonic ZPE."
                 )
         elif self.harmonic_zpe_hartree is not None:
             raise ValueError(
-                "A nonminimum/unresolved harmonic result cannot supply a minimum harmonic ZPE."
+                "A nonminimum/unresolved harmonic result cannot supply a"
+                " minimum harmonic ZPE."
             )
         return self
 

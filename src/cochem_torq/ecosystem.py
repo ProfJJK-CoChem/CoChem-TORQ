@@ -27,10 +27,12 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from scipy.constants import physical_constants
+
+from .units import ANGSTROM_BOHR
 
 MAX_ARTIFACT_BYTES = 16 * 1024 * 1024
 MAX_ATOMS = 2000
+ECOSYSTEM_DIGEST_PROFILE = "cochem.sorted-json/1"
 # IUPAC element identifiers, in atomic-number order; no inferred atomic masses.
 ELEMENTS = (
     "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn "
@@ -53,6 +55,11 @@ class StrictRecord(BaseModel):
 
 
 def _canonical_json(value: Any) -> bytes:
+    """Preserve the declared legacy identity bytes used by BASE/TOPOS v1.
+
+    This is not RFC8785. Changing this algorithm requires a versioned contract
+    and requalified consumers; adding a profile label must not alter old hashes.
+    """
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
@@ -184,11 +191,7 @@ class MoleculeHandoff(StrictRecord):
 
     def to_application_molecule(self) -> dict[str, Any]:
         """Convert explicit source units to the TORQ application input contract."""
-        scale = (
-            1.0
-            if self.geometry_unit == "bohr"
-            else 1.0 / (physical_constants["Bohr radius"][0] * 1e10)
-        )
+        scale = 1.0 if self.geometry_unit == "bohr" else ANGSTROM_BOHR
         return {
             "symbols": [atom.symbol for atom in self.atoms],
             "geometry_bohr": (np.asarray(self.geometry) * scale).tolist(),
@@ -213,6 +216,11 @@ class MethodProvenance(StrictRecord):
     basis: str | None
     parameters: dict[str, Any]
     recipe_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @property
+    def serialization_profile(self) -> str:
+        """Identity profile; excluded from the existing recipe digest payload."""
+        return ECOSYSTEM_DIGEST_PROFILE
 
     @model_validator(mode="after")
     def complete_recipe_digest(self) -> MethodProvenance:
@@ -290,6 +298,9 @@ class ConformerHandoff(StrictRecord):
     schema_version: Literal["cochem.torq-conformer-handoff/1"] = (
         "cochem.torq-conformer-handoff/1"
     )
+    # Older v1 files omit this field. Their molecule/recipe payload bytes remain
+    # identical because this additive declaration lives in the outer contract.
+    serialization_profile: Literal["cochem.sorted-json/1"] = "cochem.sorted-json/1"
     conformer_id: str = Field(min_length=1)
     molecule: MoleculeHandoff
     source: HandoffSource

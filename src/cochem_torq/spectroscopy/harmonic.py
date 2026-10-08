@@ -7,21 +7,29 @@ is M**(-1/2) L Q, where Q has units bohr*sqrt(electron mass).
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from hashlib import sha256
 from typing import Any
 
 import numpy as np
-from scipy.constants import atomic_mass, c, h, physical_constants, pi
 
-BOHR_METRE = physical_constants["Bohr radius"][0]
-HARTREE_JOULE = physical_constants["Hartree energy"][0]
-ATOMIC_MASS_ELECTRON = atomic_mass / physical_constants["electron mass"][0]
-HARTREE_CM1 = HARTREE_JOULE / (h * c * 100)
+from ..units import (
+    ATOMIC_MASS_ELECTRON,
+    BOHR_METRE,
+    HARTREE_CM1,
+    atomic_mass,
+    h,
+    pi,
+)
+from ..units import (
+    HARTREE_JOULE as HARTREE_JOULE,
+)
 
 
 def finite_array(value: Any, shape: tuple[int, ...] | None = None) -> np.ndarray:
+    if np.iscomplexobj(value):
+        raise ValueError(
+            "Physical arrays must be real; imaginary parts cannot be discarded."
+        )
     array = np.array(value, dtype=float, copy=True)
     if not np.all(np.isfinite(array)) or (shape is not None and array.shape != shape):
         raise ValueError(
@@ -37,17 +45,15 @@ def artifact_digest(value: Any) -> str:
             return item.tolist()
         if isinstance(item, np.generic):
             return item.item()
-        raise TypeError(type(item).__name__)
+        if isinstance(item, dict):
+            return {key: convert(child) for key, child in item.items()}
+        if isinstance(item, (list, tuple)):
+            return [convert(child) for child in item]
+        return item
 
-    return sha256(
-        json.dumps(
-            value,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-            default=convert,
-        ).encode()
-    ).hexdigest()
+    from ..domain import digest
+
+    return digest(convert(value))
 
 
 @dataclass(frozen=True)

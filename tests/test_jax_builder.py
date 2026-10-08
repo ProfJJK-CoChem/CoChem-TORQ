@@ -8,6 +8,7 @@ import time
 
 import jax.numpy as jnp
 import numpy as np
+import pytest
 
 from Libraries.cochem_jax_builder import (
     CoChemPrecisionError,
@@ -109,38 +110,29 @@ def test_xla_compilation_speedup() -> None:
     assert t_second < max(t_first, 0.5)
 
 
-def test_nan_tensor_watchdog_and_tikhonov_recovery() -> None:
-    """
-    Test 4: NaN Tensor Watchdog & Tikhonov Regularization Recovery.
-    Verifies corrupt/NaN inputs are intercepted and regularized.
-    """
+def test_nonfinite_hamiltonian_is_rejected_without_repair() -> None:
+    """Nonfinite entries are corrupt evidence, not values a solver may invent."""
     enforce_jax_precision()
-    n_pts = 50
-    grid_phi = np.linspace(-np.pi, np.pi, n_pts, endpoint=False)
-    v_pot = 0.5 * 10.0 * (1.0 - np.cos(2.0 * grid_phi))
-
-    h_matrix = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator=5.0,
-        grid_points=grid_phi,
-        dimensions=1,
+    grid = np.linspace(-np.pi, np.pi, 50, endpoint=False)
+    h = np.asarray(
+        build_dvr_hamiltonian(5.0 * (1.0 - np.cos(2.0 * grid)), 5.0, grid, dimensions=1)
     )
-
-    # Corrupt Hamiltonian by placing NaN and Inf
-    h_corrupted = np.array(h_matrix, copy=True)
-    h_corrupted[5, 5] = np.nan
-    h_corrupted[10, 12] = np.inf
-    h_corrupted[12, 10] = np.inf
-
-    evals_recovered, evecs_recovered = nan_tensor_watchdog(
-        eigenvalues=None,
-        hamiltonian=h_corrupted,
+    for bad_value in (np.nan, np.inf):
+        corrupted = h.copy()
+        corrupted[5, 5] = bad_value
+        before = corrupted.copy()
+        with pytest.raises(DVRConvergenceError, match="no values repaired"):
+            nan_tensor_watchdog(hamiltonian=corrupted, alpha_regularization=1e-5)
+        np.testing.assert_array_equal(corrupted, before)
+    # Invalid eigenvalues may be recomputed from the unchanged finite matrix.
+    expected, _ = np.linalg.eigh(h)
+    actual, vectors = nan_tensor_watchdog(
+        eigenvalues=np.full(len(grid), np.nan),
+        hamiltonian=h,
         alpha_regularization=1e-5,
     )
-
-    assert not np.isnan(evals_recovered).any(), "NaN found in recovered evals"
-    assert not np.isinf(evals_recovered).any(), "Inf found in recovered evals"
-    assert len(evals_recovered) == n_pts
+    np.testing.assert_allclose(actual, expected, atol=1e-10)
+    np.testing.assert_allclose(h @ vectors, vectors * actual, atol=1e-9)
 
 
 def test_free_rotor_analytic_parity() -> None:
@@ -324,13 +316,14 @@ def test_nan_watchdog_clean_passthrough_and_validation() -> None:
     assert np.allclose(evecs_out, evecs)
 
     # Test T=0 K guard
-    vpt2_res_0k = localized_vpt2_coupling(
-        dvr_energies=[0.0, 10.0],
-        vpt2_matrix=np.array([[-5.0]]),
-        harmonic_frequencies=[500.0],
-        temperature_k=0.0,
-    )
-    assert vpt2_res_0k["q_coupled_total"] == 1.0
+    with pytest.raises(ValueError, match="finite T > 0"):
+        localized_vpt2_coupling(
+            dvr_energies=[0.0, 10.0],
+            vpt2_matrix=np.array([[-5.0]]),
+            harmonic_frequencies=[500.0],
+            lam_mode_indices=[],
+            temperature_k=0.0,
+        )
 
 
 def test_mendeleev_dynamic_mass_resolution() -> None:
@@ -350,43 +343,16 @@ def test_mendeleev_dynamic_mass_resolution() -> None:
     assert d_mass > h_mass
 
 
-def test_dvr_hamiltonian_element_symbol_kinetic_operator() -> None:
-    """
-    Test 12: Kinetic Operator Resolution with Element Symbols.
-    Verifies 1D and 2D Hamiltonian construction using chemical element inputs.
-    """
-    enforce_jax_precision()
-    n_pts = 30
-    grid = np.linspace(0.5, 3.0, n_pts)
-    v_pot = 0.5 * 1000.0 * ((grid - 1.0) ** 2)
-
-    # 1D with Deuterium
-    h_1d = build_dvr_hamiltonian(
-        pes_spline_array=v_pot,
-        kinetic_operator="D",
-        grid_points=grid,
-        dimensions=1,
-        periodic=False,
-    )
-    assert h_1d.shape == (n_pts, n_pts)
-    evals, _ = jit_eigen_solver(h_1d)
-    assert len(evals) == n_pts
-    assert float(evals[0]) > 0.0
-
-    # 2D with element tuple ("H", "D")
-    gx = np.linspace(0, 2 * np.pi, 10, endpoint=False)
-    gy = np.linspace(0, 2 * np.pi, 10, endpoint=False)
-    v2d = np.zeros((10, 10))
-    h_2d = build_dvr_hamiltonian(
-        pes_spline_array=v2d,
-        kinetic_operator=("H", "D"),
-        grid_points=(gx, gy),
-        dimensions=2,
-        periodic=True,
-    )
-    assert h_2d.shape == (100, 100)
-    evals_2d, _ = jit_eigen_solver(h_2d)
-    assert len(evals_2d) == 100
+@pytest.mark.parametrize("dimensions, kinetic", [(1, "D"), (2, ("H", "D"))])
+def test_isotope_mass_cannot_define_angular_inertia(dimensions, kinetic) -> None:
+    """Element labels cannot supply the rotation axis or kinetic coefficient."""
+    grid = np.linspace(0.0, 2.0 * np.pi, 30, endpoint=False)
+    points = grid if dimensions == 1 else (grid, grid)
+    potential = np.zeros(30 if dimensions == 1 else (30, 30))
+    with pytest.raises(ValueError, match="mass does not define angular inertia"):
+        build_dvr_hamiltonian(
+            potential, kinetic, points, dimensions=dimensions, periodic=True
+        )
 
 
 def test_nan_watchdog_missing_inputs() -> None:
@@ -396,7 +362,7 @@ def test_nan_watchdog_missing_inputs() -> None:
     """
     import pytest
 
-    with pytest.raises(ValueError, match="At least one of eigenvalues or hamiltonian"):
+    with pytest.raises(ValueError, match="Provide eigenvalues or a Hamiltonian"):
         nan_tensor_watchdog(eigenvalues=None, hamiltonian=None)
 
 
@@ -415,5 +381,7 @@ def test_cochem_custom_exceptions() -> None:
 
     # Verify DVRConvergenceError is raised by nan_tensor_watchdog
     # when evals has NaN but H is None
-    with pytest.raises(DVRConvergenceError, match="NaN/Inf detected in eigenvalues"):
+    with pytest.raises(
+        DVRConvergenceError, match="Invalid eigenvalues without a finite Hamiltonian"
+    ):
         nan_tensor_watchdog(eigenvalues=np.array([np.nan, 1.0]), hamiltonian=None)

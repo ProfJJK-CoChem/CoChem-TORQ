@@ -29,10 +29,15 @@ does not run electronic calculations.
    structure to check the actual atoms and geometry. Tabulated isotope masses
    determine this display frame; coincident principal moments make its orientation
    nonunique. The display does not infer bonds or certify an optimized structure.
-4. Select **Check request** and read its report. Correct an invalid state or
+4. Select **Review plan** and read its report, tasks, scientific warnings and
+   calculation budget. Correct an invalid state or
    resource request. A product can be unavailable even when its earlier stages
    are supported. Choose a supported request or retain its earlier valid results.
-5. Select **Submit to Actions**. Save the returned run ID and link. Submission
+5. Enter your name or course identity in **Approved by**, then select
+   **Approve this plan**. Approval applies to this exact request and its declared
+   calculation budget and expires after one hour. It does not certify scientific
+   accuracy or grant GitHub permissions. **Submit to Actions** becomes available
+   after explicit approval. Save the returned run ID and link. Submission
    uses the GitHub CLI authentication configured in your Codespace. Never paste
    a token into a notebook, request or source file.
 6. Select **Refresh status** to read the actual run state. Select **Download
@@ -45,9 +50,21 @@ calculation. Local scientific execution is an explicitly selected CLI activity;
 the student interface always submits to Actions.
 
 Changing the molecule, state, recipe, products or resources invalidates the
-prepared request. Import and check it again before submitting the revised
+prepared request and approval. Import, review and approve it again before submitting the revised
 calculation. A complete JSON request supplies its own method and resource fields;
 the separate form controls are hidden in that input mode.
+
+To cancel a run created through this interface, enter its run ID and a reason,
+then select **Cancel owned run**. TORQ verifies the actual local submission
+receipt against the hosted run before requesting cancellation. Cancellation is a
+workflow state; the downloaded scientific stage records describe retained results.
+
+After downloading an incomplete verified result, choose it in **BASE source**
+and select **Prepare new attempt**. This checks the shard and source compatibility,
+creates a new request UUID, and retains the earlier attempt's provenance. It does
+not claim reuse of an engine checkpoint. Review and explicitly approve the new
+attempt; unsupported recipes remain blocked. Submission retries for an unchanged
+approved request retain its request UUID and idempotency key.
 
 ## BASE, TOPOS and TORQ
 
@@ -92,6 +109,23 @@ to learn the input format. Its coordinates are a starting structure, not referen
 experimental or calculated results.
 
 ## Reading scientific results
+
+The notebook's candidate table retains exclusions and their reasons. Use
+**Record input candidate**, **Exclude candidate** and **Restore candidate** to
+make reversible selection decisions. Candidate history distinguishes supplied
+inputs from verified calculated geometries; missing energy or model uncertainty
+stays unavailable. A selection change clears approval and requires a new plan
+review. An excluded or quarantined current candidate cannot be submitted.
+
+Headless candidate inspection and selection are available with
+`cochem-torq candidates --help`. These records do not prove that a conformer
+search is complete, and exclusions do not automatically prune calculations.
+
+For a reproducibility bundle, use
+`cochem-torq export RESULT_SHARD --format publication --destination NEW_BUNDLE`.
+It preserves the authentic result, native files, source snapshot and limitations.
+Its eligibility remains exploratory, partial or failed evidence. Packaging does
+not establish peer-review readiness or identification accuracy.
 
 TORQ distinguishes electronic structure, optimized equilibrium geometry,
 equilibrium rotational constants, harmonic analysis, anharmonic force fields,

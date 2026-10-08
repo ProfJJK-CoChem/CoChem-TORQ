@@ -1,6 +1,6 @@
 {
   "schema_version": "cochem.canonical-environment-evidence/1",
-  "recorded_at": "2026-10-07T21:50:41.742851+00:00",
+  "recorded_at": "2026-10-08T00:18:20.702075+00:00",
   "validation_environment": "local Docker on managed cloud",
   "hosted_actions_run_performed": true,
   "live_codespace_started": false,
@@ -99,9 +99,26 @@
     ]
   },
   "hosted_actions_observation": {
-    "run_id": 37696948074,
-    "status": "failed",
-    "qualified": false,
-    "scope": "First actual PR CI; authentication/import prerequisites failed before complete scientific acceptance."
-  }
+    "run_id": 37701912649,
+    "source_commit": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+    "status": "success",
+    "qualified": true,
+    "qualified_scope": "Hosted scoped integrity, native numerical checks, sealed offline teaching water artifacts and isolated sibling/interface contracts; no experimental or full-SRS qualification.",
+    "passed_jobs": 7,
+    "artifact_upload_verified": true,
+    "artifact_bytes_independently_downloaded": false,
+    "evidence_file": "hosted-actions-check-results.json"
+  },
+  "historical_local_record_scope": "Existing local image/interface/water fields identify the earlier actual snapshots; they do not qualify the currently modified source.",
+  "source_head_when_observed": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+  "historical_hosted_observations": [
+    {
+      "run_id": 37696948074,
+      "status": "failed",
+      "qualified": false,
+      "scope": "First actual PR CI; authentication/import prerequisites failed before complete scientific acceptance."
+    }
+  ],
+  "public_student_dispatch_active": false,
+  "full_srs_accepted": false
 }

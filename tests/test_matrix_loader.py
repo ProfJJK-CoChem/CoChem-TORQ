@@ -4,51 +4,33 @@
 Phase 5 (Stage 4.0 / Task 8) Authentic Physical Test Matrix
 ----------------------------------------------------------
 Comprehensive unit and integration test suite for Method Matrix v4 loader,
-progressive cascade parser, multi-tier MLFF fallback hierarchies, rigorous
+progressive cascade parser, explicitly selected advisory ML models, rigorous
 scientific auxiliary basis validation, deterministic SHA-256 / xxHash-64
 cryptographic provenance hashing, and Tripartite Air-Gap isolation.
 
 Zero-Tolerance Anti-Mocking:
-All tests operate on real physical chemical systems, authentic Mendeleev
-periodic table property lookups, and genuine cryptographic hashes.
+Tests exercise declared inputs, actual Mendeleev database lookups, and genuine
+cryptographic hashes; model selection is not scientific method qualification.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
-import os
-import tempfile
-import uuid
 from pathlib import Path
-from typing import Any, Dict, List
 
-from mendeleev import element as mendeleev_element
-import numpy as np
 import pytest
-from pydantic import ValidationError
 
 from Libraries.cochem_torq_matrix_loader import (
-    DEFAULT_MLFF_FALLBACK_CHAIN,
-    EV_TO_KCAL_MOL,
-    HARTREE_TO_EV,
-    HARTREE_TO_KCAL_MOL,
+    _XXHASH_AVAILABLE,
     METHOD_MATRIX_V4_TIERS,
-    MLFF_CATALOG,
     AirGapReport,
     AirGapViolationError,
     AuxiliaryBasisMismatchError,
-    AuxiliaryBasisPairing,
-    CascadeTierConfig,
     EnvironmentTier,
-    ExecutionContext,
     ExecutionCascade,
+    ExecutionContext,
     InvalidTierError,
-    MatrixLoaderError,
-    MLFFModelSpec,
-    ProvenanceManifest,
     UnsupportedElementError,
-    _XXHASH_AVAILABLE,
     generate_provenance_hash,
     get_atomic_mass,
     get_atomic_number,
@@ -62,7 +44,6 @@ from Libraries.cochem_torq_matrix_loader import (
     validate_auxiliary_basis,
     validate_element_symbols,
 )
-
 
 # =============================================================================
 # 1. Mendeleev Dynamic Property Query Tests (Mendeleev Mandate)
@@ -164,91 +145,56 @@ class TestMendeleevDynamicProperties:
 
 
 class TestMLFFHierarchyResolution:
-    """Authentic physical tests for progressive MLFF fallback chains across diverse chemistries."""
+    """Only one explicit advisory model is permitted; element lists do not qualify it."""
 
-    def test_organic_molecules_resolve_mace_off23(self) -> None:
-        """Verify standard organic drug-like species select MACE-OFF23."""
-        # Ethanol (C2H6O)
-        spec_eth, trail_eth = resolve_mlff_model(["C", "C", "H", "H", "H", "H", "H", "H", "O"])
-        assert spec_eth.name == "MACE-OFF23"
-        assert len(trail_eth) == 1
-        assert "Selected 'MACE-OFF23'" in trail_eth[0]
-
-        # Glycine (C2H5NO2)
-        spec_gly, _ = resolve_mlff_model(["C", "C", "H", "H", "H", "H", "H", "N", "O", "O"])
-        assert spec_gly.name == "MACE-OFF23"
-
-        # Cysteine with Sulfur (C3H7NO2S)
-        spec_cys, _ = resolve_mlff_model(["C", "C", "C", "H", "H", "H", "H", "H", "H", "H", "N", "O", "O", "S"])
-        assert spec_cys.name == "MACE-OFF23"
-
-        # Bromobenzene with Bromine (C6H5Br)
-        spec_br, _ = resolve_mlff_model(["C", "C", "C", "C", "C", "C", "H", "H", "H", "H", "H", "Br"])
-        assert spec_br.name == "MACE-OFF23"
-
-        # Iodomethane with Iodine (CH3I)
-        spec_i, _ = resolve_mlff_model(["C", "H", "H", "H", "I"])
-        assert spec_i.name == "MACE-OFF23"
-
-        # Phosphorylated intermediate (P, F, Cl)
-        spec_pfc, _ = resolve_mlff_model(["P", "F", "Cl", "O", "H"])
-        assert spec_pfc.name == "MACE-OFF23"
-
-    def test_boron_and_silicon_species_fallback_from_mace_off23(self) -> None:
-        """Verify Boron and Silicon trigger MACE-OFF23 rejection and resolve to capable model."""
-        # Triethylborane (B, C, H) -> MACE-OFF23 rejected due to B
-        spec_b, trail_b = resolve_mlff_model(["B", "C", "H"])
-        assert spec_b.name in ["MACE-POLAR-1", "MACE-OMOL-0", "AIMNet2"]
-        assert any("Rejected 'MACE-OFF23': unsupported element(s) ['B']" in t for t in trail_b)
-
-        # Silane (SiH4) -> MACE-OFF23 rejected due to Si
-        spec_si, trail_si = resolve_mlff_model(["Si", "H", "H", "H", "H"])
-        assert spec_si.name in ["MACE-POLAR-1", "MACE-OMOL-0", "AIMNet2"]
-        assert any("Rejected 'MACE-OFF23': unsupported element(s) ['Si']" in t for t in trail_si)
-
-        # Selenium (Se) -> MACE-OFF23 and MACE-OMOL-0 rejected, resolves to AIMNet2 or MACE-POLAR-1
-        spec_se, trail_se = resolve_mlff_model(["C", "H", "Se"])
-        assert spec_se.name in ["MACE-POLAR-1", "AIMNet2"]
-
-    def test_transition_metals_and_noble_gases_fallback_to_gfn2_xtb(self) -> None:
-        """Verify transition metals and noble gases fall back through MLFFs to GFN2-xTB / MACE-POLAR-1."""
-        # Ferrocene (Fe, C, H)
-        spec_fe, trail_fe = resolve_mlff_model(
+    @pytest.mark.parametrize(
+        "symbols",
+        [
+            ["C", "H", "O"],
+            ["B", "C", "H"],
+            ["Si", "H"],
             ["Fe", "C", "H"],
-            fallback_chain=["MACE-OFF23", "AIMNet2", "GFN2-xTB", "GFN-FF", "PySCF_RHF"],
-        )
-        assert spec_fe.name == "GFN2-xTB"
-        assert any("Rejected 'MACE-OFF23': unsupported element(s) ['Fe']" in t for t in trail_fe)
-        assert any("Rejected 'AIMNet2': unsupported element(s) ['Fe']" in t for t in trail_fe)
-
-        # Argon complex with water (Ar, H, O)
-        spec_ar, trail_ar = resolve_mlff_model(
             ["Ar", "H", "O"],
-            fallback_chain=["MACE-OFF23", "AIMNet2", "GFN2-xTB", "GFN-FF"],
-        )
-        assert spec_ar.name == "GFN2-xTB"
-
-        # Neon complex (Ne, C, H)
-        spec_ne, trail_ne = resolve_mlff_model(
             ["Ne", "C", "H"],
-            fallback_chain=["MACE-OFF23", "AIMNet2", "GFN2-xTB", "GFN-FF"],
-        )
-        assert spec_ne.name == "GFN2-xTB"
-
-    def test_heavy_actinides_fallback_to_pyscf_or_empirical(self) -> None:
-        """Verify elements beyond Z=86 (e.g. Uranium Z=92) fall back past GFN2-xTB."""
-        spec_u, trail_u = resolve_mlff_model(
             ["U", "O", "F"],
-            fallback_chain=["MACE-OFF23", "AIMNet2", "GFN2-xTB", "GFN-FF", "PySCF_RHF", "EMPIRICAL_COVALENT"],
-        )
-        assert spec_u.name == "PySCF_RHF"
-        assert any("Rejected 'GFN2-xTB'" in t for t in trail_u)
+        ],
+    )
+    def test_no_model_is_selected_implicitly(self, symbols) -> None:
+        with pytest.raises(ValueError, match="requested advisory model"):
+            resolve_mlff_model(symbols)
 
-    def test_custom_requested_mlff_priority(self) -> None:
-        """Verify requested MLFF is prioritized if capable."""
-        spec, trail = resolve_mlff_model(["C", "H", "O"], requested_model="AIMNet2")
-        assert spec.name == "AIMNet2"
-        assert "Selected 'AIMNet2'" in trail[0]
+    @pytest.mark.parametrize(
+        "symbols", [["B", "H"], ["Si", "H"], ["Fe", "H"], ["U", "O"]]
+    )
+    def test_incompatible_explicit_model_does_not_trigger_substitution(
+        self, symbols
+    ) -> None:
+        with pytest.raises(UnsupportedElementError, match="no alternative method"):
+            resolve_mlff_model(symbols, requested_model="MACE-OFF23")
+
+    def test_multi_model_fallback_chain_is_rejected(self) -> None:
+        with pytest.raises(
+            ValueError, match="Automatic model substitution is disabled"
+        ):
+            resolve_mlff_model(
+                ["Fe", "C", "H"], fallback_chain=["MACE-OFF23", "GFN2-xTB"]
+            )
+
+    @pytest.mark.parametrize("model", ["MACE-OFF23", "AIMNet2"])
+    def test_explicit_candidate_selection_is_advisory_and_unqualified(
+        self, model
+    ) -> None:
+        spec, trail = resolve_mlff_model(["C", "H", "O"], requested_model=model)
+        assert spec.name == model
+        assert len(trail) == 1
+        assert "candidate element coverage only" in trail[0]
+        assert "unvalidated until checkpoint/domain qualification" in trail[0]
+
+    def test_missing_checkpoint_domain_manifest_is_rejected(self) -> None:
+        with pytest.raises(
+            UnsupportedElementError, match="checkpoint-specific validated domain"
+        ):
+            resolve_mlff_model(["C", "H"], requested_model="MACE-POLAR-1")
 
 
 # =============================================================================
@@ -277,7 +223,9 @@ class TestAuxiliaryBasisScientificValidation:
     def test_valid_double_hybrid_and_correlation_pairings(self) -> None:
         """Verify valid Double-Hybrid DFT pairings with correlation auxiliary basis sets."""
         # revDSD-PBEP86 with def2-TZVPP and def2-TZVPP/C
-        p1 = validate_auxiliary_basis("revDSD-PBEP86", "def2-TZVPP", "def2/J def2-TZVPP/C")
+        p1 = validate_auxiliary_basis(
+            "revDSD-PBEP86", "def2-TZVPP", "def2/J def2-TZVPP/C"
+        )
         assert p1.is_compatible is True
         assert "RIJCOSX+PT2/C" in p1.ri_type
 
@@ -290,12 +238,16 @@ class TestAuxiliaryBasisScientificValidation:
         assert p3.is_compatible is True
 
         # DLPNO-CCSD(T) with def2-TZVPP and def2/JK def2-TZVPP/C
-        p4 = validate_auxiliary_basis("DLPNO-CCSD(T)", "def2-TZVPP", "def2/JK def2-TZVPP/C")
+        p4 = validate_auxiliary_basis(
+            "DLPNO-CCSD(T)", "def2-TZVPP", "def2/JK def2-TZVPP/C"
+        )
         assert p4.is_compatible is True
 
     def test_valid_hf_and_ri_jk_pairings(self) -> None:
         """Verify HF exchange requires def2/JK."""
-        p1 = validate_auxiliary_basis("HF", "def2-SVP", "def2/JK", ri_approximation="RI-JK")
+        p1 = validate_auxiliary_basis(
+            "HF", "def2-SVP", "def2/JK", ri_approximation="RI-JK"
+        )
         assert p1.is_compatible is True
         assert p1.ri_type == "RI-JK"
 
@@ -311,23 +263,31 @@ class TestAuxiliaryBasisScientificValidation:
     def test_invalid_ri_jk_with_only_def2_j(self) -> None:
         """Reject RI-JK when only Coulomb def2/J is provided."""
         with pytest.raises(AuxiliaryBasisMismatchError) as exc_info:
-            validate_auxiliary_basis("HF", "def2-TZVP", "def2/J", ri_approximation="RI-JK")
+            validate_auxiliary_basis(
+                "HF", "def2-TZVP", "def2/J", ri_approximation="RI-JK"
+            )
         assert "def2/J' only provides Coulomb fitting" in str(exc_info.value)
 
     def test_diffuse_and_weak_complex_augmentation_validation(self) -> None:
         """Verify diffuse / weak complex systems require augmented basis sets."""
         # Unaugmented def2-TZVP on weak complex must be rejected
         with pytest.raises(AuxiliaryBasisMismatchError) as exc_info:
-            validate_auxiliary_basis("wB97M-V", "def2-TZVP", "def2/J", is_weak_complex=True)
+            validate_auxiliary_basis(
+                "wB97M-V", "def2-TZVP", "def2/J", is_weak_complex=True
+            )
         assert "diffuse/weak complex violation" in str(exc_info.value)
 
         # Minimally augmented ma-def2-TZVP is accepted
-        p_ma = validate_auxiliary_basis("wB97M-V", "ma-def2-TZVP", "def2/J", is_weak_complex=True)
+        p_ma = validate_auxiliary_basis(
+            "wB97M-V", "ma-def2-TZVP", "def2/J", is_weak_complex=True
+        )
         assert p_ma.is_compatible is True
         assert p_ma.is_diffuse_compatible is True
 
         # Dunning aug-cc-pVTZ with AutoAux is accepted
-        p_aug = validate_auxiliary_basis("CCSD(T)", "aug-cc-pVTZ", "AutoAux", is_diffuse=True)
+        p_aug = validate_auxiliary_basis(
+            "CCSD(T)", "aug-cc-pVTZ", "AutoAux", is_diffuse=True
+        )
         assert p_aug.is_compatible is True
 
     def test_cross_family_basis_mismatch_rejected(self) -> None:
@@ -353,10 +313,12 @@ class TestExecutionCascadeParser:
             cascade = parse_execution_cascade(symbols=symbols, tier=tier_name)
             assert isinstance(cascade, ExecutionCascade)
             assert cascade.tier == tier_name
-            assert cascade.selected_mlff == "MACE-OFF23"
+            assert cascade.selected_mlff is None
+            assert cascade.fallback_trail == ["ML advisory stage not requested."]
             assert cascade.provenance_hash is not None
             assert len(cascade.provenance_hash) == 64
-            assert len(cascade.stages) >= 2
+            assert len(cascade.stages) == (2 if cascade.is_coupled_cluster else 1)
+            assert all(stage["stage_name"] != "ML_Advisory" for stage in cascade.stages)
             assert cascade.element_symbols == ["C", "H", "H", "H", "O", "H"]
             assert set(cascade.atomic_numbers) == {1, 6, 8}
 
@@ -379,7 +341,12 @@ class TestExecutionCascadeParser:
         """Verify diffuse basis auto-escalation for def2-SVP, def2-TZVPP, def2-QZVPP."""
         symbols = ["F", "H", "O"]
         # T1-10s with custom def2-SVP
-        c_svp = parse_execution_cascade(symbols, tier="T1-10s", is_diffuse=True, custom_overrides={"basis_set": "def2-SVP"})
+        c_svp = parse_execution_cascade(
+            symbols,
+            tier="T1-10s",
+            is_diffuse=True,
+            custom_overrides={"basis_set": "def2-SVP"},
+        )
         assert c_svp.basis_set == "ma-def2-SVP"
 
         # T3-3h with def2-TZVPP
@@ -401,14 +368,14 @@ class TestExecutionCascadeParser:
         assert cascade.is_double_hybrid is True
 
     def test_parse_coupled_cluster_tier_t4_1d(self) -> None:
-        """Verify T4-1d resolves DLPNO-CCSD(T) with 3 pipeline stages."""
+        """The requested coupled-cluster plan contains two stages without an implicit ML stage."""
         symbols = ["C", "H", "O"]
         cascade = parse_execution_cascade(symbols=symbols, tier="T4-1d")
         assert cascade.method == "DLPNO-CCSD(T)"
         assert cascade.is_coupled_cluster is True
         assert cascade.pno_setting == "TightPNO"
-        assert len(cascade.stages) == 3
-        assert cascade.stages[2]["stage_name"] == "Coupled_Cluster_Single_Point"
+        assert len(cascade.stages) == 2
+        assert cascade.stages[1]["stage_name"] == "Coupled_Cluster_Single_Point"
 
     def test_parse_custom_overrides(self) -> None:
         """Verify custom parameter overrides in cascade resolution."""
@@ -421,7 +388,9 @@ class TestExecutionCascadeParser:
             "tol_max_g": 5e-5,
             "pno_setting": "TightPNO",
         }
-        cascade = parse_execution_cascade(symbols, tier="T1-1h", custom_overrides=overrides)
+        cascade = parse_execution_cascade(
+            symbols, tier="T1-1h", custom_overrides=overrides
+        )
         assert cascade.method == "wB97M-D4"
         assert cascade.basis_set == "def2-QZVPP"
         assert cascade.tol_max_g == 5e-5
@@ -464,7 +433,9 @@ class TestProvenanceHashAndManifest:
         symbols = ["C", "H", "O"]
         c1 = parse_execution_cascade(symbols=symbols, tier="T1-1h")
         c2 = parse_execution_cascade(symbols=symbols, tier="T3-3h")  # Different tier
-        c3 = parse_execution_cascade(symbols=["C", "H", "S"], tier="T1-1h")  # Different element
+        c3 = parse_execution_cascade(
+            symbols=["C", "H", "S"], tier="T1-1h"
+        )  # Different element
 
         h1 = generate_provenance_hash(cascade=c1, persist_manifest=False)
         h2 = generate_provenance_hash(cascade=c2, persist_manifest=False)
@@ -479,13 +450,17 @@ class TestProvenanceHashAndManifest:
         artifacts_dir = tmp_path / "test_artifacts_vault"
         ctx = ExecutionContext(custom_artifacts_dir=artifacts_dir)
 
-        cascade = parse_execution_cascade(symbols=["C", "H", "F"], tier="T1-30min", context=ctx)
+        cascade = parse_execution_cascade(
+            symbols=["C", "H", "F"], tier="T1-30min", context=ctx
+        )
         manifest_file = artifacts_dir / "cochem_deployment_manifest.json"
 
-        h = generate_provenance_hash(cascade=cascade, context=ctx, persist_manifest=True)
+        h = generate_provenance_hash(
+            cascade=cascade, context=ctx, persist_manifest=True
+        )
         assert manifest_file.exists()
 
-        with open(manifest_file, "r", encoding="utf-8") as f:
+        with open(manifest_file, encoding="utf-8") as f:
             data = json.load(f)
 
         assert data["manifest_version"] == "4.0.0"
@@ -512,7 +487,9 @@ class TestAirGapEnforcement:
         illegal_manifest_path = repo_root / "cochem_deployment_manifest.json"
 
         ctx = ExecutionContext()
-        cascade = parse_execution_cascade(symbols=["C", "H"], tier="T1-10s", context=ctx)
+        cascade = parse_execution_cascade(
+            symbols=["C", "H"], tier="T1-10s", context=ctx
+        )
 
         with pytest.raises(AirGapViolationError) as exc_info:
             generate_provenance_hash(
@@ -523,7 +500,9 @@ class TestAirGapEnforcement:
             )
         assert "Tripartite Air-Gap Violation" in str(exc_info.value)
 
-    def test_ring2_scratch_and_ring3_artifacts_paths_disjoint(self, tmp_path: Path) -> None:
+    def test_ring2_scratch_and_ring3_artifacts_paths_disjoint(
+        self, tmp_path: Path
+    ) -> None:
         """Verify scratch and artifacts directories resolve outside Ring 1 repo."""
         scratch_dir = tmp_path / "scratch_test"
         artifacts_dir = tmp_path / "artifacts_test"
@@ -554,7 +533,11 @@ class TestAirGapEnforcement:
     def test_environment_tier_path_resolutions(self, tmp_path: Path) -> None:
         """Verify path resolutions across different environment tiers."""
         for tier in EnvironmentTier:
-            ctx = ExecutionContext(tier=tier, custom_scratch_dir=tmp_path / f"scratch_{tier.value}", custom_artifacts_dir=tmp_path / f"art_{tier.value}")
+            ctx = ExecutionContext(
+                tier=tier,
+                custom_scratch_dir=tmp_path / f"scratch_{tier.value}",
+                custom_artifacts_dir=tmp_path / f"art_{tier.value}",
+            )
             s_dir = ctx.get_scratch_dir()
             a_dir = ctx.get_artifacts_dir()
             assert s_dir.exists()

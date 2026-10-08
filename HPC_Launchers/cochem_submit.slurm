@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# CoChem-TORQ SLURM Batch Execution Launcher
-# High-Performance Computing (HPC) batch array submission script for CoChem-TORQ
-# Enforces Method Matrix v4, strict Filesystem Air-Gap isolation, dynamic
-# scratch/artifact routing, and backend Python engine execution.
+# Optional CoChem-TORQ SLURM adapter for an explicitly approved calculation.
+# GitHub Actions remains the canonical student calculation environment.
+# Direct Bash execution tests this adapter, not scheduler allocation/qualification.
 # ==============================================================================
 #SBATCH --job-name=CoChem-TORQ
 #SBATCH --nodes=1
@@ -47,40 +46,33 @@ else
     export PYTHONPATH="${REPO_ROOT}"
 fi
 
-# Resolve Python interpreter executable
-if [[ -z "${PYTHON_EXEC:-}" ]]; then
-    if command -v python >/dev/null 2>&1; then
-        PYTHON_EXEC="python"
-    elif command -v python.exe >/dev/null 2>&1; then
-        PYTHON_EXEC="python.exe"
-    elif command -v python3 >/dev/null 2>&1; then
-        PYTHON_EXEC="python3"
-    else
-        PYTHON_EXEC="python"
-    fi
-fi
-
-# Environment variables for execution routing
-INPUT_GEOM="${INPUT_GEOM:-${REPO_ROOT}/Structures/input.xyz}"
-THEORY_LEVEL="${THEORY_LEVEL:-B3LYP-D4/def2-TZVP}"
-COCHEM_SCRATCH="${COCHEM_SCRATCH:-${TMPDIR}}"
-TASK_ID="${SLURM_ARRAY_TASK_ID:-1}"
-JOB_ID="${SLURM_JOB_ID:-$$}_task_${TASK_ID}"
-
-# Backend Python engine execution / command passthrough
+# Explicit commands are user-authorized shell passthrough. They do not establish
+# an electronic-structure profile or scientific qualification.
 if [[ $# -gt 0 ]]; then
     "$@"
-else
-    if [[ -f "${REPO_ROOT}/Libraries/cochem_torq_pipeline.py" ]]; then
-        "${PYTHON_EXEC}" -m Libraries.cochem_torq_pipeline \
-            --input "${INPUT_GEOM}" \
-            --output-dir "${COCHEM_ARTIFACTS}/${JOB_ID}" \
-            --scratch-dir "${COCHEM_SCRATCH}/${JOB_ID}" \
-            --theory "${THEORY_LEVEL}" \
-            --task-id "${TASK_ID}"
-    elif [[ -f "${REPO_ROOT}/cochem_torq_engine.py" ]]; then
-        "${PYTHON_EXEC}" -m cochem_torq_engine
-    else
-        "${PYTHON_EXEC}" -c "import sys; print('[CoChem-TORQ] SLURM backend initialized successfully on ' + sys.version)"
-    fi
+    exit $?
 fi
+
+# Batch science requires an explicit reviewed request, approval, and interpreter.
+# No geometry, method, budget, model, or success result is inferred here.
+[[ -n "${PYTHON_EXEC:-}" ]] || {
+    echo "[CoChem-TORQ] PYTHON_EXEC must name the installed calculation interpreter." >&2
+    exit 64
+}
+[[ "${PYTHON_EXEC}" == /* && -x "${PYTHON_EXEC}" ]] || {
+    echo "[CoChem-TORQ] PYTHON_EXEC must be an absolute executable interpreter path." >&2
+    exit 64
+}
+[[ -n "${COCHEM_REQUEST_FILE:-}" && -f "${COCHEM_REQUEST_FILE}" ]] || {
+    echo "[CoChem-TORQ] COCHEM_REQUEST_FILE must name an explicit request file." >&2
+    exit 64
+}
+[[ -n "${COCHEM_APPROVED_PLAN_FILE:-}" && -f "${COCHEM_APPROVED_PLAN_FILE}" ]] || {
+    echo "[CoChem-TORQ] COCHEM_APPROVED_PLAN_FILE must name the reviewed approval." >&2
+    exit 64
+}
+JOB_ID="${SLURM_JOB_ID:-$$}_task_${SLURM_ARRAY_TASK_ID:-1}"
+"${PYTHON_EXEC}" -m cochem_torq.cli execute \
+    --request "${COCHEM_REQUEST_FILE}" \
+    --approved-plan "${COCHEM_APPROVED_PLAN_FILE}" \
+    --output-dir "${COCHEM_ARTIFACTS}/Outputs/${JOB_ID}"

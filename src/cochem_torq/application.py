@@ -26,6 +26,7 @@ from .domain import (
     canonical_json,
     digest,
     read_json,
+    scientific_cache_key,
 )
 from .domain import SPECTROSCOPY_STAGES as STAGES
 from .registry import get_profile
@@ -70,7 +71,7 @@ def source_identity() -> dict[str, Any]:
         )
     import importlib.util
 
-    for module in ("Libraries.cochem_isotopes", "cochem.orchestration.sqlite_queue"):
+    for module in ("Libraries.cochem_isotopes", "cochem.orchestration.campaign"):
         specification = importlib.util.find_spec(module)
         if specification is not None and specification.origin:
             records.append(
@@ -118,10 +119,24 @@ def validate_request(
         else CalculationRequest.model_validate(request)
     )
     profile = get_profile(model.recipe)
+    from .registry import route_profile_capabilities
+
+    capabilities = route_profile_capabilities(
+        model.recipe, model.products, execution=execution
+    )
     _masses(
         model
     )  # Fail before expensive work if a requested isotope lacks real mass data.
-    reasons = []
+    reasons = list(capabilities["blocking_reasons"])
+    if model.scientific_goal is not None and any(
+        declaration.product_class in {"B", "C", "BENCHMARK"}
+        for declaration in model.scientific_goal.products
+    ):
+        reasons.append(
+            "Anchored, difference and independent benchmark goals require "
+            "their separately qualified campaign implementations; this "
+            "single-molecule worker cannot supply them."
+        )
     if not profile.get("runnable"):
         reasons.append(profile["reason"])
     if profile.get("runnable"):
@@ -173,7 +188,9 @@ def validate_request(
         "executable": not reasons,
         "request": normalized,
         "request_sha256": digest(normalized),
+        "scientific_cache_key": scientific_cache_key(model, profile),
         "recipe": profile,
+        "capabilities": capabilities,
         "blocked_products": blocked,
         "blocking_reasons": reasons,
         "execution": execution,
@@ -189,6 +206,8 @@ def validate_request(
 
 def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[str, Any]:
     """Immutable dependency closure; no unplanned method or engine switching."""
+    from .registry import profile_capabilities
+
     needs_hessian = bool(
         set(request.products)
         & ({"harmonic", "equilibrium_constants", "rigid_rotor_catalog"} | _ADVANCED)
@@ -245,13 +264,23 @@ def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[st
                     "qualification": (
                         "explicit_experimental_validation_only"
                         if profile.get("anharmonic")
-                        and product in {"anharmonic_force_field", "resonance_analysis"}
+                        and product
+                        in {"anharmonic_force_field", "resonance_analysis", "vpt2"}
                         else "blocked_pending_independent_scientific_validation"
                     ),
                 }
             )
     plan = {
         "schema_version": "cochem.torq.plan/1",
+        "capability_purpose": "controlled_validation",
+        "declared_capability_records": [
+            record.model_dump(mode="json")
+            for record in profile_capabilities(profile["id"])
+        ],
+        "serialization_profile": request.serialization_profile,
+        "request": request.model_dump(mode="json"),
+        "request_sha256": digest(request.model_dump(mode="json")),
+        "scientific_cache_key": scientific_cache_key(request, profile),
         "tasks": tasks,
         "resources": request.resources.model_dump(),
         "scientific_recipe": profile,
@@ -264,13 +293,27 @@ def create_plan(request: CalculationRequest, profile: dict[str, Any]) -> dict[st
 
 
 def _stage(
-    status: str, observable: str, value=None, reason=None, parents=(), flags=()
+    status: str,
+    observable: str,
+    value=None,
+    reason=None,
+    parents=(),
+    flags=(),
+    absence_kind=None,
 ) -> dict[str, Any]:
     return StageResult(
         status=status,
         observable=observable,
         value=_plain(value),
         reason=reason,
+        absence_kind=None
+        if status == "available"
+        else absence_kind
+        or {
+            "blocked": "not_computed",
+            "failed": "failed",
+            "unavailable": "not_computed",
+        }[status],
         parents=list(parents),
         quality_flags=list(flags),
     ).model_dump(mode="json")
@@ -279,6 +322,8 @@ def _stage(
 def _empty_result(
     request: CalculationRequest, profile: dict[str, Any], reason: str
 ) -> dict[str, Any]:
+    from .units import constants_provenance
+
     return {
         "schema_version": "cochem.torq.result/1",
         "request_id": str(request.request_id),
@@ -288,8 +333,12 @@ def _empty_result(
         "status": "failed",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "source_identity": source_identity(),
+        "constants": constants_provenance(),
         "plan": create_plan(request, profile),
         "molecule": request.molecule.model_dump(mode="json"),
+        "scientific_goal": request.scientific_goal.model_dump(mode="json")
+        if request.scientific_goal
+        else None,
         "stages": {name: _stage("blocked", name, reason=reason) for name in STAGES},
         "errors": [],
         "experimental_accuracy_established": False,
@@ -632,6 +681,7 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
             "harmonic_frequencies",
             reason="No Hessian was requested in this immutable plan.",
             parents=["equilibrium_geometry"],
+            absence_kind="not_requested",
         )
     _checkpoint(directory, result)
     for name in (
@@ -648,6 +698,7 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
             "anharmonic/rotation–vibration/distortion/intensity benchmarks "
             "and method qualification are required. No harmonic substitute is "
             "supplied.",
+            absence_kind="unsupported" if name in request.products else "not_requested",
             parents=["harmonic_analysis"]
             if name == "anharmonic_force_field"
             else [STAGES[STAGES.index(name) - 1]],
@@ -671,16 +722,26 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
                 )
                 result["anharmonic_validation"] = research
                 result["errors"].extend(research["errors"])
-                for name in ("anharmonic_force_field", "resonance_analysis"):
-                    observation = research["stages"][name]
+                for name, source_name, observable in (
+                    (
+                        "anharmonic_force_field",
+                        "anharmonic_force_field",
+                        "anharmonic_force_field",
+                    ),
+                    ("resonance_analysis", "resonance_analysis", "resonance_analysis"),
+                    ("vpt2", "vibrational_vpt2", "vibrational_only_vpt2"),
+                ):
+                    observation = research["stages"][source_name]
                     stages[name] = _stage(
                         observation["status"],
-                        name,
+                        observable,
                         value=observation.get("value"),
                         reason=observation.get("reason"),
                         parents=["harmonic_analysis"]
                         if name == "anharmonic_force_field"
-                        else ["anharmonic_force_field"],
+                        else ["anharmonic_force_field"]
+                        if name == "resonance_analysis"
+                        else ["anharmonic_force_field", "resonance_analysis"],
                         flags=[
                             "experimental_unqualified",
                             "rotation_vibration_not_implemented",
@@ -710,19 +771,21 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
             and stages["equilibrium_constants"]["status"] == "available"
         ):
             # For ions the rotational dipole is defined at the center of mass.
-            from scipy.constants import elementary_charge, physical_constants
-
             from .spectroscopy import rigid_rotor_catalog
+            from .units import (
+                BOHR_METRE,
+                DEBYE_COULOMB_METRE,
+                ELEMENTARY_CHARGE_COULOMB,
+            )
 
-            bohr_m = physical_constants["Bohr radius"][0]
             center_bohr = np.average(native["geometry_bohr"], axis=0, weights=masses)
             mu_com = (
                 np.asarray(native["dipole_debye"])
                 - request.molecule.charge
                 * center_bohr
-                * elementary_charge
-                * bohr_m
-                / 3.33564e-30
+                * ELEMENTARY_CHARGE_COULOMB
+                * BOHR_METRE
+                / DEBYE_COULOMB_METRE
             )
             dipole = mu_com @ rotor.principal_axes_columns
             try:
@@ -733,19 +796,34 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
                     J_max=request.catalog.max_j,
                     constant_observable="Be",
                 )
+                from .spectroscopy.results import make_scientific_context
+
+                catalog_value = _plain(catalog)
+                catalog_value["dipole_origin"] = "center_of_mass"
+                catalog_value["scientific_context"] = make_scientific_context(
+                    molecule=request.molecule.model_dump(mode="json"),
+                    geometry_bohr=native["geometry_bohr"],
+                    isotope_provenance=result["resolved_isotopes"],
+                    recipe_sha256=profile["recipe_sha256"],
+                    protocol_sha256=result["plan"]["plan_sha256"],
+                    evidence_class="engine_calculation",
+                    parent_artifact_sha256=[
+                        native["manifest_sha256"],
+                        derivative_native["manifest_sha256"],
+                    ],
+                    harmonic=harmonic,
+                    principal_axes_columns=rotor.principal_axes_columns,
+                )
                 stages["rigid_rotor_catalog"] = _stage(
                     "available",
                     "rigid_rotor_transitions",
-                    catalog,
+                    catalog_value,
                     parents=["equilibrium_constants", "harmonic_analysis"],
                     flags=[
                         "rigid_rotor_approximation",
                         "Be_not_B0",
                         "identification_accuracy_not_established",
                     ],
-                )
-                stages["rigid_rotor_catalog"]["value"]["dipole_origin"] = (
-                    "center_of_mass"
                 )
                 if not catalog.partition_converged_at_requested_tolerance:
                     stages["rigid_rotor_catalog"]["quality_flags"].append(
@@ -781,6 +859,19 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
         result["errors"].append(
             {"code": "QCSCHEMA_EXPORT_UNAVAILABLE", "message": str(exc)}
         )
+    if request.scientific_goal is not None:
+        result["goal_evaluation"] = {
+            "status": "unavailable",
+            "accuracy_status": "unqualified",
+            "reason": "The goal declaration is retained; independent "
+            "accuracy/error-budget validation has not been executed.",
+        }
+        result["errors"].append(
+            {
+                "code": "SCIENTIFIC_GOAL_NOT_ESTABLISHED",
+                "message": result["goal_evaluation"]["reason"],
+            }
+        )
     if not result["errors"] and all(
         stages[PRODUCT_TO_STAGE[product]]["status"] == "available"
         for product in request.products
@@ -790,7 +881,10 @@ def worker_execute(request: CalculationRequest, directory: Path) -> dict[str, An
 
 
 def execute_request(
-    request: dict[str, Any] | CalculationRequest, output_directory: str | Path
+    request: dict[str, Any] | CalculationRequest,
+    output_directory: str | Path,
+    *,
+    approved_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Owned subprocess, wall timeout, fenced completion, then immutable publication."""
     checked = validate_request(request, execution="local_validation")
@@ -803,31 +897,139 @@ def execute_request(
             "Select a new output directory; published runs are immutable."
         )
     destination.parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(
-        tempfile.mkdtemp(prefix=f".{destination.name}.worker-", dir=destination.parent)
-    )
-    (staging / "request.json").write_bytes(canonical_json(checked["request"]) + b"\n")
-    from cochem.orchestration.sqlite_queue import SQLiteTaskQueue
+    from .operations import admit_artifact_work
+    from .service import approve_plan, plan_request, validate_approved_plan
 
-    coordinator = destination.parent / ".torq-coordinator.sqlite"
-    queue = SQLiteTaskQueue(coordinator)
-    task_id = queue.enqueue_task(
-        "torq_calculation",
-        {
-            "request_id": str(model.request_id),
-            "request_sha256": checked["request_sha256"],
-            "output": str(destination),
-            "staging": str(staging),
-        },
-        max_retries=1,
-    )
-    lease = queue.lease_task(os.getpid(), socket.gethostname(), task_id=task_id)
-    if lease is None or lease.task_id != task_id:
-        queue.close()
-        raise RuntimeError(
-            "Coordinator lease did not match this planned task; use a "
-            "separate output root for independent coordinators."
+    if approved_plan is None:
+        # An explicit local execution call authorizes this exact finite request.
+        # The observed OS identity is recorded; no remote user identity is inferred.
+        approved_plan = approve_plan(
+            plan_request(model.model_dump(mode="json"), execution="local_validation"),
+            actor=f"local-os:{os.getuid()}@{socket.gethostname()}",
         )
+    approved = validate_approved_plan(approved_plan, request=checked["request"])
+    scratch_bytes = approved.approval.max_scratch_bytes
+    with admit_artifact_work(destination.parent, incoming_bytes=scratch_bytes):
+        return _execute_admitted_request(checked, model, destination, approved)
+
+
+def _execute_admitted_request(checked, model, destination, approved):
+    import psutil
+
+    from cochem.orchestration.campaign import (
+        Allocation,
+        CampaignBudget,
+        CampaignCoordinator,
+        MeasuredUsage,
+    )
+
+    from .operations import (
+        ArtifactBackpressureError,
+        artifact_usage,
+        enforce_artifact_budget,
+    )
+
+    scratch_bytes = approved.approval.max_scratch_bytes
+    actor = f"local-os:{os.getuid()}@{socket.gethostname()}"
+    queue = CampaignCoordinator(destination.parent / ".torq-campaign.sqlite")
+    attempt = None
+    try:
+        receipt = queue.create_campaign(
+            approved.model_dump(mode="json"),
+            CampaignBudget(
+                max_wall_seconds=approved.approval.max_wall_seconds,
+                max_cpu_core_seconds=approved.approval.max_cpu_core_seconds,
+                max_tasks=1,
+                max_concurrent_workers=1,
+                max_cpu_cores=model.resources.cores,
+                max_memory_mb=approved.approval.max_memory_mb,
+                max_scratch_mb=(scratch_bytes + 1024**2 - 1) // 1024**2,
+                expires_at_unix=approved.approval.expires_at.timestamp(),
+                allowed_engines=[checked["recipe"]["engine"]],
+                allowed_recipes=[model.recipe],
+                permitted_retries=approved.approval.permitted_retries,
+            ),
+            actor=actor,
+        )
+        staging = Path(
+            tempfile.mkdtemp(
+                prefix=f".{destination.name}.worker-", dir=destination.parent
+            )
+        )
+        (staging / "request.json").write_bytes(
+            canonical_json(checked["request"]) + b"\n"
+        )
+        task = queue.register_task(
+            receipt["campaign_id"],
+            {
+                "request_id": str(model.request_id),
+                "request_sha256": checked["request_sha256"],
+                "output": str(destination),
+                "staging": str(staging),
+            },
+            engine=checked["recipe"]["engine"],
+            recipe=model.recipe,
+            plan_sha256=receipt["plan_sha256"],
+            authority=receipt["authority"],
+            actor=actor,
+        )
+        task_id = task["task_id"]
+        attempt = queue.new_attempt(
+            task_id, authority=receipt["authority"], actor=actor
+        )
+        attempt = queue.transition(
+            attempt["id"],
+            attempt["revision"],
+            "validated",
+            authority=receipt["authority"],
+            actor=actor,
+            reason="Validated exact request, profile, reviewed plan and finite budget.",
+        )
+        attempt = queue.reserve(
+            attempt["id"],
+            attempt["revision"],
+            Allocation(
+                wall_seconds=model.resources.wall_seconds,
+                cores=model.resources.cores,
+                memory_mb=model.resources.memory_mb,
+                scratch_mb=(scratch_bytes + 1024**2 - 1) // 1024**2,
+            ),
+            authority=receipt["authority"],
+            actor=actor,
+        )
+    except BaseException:
+        try:
+            if attempt is not None:
+                current = queue.attempt(attempt["id"])
+                queue.cancel(
+                    attempt["id"],
+                    current["revision"],
+                    authority=receipt["authority"],
+                    actor=actor,
+                    reason="Setup failed before any worker was launched.",
+                )
+                if any(
+                    record["attempt_id"] == attempt["id"]
+                    for record in queue.accounting(receipt["campaign_id"])
+                ):
+                    queue.reconcile(
+                        attempt["id"],
+                        MeasuredUsage(
+                            wall_seconds=0.0,
+                            measurement_source=(
+                                "not dispatched; setup failed before Popen"
+                            ),
+                        ),
+                        authority=receipt["authority"],
+                        actor=actor,
+                        reason=(
+                            "No child process was launched; "
+                            "released undispatched resources."
+                        ),
+                    )
+        finally:
+            queue.close()
+        raise
     allowed_environment = {
         "PATH",
         "HOME",
@@ -862,8 +1064,14 @@ def execute_request(
         }
     )
     deadline = time.monotonic() + model.resources.wall_seconds
+    started = time.monotonic()
     timed_out = False
+    budget_failure = None
+    sampled_peak_memory_mb = None
+    measured_peak_scratch_bytes = 0
     process = None
+    published = False
+    launched = False
     try:
         with (staging / "worker.log").open("wb") as log:
             process = subprocess.Popen(
@@ -882,16 +1090,62 @@ def execute_request(
                 env=environment,
                 start_new_session=True,
             )
+            launched = True
+            attempt = queue.record_dispatch(
+                attempt["id"],
+                attempt["revision"],
+                pid=process.pid,
+                authority=receipt["authority"],
+                actor=actor,
+            )
+            lease = queue.lease(
+                attempt["id"],
+                attempt["revision"],
+                pid=process.pid,
+                authority=receipt["authority"],
+                actor=actor,
+            )
+            attempt = lease
             while process.poll() is None:
                 if time.monotonic() >= deadline:
                     timed_out = True
                     _stop_owned_process(process)
                     break
-                if not queue.heartbeat(
-                    task_id,
-                    lease_token=lease.lease_token,
-                    lease_generation=lease.lease_generation,
-                ):
+                try:
+                    usage = enforce_artifact_budget(
+                        staging, baseline_bytes=0, max_growth_bytes=scratch_bytes
+                    )
+                    measured_peak_scratch_bytes = max(
+                        measured_peak_scratch_bytes, usage["owned_bytes"]
+                    )
+                    owned = psutil.Process(process.pid)
+                    rss = 0
+                    for member in [owned, *owned.children(recursive=True)]:
+                        try:
+                            rss += member.memory_info().rss
+                        except psutil.NoSuchProcess:
+                            pass
+                    sampled_peak_memory_mb = max(
+                        sampled_peak_memory_mb or 0.0, rss / 1024**2
+                    )
+                    if rss > approved.approval.max_memory_mb * 1024**2:
+                        raise ArtifactBackpressureError(
+                            "Owned worker process tree exceeded its approved "
+                            "resident-memory ceiling."
+                        )
+                except psutil.NoSuchProcess:
+                    pass
+                except ArtifactBackpressureError as exc:
+                    budget_failure = str(exc)
+                    _stop_owned_process(process)
+                    break
+                try:
+                    queue.heartbeat(
+                        attempt["id"],
+                        lease_token=lease["lease_token"],
+                        lease_generation=lease["lease_generation"],
+                    )
+                except RuntimeError:
                     _stop_owned_process(process)
                     raise RuntimeError(
                         "Coordinator lease lost; stale worker artifacts will not be "
@@ -900,12 +1154,15 @@ def execute_request(
                 time.sleep(0.2)
         if (
             timed_out
+            or budget_failure
             or not (staging / "result.json").is_file()
             or process.returncode not in (0, 4, 5)
         ):
             reason = (
-                "Owned calculation process exceeded its wall-time budget."
-                if timed_out
+                budget_failure
+                if budget_failure
+                else "Owned calculation process exceeded its wall-time budget."
+                if timed_out or budget_failure
                 else "Worker failed before producing a typed result; authentic worker "
                 "log retained."
             )
@@ -924,12 +1181,79 @@ def execute_request(
             )
             result["errors"].append(
                 {
-                    "code": "WALL_TIMEOUT" if timed_out else "WORKER_FAILED",
+                    "code": "RESOURCE_BUDGET_EXCEEDED"
+                    if budget_failure
+                    else "WALL_TIMEOUT"
+                    if timed_out
+                    else "WORKER_FAILED",
                     "message": reason,
                 }
             )
             (staging / "result.json").write_bytes(canonical_json(result) + b"\n")
         result = read_json(staging / "result.json")
+        wall_seconds = time.monotonic() - started
+        measured_peak_scratch_bytes = max(
+            measured_peak_scratch_bytes, artifact_usage(staging)["owned_bytes"]
+        )
+        result["campaign"] = {
+            "campaign_id": receipt["campaign_id"],
+            "task_id": task_id,
+            "attempt_id": attempt["id"],
+            "approved_plan_sha256": approved.approval.plan_sha256,
+            "approval_sha256": approved.approval_sha256,
+            "worker_wall_seconds": wall_seconds,
+            "sampled_peak_memory_mb": sampled_peak_memory_mb,
+            "memory_measurement": "sampled resident memory; exact peak unavailable"
+            if sampled_peak_memory_mb is not None
+            else "unavailable; no sample completed",
+            "observed_peak_scratch_bytes": measured_peak_scratch_bytes,
+            "cpu_core_seconds": None,
+            "cpu_accounting": "conservative_reserved_ceiling; "
+            "exact CPU measurement unavailable",
+            "coordinator": "single_authority_campaign_CAS_and_fenced_publication",
+        }
+        if wall_seconds > approved.approval.max_wall_seconds and not timed_out:
+            result["status"] = (
+                "partial"
+                if any(
+                    stage["status"] == "available"
+                    for stage in result["stages"].values()
+                )
+                else "failed"
+            )
+            result["errors"].append(
+                {
+                    "code": "RESOURCE_BUDGET_EXCEEDED",
+                    "message": (
+                        "Observed wall consumption exceeded the approved "
+                        "campaign ceiling."
+                    ),
+                }
+            )
+        (staging / "result.json").write_bytes(canonical_json(result) + b"\n")
+        attempt = queue.worker_transition(
+            attempt["id"],
+            attempt["revision"],
+            "collecting",
+            lease_token=lease["lease_token"],
+            lease_generation=lease["lease_generation"],
+            actor=actor,
+            reason=(
+                "Owned child stopped and native handles closed; "
+                "collecting authentic artifacts."
+            ),
+        )
+        attempt = queue.worker_transition(
+            attempt["id"],
+            attempt["revision"],
+            "validating",
+            lease_token=lease["lease_token"],
+            lease_generation=lease["lease_generation"],
+            actor=actor,
+            reason=(
+                "Checking typed stages, identities and complete immutable inventory."
+            ),
+        )
         # Only the coordinator seals after the child has closed all native handles.
         seal_shard(
             staging,
@@ -940,8 +1264,9 @@ def execute_request(
             worker_id=task_id,
         )
         verify_shard(staging, expected_request_sha256=checked["request_sha256"])
-        queue.complete_task_with_publication(
-            task_id,
+        queue.publish(
+            attempt["id"],
+            attempt["revision"],
             {
                 "status": result["status"],
                 "request_sha256": checked["request_sha256"],
@@ -949,15 +1274,65 @@ def execute_request(
                     (staging / "manifest.json").read_bytes()
                 ).hexdigest(),
             },
+            MeasuredUsage(
+                wall_seconds=wall_seconds,
+                peak_memory_mb=None,
+                peak_scratch_mb=measured_peak_scratch_bytes / 1024**2,
+                measurement_source=(
+                    "owned child monotonic wall; observed byte accounting; "
+                    "exact CPU/GPU and memory peak unavailable"
+                ),
+            ),
             lambda: publish_shard(staging, destination),
-            lease_token=lease.lease_token,
-            lease_generation=lease.lease_generation,
+            state="succeeded" if result["status"] == "complete" else result["status"],
+            lease_token=lease["lease_token"],
+            lease_generation=lease["lease_generation"],
+            actor=actor,
         )
+        published = True
         return result
     finally:
-        if process is not None and process.poll() is None:
-            _stop_owned_process(process)
-        queue.close()
+        try:
+            if process is not None and process.poll() is None:
+                _stop_owned_process(process)
+            if not published:
+                current_attempt = queue.attempt(attempt["id"])
+                if current_attempt["state"] not in {
+                    "succeeded",
+                    "partial",
+                    "failed",
+                    "cancelled",
+                }:
+                    queue.cancel(
+                        attempt["id"],
+                        current_attempt["revision"],
+                        authority=receipt["authority"],
+                        actor=actor,
+                        reason=(
+                            "Owned local execution ended without validated "
+                            "publication; authentic staging retained."
+                        ),
+                    )
+                queue.reconcile(
+                    attempt["id"],
+                    MeasuredUsage(
+                        wall_seconds=time.monotonic() - started if launched else 0.0,
+                        measurement_source=(
+                            "observed local termination; exact CPU/GPU and memory "
+                            "peak unavailable"
+                        )
+                        if launched
+                        else "not dispatched; Popen did not launch a worker",
+                    ),
+                    authority=receipt["authority"],
+                    actor=actor,
+                    reason=(
+                        "Reconciled actual stopped local process after "
+                        "unsuccessful publication."
+                    ),
+                )
+        finally:
+            queue.close()
 
 
 def _stop_owned_process(process: subprocess.Popen) -> None:
@@ -975,8 +1350,24 @@ def _stop_owned_process(process: subprocess.Popen) -> None:
 
 
 def submit_request(
-    request: dict[str, Any] | CalculationRequest, execution: str = "github_actions"
+    request: dict[str, Any] | CalculationRequest,
+    execution: str = "github_actions",
+    *,
+    approved_plan: dict[str, Any] | None = None,
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
+    from .service import validate_approved_plan
+
+    if approved_plan is None or not idempotency_key:
+        raise ValueError(
+            "Submission requires an explicitly approved plan and idempotency key."
+        )
+    normalized = (
+        request.model_dump(mode="json")
+        if isinstance(request, CalculationRequest)
+        else request
+    )
+    approved = validate_approved_plan(approved_plan, request=normalized)
     checked = validate_request(request)
     if not checked["executable"]:
         raise PrerequisiteError("; ".join(checked["blocking_reasons"]))
@@ -987,7 +1378,12 @@ def submit_request(
         )
     from .github import GitHubActions
 
-    return GitHubActions.from_environment().submit(checked["request"])
+    return GitHubActions.from_environment().submit(
+        checked["request"],
+        idempotency_key=idempotency_key,
+        approved_plan_sha256=approved.approval.plan_sha256,
+        approved_plan=approved.model_dump(mode="json"),
+    )
 
 
 def get_run_status(run_id: str | int) -> dict[str, Any]:

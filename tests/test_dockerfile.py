@@ -2,9 +2,9 @@
 
 Validates:
 - File existence, regular file properties, UTF-8 encoding, and LF line endings.
-- Base image specification strictly matching python:3.10-slim.
+- Supported Python base image pinned by its immutable SHA-256 digest.
 - Installation of required system packages:
-  (build-essential, cmake, openmpi-bin, libopenmpi-dev, git).
+  (build-essential, CA certificates, Git, and GitHub CLI).
 - Apt cache cleanup (apt-get clean and rm -rf /var/lib/apt/lists/*).
 - Environment variables and working directory configuration.
 - Dockerfile instruction parsing, structural order, and single-layer design.
@@ -13,6 +13,7 @@ Validates:
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -50,24 +51,21 @@ def test_dockerfile_exists(repo_root: Path) -> None:
 def test_dockerfile_encoding_and_lf_line_endings(dockerfile_path: Path) -> None:
     """Validate UTF-8 encoding, lack of BOM, and strict Unix LF line endings."""
     raw_bytes = dockerfile_path.read_bytes()
-    assert not raw_bytes.startswith(b"\xef\xbb\xbf"), (
-        "Dockerfile contains UTF-8 BOM"
-    )
-    assert b"\r\n" not in raw_bytes, (
-        "Dockerfile contains Windows CRLF line endings"
-    )
+    assert not raw_bytes.startswith(b"\xef\xbb\xbf"), "Dockerfile contains UTF-8 BOM"
+    assert b"\r\n" not in raw_bytes, "Dockerfile contains Windows CRLF line endings"
     decoded = raw_bytes.decode("utf-8")
     assert len(decoded) > 0, "Decoded Dockerfile content must not be empty"
 
 
 def test_dockerfile_base_image(dockerfile_content: str) -> None:
-    """Validate that the base image is strictly python:3.10-slim."""
+    """Validate a supported, versioned Python image pinned by SHA-256."""
     match = re.search(r"^\s*FROM\s+([^\s]+)", dockerfile_content, re.MULTILINE)
     assert match is not None, "Dockerfile missing FROM instruction"
     base_image = match.group(1).strip()
-    assert base_image == "python:3.10-slim", (
-        f"Expected base image 'python:3.10-slim', got '{base_image}'"
-    )
+    assert re.fullmatch(
+        r"python:3\.(?:10|11|12|13)\.\d+-slim-[a-z]+@sha256:[0-9a-f]{64}",
+        base_image,
+    ), f"Unpinned or unsupported Python image: {base_image}"
 
 
 def test_dockerfile_environment_variables(dockerfile_content: str) -> None:
@@ -88,10 +86,9 @@ def test_dockerfile_system_packages(dockerfile_content: str) -> None:
     """Validate all required system packages are installed via apt-get."""
     required_packages = [
         "build-essential",
-        "cmake",
-        "openmpi-bin",
-        "libopenmpi-dev",
+        "ca-certificates",
         "git",
+        "gh",
     ]
     assert "apt-get update" in dockerfile_content, (
         "Dockerfile must execute 'apt-get update'"
@@ -116,12 +113,17 @@ def test_dockerfile_apt_cache_cleanup(dockerfile_content: str) -> None:
     )
 
 
-def test_dockerfile_workdir(dockerfile_content: str) -> None:
+def test_dockerfile_workdir(dockerfile_content: str, repo_root: Path) -> None:
     """Validate working directory configuration."""
     match = re.search(r"^\s*WORKDIR\s+([^\s]+)", dockerfile_content, re.MULTILINE)
     assert match is not None, "Dockerfile missing WORKDIR instruction"
     workdir = match.group(1).strip()
-    assert workdir == "/workspace", f"Expected WORKDIR '/workspace', got '{workdir}'"
+    configuration = json.loads(
+        (repo_root / ".devcontainer" / "devcontainer.json").read_text()
+    )
+    assert workdir == configuration["workspaceFolder"]
+    assert re.search(r"^USER vscode$", dockerfile_content, re.MULTILINE)
+    assert "python -m venv /opt/torq-venv" in dockerfile_content
 
 
 def test_dockerfile_layer_structure_and_order(dockerfile_content: str) -> None:
@@ -164,5 +166,3 @@ def test_dockerfile_integrity_and_anti_spoofing(dockerfile_content: str) -> None
         assert token not in dockerfile_content, (
             f"Prohibited token '{token}' found in Dockerfile"
         )
-
-

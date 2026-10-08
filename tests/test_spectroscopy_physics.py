@@ -243,6 +243,27 @@ def test_actual_displacement_derivatives_and_closed_form_vpt2():
     )
 
 
+def test_strong_one_mode_coupling_is_an_applicability_diagnostic():
+    field, cubic_coefficient, _ = oscillator_field(
+        cubic_fraction=0.15, quartic_fraction=0.05
+    )
+    diagnostics = analyze_resonances(field)
+    assert diagnostics
+    assert all(item.kind == "strong_anharmonic_coupling" for item in diagnostics)
+    assert all(item.harmonic_detuning_cm1 > 10 for item in diagnostics)
+    ground_to_fundamental = next(
+        item for item in diagnostics if (item.state_a, item.state_b) == ((0,), (1,))
+    )
+    # Independently evaluate <0|a q^3|1>=3a/(2 sqrt(2)), using harmonic
+    # oscillator ladder algebra rather than the sparse operator implementation.
+    assert ground_to_fundamental.coupling_cm1 == pytest.approx(
+        abs(cubic_coefficient) * 3 / (2 * sqrt(2)) * HARTREE_CM1, rel=1e-8
+    )
+    with pytest.raises(ValueError, match="perturbative applicability gate") as error:
+        vibrational_vpt2(field)
+    assert "explicit polyad treatment required" not in str(error.value)
+
+
 def test_force_field_energy_failure_budget_and_convergence_gate():
     geometry, hessian = diatomic_hessian()
     harmonic = analyze_hessian(geometry, [H_MASS, H_MASS], hessian)
@@ -506,12 +527,12 @@ def test_live_pyscf_h2_optimization_hessian_and_anharmonic_displacements(tmp_pat
     assert field.derivative_converged
     assert abs(field.cubic_hartree[0, 0, 0]) > 1e-6
     assert abs(field.quartic_hartree[0, 0, 0, 0]) > 1e-6
-    # This minimal-basis H2 force field exceeds the preregistered conservative
+    # This minimal-basis H2 force field exceeds the configured conservative
     # coupling/detuning gate. Do not relax that threshold merely to make this
     # calculation pass: retain the field and report the blocked next stage.
     assert analyze_resonances(field)
     assert not any(item.kind == "Fermi" for item in analyze_resonances(field))
-    with pytest.raises(ValueError, match="resonance"):
+    with pytest.raises(ValueError, match="perturbative applicability gate"):
         vibrational_vpt2(field)
     observed = {
         record.q_dimensionless[0]: record.energy_hartree

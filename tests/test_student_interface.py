@@ -123,7 +123,12 @@ def test_session_missing_request_and_run_id_are_explicit_errors() -> None:
 
 
 @pytest.mark.parametrize(
-    "content", ['{"molecule": {}, "molecule": {}}', '{"molecule": NaN}']
+    "content",
+    [
+        '{"molecule": {}, "molecule": {}}',
+        '{"molecule": NaN}',
+        '{"molecule": {}, "source_provenance": {"invalid": 1e999}}',
+    ],
 )
 def test_ambiguous_or_nonfinite_json_file_is_rejected(
     tmp_path: Path, content: str
@@ -161,3 +166,154 @@ def test_widget_launch_and_real_preview_click_use_actual_request() -> None:
     recipe.value = "hf-cc-pvdz-research"
     assert app.student_session.request is None
     app.close()
+
+
+def prepared_session():
+    session = StudentSession()
+    session.prepare_xyz(
+        XYZ,
+        charge=0,
+        multiplicity=1,
+        recipe="hf-sto-3g-education",
+        products=["geometry"],
+        cores=1,
+        memory_mb=512,
+        wall_seconds=60,
+    )
+    return session
+
+
+def test_review_and_approval_are_explicit_and_preserve_request_retry_identity():
+    session = prepared_session()
+    key = session.idempotency_key
+    with pytest.raises(ValueError, match="explicitly approve"):
+        session.submit()
+    with pytest.raises(ValueError, match="Review"):
+        session.approve(actor="course-student")
+    review = session.review_plan()
+    request_id = session.request["request_id"]
+    assert session.approved_plan is None
+    assert review["approval"] is None
+    assert review["plan"]["resources"]["wall_seconds"] == 60
+    approved = session.approve(actor="course-student")
+    assert approved["approval"]["plan_sha256"] == review["plan"]["plan_sha256"]
+    assert approved["approval"]["actor"] == "course-student"
+    assert approved["approval"]["max_cpu_core_seconds"] == 60
+    assert session.idempotency_key == key
+    assert session.validate()["request"]["request_id"] == request_id
+    assert session.idempotency_key == key
+    assert session.submission is None
+    session.review_plan()
+    assert session.approved_plan is None
+    assert session.request["request_id"] == request_id
+    assert session.idempotency_key == key
+
+
+def test_changed_request_cannot_submit_a_previous_approval():
+    session = prepared_session()
+    session.review_plan()
+    session.approve(actor="course-student")
+    session.request["products"] = ["harmonic"]
+    with pytest.raises(ValueError, match="differs"):
+        session.submit()
+    assert session.approved_plan is None
+    assert session.plan_review is None
+    assert session.submission is None
+
+
+def test_loading_or_clearing_input_invalidates_review_approval_and_retry_key():
+    session = prepared_session()
+    session.review_plan()
+    session.approve(actor="course-student")
+    old_key = session.idempotency_key
+    request = json.loads(json.dumps(session.request))
+    session.load_request(request)
+    assert session.plan_review is None and session.approved_plan is None
+    assert session.idempotency_key == old_key
+    session.clear_request()
+    assert session.request is None
+    assert session.idempotency_key is None
+
+
+def test_widget_requires_plan_review_and_explicit_actor_approval():
+    from cochem_torq.student_app import launch_student_app
+
+    app = launch_student_app()
+
+    def descendants(widget):
+        yield widget
+        for child in getattr(widget, "children", ()):
+            yield from descendants(child)
+
+    controls = list(descendants(app))
+    by_name = {getattr(control, "description", ""): control for control in controls}
+    source = next(
+        control for control in controls if control.__class__.__name__ == "Textarea"
+    )
+    source.value = XYZ
+    assert by_name["Submit to Actions"].disabled
+    by_name["Import and preview"].click()
+    by_name["Review plan"].click()
+    assert app.student_session.plan_review is not None
+    assert app.student_session.approved_plan is None
+    assert by_name["Approve this plan"].disabled
+    by_name["Approved by"].value = "course-student"
+    assert not by_name["Approve this plan"].disabled
+    assert by_name["Submit to Actions"].disabled
+    by_name["Approve this plan"].click()
+    assert app.student_session.approved_plan is not None
+    assert not by_name["Submit to Actions"].disabled
+    by_name["Approved by"].value = "another-student"
+    assert app.student_session.approved_plan is None
+    assert by_name["Submit to Actions"].disabled
+    by_name["Approve this plan"].click()
+    by_name["Wall sec"].value = 120
+    assert app.student_session.request is None
+    assert app.student_session.approved_plan is None
+    assert by_name["Submit to Actions"].disabled
+    app.close()
+
+
+def test_resume_uses_a_verified_failed_shard_and_requires_new_approval(tmp_path):
+    from cochem_torq.application import validate_request, worker_execute
+    from cochem_torq.artifacts import seal_shard
+    from cochem_torq.domain import CalculationRequest, canonical_json
+
+    original = CalculationRequest.model_validate(
+        {
+            "molecule": molecule_from_xyz(XYZ, charge=0, multiplicity=1),
+            "recipe": "revdsd-pbep86-d4-experimental",
+            "products": ["geometry"],
+        }
+    )
+    directory = tmp_path / "actual-rejection"
+    directory.mkdir()
+    checked = validate_request(original)
+    result = worker_execute(original, directory)
+    assert result["status"] == "failed"
+    (directory / "request.json").write_bytes(canonical_json(checked["request"]))
+    (directory / "result.json").write_bytes(canonical_json(result))
+    seal_shard(
+        directory,
+        request_sha256=checked["request_sha256"],
+        request_id=str(original.request_id),
+        recipe_sha256=checked["recipe"]["recipe_sha256"],
+        source_identity=result["source_identity"],
+        worker_id="actual-unqualified-profile",
+    )
+    session = StudentSession()
+    recovered = session.resume(directory)
+    assert recovered["request_id"] != str(original.request_id)
+    lineage = recovered["source_provenance"]["attempt_lineage"]
+    assert lineage["previous_request_id"] == str(original.request_id)
+    assert lineage["engine_checkpoint_reused"] is False
+    assert session.approved_plan is None
+    assert not session.review_plan()["executable"]
+    with pytest.raises(ValueError, match="explicitly approve"):
+        session.submit()
+
+
+def test_cancel_requires_an_explicit_reason_before_transport():
+    session = StudentSession()
+    with pytest.raises(ValueError, match="bounded reason"):
+        session.cancel(reason="", run_id="0")

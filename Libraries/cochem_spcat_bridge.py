@@ -873,8 +873,12 @@ def format_fortran_double(
     """
     fval = float(val)
     fortran_overflow_guard(fval)
+    if type(width) is not int or width < 1 or type(precision) is not int or precision < 0:
+        raise ValueError("Fortran field width must be positive and precision nonnegative")
     if fval == 0.0:
         base = "0.000D+00" if compact else "0." + ("0" * precision) + "D+00"
+        if not compact and len(base) > width:
+            raise FortranOverflowError("Zero cannot fit the requested Fortran field width")
         return base if compact else f"{base:>{width}}"
 
     sci_str = f"{fval:.{precision}e}"
@@ -899,6 +903,8 @@ def format_fortran_double(
                 sci_str = f"{fval:.{adj_prec}e}"
                 mantissa, _ = sci_str.replace("E", "e").split("e")
                 raw_res = f"{mantissa}D{exp_formatted}"
+            if len(raw_res) > width:
+                raise FortranOverflowError("Number cannot fit the requested Fortran field width")
             return f"{raw_res:>{width}}"
 
     formatted = f"{sci_str}".replace("e", "D").replace("E", "D")

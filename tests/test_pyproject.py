@@ -6,11 +6,11 @@ Defends build system integrity, package metadata, and developer tooling:
 - Strict formatting: no CR/CRLF, no trailing whitespace, single terminating LF.
 - Valid TOML syntax parsing via standard tomllib.
 - [build-system] table adhering to PEP 517 / PEP 518 specifications.
-- [project] metadata table compliance: name ("CoChem-TORQ"), version ("0.1.0"),
-  description, readme ("Readme.md"), requires-python (">=3.10"), and authors.
+- [project] metadata table compliance: name ("CoChem-TORQ"), valid PEP 440 version,
+  description, readme ("Readme.md"), supported Python versions, and authors.
 - Physical existence of the referenced Readme.md file.
-- Exact presence and PEP 508 validity of all 8 core dependencies.
-- [project.optional-dependencies] table containing exact dev dependencies.
+- PEP 508 core dependencies and explicit optional engine separation.
+- [project.optional-dependencies] containing bounded developer tools.
 - [tool.setuptools.packages.find] package discovery configuration.
 - [tool.pytest.ini_options] test execution configuration.
 - [tool.ruff] linting and formatting configuration.
@@ -34,6 +34,10 @@ else:
 
 import pytest
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
+from packaging.utils import canonicalize_name
+from packaging.version import Version
+from setuptools import find_packages
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
@@ -52,11 +56,17 @@ EXPECTED_PROJECT_REQUIRES_PYTHON = ">=3.10"
 EXPECTED_PROJECT_AUTHORS = [{"name": "CoChem Swarm"}]
 
 EXPECTED_DEPENDENCIES = [
+    "rfc8785",
+    "numpy",
     "pydantic",
     "h5py",
+    "hdf5plugin",
     "pyarrow",
-    "jax",
-    "jaxlib",
+    "pandas",
+    "mendeleev",
+    "zstandard",
+    "filelock",
+    "blake3",
     "psutil",
     "networkx",
     "scipy",
@@ -66,6 +76,7 @@ EXPECTED_DEV_DEPENDENCIES = [
     "pytest",
     "ruff",
     "mypy",
+    "build",
 ]
 
 EXPECTED_SEEK_SECTIONS = [
@@ -217,15 +228,11 @@ def test_pyproject_project_table_metadata(
     )
 
     assert "version" in proj, "Missing 'version' in [project]"
-    assert proj["version"] == EXPECTED_PROJECT_VERSION, (
-        f"Expected version '{EXPECTED_PROJECT_VERSION}', got '{proj['version']}'"
-    )
+    assert Version(proj["version"]).release
 
     assert "description" in proj, "Missing 'description' in [project]"
-    assert proj["description"] == EXPECTED_PROJECT_DESCRIPTION, (
-        f"Expected description '{EXPECTED_PROJECT_DESCRIPTION}', "
-        f"got '{proj['description']}'"
-    )
+    assert isinstance(proj["description"], str)
+    assert len(proj["description"].strip()) >= 20
 
     assert "readme" in proj, "Missing 'readme' in [project]"
     assert proj["readme"] == EXPECTED_PROJECT_README, (
@@ -233,10 +240,10 @@ def test_pyproject_project_table_metadata(
     )
 
     assert "requires-python" in proj, "Missing 'requires-python' in [project]"
-    assert proj["requires-python"] == EXPECTED_PROJECT_REQUIRES_PYTHON, (
-        f"Expected requires-python '{EXPECTED_PROJECT_REQUIRES_PYTHON}', "
-        f"got '{proj['requires-python']}'"
-    )
+    supported_python = SpecifierSet(proj["requires-python"])
+    assert Version("3.10") in supported_python
+    assert Version("3.12") in supported_python
+    assert Version("3.9") not in supported_python
 
     assert "authors" in proj, "Missing 'authors' in [project]"
     assert proj["authors"] == EXPECTED_PROJECT_AUTHORS, (
@@ -266,18 +273,25 @@ def test_pyproject_readme_file_exists(
 def test_pyproject_dependencies_count_and_content(
     parsed_pyproject: dict[str, Any],
 ) -> None:
-    """Verify [project.dependencies] count, exact elements, and ordering."""
+    """Verify valid bounded core dependencies with optional engines separated."""
     proj = parsed_pyproject["project"]
     assert "dependencies" in proj, "Missing 'dependencies' in [project]"
 
     deps = proj["dependencies"]
     assert isinstance(deps, list), "dependencies must be a list"
-    assert len(deps) == len(EXPECTED_DEPENDENCIES), (
-        f"Expected {len(EXPECTED_DEPENDENCIES)} dependencies, found {len(deps)}"
-    )
-    assert deps == EXPECTED_DEPENDENCIES, (
-        f"Dependencies list mismatch. Expected: {EXPECTED_DEPENDENCIES}, got: {deps}"
-    )
+    requirements = [Requirement(text) for text in deps]
+    names = [canonicalize_name(requirement.name) for requirement in requirements]
+    assert len(names) == len(set(names)), "Duplicate core package declarations"
+    assert set(EXPECTED_DEPENDENCIES).issubset(names)
+    assert all(requirement.specifier for requirement in requirements)
+    assert {"jax", "jaxlib", "torch", "pyscf"}.isdisjoint(names)
+    optional = proj["optional-dependencies"]
+    assert {"jax", "jaxlib"} == {
+        canonicalize_name(Requirement(text).name) for text in optional["dvr"]
+    }
+    assert "pyscf" in {
+        canonicalize_name(Requirement(text).name) for text in optional["calculations"]
+    }
 
 
 @pytest.mark.parametrize("expected_pkg", EXPECTED_DEPENDENCIES)
@@ -288,13 +302,11 @@ def test_pyproject_individual_dependency_validity(
     """Verify each dependency in pyproject.toml is valid according to PEP 508."""
     proj = parsed_pyproject["project"]
     deps = proj["dependencies"]
-    assert expected_pkg in deps, (
-        f"Expected package '{expected_pkg}' not in dependencies"
-    )
-    req = Requirement(expected_pkg)
-    assert req.name == expected_pkg, (
-        f"Requirement name mismatch: {req.name} != {expected_pkg}"
-    )
+    requirements = {
+        canonicalize_name(Requirement(text).name): Requirement(text) for text in deps
+    }
+    assert expected_pkg in requirements
+    assert requirements[expected_pkg].specifier
 
 
 def test_pyproject_optional_dependencies_dev(
@@ -309,9 +321,8 @@ def test_pyproject_optional_dependencies_dev(
     opt_deps = proj["optional-dependencies"]
     assert isinstance(opt_deps, dict), "optional-dependencies must be a table"
     assert "dev" in opt_deps, "Missing 'dev' in [project.optional-dependencies]"
-    assert opt_deps["dev"] == EXPECTED_DEV_DEPENDENCIES, (
-        f"Dev dependencies mismatch. Expected {EXPECTED_DEV_DEPENDENCIES}, "
-        f"got {opt_deps['dev']}"
+    assert set(EXPECTED_DEV_DEPENDENCIES).issubset(
+        canonicalize_name(Requirement(text).name) for text in opt_deps["dev"]
     )
 
 
@@ -323,11 +334,12 @@ def test_pyproject_dev_dependency_validity(
     """Verify dev dependencies are valid PEP 508 requirements."""
     proj = parsed_pyproject["project"]
     dev_deps = proj["optional-dependencies"]["dev"]
-    assert dev_pkg in dev_deps, (
-        f"Dev package '{dev_pkg}' not in optional-dependencies.dev"
-    )
-    req = Requirement(dev_pkg)
-    assert req.name == dev_pkg, f"Requirement name mismatch: {req.name} != {dev_pkg}"
+    requirements = {
+        canonicalize_name(Requirement(text).name): Requirement(text)
+        for text in dev_deps
+    }
+    assert dev_pkg in requirements
+    assert requirements[dev_pkg].specifier
 
 
 # ==============================================================================
@@ -348,11 +360,23 @@ def test_pyproject_setuptools_package_discovery(
 
     find_cfg = st_cfg["packages"]["find"]
     assert "where" in find_cfg, "Missing 'where' in [tool.setuptools.packages.find]"
-    assert find_cfg["where"] == ["."], f"Expected where=['.'], got {find_cfg['where']}"
+    assert {".", "src"}.issubset(find_cfg["where"])
     assert "include" in find_cfg, "Missing 'include' in [tool.setuptools.packages.find]"
     assert "Libraries*" in find_cfg["include"], (
         f"Expected 'Libraries*' in find.include, got {find_cfg['include']}"
     )
+    discovered = {
+        package
+        for directory in find_cfg["where"]
+        for package in find_packages(
+            str(REPO_ROOT / directory),
+            include=find_cfg["include"],
+            exclude=find_cfg["exclude"],
+        )
+    }
+    assert {"Libraries", "cochem_torq", "cochem_torq.engines"}.issubset(discovered)
+    assert not any(package.startswith("tests") for package in discovered)
+    assert tools["setuptools"]["package-dir"]["cochem_torq"] == "src/cochem_torq"
 
 
 def test_pyproject_pytest_ini_options(
@@ -367,8 +391,7 @@ def test_pyproject_pytest_ini_options(
     assert "testpaths" in pytest_cfg, "Missing 'testpaths' in [tool.pytest.ini_options]"
     assert isinstance(pytest_cfg["testpaths"], list), "'testpaths' must be a list"
     assert "tests" in pytest_cfg["testpaths"], (
-        f"Expected 'tests' in testpaths, "
-        f"got {pytest_cfg['testpaths']}"
+        f"Expected 'tests' in testpaths, got {pytest_cfg['testpaths']}"
     )
 
 

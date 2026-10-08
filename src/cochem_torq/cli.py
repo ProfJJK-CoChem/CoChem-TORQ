@@ -1,4 +1,4 @@
-"""Student application CLI. Nonzero exits distinguish invalid, failed and partial runs."""
+"""Student CLI with explicit invalid, failed and partial exit codes."""
 
 from __future__ import annotations
 
@@ -6,20 +6,56 @@ import argparse
 import json
 import os
 import sys
+import time
+from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 
 from .domain import CalculationRequest, PrerequisiteError, canonical_json, read_json
 
 
-def _emit(value):
+def _emit(value, *, structured=False, status=None, request_id=None, errors=None):
+    if structured:
+        value = {
+            "schema_version": "cochem.torq.cli-response/1",
+            "request_id": request_id
+            or (value.get("request_id") if isinstance(value, dict) else None),
+            "status": status
+            or (
+                value.get("status", "available")
+                if isinstance(value, dict)
+                else "available"
+            ),
+            "data": value,
+            "errors": errors or [],
+        }
     print(json.dumps(value, indent=2, sort_keys=True, allow_nan=False))
 
 
+class _ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ValueError(message)
+
+
+def _write_new(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("xb") as stream:
+        stream.write(canonical_json(value) + b"\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
 def _parser():
-    parser = argparse.ArgumentParser(
+    parser = _ArgumentParser(
         prog="cochem-torq",
-        description="Real calculations in GitHub Actions; the student interface in Codespaces.",
+        description=(
+            "Real calculations in GitHub Actions; the student interface in Codespaces."
+        ),
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the versioned service response contract",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser(
@@ -28,7 +64,7 @@ def _parser():
     commands.add_parser(
         "matrix", help="List all 140 preserved method-matrix identities"
     )
-    for name in ("validate", "execute", "submit", "_worker"):
+    for name in ("validate", "execute", "_worker"):
         command = commands.add_parser(
             name,
             help=argparse.SUPPRESS
@@ -47,6 +83,8 @@ def _parser():
         if name == "execute":
             command.add_argument("--request-id")
             command.add_argument("--expected-sha256")
+            command.add_argument("--approved-plan", type=Path)
+            command.add_argument("--expected-approval-sha256")
     status = commands.add_parser("status", help="Read a real hosted Actions run status")
     status.add_argument("run_id")
     download = commands.add_parser(
@@ -64,46 +102,145 @@ def _parser():
     merge.add_argument("shards", nargs="+", type=Path)
     merge.add_argument("--output-dir", required=True, type=Path)
     export_base = commands.add_parser(
-        "export-base", help="Export a verified actual electronic result for BASE"
+        "export-base",
+        aliases=["export"],
+        help="Export a verified actual electronic result for BASE",
     )
     export_base.add_argument("directory", type=Path)
     export_base.add_argument("--destination", required=True, type=Path)
+    export_base.add_argument(
+        "--format", choices=["base", "publication"], default="base"
+    )
+    candidates = commands.add_parser(
+        "candidates", help="Inspect and reversibly select actual retained candidates"
+    )
+    candidates.add_argument(
+        "action", choices=["list", "inspect", "register", "exclude", "restore"]
+    )
+    candidates.add_argument("--ledger", required=True, type=Path)
+    candidates.add_argument("--candidate-id")
+    candidates.add_argument("--revision", type=int)
+    candidates.add_argument("--request", type=Path)
+    candidates.add_argument("--actor")
+    candidates.add_argument("--reason")
+    doctor = commands.add_parser(
+        "doctor", help="Inspect actual dependency and canonical execution prerequisites"
+    )
+    doctor.add_argument(
+        "--execution",
+        choices=["github_actions", "local_validation"],
+        default="github_actions",
+    )
+    doctor.add_argument("--check-github", action="store_true")
+    plan = commands.add_parser(
+        "plan", help="Review a request-bound immutable plan and explicit cost ceiling"
+    )
+    plan.add_argument("--request", type=Path, required=True)
+    plan.add_argument(
+        "--execution",
+        choices=["github_actions", "local_validation"],
+        default="github_actions",
+    )
+    plan.add_argument("--output", type=Path)
+    approve = commands.add_parser(
+        "approve-plan", help="Record the caller's explicit approval of a reviewed plan"
+    )
+    approve.add_argument("--plan", type=Path, required=True)
+    approve.add_argument("--actor", required=True)
+    approve.add_argument("--expires-at", type=datetime.fromisoformat)
+    approve.add_argument("--scratch-mb", type=int, default=64)
+    approve.add_argument("--output", type=Path, required=True)
+    for name in ("submit", "run"):
+        command = commands.add_parser(
+            name,
+            help="Submit an approved plan to GitHub Actions"
+            if name == "submit"
+            else "Submit, wait and verify actual hosted results",
+        )
+        command.add_argument("--approved-plan", type=Path, required=True)
+        command.add_argument("--request", type=Path)
+        command.add_argument("--idempotency-key", required=True)
+        if name == "run":
+            command.add_argument("--wait-seconds", type=int, default=600)
+            command.add_argument("--poll-seconds", type=int, default=5)
+            command.add_argument("--destination", type=Path, required=True)
+    cancel = commands.add_parser(
+        "cancel", help="Request cancellation of an owned, identity-matched Actions run"
+    )
+    cancel.add_argument("run_id")
+    cancel.add_argument("--reason", required=True)
+    resume = commands.add_parser(
+        "resume",
+        help="Create a new compatible same-model attempt with explicit lineage",
+    )
+    resume.add_argument("directory", type=Path)
+    resume.add_argument("--output", type=Path, required=True)
+    interaction = commands.add_parser(
+        "interaction",
+        help="Execute a genuine explicitly named local energetics protocol",
+    )
+    interaction.add_argument("--request", type=Path, required=True)
+    interaction.add_argument("--output-dir", type=Path, required=True)
+    backup = commands.add_parser(
+        "backup", help="Copy and verify an immutable actual result shard"
+    )
+    backup.add_argument("--source", type=Path, required=True)
+    backup.add_argument("--destination", type=Path, required=True)
+    for name in ("restore", "rollback"):
+        command = commands.add_parser(
+            name, help="Restore verified bytes into a fresh compatible destination"
+        )
+        command.add_argument("--backup", type=Path, required=True)
+        command.add_argument("--destination", type=Path, required=True)
+        command.add_argument("--expected-manifest-sha256", required=True)
     interface = commands.add_parser(
         "interface", help="Start the actual JupyterLab student notebook"
     )
     interface.add_argument("--host", default="127.0.0.1")
     interface.add_argument("--port", type=int, default=8888)
     interface.add_argument("--notebook", type=Path, default=Path("UI/Start_TORQ.ipynb"))
+    for command in commands.choices.values():
+        if not any(action.dest == "json" for action in command._actions):
+            command.add_argument(
+                "--json", action="store_true", default=argparse.SUPPRESS
+            )
     return parser
 
 
 def main(argv=None) -> int:
-    arguments = _parser().parse_args(argv)
+    structured = "--json" in (argv if argv is not None else sys.argv[1:])
+    request_id = None
+
+    def emit(value, **kwargs):
+        _emit(value, structured=structured, request_id=request_id, **kwargs)
+
     try:
+        arguments = _parser().parse_args(argv)
         if arguments.command == "recipes":
             from .registry import list_method_profiles
 
-            _emit(list_method_profiles())
+            emit(list_method_profiles())
         elif arguments.command == "matrix":
             from .registry import matrix_index
 
-            _emit(matrix_index())
-        elif arguments.command in {"validate", "execute", "submit", "_worker"}:
+            emit(matrix_index())
+        elif arguments.command in {"validate", "execute", "_worker"}:
             request = read_json(arguments.request)
+            request_id = request.get("request_id")
             from .application import (
                 execute_request,
-                submit_request,
                 validate_request,
                 worker_execute,
             )
 
             if arguments.command == "validate":
                 checked = validate_request(request, execution=arguments.execution)
-                _emit(checked)
+                request_id = checked["request"]["request_id"]
+                emit(
+                    checked, status="validated" if checked["executable"] else "blocked"
+                )
                 return 0 if checked["executable"] else 3
-            if arguments.command == "submit":
-                _emit(submit_request(request))
-            elif arguments.command == "_worker":
+            if arguments.command == "_worker":
                 model = CalculationRequest.model_validate(request)
                 result = worker_execute(model, arguments.output_dir)
                 (arguments.output_dir / "result.json").write_bytes(
@@ -128,8 +265,26 @@ def main(argv=None) -> int:
                     and str(request.get("request_id")) != arguments.request_id
                 ):
                     raise ValueError("Request UUID mismatch.")
-                result = execute_request(request, arguments.output_dir)
-                _emit(
+                approval = (
+                    read_json(arguments.approved_plan)
+                    if arguments.approved_plan
+                    else None
+                )
+                if arguments.expected_approval_sha256 and (
+                    arguments.approved_plan is None
+                    or sha256(arguments.approved_plan.read_bytes()).hexdigest()
+                    != arguments.expected_approval_sha256
+                ):
+                    raise ValueError("Approved plan transport digest mismatch.")
+                if os.environ.get("GITHUB_ACTIONS") == "true" and approval is None:
+                    raise PrerequisiteError(
+                        "Canonical hosted execution requires the submitted "
+                        "reviewed approval."
+                    )
+                result = execute_request(
+                    request, arguments.output_dir, approved_plan=approval
+                )
+                emit(
                     {
                         "status": result["status"],
                         "request_id": result["request_id"],
@@ -150,11 +305,11 @@ def main(argv=None) -> int:
         elif arguments.command == "status":
             from .application import get_run_status
 
-            _emit(get_run_status(arguments.run_id))
+            emit(get_run_status(arguments.run_id))
         elif arguments.command == "download":
             from .application import download_run_results
 
-            _emit(
+            emit(
                 [
                     str(path)
                     for path in download_run_results(
@@ -166,43 +321,251 @@ def main(argv=None) -> int:
             from .artifacts import verify_shard
 
             manifest = verify_shard(arguments.directory)
-            _emit(
+            emit(
                 {
                     "status": "verified",
                     "request_id": manifest["request_id"],
                     "files": len(manifest["files"]),
-                    "scope": "byte integrity and matching identities; scientific accuracy is separate",
+                    "scope": (
+                        "byte integrity and matching identities; scientific "
+                        "accuracy is separate"
+                    ),
                 }
             )
         elif arguments.command == "merge":
             from .artifacts import merge_shards
 
-            _emit(
+            emit(
                 {
                     "output_directory": str(
                         merge_shards(arguments.shards, arguments.output_dir)
                     )
                 }
             )
-        elif arguments.command == "export-base":
-            from .ecosystem import export_base_calculation_result
+        elif arguments.command in {"export-base", "export"}:
+            if arguments.format == "publication":
+                from .publication import export_publication_bundle
 
-            _emit(
-                {
-                    "output_file": str(
-                        export_base_calculation_result(
-                            arguments.directory, arguments.destination
+                output = export_publication_bundle(
+                    arguments.directory, arguments.destination
+                )
+                emit(output)
+            else:
+                from .ecosystem import export_base_calculation_result
+
+                emit(
+                    {
+                        "output_file": str(
+                            export_base_calculation_result(
+                                arguments.directory, arguments.destination
+                            )
+                        )
+                    }
+                )
+        elif arguments.command == "candidates":
+            from .candidate_ledger import CandidateLedger
+
+            with CandidateLedger(arguments.ledger) as ledger:
+                if arguments.action == "list":
+                    emit({"candidates": ledger.candidates(include_excluded=True)})
+                elif arguments.action == "inspect":
+                    if not arguments.candidate_id:
+                        raise ValueError("Inspection requires --candidate-id.")
+                    emit(
+                        {
+                            "candidate": ledger.inspect(arguments.candidate_id),
+                            "history": ledger.history(arguments.candidate_id),
+                            "selection": ledger.selection_snapshot(),
+                        }
+                    )
+                elif arguments.action == "register":
+                    if (
+                        arguments.request is None
+                        or not arguments.actor
+                        or not arguments.reason
+                    ):
+                        raise ValueError(
+                            "Registration requires request, actor and reason."
+                        )
+                    emit(
+                        ledger.register_request(
+                            read_json(arguments.request),
+                            actor=arguments.actor,
+                            reason=arguments.reason,
                         )
                     )
-                }
+                else:
+                    if (
+                        not arguments.candidate_id
+                        or arguments.revision is None
+                        or not arguments.actor
+                        or not arguments.reason
+                    ):
+                        raise ValueError(
+                            "Selection requires candidate ID, revision, "
+                            "actor and reason."
+                        )
+                    emit(
+                        getattr(ledger, arguments.action)(
+                            arguments.candidate_id,
+                            expected_revision=arguments.revision,
+                            actor=arguments.actor,
+                            reason=arguments.reason,
+                        )
+                    )
+        elif arguments.command == "doctor":
+            from .service import doctor
+
+            report = doctor(
+                execution=arguments.execution, check_github=arguments.check_github
             )
+            emit(report)
+            return 3 if report["status"] == "blocked" else 0
+        elif arguments.command == "plan":
+            from .service import plan_request
+
+            review = plan_request(
+                read_json(arguments.request), execution=arguments.execution
+            )
+            request_id = review["request_id"]
+            if arguments.output:
+                _write_new(arguments.output, review)
+            emit(review, status="needs_review" if review["executable"] else "blocked")
+            return 0 if review["executable"] else 3
+        elif arguments.command == "approve-plan":
+            from .service import approve_plan
+
+            approved = approve_plan(
+                read_json(arguments.plan),
+                actor=arguments.actor,
+                expires_at=arguments.expires_at,
+                max_scratch_bytes=arguments.scratch_mb * 1024**2,
+            )
+            _write_new(arguments.output, approved)
+            request_id = approved["plan"]["request"]["request_id"]
+            emit(approved, status="approved")
+        elif arguments.command in {"submit", "run"}:
+            from .application import submit_request
+            from .service import validate_approved_plan
+
+            approved = read_json(arguments.approved_plan)
+            request = (
+                read_json(arguments.request)
+                if arguments.request
+                else approved["plan"]["request"]
+            )
+            validate_approved_plan(approved, request=request)
+            request_id = request["request_id"]
+            if arguments.command == "run" and not (
+                1 <= arguments.wait_seconds <= 1800
+                and 1 <= arguments.poll_seconds <= 30
+            ):
+                raise ValueError(
+                    "Wait must be 1..1800 seconds; poll interval 1..30 seconds."
+                )
+            receipt = submit_request(
+                request,
+                approved_plan=approved,
+                idempotency_key=arguments.idempotency_key,
+            )
+            if arguments.command == "submit":
+                accepted = receipt["status"] in {
+                    "dispatched",
+                    "dispatched_run_lookup_unavailable",
+                }
+                emit(
+                    receipt,
+                    status="accepted" if accepted else "dispatch_outcome_unknown",
+                )
+                return 0 if accepted else 4
+            if not receipt.get("run_id"):
+                emit(receipt, status="accepted_pending_run_correlation")
+                return 4
+            from .application import download_run_results, get_run_status
+
+            deadline = time.monotonic() + arguments.wait_seconds
+            while True:
+                hosted = get_run_status(receipt["run_id"])
+                if hosted["status"] == "completed":
+                    break
+                if time.monotonic() >= deadline:
+                    emit(
+                        {"submission": receipt, "hosted": hosted},
+                        status="accepted_wait_timeout",
+                    )
+                    return 4
+                time.sleep(
+                    min(arguments.poll_seconds, max(0, deadline - time.monotonic()))
+                )
+            paths = download_run_results(receipt["run_id"], arguments.destination)
+            from .student_app import inspect_downloaded_results
+
+            results = inspect_downloaded_results(paths)
+            complete = all(item["scientific_status"] == "complete" for item in results)
+            emit(
+                {"submission": receipt, "hosted": hosted, "results": results},
+                status="complete" if complete else "partial",
+            )
+            return 0 if complete else 4
+        elif arguments.command == "cancel":
+            from .github import GitHubActions
+
+            emit(
+                GitHubActions.from_environment().cancel(
+                    arguments.run_id, reason=arguments.reason
+                )
+            )
+        elif arguments.command == "resume":
+            from .service import resume_request
+
+            request = resume_request(arguments.directory)
+            _write_new(arguments.output, request)
+            request_id = request["request_id"]
+            emit(
+                {
+                    "request": request,
+                    "output_file": str(arguments.output),
+                    "requires_plan_review": True,
+                },
+                status="needs_review",
+            )
+        elif arguments.command == "interaction":
+            from .energetics import evaluate_interaction
+
+            result = evaluate_interaction(
+                read_json(arguments.request), arguments.output_dir
+            )
+            emit(
+                result.model_dump(mode="json")
+                if hasattr(result, "model_dump")
+                else result
+            )
+        elif arguments.command == "backup":
+            from .operations import backup_shard
+
+            emit(
+                backup_shard(arguments.source, arguments.destination), status="verified"
+            )
+        elif arguments.command in {"restore", "rollback"}:
+            from .operations import restore_shard, rollback_shard
+
+            operation = (
+                restore_shard if arguments.command == "restore" else rollback_shard
+            )
+            value = operation(
+                arguments.backup,
+                arguments.destination,
+                expected_manifest_sha256=arguments.expected_manifest_sha256,
+            )
+            emit({"output_directory": str(value)}, status="verified")
         elif arguments.command == "interface":
             if not 1 <= arguments.port <= 65535:
                 raise ValueError("Port must be in 1..65535.")
             notebook = arguments.notebook.resolve()
             if not notebook.is_file():
                 raise ValueError(
-                    "The student notebook is missing; run from the repository or supply --notebook."
+                    "The student notebook is missing; run from the "
+                    "repository or supply --notebook."
                 )
             # exec preserves the owned PID/start-time tracked by Codespaces lifecycle.
             command = [
@@ -220,17 +583,49 @@ def main(argv=None) -> int:
                 command.append("--allow-root")
             os.execv(sys.executable, command)
         return 0
-    except (ValueError, OSError, RuntimeError) as exc:
-        _emit(
-            {"status": "error", "error_type": type(exc).__name__, "message": str(exc)}
+    except (ValueError, OSError, RuntimeError, KeyError, TypeError) as exc:
+        code = (
+            "PREREQUISITE_UNAVAILABLE"
+            if isinstance(exc, PrerequisiteError)
+            else "INVALID_REQUEST"
+            if isinstance(exc, (ValueError, KeyError, TypeError))
+            else "EXECUTION_ERROR"
+        )
+        emit(
+            {"status": "error", "error_type": type(exc).__name__, "message": str(exc)},
+            errors=[
+                {
+                    "code": code,
+                    "message": str(exc),
+                    "details": {"exception_type": type(exc).__name__},
+                }
+            ],
         )
         return (
             3
             if isinstance(exc, PrerequisiteError)
             else 2
-            if isinstance(exc, ValueError)
+            if isinstance(exc, (ValueError, KeyError, TypeError))
             else 5
         )
+    except KeyboardInterrupt:
+        emit(
+            {
+                "message": (
+                    "The interface operation was interrupted; inspect the "
+                    "owned hosted run before retrying."
+                )
+            },
+            status="cancelled",
+            errors=[
+                {
+                    "code": "INTERRUPTED",
+                    "message": "Interface operation interrupted.",
+                    "details": {},
+                }
+            ],
+        )
+        return 130
 
 
 if __name__ == "__main__":

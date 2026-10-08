@@ -48,10 +48,16 @@ _PROFILES = {
         "basis": "sto-3g",
         "availability": "experimental",
         "runnable": True,
-        "reason": "Real restricted HF teaching baseline. Numerical qualification is scoped to tested molecules; experimental spectroscopy accuracy is uncalibrated.",
+        "reason": (
+            "Real restricted HF teaching baseline. Numerical "
+            "qualification is scoped to tested molecules; "
+            "experimental spectroscopy accuracy is uncalibrated."
+        ),
         "matrix_refs": [],
         "method_family": None,
-        "citation": "Roothaan, Rev. Mod. Phys. 23, 69 (1951), doi:10.1103/RevModPhys.23.69",
+        "citation": (
+            "Roothaan, Rev. Mod. Phys. 23, 69 (1951), doi:10.1103/RevModPhys.23.69"
+        ),
     },
     "hf-cc-pvdz-research": {
         **_BASE,
@@ -62,7 +68,11 @@ _PROFILES = {
         "basis": "cc-pvdz",
         "availability": "experimental",
         "runnable": True,
-        "reason": "Explicit research validation experiment; Hartree–Fock omits correlation and dispersion. It is not a matrix high-accuracy substitute.",
+        "reason": (
+            "Explicit research validation experiment; Hartree–Fock "
+            "omits correlation and dispersion. It is not a matrix "
+            "high-accuracy substitute."
+        ),
         "matrix_refs": [],
         "method_family": None,
         "citation": "Dunning, J. Chem. Phys. 90, 1007 (1989), doi:10.1063/1.456153",
@@ -77,7 +87,12 @@ _PROFILES = {
         "availability": "documented",
         "runnable": False,
         "products": [],
-        "reason": "Activation requires primary-source D4 recipe verification, independent energy comparison, orbital-response derivatives and separately validated higher derivatives.",
+        "reason": (
+            "Activation requires primary-source D4 recipe "
+            "verification, independent energy comparison, "
+            "orbital-response derivatives and separately validated "
+            "higher derivatives."
+        ),
         "matrix_refs": [],
         "method_family": "F05",
     },
@@ -93,14 +108,22 @@ for identifier, name, family in (
         **deepcopy(_BASE),
         "id": identifier,
         "version": 1,
-        "label": f"{name.upper()} / {'cc-pVDZ' if correlated else 'def2-SVP'} local validation",
+        "label": (
+            f"{name.upper()} / "
+            f"{'cc-pVDZ' if correlated else 'def2-SVP'} local validation"
+        ),
         "method": name,
         "basis": "cc-pvdz" if correlated else "def2-svp",
         "dispersion": None if correlated else "d4",
         "dispersion_version": None if correlated else "3.7.0",
         "availability": "experimental",
         "runnable": True,
-        "reason": "Genuine CPU validation experiment with tested finite-difference derivatives; requires explicit local execution. Experimental spectroscopy accuracy remains uncalibrated.",
+        "reason": (
+            "Genuine CPU validation experiment with tested "
+            "finite-difference derivatives; requires explicit local "
+            "execution. Experimental spectroscopy accuracy remains "
+            "uncalibrated."
+        ),
         "products": ["geometry", "harmonic", "equilibrium_constants"],
         "matrix_refs": [],
         "method_family": family,
@@ -113,7 +136,10 @@ for identifier, name, family in (
             **_BASE["numerical"],
             "hessian_step_bohr": 0.002 if not correlated else 0.005,
         },
-        "qualification_evidence": "benchmarks/generated/pyscf_cpu_qualification.json; exact tested tuples only",
+        "qualification_evidence": (
+            "benchmarks/generated/pyscf_cpu_qualification.json; "
+            "exact tested tuples only"
+        ),
     }
 
 _PROFILES["hf-sto-3g-anharmonic-validation"] = {
@@ -121,12 +147,17 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
     "id": "hf-sto-3g-anharmonic-validation",
     "label": "RHF / STO-3G local anharmonic validation experiment",
     "max_atoms": 3,
-    "reason": "Actual finite-displacement vibrational force field, bounded to three modes. Rotational VPT2/B0 and identification qualification remain blocked.",
+    "reason": (
+        "Actual finite-displacement vibrational force field, "
+        "bounded to three modes. Rotational VPT2/B0 and "
+        "identification qualification remain blocked."
+    ),
     "products": [
         "geometry",
         "harmonic",
         "equilibrium_constants",
         "anharmonic_force_field",
+        "vpt2",
     ],
     "numerical": {**_BASE["numerical"], "scf_energy_tolerance": 1e-12},
     "anharmonic": {
@@ -135,7 +166,10 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
         "max_evaluations": 200,
         "absolute_tolerance_hartree": 1e-6,
         "relative_tolerance": 0.03,
-        "scientific_scope": "experimental finite-displacement vibrational field; independent molecular accuracy unqualified",
+        "scientific_scope": (
+            "experimental finite-displacement vibrational field; "
+            "independent molecular accuracy unqualified"
+        ),
     },
 }
 
@@ -143,7 +177,8 @@ _PROFILES["hf-sto-3g-anharmonic-validation"] = {
 def get_profile(identifier: str) -> dict[str, Any]:
     if identifier not in _PROFILES:
         raise ValueError(
-            f"Unknown recipe {identifier!r}; historical row aliases require explicit mapping."
+            f"Unknown recipe {identifier!r}; "
+            "historical row aliases require explicit mapping."
         )
     result = deepcopy(_PROFILES[identifier])
     result["recipe_sha256"] = digest(result)
@@ -154,8 +189,127 @@ def list_method_profiles() -> list[dict[str, Any]]:
     return [get_profile(identifier) for identifier in _PROFILES]
 
 
+def profile_capabilities(identifier: str):
+    """Immutable exact experimental tuples for implemented native CPU routes.
+
+    These declarations authorize controlled validation, never automatic production
+    or an unrun chemical/identification accuracy profile. Runtime evidence may
+    qualify a separately recorded exact native request via capabilities.py.
+    """
+    from .capabilities import CapabilityRecord, CapabilityTuple
+
+    profile = get_profile(identifier)
+    if not profile.get("runnable"):
+        return ()
+    records = []
+    for property_name, derivative in (
+        ("energy", "none"),
+        ("gradient", "analytic"),
+        ("hessian", profile["derivatives"]["hessian"]),
+        ("dipole", "density_expectation"),
+        ("optimization", "analytic_gradient_optimization"),
+    ):
+        unsupported = property_name == "dipole" and profile["method"] == "mp2"
+        records.append(
+            CapabilityRecord(
+                tuple_definition=CapabilityTuple(
+                    method=profile["method"],
+                    basis=profile["basis"],
+                    electronic_reference="restricted_closed_shell",
+                    property=property_name,
+                    derivative=derivative,
+                    engine=profile["engine"],
+                    engine_version=profile["engine_version"],
+                    optimizer_version=profile["optimizer_version"]
+                    if property_name == "optimization"
+                    else None,
+                    hardware="linux-x86_64-cpu",
+                    recipe_sha256=profile["recipe_sha256"],
+                ),
+                availability="unsupported" if unsupported else "experimental",
+                reason="Relaxed-response MP2 dipoles are not implemented."
+                if unsupported
+                else "Explicit pinned native route for controlled "
+                "numerical validation; chemical accuracy remains unqualified.",
+            )
+        )
+    return tuple(records)
+
+
+def resolve_exact_capability(definition):
+    """An unlisted tuple is unknown; a similar recipe cannot establish support."""
+    from .capabilities import CapabilityRecord, CapabilityTuple
+
+    definition = CapabilityTuple.model_validate(definition)
+    for identifier in _PROFILES:
+        for record in profile_capabilities(identifier):
+            if record.tuple_definition == definition:
+                return record
+    return CapabilityRecord(
+        tuple_definition=definition,
+        availability="unknown",
+        reason="This exact method/basis/reference/property/version/hardware tuple "
+        "has no registered implementation or qualification; "
+        "no alternative is substituted.",
+    )
+
+
+def route_profile_capabilities(identifier: str, products, *, execution: str):
+    """Resolve exact native dependencies before the worker can dispatch."""
+    from .capabilities import authorize_capability, observed_cpu_hardware
+
+    if execution not in {"github_actions", "local_validation"}:
+        raise ValueError("Unknown capability execution environment.")
+    profile = get_profile(identifier)
+    hardware = (
+        "linux-x86_64-cpu" if execution == "github_actions" else observed_cpu_hardware()
+    )
+    required = {"energy", "gradient", "optimization"}
+    if profile.get("method") != "mp2":
+        required.add("dipole")  # The actual worker always calculates this property.
+    if set(products) - {"geometry"}:
+        required.add("hessian")
+    receipts, reasons = [], []
+    records = {
+        record.tuple_definition.property: record
+        for record in profile_capabilities(identifier)
+    }
+    for property_name in sorted(required):
+        record = records.get(property_name)
+        if record is None:
+            reasons.append(
+                f"No exact registered native capability for {property_name}."
+            )
+            continue
+        definition = record.tuple_definition.model_dump(mode="json")
+        definition["hardware"] = hardware
+        exact = resolve_exact_capability(definition)
+        try:
+            receipt = authorize_capability(exact, purpose="controlled_validation")
+            receipts.append(
+                {**receipt, "tuple": exact.tuple_definition.model_dump(mode="json")}
+            )
+        except ValueError as error:
+            reasons.append(f"{property_name}: {error}")
+    return {
+        "schema_version": "cochem.torq.capability-routing/1",
+        "purpose": "controlled_validation",
+        "hardware": hardware,
+        "hardware_evidence": "declared_canonical_actions_cpu_target"
+        if execution == "github_actions"
+        else "observed_local_os_and_cpu_architecture",
+        "executable": not reasons,
+        "blocking_reasons": reasons,
+        "resolved": receipts,
+        "chemical_accuracy_established": False,
+    }
+
+
 def matrix_index() -> list[dict[str, str]]:
-    """Preserve all 140 table/track/budget identities without inventing engine capability."""
+    """Preserve all 140 table/track/budget identities.
+
+    Indexing a method never invents engine capability.
+    """
     budgets = ["10s", "1min", "30min", "1h", "3h", "12h", "1d", "3d", "1w", "1mo"]
     tracks = [
         "T1",

@@ -81,7 +81,16 @@ class TestSplineFitting1D:
         # Simulate slight floating point discrepancy at end
         energies[-1] += 1e-12
 
-        res = fit_continuous_splines(angles, energies, periodic=True)
+        with pytest.raises(ValueError, match="explicit finite closure tolerance"):
+            fit_continuous_splines(angles, energies, periodic=True)
+        res = fit_continuous_splines(
+            angles, energies, periodic=True, periodic_endpoint_tolerance_hartree=2e-12
+        )
+        assert res["input_energies_hartree"][-1] == energies[-1]
+        assert (
+            res["endpoint_closure"]["input_difference_hartree"]
+            == energies[-1] - energies[0]
+        )
         assert len(res["minima"]) >= 2
         assert len(res["maxima"]) >= 2
 
@@ -146,12 +155,13 @@ class TestWKBTunnelingEstimator:
     """Test suite for Wentzel-Kramers-Brillouin (WKB) quantum tunneling estimation."""
 
     def test_wkb_tunneling_estimator_ch3(self) -> None:
-        """Verifies light methyl rotor tunneling estimation with authentic constants."""
+        """Evaluate a declared cosine potential; this is an uncalibrated WKB estimate."""
         res = wkb_tunneling_estimator(
             rotor_type="-CH3",
             barrier_height_cm1=1000.0,
             reduced_moment_inertia_amu_ang2=3.1,
             periodicity=3,
+            potential_model="cosine",
         )
         assert res["is_light_rotor"] is True
         assert res["tunneling_probability"] > 0.0
@@ -168,43 +178,35 @@ class TestWKBTunnelingEstimator:
             barrier_height_cm1=800.0,
             reduced_moment_inertia_amu_ang2=0.95,
             periodicity=1,
+            potential_model="cosine",
         )
         assert res["is_light_rotor"] is True
         assert res["tunneling_probability"] > 0.0
         assert res["quantum_treatment_required"] is True
 
     def test_wkb_tunneling_estimator_heavy_rotor(self) -> None:
-        """Verifies heavy phenyl rotor collapses quantum treatment."""
+        """A small WKB estimate still requires independent quantum validation."""
         res = wkb_tunneling_estimator(
             rotor_type="Phenyl",
             barrier_height_cm1=5000.0,
             reduced_moment_inertia_amu_ang2=120.0,
             periodicity=2,
+            potential_model="cosine",
         )
         assert res["is_light_rotor"] is False
-        assert res["quantum_treatment_required"] is False
+        assert res["quantum_treatment_required"] is True
+        assert "uncalibrated" in res["quality_flags"]
         assert res["tunneling_splitting_mhz"] < 1e-10
 
-    def test_get_dynamic_reduced_inertia(self) -> None:
-        """Verifies dynamic moment of inertia calculation using Mendeleev masses."""
-        i_ch3 = get_dynamic_reduced_inertia("CH3")
-        assert 2.5 <= i_ch3 <= 3.5
+    @pytest.mark.parametrize("name", ["CH3", "CD3", "-OH", "OD", "NH2", "-SH"])
+    def test_name_cannot_define_reduced_inertia(self, name: str) -> None:
+        """An axis, geometry, isotope masses and rotor/frame model are indispensable."""
+        with pytest.raises(ValueError, match="provide geometry, isotope masses"):
+            get_dynamic_reduced_inertia(name)
 
-        i_cd3 = get_dynamic_reduced_inertia("CD3")
-        assert i_cd3 > i_ch3
-        assert 5.0 <= i_cd3 <= 7.0
-
-        i_oh = get_dynamic_reduced_inertia("-OH")
-        assert 0.7 <= i_oh <= 1.2
-
-        i_od = get_dynamic_reduced_inertia("OD")
-        assert i_od > i_oh
-
-        i_nh2 = get_dynamic_reduced_inertia("NH2")
-        assert 1.5 <= i_nh2 <= 2.5
-
-        i_sh = get_dynamic_reduced_inertia("-SH")
-        assert 1.5 <= i_sh <= 2.5
+    def test_wkb_requires_declared_potential_shape(self) -> None:
+        with pytest.raises(ValueError, match="explicitly selected cosine"):
+            wkb_tunneling_estimator("CH3", 1000.0, 3.1, 3)
 
     def test_evaluate_wkb_action_integral(self) -> None:
         """Verifies numerical general WKB phase integral across turning points."""
@@ -228,3 +230,43 @@ class TestWKBTunnelingEstimator:
         )
         assert action > 0.0
         assert np.isfinite(action)
+
+
+def test_monotonic_scan_does_not_fabricate_stationary_curvature():
+    angles = np.linspace(0.0, 90.0, 8)
+    energies = np.radians(angles)
+    result = fit_continuous_splines(angles, energies, periodic=False)
+    assert result["stationary_points"] == []
+    assert result["global_minimum"] is None
+    assert result["sampled_minimum"]["type"] == "SAMPLED_POINT"
+    assert "curvature" not in result["sampled_minimum"]
+    assert result["sampled_minimum"]["energy_hartree"] == energies.min()
+    assert result["max_barrier_kcal_mol"] is None
+    assert result["sampled_energy_span_hartree"] == pytest.approx(np.ptp(energies))
+
+
+def test_monotonic_2d_surface_does_not_fabricate_hessian_eigenvalues():
+    angles = np.linspace(0.0, 90.0, 8)
+    x, y = np.meshgrid(np.radians(angles), np.radians(angles), indexing="ij")
+    energies = x + y
+    result = fit_continuous_2d_splines(angles, angles, energies)
+    assert result["stationary_points"] == []
+    assert result["global_minimum"] is None
+    assert result["sampled_minimum"]["type"] == "SAMPLED_POINT"
+    assert "hessian_eigenvalues" not in result["sampled_minimum"]
+    assert result["max_barrier_kcal_mol"] is None
+    assert result["sampled_energy_span_hartree"] == pytest.approx(np.ptp(energies))
+
+
+@pytest.mark.parametrize("dimensions", [1, 2])
+@pytest.mark.parametrize("bad", [np.nan, np.inf, 1j])
+def test_spline_never_truncates_complex_or_nonfinite_energies(dimensions, bad):
+    angles = np.linspace(0.0, 90.0, 8)
+    shape = (8,) if dimensions == 1 else (8, 8)
+    energies = np.zeros(shape, dtype=complex if isinstance(bad, complex) else float)
+    energies.flat[0] = bad
+    with pytest.raises(ValueError, match="real, not complex|finite"):
+        if dimensions == 1:
+            fit_continuous_splines(angles, energies, periodic=False)
+        else:
+            fit_continuous_2d_splines(angles, angles, energies)

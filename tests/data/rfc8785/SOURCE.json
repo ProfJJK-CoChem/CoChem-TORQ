@@ -1,0 +1,77 @@
+{
+  "commit": "19d51d7fe467d4706a3ff08adf8a748f29fc21e0",
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "6821faaddedf2d78c95bb6d98b127e9e616097afd2f6bcc34389f000d13ab12d",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/LICENSE"
+    },
+    {
+      "path": "testdata/README.md",
+      "sha256": "d580b04eafeb74973b6cc3e2b2b572a21a992078846652bd3153e7a624dd6b97",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/README.md"
+    },
+    {
+      "path": "testdata/input/arrays.json",
+      "sha256": "e503b6d71d1afa595b1c74b1016445c944cd89f90418066b23de1aeda7d17563",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/input/arrays.json"
+    },
+    {
+      "path": "testdata/input/french.json",
+      "sha256": "03676a951cd8753ac62589f72eb2105cc782c33425418cfe1d517c111f6e5d5a",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/input/french.json"
+    },
+    {
+      "path": "testdata/input/structures.json",
+      "sha256": "d66893805be1784116af50af3110d08766c70a6b4aad93374723f72346e7aaa6",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/input/structures.json"
+    },
+    {
+      "path": "testdata/input/unicode.json",
+      "sha256": "4621864e014d4a805a563f55b9ea20aba4a2d2dc09c7394f625496998c00702c",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/input/unicode.json"
+    },
+    {
+      "path": "testdata/input/values.json",
+      "sha256": "c4a041b503d6bc236036ef44db4dac499272f60fc22c40dc3b7a54870ba6f1c3",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/input/values.json"
+    },
+    {
+      "path": "testdata/input/weird.json",
+      "sha256": "a3a905266bd4a49a969274ea69baa14ee0c4af0ead926d6fa2b7612b4af75387",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/input/weird.json"
+    },
+    {
+      "path": "testdata/output/arrays.json",
+      "sha256": "099601b171cafed97c333f8878d68e7f8c8f795412adb34b2fdcf0e7c7beac42",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/output/arrays.json"
+    },
+    {
+      "path": "testdata/output/french.json",
+      "sha256": "d99d0ebdcb0033cb858cfa830ae46bc0fb3309413b271f1da828c89901a27ed5",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/output/french.json"
+    },
+    {
+      "path": "testdata/output/structures.json",
+      "sha256": "605f65004ec2db7692522a0852c22f1c989e036d547e88963d1a3143cf3195d5",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/output/structures.json"
+    },
+    {
+      "path": "testdata/output/unicode.json",
+      "sha256": "0d99aad92a125196ff887876643fd3206786a84ddce2cee52ba4ad256d2381d3",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/output/unicode.json"
+    },
+    {
+      "path": "testdata/output/values.json",
+      "sha256": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/output/values.json"
+    },
+    {
+      "path": "testdata/output/weird.json",
+      "sha256": "6af595a9aa80110b964b4de3f82a05fa6ae7423005019bacfa2620dddc4e94d1",
+      "url": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/testdata/output/weird.json"
+    }
+  ],
+  "license": "Apache-2.0; retained upstream LICENSE",
+  "source": "RFC 8785 author reference vectors; copied byte-for-byte without modification"
+}

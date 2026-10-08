@@ -67,10 +67,12 @@ environment is silently modified to accommodate changed dependencies.
 
 `COCHEM_MODULE_ROOT` and `COCHEM_MODULE_MANIFEST` identify the separate module
 installations and reviewed manifest. Scientific handoffs are file-based and
-versioned; TORQ does not mix sibling namespaces in its interpreter. BASE's own
-upstream distribution manifest still pins an older TORQ revision. A separate
-BASE manifest update to the published TORQ release commit is necessary before
-that upstream installer distributes this release.
+versioned; TORQ does not mix sibling namespaces in its interpreter. BASE
+companion pull request 8 updates its distribution manifest to the reviewed TORQ
+release-candidate commit and adds TOPOS's genuine `filelock` requirement. The
+upstream default-branch manifest remains unchanged until that reviewed companion
+is activated. A later TORQ revision needs a new reviewed pin and real integration
+execution.
 
 The mandatory Actions ecosystem jobs also need source access to both private
 siblings. TORQ's built-in `GITHUB_TOKEN` is limited to TORQ and cannot supply
@@ -103,6 +105,8 @@ canonical public student calculation endpoint. The interface submits:
 | `request_sha256` | SHA-256 of exactly those JSON bytes. |
 | `request_id` | UUID matching the request's embedded UUID. |
 | `expected_source_sha` | Immutable source commit reviewed at submission; a branch movement before dispatch fails closed. |
+| `approved_plan_b64` | Strict base64 of at most 32 KiB of complete `cochem.torq.approved-plan/1` JSON, including the exact request, scientific recipe, implementation identity, explicit budget and expiry. |
+| `approved_plan_sha256` | SHA-256 of exactly the decoded approval bytes. |
 | `engine` | `pyscf`, the explicitly supported public engine profile. |
 
 The dispatcher resolves the actual commit and checks the source identity before
@@ -110,6 +114,15 @@ submission. The workflow checks out `github.sha` and validates all transport
 identities before building an engine. Duplicate JSON fields, nonfinite numbers,
 malformed geometry, and exceeded public classroom limits are rejected. Inputs
 enter environment variables and are never expanded into shell program text.
+
+The interface must review and explicitly approve a plan before submitting it.
+The worker verifies the approval's request, current recipe, code digest, budget
+and expiry before creating a scientific attempt. Changing the request or source
+requires a new review. A caller approval records an explicit spending decision;
+GitHub's authenticated dispatch still supplies the external authorization.
+The submission receipt binds the request UUID and a private idempotency key to
+the reviewed plan and exact source; uncertain dispatch outcomes remain visible.
+An unavailable dispatch endpoint never starts a local replacement calculation.
 
 The public limits are 12 atoms from H through Ne, a closed-shell singlet,
 1–2 CPU cores, 256–2048 MB of requested electronic-structure memory, and at most
@@ -190,6 +203,17 @@ interoperability, actual notebook/widget checks and authenticated Jupyter
 start/check/stop. A missing sibling checkout fails the mandatory integration gate.
 An unavailable engine cannot be replaced by a simulated calculation.
 
+Core checks run against a built wheel on Python 3.10 and 3.12. Their selected
+contracts cover RFC 8785 serialization, explicit plan approvals, campaign
+state/lease/accounting integrity, physical units, artifact admission and backup
+integrity. SciPy 1.15 is the supported minimum because its official constants
+table supplies the required CODATA 2022 definitions; SciPy 1.14 supplies CODATA
+2018 and cannot implement this declared constants profile. Selected core,
+native-engine and CPU numerical release gates require
+nonempty JUnit reports with zero skips, failures or errors. Optional ONNX export
+and runtime capabilities are separate: an absent optional dependency leaves that
+capability unqualified and cannot qualify a scientific profile.
+
 The self-contained `real-student-engine` job qualifies native scientific methods
 without requiring private sibling access. The separately required
 `real-ecosystem-consumers` job runs all 33 ecosystem tests, including two genuine
@@ -203,7 +227,8 @@ passes never activate an unqualified public method.
 
 The independent `student-calculation-image` job builds the exact calculation
 Dockerfile, normalizes and hashes the committed water teaching input, qualifies
-actual native derivatives, and executes every baseline product offline under
+actual native derivatives, creates an explicit plan/budget approval in the image,
+and executes every baseline product offline with that exact approval under
 the unprivileged image user. It verifies the sealed result and typed stages
 inside the same image and retains its request, native records, source/image
 identity and verification evidence. Its water request has two cores, 2048 MiB
@@ -235,12 +260,53 @@ See the machine-readable
 the tested source snapshot; later application changes require another image
 build and its own execution checks.
 
-Hosted Actions integrity run `37696948074` was performed for TORQ pull request
-3. It exposed real import-boundary defects in clean dependency profiles and
-missing authorization for the private sibling repositories. That failed run
-does not qualify a hosted scientific or ecosystem profile. The corrected jobs
-retain every required gate and explicitly require administrator-provisioned
-sibling source access. A live Codespace has not been started. Local
-image/lifecycle evidence and hosted deployment evidence remain distinct. The
-repository's student release report records the broader final application and
-scientific validation scope and subsequent hosted observations.
+Hosted Actions integrity run
+[`37701912649`](https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37701912649)
+passed all seven jobs at TORQ commit
+`c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7`. Actual image build, native derivative
+qualification, offline water execution, sealed typed verification and immutable
+artifact upload all passed. The interface job installed genuine private siblings
+using the already configured `COCHEM_SOURCE_READ_TOKEN`, retrieved the real
+authenticated notebook and stopped its owned server. The separate ecosystem job
+also ran the genuine reverse scientific consumers. App token minting was
+unselected; the successful existing credential route requires no new secret.
+
+BASE's companion
+[`37702143257`](https://github.com/ProfJJK-CoChem/CoChem-BASE/actions/runs/37702143257)
+passed at `8bd9925902e0771383c7fa1ade5296a630877b69`, with genuine installation
+and module geometry operations using the reviewed TORQ pin. Earlier failed runs
+remain explicitly historical in the evidence. New modified source must pass its
+own hosted run; these successes do not qualify later edits or the complete SRS.
+
+The actual API supplies seven TORQ artifacts and one BASE artifact with immutable
+IDs, digests and expiry times. Downloading their bytes from this managed session
+remains blocked by network policy at the Azure result-storage redirect. The
+exact observed host `productionresultssa12.blob.core.windows.net` was added to
+the environment draft while preserving existing destinations; saving the draft
+does not apply or publish that runtime allowance. Hosted upload is verified from
+successful steps and actual artifact metadata. Independent download/digest
+checks remain unrun. No signed redirect or credential is stored in the
+repository evidence.
+
+The default-branch workflow registry still lacks `calculation.yml`; the actual
+student client rejects submission before dispatch or creation of a receipt. A
+successful PR integrity run does not activate the public endpoint. Repository
+Codespaces machine selection still returns HTTP 403, `Resource not accessible
+by integration`, while reading the user's Codespaces list succeeds and returns
+zero instances. No live Codespace was provisioned. Public submit/cancel/resume
+and live-platform acceptance therefore remain separate outstanding gates. See
+the [hosted evidence](hosted-actions-check-results.json) and the broader
+[student release report](student-release-check-results.json).
+
+The local [artifact operations](../../src/cochem_torq/operations.py) provide real
+filesystem byte/free-space admission, locked concurrent budget reservations,
+interrupted-owner reconciliation, output-growth checks and verified
+backup/restore. Callers must monitor actual output growth and stop their own
+worker if it exceeds its budget; these checks do not claim a kernel-enforced
+project quota. Backups require a genuine sealed shard. Restore and rollback
+require its independently retained manifest digest and a fresh destination.
+Rollback restores a prior supported schema without rewriting scientific bytes;
+unsupported versions require an explicit migration. Real-process checks and
+backups of a genuinely calculated H2 shard exercise these contracts. They do not
+establish hosted operational acceptance until the modified implementation runs
+there.

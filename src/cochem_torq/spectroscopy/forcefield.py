@@ -10,7 +10,13 @@ from itertools import combinations_with_replacement, permutations, product
 
 import numpy as np
 
-from .harmonic import HarmonicResult, artifact_digest, finite_array
+from .harmonic import (
+    ATOMIC_MASS_ELECTRON,
+    HARTREE_CM1,
+    HarmonicResult,
+    artifact_digest,
+    finite_array,
+)
 
 
 @dataclass(frozen=True)
@@ -79,6 +85,8 @@ def build_force_field(
     produce a recorded convergence comparison; failed convergence is retained and
     blocks VPT2. No numerical derivative is described as analytic.
     """
+    if not isinstance(harmonic, HarmonicResult):
+        raise ValueError("An actual harmonic result with its mode basis is required.")
     if harmonic.stationary_character != "positive_definite_vibrational_hessian":
         raise ValueError("A complete positive vibrational Hessian is required.")
     if not evaluator_identity.strip():
@@ -98,6 +106,7 @@ def build_force_field(
             and math.isfinite(relative_tolerance)
             and relative_tolerance >= 0
         )
+        or type(max_evaluations) is not int
         or max_evaluations < 1
     ):
         raise ValueError(
@@ -106,7 +115,43 @@ def build_force_field(
     modes = len(harmonic.frequencies_cm1)
     if not modes:
         raise ValueError("An atom has no anharmonic vibrational force field.")
-    transform = harmonic.dimensionless_to_cartesian
+    geometry = finite_array(harmonic.coordinates_bohr)
+    atoms = len(geometry)
+    if geometry.shape != (atoms, 3) or modes != 3 * atoms - harmonic.external_rank:
+        raise ValueError("Harmonic geometry and complete mode count must agree.")
+    masses = finite_array(harmonic.isotope_masses_u, (atoms,))
+    frequencies = finite_array(harmonic.frequencies_cm1, (modes,))
+    angular = finite_array(harmonic.angular_frequencies_au, (modes,))
+    eigenvalues = finite_array(harmonic.eigenvalues_au, (modes,))
+    weighted_modes = finite_array(harmonic.mass_weighted_modes, (3 * atoms, modes))
+    cartesian_modes = finite_array(harmonic.cartesian_modes, (3 * atoms, modes))
+    transform = finite_array(harmonic.dimensionless_to_cartesian, (3 * atoms, modes))
+    if (
+        np.any(masses <= 0)
+        or np.any(frequencies <= 0)
+        or np.any(angular <= 0)
+        or not np.allclose(frequencies, angular * HARTREE_CM1, rtol=1e-12, atol=1e-10)
+        or not np.allclose(eigenvalues, angular**2, rtol=1e-12, atol=1e-15)
+        or not np.allclose(
+            weighted_modes.T @ weighted_modes, np.eye(modes), rtol=0, atol=1e-10
+        )
+        or not np.allclose(
+            cartesian_modes,
+            weighted_modes
+            / np.sqrt(np.repeat(masses * ATOMIC_MASS_ELECTRON, 3))[:, None],
+            rtol=1e-12,
+            atol=1e-14,
+        )
+        or not np.allclose(
+            transform,
+            cartesian_modes / np.sqrt(angular)[None, :],
+            rtol=1e-12,
+            atol=1e-12,
+        )
+    ):
+        raise ValueError(
+            "Harmonic frequencies, masses and coordinate normalization disagree."
+        )
     cache: dict[tuple[float, ...], float] = {}
     records: dict[tuple[float, ...], DisplacementEnergy] = {}
 
@@ -134,6 +179,7 @@ def build_force_field(
                 energy = returned
             if (
                 isinstance(energy, (bool, np.bool_))
+                or np.iscomplexobj(energy)
                 or not np.isscalar(energy)
                 or not np.isfinite(energy)
             ):

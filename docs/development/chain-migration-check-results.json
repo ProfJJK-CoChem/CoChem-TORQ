@@ -1,0 +1,36 @@
+{
+  "schema_version": "cochem.torq.chain-migration-evidence/1",
+  "recorded_at": "2026-10-08T00:31:41.816276+00:00",
+  "source_worktree_status": "modified",
+  "tests": 11,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "raw_junit_path": "/workspace/torq-review/rc-hosted-verification/local-chain-migration-final.xml",
+  "raw_junit_sha256": "a1f5a0b1032875b5a46e961be594b037dc831b198f5d4b31e3165a65e31b5b26",
+  "source_files": {
+    "Libraries/chain.py": "9c63d3ce97f355737e7f8354a064b4dda05d948371990dba22a2498d8bb5dc59",
+    "src/cochem_torq/base_bridge.py": "314e59ce350565448ff4fb71dad301bed011bf4ee6ded6abfa60b47d78059ebe",
+    "tests/test_chain.py": "8fd76057e547bad43c6f070e3a5730b506f2466a833bae82649d88a72146935a"
+  },
+  "source_after_run_changes": "Explicit float tuple annotation conversion only; retained process/engine results precede that type-only normalization.",
+  "base_revision": "1a3c633f6cb0c6256223298ed95d71196ffc3689",
+  "base_installer_sha256": "7a22fc5fe91cbae865d3781f3899b38acc69f8cd9fb66648b8ea9c3eb54d9432",
+  "actual_installed_module_root": "/workspace/.environment/cochem-student/Modules",
+  "checks": [
+    "Import preserves isolated sibling namespaces",
+    "Legacy fabricated/force-fallback authority fails explicitly",
+    "Actual isotope mass database policy and identity",
+    "Independent diatomic inertia formula and isotope shift",
+    "Missing provider rejection before execution",
+    "Genuine BASE producer with actual verified source/environment and state/row preservation",
+    "No fabricated energy/convergence in geometry handoff",
+    "Invalid explicit spin rejected before provider starts",
+    "Genuine PySCF water Hessian projects six external directions, retains three internal modes",
+    "Isotope reanalysis uses actual electronic Hessian with explicit Born-Oppenheimer mass-only scope"
+  ],
+  "static_ruff": "passed",
+  "targeted_mypy": "passed",
+  "scope": "Real isolated BASE file producer and bounded genuine PySCF teaching spectroscopy. No eleven-arrow, ORCA, identification, experimental or full-SRS qualification.",
+  "full_srs_accepted": false
+}

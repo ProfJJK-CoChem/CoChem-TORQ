@@ -1048,13 +1048,14 @@ def validate_orca_deck(
 
     # 2. Grid scheduling rules
     has_defgrid1 = bool(re.search(r'\bdefgrid1\b', deck_content, re.IGNORECASE))
+    has_defgrid3 = bool(re.search(r'\bdefgrid3\b', deck_content, re.IGNORECASE))
     has_freq = bool(re.search(r'\bfreq\b', deck_content, re.IGNORECASE) or re.search(r'\bnumfreq\b', deck_content, re.IGNORECASE))
 
-    if (production_opt or has_freq) and has_defgrid1:
+    if (production_opt or has_freq) and (has_defgrid1 or not has_defgrid3):
         raise MethodMatrixViolationError(
-            "[METHOD-MATRIX-VIOLATION] Integration grid 'defgrid1' is strictly prohibited for production "
-            "optimization or vibrational frequency (Freq) calculations under Method Matrix v4 §4.4. "
-            "Tight grid 'defgrid3' is required to eliminate loose grid numerical noise.",
+            "[METHOD-MATRIX-VIOLATION] Production optimization and frequency calculations "
+            "require an explicitly declared 'defgrid3' under Method Matrix v4 §4.4; "
+            "'defgrid1' and unspecified engine defaults are prohibited.",
             error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
         )
 
@@ -1272,7 +1273,11 @@ def deduplicate_bibtex(
 
 @dataclass
 class BannedMethodsAuditResult:
-    """Result container for Method Matrix v4 banned methods and non-covalent rules audit."""
+    """Request-metadata audit, without validation of executed scientific procedures.
+
+    Legacy ``is_*_verified`` fields check declared options only. They cannot
+    establish convergence, geometric constraints or a computed BSSE correction.
+    """
 
     passed: bool
     banned_flags: list[str]
@@ -1404,14 +1409,15 @@ def audit_banned_methods(
     )
 
     # 9. Extract ORCA GOAT/CREST conformer union parameters
-    conformer_union = metadata.get(
-        "conformer_union_parameters",
-        {
-            "crest_ewin": metadata.get("crest_ewin", 6.0),
-            "crest_rthr": metadata.get("crest_rthr", 0.12),
-            "orca_goat_opt": metadata.get("orca_goat_opt", True),
-        },
-    )
+    conformer_union = metadata.get("conformer_union_parameters")
+    if conformer_union is None:
+        conformer_union = {
+            "crest_ewin": metadata.get("crest_ewin"),
+            "crest_rthr": metadata.get("crest_rthr"),
+            "orca_goat_opt": metadata.get("orca_goat_opt"),
+        }
+    if not isinstance(conformer_union, dict):
+        raise ValueError("Conformer union parameters must be supplied as a mapping")
 
     passed = len(banned_flags) == 0
 
@@ -1424,7 +1430,11 @@ def audit_banned_methods(
             )
         raise MethodMatrixViolationError(
             f"Method Matrix v4 Banned Methods Audit Failed: {'; '.join(banned_flags)}",
-            error_code=ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID,
+            error_code=(
+                ProvenanceErrorCode.INVALID_HESSIAN_STRATEGY
+                if any("Calc_Hess true" in flag for flag in banned_flags)
+                else ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID
+            ),
             details={"banned_flags": banned_flags, "metadata": metadata},
         )
 
@@ -1436,7 +1446,12 @@ def audit_banned_methods(
         is_bsse_counterpoise_verified=bsse_cp,
         is_valid_hessian_preconditioned=hessian_preconditioned,
         conformer_union_params=conformer_union,
-        details={"basis_set": basis_set, "keywords": keywords},
+        details={
+            "basis_set": basis_set,
+            "keywords": keywords,
+            "verification_scope": "declared_request_metadata",
+            "execution_evidence_evaluated": False,
+        },
     )
 
 

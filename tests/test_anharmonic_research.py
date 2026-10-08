@@ -17,6 +17,7 @@ from cochem_torq.research_pipeline import (
     planned_energy_evaluations,
 )
 from cochem_torq.spectroscopy import analyze_hessian
+from cochem_torq.spectroscopy.results import ForceFieldData, ResonanceAnalysisData
 
 
 @pytest.fixture(scope="module")
@@ -86,6 +87,21 @@ def test_genuine_research_runner_preserves_field_and_blocked_correction(
     assert result["rotation_vibration_available"] is False
     assert result["stages"]["anharmonic_force_field"]["status"] == "available"
     field = result["stages"]["anharmonic_force_field"]["value"]
+    ForceFieldData.model_validate(field)
+    ResonanceAnalysisData.model_validate(
+        result["stages"]["resonance_analysis"]["value"]
+    )
+    context = field["scientific_context"]
+    assert context["evidence_class"] == "engine_calculation"
+    assert context["geometry_bohr"] == harmonic.coordinates_bohr.tolist()
+    assert context["isotope_masses_u"] == harmonic.isotope_masses_u.tolist()
+    assert context["mode_count"] == len(harmonic.frequencies_cm1)
+    assert context["protocol_sha256"] == result["protocol_sha256"]
+    authentic_parents = {
+        sha256((directory / name).read_bytes()).hexdigest()
+        for name in ("protocol.json", "harmonic-input.json")
+    } | {r["manifest_sha256"] for r in result["displaced_calculations"]}
+    assert set(context["parent_artifact_sha256"]) == authentic_parents
     assert field["derivative_converged"]
     assert len(result["displaced_calculations"]) == field["evaluation_count"] == 7
     assert result["stages"]["resonance_analysis"]["status"] == "available"

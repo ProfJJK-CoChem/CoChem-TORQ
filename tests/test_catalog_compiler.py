@@ -9,10 +9,10 @@ produced by PyArrow, and execution claims require real retained evidence.
 from __future__ import annotations
 
 import gc
-from hashlib import sha256
 import math
 import os
 from collections.abc import Iterator
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,6 @@ from Libraries.cochem_catalog_compiler import (
     BannedMethodsAuditResult,
     CoChemIntegrityError,
     CoChemPathManager,
-    DispersionMissingError,
     FortranOverflowError,
     InactiveRotorError,
     MethodMatrixViolationError,
@@ -43,6 +42,7 @@ from Libraries.cochem_catalog_compiler import (
     purge_ghost_outputs,
     pyarrow_chunked_serializer,
     remove_readonly_seal,
+    validate_orca_deck,
 )
 
 # =============================================================================
@@ -371,9 +371,9 @@ def test_buffer_lock_sync_disk_verification(tmp_path: Path) -> None:
 # =============================================================================
 
 
-def test_method_matrix_v4_flagship_functionals_and_scalar_temperature() -> None:
-    """Verify that all Method Matrix v4 recommended functionals pass dispersion validation."""
-    flagship_functionals = [
+def test_methods_record_requires_provenance_without_inventing_observables() -> None:
+    """Requested method names alone cannot become a publication methods section."""
+    for method in [
         "wB97M-V",
         "wB97X-V",
         "r2SCAN-3c",
@@ -383,43 +383,70 @@ def test_method_matrix_v4_flagship_functionals_and_scalar_temperature() -> None:
         "B3LYP-D3BJ",
         "wB97X-D4",
         "PBE0-D3BJ",
-    ]
-
-    for func in flagship_functionals:
-        meta = {
-            "theory_level": func,
+    ]:
+        metadata = {
+            "theory_level": method,
             "basis_set": "def2-QZVPP",
-            "rotational_constants": {"a": 825360.0, "b": 435360.0, "c": 278130.0},
             "temperatures": 298.15,
             "defgrid": "DEFGRID3",
         }
-        tex_output = generate_methods_latex(meta, method_matrix_v4_check=True)
-        assert r"\section{Computational Methods}\label{sec:methods}" in tex_output
-        assert r"\qty{298.15}{\kelvin}" in tex_output
-        assert func in tex_output
+        with pytest.raises(MethodMatrixViolationError) as caught:
+            generate_methods_latex(metadata)
+        assert caught.value.error_code == ProvenanceErrorCode.MISSING_DATA
+        assert "software_version, provenance_hash" in str(caught.value)
 
 
-# =============================================================================
-# 11. Method Matrix v4 Integration Grid Threshold Violations Test
-# =============================================================================
+def test_methods_writer_records_actual_metadata_without_completed_stage_claims() -> (
+    None
+):
+    """Serialize a requested definition whose provenance is its actual file digest."""
+    from hashlib import sha256
+    from importlib.metadata import version
+
+    metadata = {
+        "theory_level": "HF",
+        "basis_set": "sto-3g",
+        "software_version": "TORQ " + version("cochem-torq"),
+        "provenance_hash": sha256(Path(__file__).read_bytes()).hexdigest(),
+        "temperatures": 298.15,
+    }
+    text = generate_methods_latex(metadata)
+    assert "Recorded temperatures: 298.15 K." in text
+    assert "TORQ " + version("cochem-torq") in text
+    assert "Rotational constants" not in text
+    assert "VPT2" not in text
+    assert "SPCAT" not in text
 
 
-def test_method_matrix_v4_defgrid_violations() -> None:
-    """Assert that DEFGRID1 or SG-1 integration grids raise MethodMatrixViolationError."""
-    for bad_grid in ["DEFGRID1", "SG-1", "defgrid1"]:
-        meta = {
+def test_grid_only_record_does_not_bypass_missing_provenance() -> None:
+    """A grid declaration cannot compensate for absent software/evidence identity."""
+    for grid in ["DEFGRID1", "SG-1", "defgrid1"]:
+        metadata = {
             "theory_level": "wB97X-D4",
             "basis_set": "def2-TZVP",
-            "rotational_constants": {"A": 1000.0, "B": 500.0, "C": 250.0},
-            "defgrid": bad_grid,
+            "defgrid": grid,
         }
-        with pytest.raises(MethodMatrixViolationError) as exc_info:
-            generate_methods_latex(meta, method_matrix_v4_check=True)
+        with pytest.raises(MethodMatrixViolationError) as caught:
+            generate_methods_latex(metadata)
+        assert caught.value.error_code == ProvenanceErrorCode.MISSING_DATA
 
-        assert (
-            exc_info.value.error_code
-            == ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID
-        )
+
+@pytest.mark.parametrize("grid", ["defgrid1", "SG-1", ""])
+@pytest.mark.parametrize("step", ["Opt", "Freq"])
+def test_production_grid_must_be_explicitly_tight(grid, step):
+    """Validate requested decks independently of prose metadata rendering."""
+    with pytest.raises(MethodMatrixViolationError) as caught:
+        validate_orca_deck(f"! HF STO-3G {grid} {step}", production_opt=step == "Opt")
+    assert (
+        caught.value.error_code == ProvenanceErrorCode.METHOD_MATRIX_VIOLATION_DEFGRID
+    )
+    assert "explicitly declared 'defgrid3'" in str(caught.value)
+
+
+def test_preliminary_and_production_grids_have_distinct_contracts():
+    assert validate_orca_deck("! HF STO-3G defgrid1 Opt", preliminary_opt=True)
+    assert validate_orca_deck("! HF STO-3G defgrid3 Opt", production_opt=True)
+    assert validate_orca_deck("! HF STO-3G defgrid3 Freq")
 
 
 # =============================================================================
@@ -532,7 +559,8 @@ def test_banned_methods_auditor() -> None:
     }
     with pytest.raises(MethodMatrixViolationError) as exc_info:
         audit_banned_methods(bad_meta_hess, raise_on_violation=True)
-    assert "BANNED_UNPRECONDITIONED_HESSIAN" in str(exc_info.value)
+    assert "Calc_Hess true" in str(exc_info.value)
+    assert exc_info.value.error_code == ProvenanceErrorCode.INVALID_HESSIAN_STRATEGY
 
 
 # =============================================================================
@@ -728,3 +756,25 @@ def test_apply_readonly_chmod_recursive_directory_sealing(tmp_path: Path) -> Non
         f.write('{"status": "updated"}')
 
     assert file1.read_text(encoding="utf-8") == '{"status": "updated"}'
+
+
+def test_absent_conformer_union_options_are_not_invented():
+    result = audit_banned_methods({"basis_set": "def2-TZVP"})
+    assert result.conformer_union_params == {
+        "crest_ewin": None,
+        "crest_rthr": None,
+        "orca_goat_opt": None,
+    }
+    assert result.details["verification_scope"] == "declared_request_metadata"
+    assert result.details["execution_evidence_evaluated"] is False
+
+
+def test_explicit_conformer_union_options_are_retained_as_request_metadata():
+    requested = {"crest_ewin": 2.0, "crest_rthr": 0.05, "orca_goat_opt": False}
+    result = audit_banned_methods(
+        {"basis_set": "def2-TZVP", "conformer_union_parameters": requested}
+    )
+    assert result.conformer_union_params == requested
+    assert result.details["execution_evidence_evaluated"] is False
+    with pytest.raises(ValueError, match="must be supplied as a mapping"):
+        audit_banned_methods({"conformer_union_parameters": "not a typed option map"})

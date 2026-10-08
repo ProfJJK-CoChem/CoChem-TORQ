@@ -1,19 +1,19 @@
 """Actual HMAC, file, database and loopback HTTP contracts; no engine substitutes."""
 
-from contextlib import contextmanager
 import hashlib
 import hmac
-from http.client import HTTPConnection
 import json
 import os
-from pathlib import Path
 import secrets
+import socket
 import sqlite3
 import subprocess
 import sys
 import threading
+from contextlib import contextmanager
+from http.client import HTTPConnection
+from pathlib import Path
 
-from mendeleev import element
 import pytest
 
 from cochem.mobile.airgap_receiver import (
@@ -38,6 +38,7 @@ from cochem.mobile.payload_serializer import (
     validate_xyz_structure_dynamic,
     verify_payload_signature,
 )
+from Libraries.cochem_isotopes import isotope_mass
 
 
 def independent_signature(body, secret):
@@ -218,8 +219,11 @@ for invalid in ("", " ", 0):
         raise AssertionError("Invalid explicit key accepted")
 """
     result = subprocess.run(
-        [sys.executable, "-c", script], env=environment,
-        capture_output=True, text=True, timeout=30,
+        [sys.executable, "-c", script],
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
     assert result.returncode == 0, result.stderr
 
@@ -232,38 +236,92 @@ def test_nonfinite_json_cannot_be_serialized_or_signed(value):
         canonical_serialize({"nested": [value]})
 
 
-@pytest.mark.parametrize("raw", [
-    '{"nested":{"x":1,"x":2}}', '{"x":NaN}', '{"x":Infinity}',
-    '{"x":-Infinity}', '{"x":1e999}',
-])
+@pytest.mark.parametrize(
+    "raw",
+    [
+        '{"nested":{"x":1,"x":2}}',
+        '{"x":NaN}',
+        '{"x":Infinity}',
+        '{"x":-Infinity}',
+        '{"x":1e999}',
+    ],
+)
 def test_nonstandard_json_and_duplicate_keys_are_rejected(raw):
     with pytest.raises(ValueError):
         strict_json_loads(raw)
 
 
-@pytest.mark.parametrize("xyz", [
-    "2\n\nH 0 0 0\nH 0 0 1\n",
-    "2\ncomment\nH 0 0 0\nH 0 0 1\n",
-    "H 0 0 0\nH 0 0 1\n",
-])
+@pytest.mark.parametrize(
+    "xyz",
+    [
+        "2\n\nH 0 0 0\nH 0 0 1\n",
+        "2\ncomment\nH 0 0 0\nH 0 0 1\n",
+    ],
+)
 def test_xyz_preserves_all_atoms_and_blank_comment(xyz):
     atoms = validate_xyz_structure_dynamic(xyz)
-    actual_weight = float(element("H").atomic_weight)
+    actual_weight = isotope_mass("1H")
     assert atoms == [
-        ("H", 0.0, 0.0, 0.0, actual_weight),
-        ("H", 0.0, 0.0, 1.0, actual_weight),
+        ("1H", 0.0, 0.0, 0.0, actual_weight),
+        ("1H", 0.0, 0.0, 1.0, actual_weight),
     ]
 
 
-@pytest.mark.parametrize("xyz", [
-    "", "0\n\n", "-1\n\n", "1", "2\n\nH 0 0 0\n",
-    "1\n\nH 0 0 0\nH 0 0 1\n", "2\n\nH 0 0 0\n\n",
-    "H 0 0", "H 0 0 0 ignored", "H1 0 0 0", "13C 0 0 0",
-    "Xx 0 0 0", "H NaN 0 0", "H inf 0 0", "H 1e999 0 0",
-])
+@pytest.mark.parametrize(
+    "xyz",
+    [
+        "",
+        "0\n\n",
+        "-1\n\n",
+        "1",
+        "2\n\nH 0 0 0\n",
+        "1\n\nH 0 0 0\nH 0 0 1\n",
+        "2\n\nH 0 0 0\n\n",
+        "H 0 0",
+        "H 0 0 0 ignored",
+        "H1 0 0 0",
+        "13C 0 0 0",
+        "Xx 0 0 0",
+        "H NaN 0 0",
+        "H inf 0 0",
+        "H 1e999 0 0",
+    ],
+)
 def test_invalid_xyz_never_drops_an_atom_or_invents_a_mass(xyz):
     with pytest.raises(ValueError):
         validate_xyz_structure_dynamic(xyz)
+
+
+def test_xyz_retains_explicit_isotope_identity_and_actual_mass():
+    atoms = validate_xyz_structure_dynamic("2\nIsotope input\n13C 0 0 0\nD 0 0 1\n")
+    assert atoms == [
+        ("13C", 0.0, 0.0, 0.0, isotope_mass("13C")),
+        ("2H", 0.0, 0.0, 1.0, isotope_mass("2H")),
+    ]
+    with pytest.raises(ValueError, match="No tabulated mass"):
+        validate_xyz_structure_dynamic("1\nUnknown isotope\n999C 0 0 0\n")
+
+
+@pytest.mark.parametrize(
+    "atom_row", ["H nan 0 0", "H inf 0 0", "H 1e999 0 0", "Xx 0 0 0"]
+)
+def test_invalid_atom_inside_standard_frame_is_rejected(atom_row):
+    with pytest.raises(ValueError):
+        validate_xyz_structure_dynamic(f"1\nActual frame\n{atom_row}\n")
+
+
+def test_invalid_key_rejects_before_binding_an_actual_occupied_port(tmp_path):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupied:
+        occupied.bind(("127.0.0.1", 0))
+        with pytest.raises(ValueError, match="authentication key"):
+            make_airgap_receiver_server(
+                port=occupied.getsockname()[1],
+                scratch_dir=tmp_path / "scratch",
+                src_dir=tmp_path / "source",
+                db_path=tmp_path / "ledger.sqlite",
+                secret_key="",
+            )
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_actual_inline_and_staged_files_round_trip(tmp_path):
@@ -271,7 +329,9 @@ def test_actual_inline_and_staged_files_round_trip(tmp_path):
     payload = execution_payload(tmp_path)
     staged, inline = stage_or_inline_payload(payload, secret, tmp_path / "inline")
     assert not staged and payload.hmac_sha256 is None
-    assert inline.hmac_sha256 == independent_signature(canonical_serialize(payload), secret)
+    assert inline.hmac_sha256 == independent_signature(
+        canonical_serialize(payload), secret
+    )
     assert not (tmp_path / "inline").exists()
     payload = execution_payload(tmp_path, staged=True)
     staged, manifest = stage_or_inline_payload(payload, secret, tmp_path / "staged")
@@ -286,12 +346,20 @@ def test_actual_inline_and_staged_files_round_trip(tmp_path):
     assert not (tmp_path / "staged" / "payload.json.tmp").exists()
 
 
-@pytest.mark.parametrize("field,value", [
-    ("job_id", "other-job"), ("created_at_utc", "2026-10-08T00:00:00+00:00"),
-])
-def test_manifest_identity_cannot_relabel_an_authentic_staged_file(tmp_path, field, value):
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("job_id", "other-job"),
+        ("created_at_utc", "2026-10-08T00:00:00+00:00"),
+    ],
+)
+def test_manifest_identity_cannot_relabel_an_authentic_staged_file(
+    tmp_path, field, value
+):
     secret = secrets.token_hex(32)
-    _, manifest = stage_or_inline_payload(execution_payload(tmp_path, staged=True), secret, tmp_path)
+    _, manifest = stage_or_inline_payload(
+        execution_payload(tmp_path, staged=True), secret, tmp_path
+    )
     relabeled = manifest.model_copy(update={field: value})
     with pytest.raises(ValueError, match="manifest identity"):
         load_staged_payload(relabeled, secret)
@@ -299,7 +367,9 @@ def test_manifest_identity_cannot_relabel_an_authentic_staged_file(tmp_path, fie
 
 def test_staged_file_size_signature_and_missing_file_are_checked(tmp_path):
     secret = secrets.token_hex(32)
-    _, manifest = stage_or_inline_payload(execution_payload(tmp_path, staged=True), secret, tmp_path)
+    _, manifest = stage_or_inline_payload(
+        execution_payload(tmp_path, staged=True), secret, tmp_path
+    )
     with pytest.raises(ValueError, match="integrity verification"):
         load_staged_payload(manifest, secrets.token_hex(32))
     target = Path(manifest.manifest_uri)
@@ -324,8 +394,10 @@ def test_authenticated_malformed_staged_json_is_still_rejected(tmp_path, additio
     target = tmp_path / "payload.json"
     target.write_bytes(raw)
     manifest = ManifestReference(
-        job_id=payload.job_id, created_at_utc=payload.created_at_utc,
-        manifest_uri=str(target), file_size_bytes=len(raw),
+        job_id=payload.job_id,
+        created_at_utc=payload.created_at_utc,
+        manifest_uri=str(target),
+        file_size_bytes=len(raw),
         hmac_sha256=independent_signature(raw, secret),
     )
     with pytest.raises(ValueError):
@@ -338,7 +410,9 @@ def test_job_ids_cannot_escape_storage_paths(tmp_path, job_id):
         lambda: get_job_artifact_dir(job_id, tmp_path),
         lambda: get_job_status_path(job_id, tmp_path),
         lambda: get_job_lock_path(job_id, tmp_path),
-        lambda: ensure_tripartite_dirs(job_id, tmp_path / "src", tmp_path / "artifacts", tmp_path / "state"),
+        lambda: ensure_tripartite_dirs(
+            job_id, tmp_path / "src", tmp_path / "artifacts", tmp_path / "state"
+        ),
     ):
         with pytest.raises(ValueError):
             operation()
@@ -349,14 +423,20 @@ def test_two_actual_receivers_keep_keys_files_and_ledgers_isolated(tmp_path):
     secret_a, secret_b = secrets.token_hex(32), secrets.token_hex(32)
     root_a, root_b = tmp_path / "a", tmp_path / "b"
     body = b'{ "job_id" : "request-source", "parameters" : {"x": 1} }'
-    with running_receiver(root_a, secret_a) as port_a, running_receiver(root_b, secret_b) as port_b:
+    with (
+        running_receiver(root_a, secret_a) as port_a,
+        running_receiver(root_b, secret_b) as port_b,
+    ):
         signature_a = independent_signature(body, secret_a)
         signature_b = independent_signature(body, secret_b)
         assert request(port_a, body, signature_b)[0] == 401
         assert request(port_b, body, signature_a)[0] == 401
         assert request(port_a, body)[0] == 401
         assert request(port_a, body + b" ", signature_a)[0] == 401
-        for port, root, signature in ((port_a, root_a, signature_a), (port_b, root_b, signature_b)):
+        for port, root, signature in (
+            (port_a, root_a, signature_a),
+            (port_b, root_b, signature_b),
+        ):
             status, response = request(port, body, "sha256=" + signature)
             assert status == 200 and response["job_id"] == "request-source"
             artifact = Path(response["scratch_file"])
@@ -365,15 +445,32 @@ def test_two_actual_receivers_keep_keys_files_and_ledgers_isolated(tmp_path):
             assert list((root / "source").iterdir()) == []
             with sqlite3.connect(root / "ledger.sqlite") as connection:
                 assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-                rows = connection.execute("SELECT job_id, signature, scratch_file, payload_size, status FROM airgap_transactions").fetchall()
-            assert rows == [("request-source", "sha256=" + signature, str(artifact), len(body), "COMMITTED")]
+                rows = connection.execute(
+                    "SELECT job_id, signature, scratch_file, payload_size, status FROM airgap_transactions"
+                ).fetchall()
+            assert rows == [
+                (
+                    "request-source",
+                    "sha256=" + signature,
+                    str(artifact),
+                    len(body),
+                    "COMMITTED",
+                )
+            ]
 
 
-@pytest.mark.parametrize("body", [
-    b'{"job_id":"../escape"}', b'{"job_id":null}', b'{"x":NaN}',
-    b'{"x":1e999}', b'{"job_id":"first","job_id":"second"}',
-    b'[]', b'{"molecule_xyz":"H 0 0"}',
-])
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"job_id":"../escape"}',
+        b'{"job_id":null}',
+        b'{"x":NaN}',
+        b'{"x":1e999}',
+        b'{"job_id":"first","job_id":"second"}',
+        b"[]",
+        b'{"molecule_xyz":"H 0 0"}',
+    ],
+)
 def test_authenticated_invalid_requests_write_no_payload_or_ledger(tmp_path, body):
     secret = secrets.token_hex(32)
     with running_receiver(tmp_path, secret) as port:
@@ -388,7 +485,9 @@ def test_source_destination_and_symlink_are_rejected_over_http(tmp_path):
         alias = tmp_path / "alias"
         alias.symlink_to(tmp_path / "source", target_is_directory=True)
         for destination in (tmp_path / "source" / "write.json", alias / "write.json"):
-            body = canonical_json_dumps({"job_id": "blocked", "output_artifact_dir": str(destination)}).encode()
+            body = canonical_json_dumps(
+                {"job_id": "blocked", "output_artifact_dir": str(destination)}
+            ).encode()
             assert request(port, body, independent_signature(body, secret))[0] == 403
     assert list((tmp_path / "source").iterdir()) == []
     assert list((tmp_path / "scratch").iterdir()) == []
@@ -403,18 +502,29 @@ def test_receiver_cannot_configure_storage_inside_protected_source(tmp_path):
         (tmp_path / "scratch", source / "ledger.sqlite"),
     ):
         with pytest.raises(ValueError, match="outside the protected source"):
-            make_airgap_receiver_server(scratch_dir=scratch, src_dir=source, db_path=ledger, secret_key=secret)
+            make_airgap_receiver_server(
+                scratch_dir=scratch, src_dir=source, db_path=ledger, secret_key=secret
+            )
     assert list(tmp_path.iterdir()) == []
 
 
 def test_actual_unconfigured_handler_returns_unavailable_without_writes(tmp_path):
     # This is the genuine base handler on an actual HTTP socket, with no config.
     server = ThreadedHTTPServer(("127.0.0.1", 0), AirGapReceiverHTTPRequestHandler)
-    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True)
+    thread = threading.Thread(
+        target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
+    )
     thread.start()
     try:
         body = b'{"job_id":"unconfigured"}'
-        assert request(server.server_address[1], body, independent_signature(body, secrets.token_hex(32)))[0] == 503
+        assert (
+            request(
+                server.server_address[1],
+                body,
+                independent_signature(body, secrets.token_hex(32)),
+            )[0]
+            == 503
+        )
     finally:
         server.shutdown()
         server.server_close()

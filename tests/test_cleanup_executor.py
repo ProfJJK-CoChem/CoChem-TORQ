@@ -1,9 +1,12 @@
-"""# zero-stub anti-spoof verification
-Unit and Integration Tests for NFTP Phase 3: Cleanup Executor (ci_tools/cleanup_executor.py).
+"""
+# zero-stub anti-spoof verification
+Unit and Integration Tests for NFTP Phase 3: Cleanup Executor
+(ci_tools/cleanup_executor.py).
 
 Physically validates:
 - Manifest loading from directory, single file, and empty directory error handling.
-- Action planning across multiple manifests with distinct target_dir roots and absolute/relative paths.
+- Action planning across multiple manifests with distinct target_dir roots and
+absolute/relative paths.
 - Directory purge aggregation, threshold qualification, and single file pruning.
 - Dry run execution without modifying disk state.
 - Physical execution of file and directory purging.
@@ -12,7 +15,8 @@ Physically validates:
 - Exclusion of failed or missing file moves from _undo_manifest.json.
 - Human-readable byte formatting and recursive directory sizing.
 - Summary printing for dry-run and executed modes.
-- CLI argument parsing, mutually exclusive flags, default modes, execute flow, and error exit codes.
+- CLI argument parsing, mutually exclusive flags, default modes, execute flow, and
+error exit codes.
 """
 
 from __future__ import annotations
@@ -126,8 +130,78 @@ def test_find_purgeable_dirs(tmp_path: Path) -> None:
     assert str(d2) not in purgeable
 
 
+def test_directory_aggregation_preserves_unclassified_subdirectories(tmp_path: Path):
+    listed = []
+    for index in range(5):
+        path = tmp_path / f"cache-{index}"
+        path.write_text("listed maintenance file", encoding="utf-8")
+        listed.append(str(path))
+    retained = tmp_path / "student-notes" / "notes.txt"
+    retained.parent.mkdir()
+    retained.write_text("retained notes", encoding="utf-8")
+    assert _find_purgeable_dirs(listed) == []
+    assert retained.read_text() == "retained notes"
+
+
+def test_manifest_rejects_path_escape_and_symlink(tmp_path: Path):
+    root = tmp_path / "declared-root"
+    root.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside the cleanup scope", encoding="utf-8")
+    for entry in ("../outside.txt", str(outside)):
+        with pytest.raises(ValueError, match="escapes"):
+            plan_actions([{"target_dir": str(root), "files": {"PURGE": [entry]}}])
+    link = root / "link"
+    link.symlink_to(outside)
+    with pytest.raises(ValueError, match="symbolic"):
+        plan_actions([{"target_dir": str(root), "files": {"PURGE": ["link"]}}])
+    assert outside.read_text() == "outside the cleanup scope"
+
+
+def test_trash_destination_collision_never_overwrites_a_previous_move(tmp_path: Path):
+    sources = []
+    for name in ("first", "second"):
+        root = tmp_path / name
+        root.mkdir()
+        path = root / "notes.txt"
+        path.write_text(name, encoding="utf-8")
+        sources.append(
+            {"src": str(path), "target_dir": str(root), "rel_path": path.name}
+        )
+    trash = tmp_path / "trash"
+    result = execute_plan(
+        {"purge_dirs": [], "purge_files": [], "trash_files": sources}, trash, False
+    )
+    assert result["trashed_files"] == 1
+    assert len(result["errors"]) == 1
+    assert Path(sources[1]["src"]).read_text() == "second"
+    destination = next(trash.iterdir())
+    assert (destination / "notes.txt").read_text() == "first"
+    assert (
+        len(json.loads((destination / "_undo_manifest.json").read_text())["files"]) == 1
+    )
+
+
+def test_genuinely_failed_move_is_excluded_from_undo_manifest(tmp_path: Path):
+    source = tmp_path / "notes.txt"
+    source.write_text("retained after failed move", encoding="utf-8")
+    blocked_trash = tmp_path / "blocked-trash"
+    blocked_trash.write_text("a file cannot be a directory", encoding="utf-8")
+    result = execute_plan(
+        {"purge_dirs": [], "purge_files": [], "trash_files": [str(source)]},
+        blocked_trash,
+        False,
+    )
+    assert result["trashed_files"] == 0
+    assert len(result["errors"]) == 1
+    assert source.read_text() == "retained after failed move"
+
+
 def test_plan_actions_multi_target_dirs_and_purgeable_dirs(tmp_path: Path) -> None:
-    """Validate plan building across distinct target roots with directory purge optimization."""
+    """
+    Validate plan building across distinct target roots with directory purge
+    optimization.
+    """
     repo_a = tmp_path / "repo_a"
     repo_b = tmp_path / "repo_b"
     repo_a.mkdir()
@@ -180,8 +254,18 @@ def test_plan_actions_multi_target_dirs_and_purgeable_dirs(tmp_path: Path) -> No
     # Trash records must contain both distinct targets
     assert len(plan["trash_files"]) == 2
     records = plan["trash_files"]
-    assert any(r["src"] == str(trash_a) and r["target_dir"] == str(repo_a) and r["rel_path"] == "sub_a/temp.bak" for r in records)
-    assert any(r["src"] == str(trash_b) and r["target_dir"] == str(repo_b) and r["rel_path"] == "sub_b/deep/temp.bak" for r in records)
+    assert any(
+        r["src"] == str(trash_a)
+        and r["target_dir"] == str(repo_a)
+        and r["rel_path"] == "sub_a/temp.bak"
+        for r in records
+    )
+    assert any(
+        r["src"] == str(trash_b)
+        and r["target_dir"] == str(repo_b)
+        and r["rel_path"] == "sub_b/deep/temp.bak"
+        for r in records
+    )
 
 
 def test_plan_actions_with_absolute_paths(tmp_path: Path) -> None:
@@ -225,7 +309,9 @@ def test_execute_plan_dry_run_preserves_disk_state(tmp_path: Path) -> None:
     plan = {
         "purge_files": [str(f_purge)],
         "purge_dirs": [],
-        "trash_files": [{"src": str(f_trash), "target_dir": str(repo), "rel_path": "sub/trash.bak"}],
+        "trash_files": [
+            {"src": str(f_trash), "target_dir": str(repo), "rel_path": "sub/trash.bak"}
+        ],
         "keep_count": 1,
         "triage_count": 0,
     }
@@ -244,7 +330,10 @@ def test_execute_plan_dry_run_preserves_disk_state(tmp_path: Path) -> None:
 
 
 def test_execute_plan_physical_execution_and_undo_manifest(tmp_path: Path) -> None:
-    """Validate physical file purging, trashing, relative path hierarchy, and exact undo manifest."""
+    """
+    Validate physical file purging, trashing, relative path hierarchy, and exact
+    undo manifest.
+    """
     repo_a = tmp_path / "repo_a"
     repo_b = tmp_path / "repo_b"
     repo_a.mkdir()
@@ -277,7 +366,11 @@ def test_execute_plan_physical_execution_and_undo_manifest(tmp_path: Path) -> No
         "trash_files": [
             {"src": str(t1), "target_dir": str(repo_a), "rel_path": "sub_a/config.bak"},
             {"src": str(t2), "target_dir": str(repo_a), "rel_path": "sub_b/config.bak"},
-            {"src": str(t3), "target_dir": str(repo_b), "rel_path": "deep/nested/archive.bak"},
+            {
+                "src": str(t3),
+                "target_dir": str(repo_b),
+                "rel_path": "deep/nested/archive.bak",
+            },
         ],
         "keep_count": 5,
         "triage_count": 0,
@@ -362,8 +455,13 @@ def test_execute_plan_raw_string_trash_items(tmp_path: Path) -> None:
     assert trashed_dest.read_text(encoding="utf-8") == "raw item content"
 
 
-def test_execute_plan_failed_and_missing_moves_excluded_from_undo_manifest(tmp_path: Path) -> None:
-    """Validate that missing or failed file moves are never recorded into _undo_manifest.json."""
+def test_execute_plan_failed_and_missing_moves_excluded_from_undo_manifest(
+    tmp_path: Path,
+) -> None:
+    """
+    Validate that missing or failed file moves are never recorded into
+    _undo_manifest.json.
+    """
     repo = tmp_path / "repo"
     repo.mkdir()
     trash_root = tmp_path / "trash"
@@ -376,8 +474,16 @@ def test_execute_plan_failed_and_missing_moves_excluded_from_undo_manifest(tmp_p
         "purge_dirs": [],
         "purge_files": [],
         "trash_files": [
-            {"src": str(real_file), "target_dir": str(repo), "rel_path": "existing.bak"},
-            {"src": str(missing_file), "target_dir": str(repo), "rel_path": "ghost.bak"},
+            {
+                "src": str(real_file),
+                "target_dir": str(repo),
+                "rel_path": "existing.bak",
+            },
+            {
+                "src": str(missing_file),
+                "target_dir": str(repo),
+                "rel_path": "ghost.bak",
+            },
         ],
         "keep_count": 0,
         "triage_count": 0,
@@ -389,7 +495,9 @@ def test_execute_plan_failed_and_missing_moves_excluded_from_undo_manifest(tmp_p
 
     trash_dirs = [d for d in trash_root.iterdir() if d.is_dir()]
     assert len(trash_dirs) == 1
-    undo_data = json.loads((trash_dirs[0] / "_undo_manifest.json").read_text(encoding="utf-8"))
+    undo_data = json.loads(
+        (trash_dirs[0] / "_undo_manifest.json").read_text(encoding="utf-8")
+    )
 
     # Only existing.bak should be present
     assert len(undo_data["files"]) == 1
@@ -415,7 +523,7 @@ def test_print_results(capsys: pytest.CaptureFixture[str]) -> None:
     assert "Directories purged:  1" in out
     assert "Files purged:        2" in out
     assert "Files trashed:       3" in out
-    assert "Space recovered:     1.0 KB" in out
+    assert "Space proposed:     1.0 KB" in out
     assert "Sample non-fatal error" in out
 
     results_exec = {
@@ -432,14 +540,16 @@ def test_print_results(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_cli_mutually_exclusive_dry_run_and_execute(tmp_path: Path) -> None:
-    """Validate that passing both --dry-run and --execute fails with mutually exclusive error."""
+    """
+    Validate that passing both --dry-run and --execute fails with mutually
+    exclusive error.
+    """
     manifest_dir = tmp_path / "manifests"
     manifest_dir.mkdir()
 
     cmd = [
         sys.executable,
-        "-m",
-        "ci_tools.cleanup_executor",
+        str(Path(__file__).resolve().parents[1] / "ci_tools" / "cleanup_executor.py"),
         "--manifests",
         str(manifest_dir),
         "--dry-run",
@@ -454,7 +564,10 @@ def test_cli_mutually_exclusive_dry_run_and_execute(tmp_path: Path) -> None:
     )
 
     assert res.returncode != 0
-    assert "not allowed with argument" in res.stderr or "mutually exclusive" in res.stderr.lower()
+    assert (
+        "not allowed with argument" in res.stderr
+        or "mutually exclusive" in res.stderr.lower()
+    )
 
 
 def test_cli_defaults_to_dry_run(tmp_path: Path) -> None:
@@ -463,19 +576,20 @@ def test_cli_defaults_to_dry_run(tmp_path: Path) -> None:
     manifest_dir.mkdir()
     m_file = manifest_dir / "sample_triage_manifest.json"
     m_file.write_text(
-        json.dumps({
-            "module": "sample",
-            "target_dir": str(tmp_path),
-            "files": {"PURGE": [], "TRASH": []},
-            "counts": {"KEEP": 1},
-        }),
+        json.dumps(
+            {
+                "module": "sample",
+                "target_dir": str(tmp_path),
+                "files": {"PURGE": [], "TRASH": []},
+                "counts": {"KEEP": 1},
+            }
+        ),
         encoding="utf-8",
     )
 
     cmd = [
         sys.executable,
-        "-m",
-        "ci_tools.cleanup_executor",
+        str(Path(__file__).resolve().parents[1] / "ci_tools" / "cleanup_executor.py"),
         "--manifests",
         str(manifest_dir),
     ]
@@ -504,19 +618,20 @@ def test_cli_execute_flow(tmp_path: Path) -> None:
 
     m_file = manifest_dir / "test_triage_manifest.json"
     m_file.write_text(
-        json.dumps({
-            "module": "test",
-            "target_dir": str(work_dir),
-            "files": {"PURGE": [], "TRASH": ["test_artifact.tmp"]},
-            "counts": {"KEEP": 0},
-        }),
+        json.dumps(
+            {
+                "module": "test",
+                "target_dir": str(work_dir),
+                "files": {"PURGE": [], "TRASH": ["test_artifact.tmp"]},
+                "counts": {"KEEP": 0},
+            }
+        ),
         encoding="utf-8",
     )
 
     cmd = [
         sys.executable,
-        "-m",
-        "ci_tools.cleanup_executor",
+        str(Path(__file__).resolve().parents[1] / "ci_tools" / "cleanup_executor.py"),
         "--manifests",
         str(manifest_dir),
         "--trash",
@@ -541,8 +656,7 @@ def test_cli_nonexistent_manifest_path(tmp_path: Path) -> None:
     missing = tmp_path / "nonexistent"
     cmd = [
         sys.executable,
-        "-m",
-        "ci_tools.cleanup_executor",
+        str(Path(__file__).resolve().parents[1] / "ci_tools" / "cleanup_executor.py"),
         "--manifests",
         str(missing),
     ]
@@ -557,8 +671,7 @@ def test_cli_empty_manifest_dir(tmp_path: Path) -> None:
     empty_manifests.mkdir()
     cmd = [
         sys.executable,
-        "-m",
-        "ci_tools.cleanup_executor",
+        str(Path(__file__).resolve().parents[1] / "ci_tools" / "cleanup_executor.py"),
         "--manifests",
         str(empty_manifests),
     ]

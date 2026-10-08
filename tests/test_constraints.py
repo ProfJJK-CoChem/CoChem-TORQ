@@ -8,46 +8,35 @@ Convergence Enforcement according to Method Matrix Sections 9A.1–9A.2 and 9A.7
 from __future__ import annotations
 
 import math
+
 import numpy as np
 import pytest
 
 from Libraries.cochem_torq_constraints import (
-    AMU_ANGSTROM2_TO_MHZ,
-    BOHR_TO_ANGSTROM,
-    HARTREE_PER_BOHR_TO_NEWTON,
     TOL_MAX_G_DEFAULT_EH_BOHR,
     TOL_RMS_G_DEFAULT_EH_BOHR,
-    TOL_RESIDUAL_G_FROZEN_EH_BOHR,
-    MonomerConstraintMode,
-    ConstraintCoordinateType,
-    MonomerFragment,
-    IntermolecularMetrics,
-    RotationalConstants,
-    RotationalErrorBudget,
-    ConvergenceAudit,
     ConstraintEnforcementResult,
-    MethodMatrixConstraintError,
-    ConstraintConvergenceError,
-    SpatialCollisionError,
     FragmentDissociationError,
+    MonomerConstraintMode,
+    SpatialCollisionError,
+    TorqConstraintManager,
+    audit_gradient_convergence,
+    compute_rotational_constants,
+    generate_cfour_constraint_block,
+    generate_orca_constraint_block,
     get_dynamic_atomic_mass,
+    get_dynamic_atomic_number,
     get_dynamic_isotopic_mass,
     get_dynamic_pyykko_radius,
     get_dynamic_vdw_radius,
-    get_dynamic_atomic_number,
     partition_monomer_fragments,
-    compute_rotational_constants,
     propagate_rotational_error,
-    audit_gradient_convergence,
-    generate_orca_constraint_block,
-    generate_cfour_constraint_block,
-    TorqConstraintManager,
 )
-
 
 # =============================================================================
 # 1. Mendeleev Dynamic Integration Tests
 # =============================================================================
+
 
 def test_dynamic_mendeleev_masses() -> None:
     """Verify dynamic atomic and isotopic mass retrieval via Mendeleev."""
@@ -82,22 +71,26 @@ def test_dynamic_mendeleev_radii() -> None:
 # 2. Monomer Partitioning & Intermolecular Metrics Tests
 # =============================================================================
 
+
 def test_partition_monomers_dimer() -> None:
     """Verify covalent partitioning of CO2...H2O complex."""
     symbols = ["C", "O", "O", "O", "H", "H"]
-    coords = np.array([
-        [0.0, 0.0, 0.0],       # C (CO2)
-        [0.0, 0.0, 1.162],     # O (CO2)
-        [0.0, 0.0, -1.162],    # O (CO2)
-        [2.836, 0.0, 0.0],     # O (H2O)
-        [2.836, 0.757, 0.586], # H (H2O)
-        [2.836, -0.757, 0.586] # H (H2O)
-    ], dtype=np.float64)
+    coords = np.array(
+        [
+            [0.0, 0.0, 0.0],  # C (CO2)
+            [0.0, 0.0, 1.162],  # O (CO2)
+            [0.0, 0.0, -1.162],  # O (CO2)
+            [2.836, 0.0, 0.0],  # O (H2O)
+            [2.836, 0.757, 0.586],  # H (H2O)
+            [2.836, -0.757, 0.586],  # H (H2O)
+        ],
+        dtype=np.float64,
+    )
 
     monomers, metrics = partition_monomer_fragments(
         symbols=symbols,
         coordinates=coords,
-        constraint_mode=MonomerConstraintMode.FROZEN_ISO
+        constraint_mode=MonomerConstraintMode.FROZEN_ISO,
     )
 
     assert len(monomers) == 2, f"Expected 2 monomers, got {len(monomers)}"
@@ -114,14 +107,17 @@ def test_partition_monomers_dimer() -> None:
 def test_spatial_collision_detection() -> None:
     """Verify that unphysically close nuclear positions raise SpatialCollisionError."""
     symbols = ["O", "H", "H", "O", "H", "H"]
-    colliding_coords = np.array([
-        [0.0, 0.0, 0.0],
-        [0.0, 0.757, 0.586],
-        [0.0, -0.757, 0.586],
-        [0.5, 0.0, 0.0],      # Nuclear collision (0.5 Å separation)
-        [0.5, 0.757, 0.586],
-        [0.5, -0.757, 0.586]
-    ], dtype=np.float64)
+    colliding_coords = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.757, 0.586],
+            [0.0, -0.757, 0.586],
+            [0.5, 0.0, 0.0],  # Nuclear collision (0.5 Å separation)
+            [0.5, 0.757, 0.586],
+            [0.5, -0.757, 0.586],
+        ],
+        dtype=np.float64,
+    )
 
     mgr = TorqConstraintManager(collision_threshold_angstrom=1.20)
     with pytest.raises(SpatialCollisionError):
@@ -142,14 +138,13 @@ def test_fragment_dissociation_detection() -> None:
 # 3. Rotational Constants & Error Propagation Tests
 # =============================================================================
 
+
 def test_rotational_constants_water() -> None:
     """Verify rotational constants calculation for authentic water molecule."""
     symbols = ["O", "H", "H"]
-    coords = np.array([
-        [0.0, 0.0, 0.0],
-        [0.0, 0.757, 0.586],
-        [0.0, -0.757, 0.586]
-    ], dtype=np.float64)
+    coords = np.array(
+        [[0.0, 0.0, 0.0], [0.0, 0.757, 0.586], [0.0, -0.757, 0.586]], dtype=np.float64
+    )
 
     rot = compute_rotational_constants(symbols, coords)
 
@@ -170,11 +165,15 @@ def test_error_propagation_rule() -> None:
     budget = propagate_rotational_error(
         R_angstrom=R,
         delta_R_angstrom=delta_R,
-        monomer_bond_error_angstrom=monomer_err
+        monomer_bond_error_angstrom=monomer_err,
+        reference_bond_length_angstrom=1.162,
+        monomer_B_sensitivity_percent_per_angstrom=8.0,
     )
 
     expected_delta_B_over_B = -2.0 * (delta_R / R) * 100.0
-    assert math.isclose(budget.delta_B_over_B_percent, expected_delta_B_over_B, rel_tol=1e-5)
+    assert math.isclose(
+        budget.delta_B_over_B_percent, expected_delta_B_over_B, rel_tol=1e-5
+    )
     # Monomer error sensitivity on A is significant (~ -1.7%)
     assert budget.delta_A_over_A_percent < -1.5
     # Equivalent monomer error is ~ 16.8–17.6 mÅ
@@ -185,6 +184,7 @@ def test_error_propagation_rule() -> None:
 # 4. Strict TolMaxG & Convergence Auditing Tests
 # =============================================================================
 
+
 def test_gradient_convergence_success() -> None:
     """Verify gradient audit passes when gradient is within TolMaxG (1e-5) and TolRMSG (3e-6)."""
     gradient = np.full((6, 3), 2.0e-6, dtype=np.float64)
@@ -192,7 +192,7 @@ def test_gradient_convergence_success() -> None:
         gradient_eh_bohr=gradient,
         frozen_atom_indices=[0, 1, 2],
         tol_max_g=TOL_MAX_G_DEFAULT_EH_BOHR,
-        tol_rms_g=TOL_RMS_G_DEFAULT_EH_BOHR
+        tol_rms_g=TOL_RMS_G_DEFAULT_EH_BOHR,
     )
 
     assert audit.converged
@@ -209,7 +209,7 @@ def test_gradient_convergence_unconverged_free() -> None:
         gradient_eh_bohr=gradient,
         frozen_atom_indices=[0, 1, 2],
         tol_max_g=TOL_MAX_G_DEFAULT_EH_BOHR,
-        tol_rms_g=TOL_RMS_G_DEFAULT_EH_BOHR
+        tol_rms_g=TOL_RMS_G_DEFAULT_EH_BOHR,
     )
 
     assert not audit.converged
@@ -228,11 +228,13 @@ def test_residual_gradient_deformation_escalation() -> None:
         gradient_eh_bohr=gradient,
         frozen_atom_indices=[0, 1, 2],
         tol_max_g=TOL_MAX_G_DEFAULT_EH_BOHR,
-        tol_rms_g=TOL_RMS_G_DEFAULT_EH_BOHR
+        tol_rms_g=TOL_RMS_G_DEFAULT_EH_BOHR,
     )
 
     assert audit.converged  # Free coordinates are converged
-    assert audit.deformation_channel_active  # Frozen residual gradient is non-negligible
+    assert (
+        audit.deformation_channel_active
+    )  # Frozen residual gradient is non-negligible
     assert audit.escalation_required
     assert any("Deformation Warning" in note for note in audit.audit_notes)
 
@@ -240,6 +242,7 @@ def test_residual_gradient_deformation_escalation() -> None:
 # =============================================================================
 # 5. ORCA & CFOUR Constraint Block Generation Tests
 # =============================================================================
+
 
 def test_orca_constraint_block_generation() -> None:
     """Verify generation of ORCA %geom constraint block with strict thresholds."""
@@ -257,33 +260,33 @@ def test_orca_constraint_block_generation() -> None:
 
 
 def test_cfour_constraint_block_generation() -> None:
-    """Verify generation of CFOUR ZMAT active / frozen variable markers."""
+    """Variable names without geometry cannot produce an executable CFOUR ZMAT."""
     zmat_vars = ["R_CO1", "R_CO2", "A_OCO", "R_COM", "A_TILT"]
     frozen_vars = ["R_CO1", "R_CO2", "A_OCO"]
 
-    block = generate_cfour_constraint_block(zmat_vars, frozen_vars, geo_conv=5)
-
-    assert "GEO_CONV=5" in block
-    assert "GEO_MAXCYC=50" in block
-    assert "R_CO1 = [FROZEN]" in block
-    assert "R_COM* = [ACTIVE]" in block
+    with pytest.raises(RuntimeError, match="actual reviewed molecule-specific"):
+        generate_cfour_constraint_block(zmat_vars, frozen_vars, geo_conv=5)
 
 
 # =============================================================================
 # 6. End-to-End Manager Integration Tests
 # =============================================================================
 
+
 def test_manager_full_enforcement() -> None:
     """Verify complete execution of TorqConstraintManager on CO2...H2O complex."""
     symbols = ["C", "O", "O", "O", "H", "H"]
-    coords = np.array([
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.162],
-        [0.0, 0.0, -1.162],
-        [2.836, 0.0, 0.0],
-        [2.836, 0.757, 0.586],
-        [2.836, -0.757, 0.586]
-    ], dtype=np.float64)
+    coords = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.162],
+            [0.0, 0.0, -1.162],
+            [2.836, 0.0, 0.0],
+            [2.836, 0.757, 0.586],
+            [2.836, -0.757, 0.586],
+        ],
+        dtype=np.float64,
+    )
 
     gradient = np.full((6, 3), 1.0e-6, dtype=np.float64)
 
@@ -293,7 +296,7 @@ def test_manager_full_enforcement() -> None:
         coordinates=coords,
         constraint_mode=MonomerConstraintMode.FROZEN_ISO,
         gradient=gradient,
-        freeze_monomer_index=0
+        freeze_monomer_index=0,
     )
 
     assert result.success
@@ -301,5 +304,9 @@ def test_manager_full_enforcement() -> None:
     assert len(result.monomer_fragments) == 2
     assert result.convergence_audit is not None
     assert result.convergence_audit.converged
+    assert result.convergence_status == "converged"
+    assert result.cfour_zmat_constraints_block is None
+    assert result.cfour_zmat_status == "unavailable"
+    assert result.error_budget.accuracy_qualified is False
     assert "{ C 0 C }" in result.orca_geom_constraints_block
     assert "TolMaxG" in result.provenance_tags

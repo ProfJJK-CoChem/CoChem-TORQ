@@ -20,6 +20,14 @@ on:
         description: Immutable 40-character source commit approved by the submitting interface
         type: string
         required: true
+      approved_plan_b64:
+        description: Strict base64 of the complete reviewed plan, source identity and explicit budget approval
+        type: string
+        required: true
+      approved_plan_sha256:
+        description: Lowercase SHA-256 of the exact decoded approval bytes
+        type: string
+        required: true
       engine:
         description: Public qualified engine profile; licensed/site engines require a separate workflow
         type: choice
@@ -44,6 +52,8 @@ jobs:
       TORQ_REQUEST_ID: ${{ inputs.request_id }}
       TORQ_ENGINE: ${{ inputs.engine }}
       TORQ_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+      TORQ_APPROVED_PLAN_B64: ${{ inputs.approved_plan_b64 }}
+      TORQ_APPROVED_PLAN_SHA256: ${{ inputs.approved_plan_sha256 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0, Node 24
         with:
@@ -53,7 +63,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validate request transport before provisioning compute
-        run: python ci_tools/actions_request.py --output "$RUNNER_TEMP/torq-input/request.json"
+        run: python ci_tools/actions_request.py --output "$RUNNER_TEMP/torq-input/request.json" --approved-plan-output "$RUNNER_TEMP/torq-input/approved-plan.json"
       - name: Build the independently isolated calculation image
         run: |
           mkdir -p "$RUNNER_TEMP/torq-evidence" "$RUNNER_TEMP/torq-results"
@@ -85,6 +95,7 @@ jobs:
             --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
             --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-evidence/image-id.txt")" \
             torq-pyscf:${GITHUB_SHA} execute --request /input/request.json \
+            --approved-plan /input/approved-plan.json --expected-approval-sha256 "$TORQ_APPROVED_PLAN_SHA256" \
             --output-dir /results/result --request-id "$TORQ_REQUEST_ID" --expected-sha256 "$TORQ_REQUEST_SHA256"
       - name: Reap any interrupted container owned by this attempt
         if: always()

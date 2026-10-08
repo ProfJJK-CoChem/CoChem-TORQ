@@ -16,6 +16,8 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .domain import (
+    CANONICALIZATION_PROFILE,
+    LEGACY_CANONICALIZATION_PROFILE,
     PRODUCT_TO_STAGE,
     SPECTROSCOPY_STAGES,
     CalculationRequest,
@@ -23,6 +25,8 @@ from .domain import (
     canonical_json,
     digest,
     read_json,
+    scientific_cache_key,
+    scientific_content,
 )
 
 
@@ -59,6 +63,98 @@ def _sync(path: Path) -> None:
         os.fsync(stream.fileno())
 
 
+def _verify_advanced_isotopes_and_modes(
+    context: dict[str, Any], molecule: dict[str, Any], result: dict[str, Any]
+) -> None:
+    """Bind schema-valid context metadata to the retained physical payloads.
+
+    An inventory alone cannot reject a consistently resealed, wrong isotope or
+    mode-basis label. These checks compare the stage to the actual result records;
+    they do not establish scientific accuracy or authenticate a source signature.
+    """
+    from .spectroscopy.harmonic import artifact_digest
+
+    records = result.get("resolved_isotopes")
+    symbols = molecule["symbols"]
+    requested = molecule.get("isotopes") or [None] * len(symbols)
+    if not isinstance(records, list) or len(records) != len(symbols):
+        raise ValueError("Advanced stage requires retained resolved isotope records.")
+    for symbol, number, record in zip(symbols, requested, records):
+        if (
+            not isinstance(record, dict)
+            or record.get("element") != symbol
+            or type(record.get("mass_number")) is not int
+            or record.get("label") != f"{record.get('mass_number')}{symbol}"
+            or (number is not None and record["mass_number"] != number)
+            or record.get("selection_policy")
+            != (
+                "explicit_mass_number"
+                if number is not None
+                else "most_abundant_naturally_occurring_isotope"
+            )
+            or record.get("source", {}).get("tabulated_mass_is_exact") is not False
+        ):
+            raise ValueError("Resolved isotope records contradict the actual request.")
+    reference_digests = {
+        record.get("source", {}).get("database_sha256") for record in records
+    }
+    masses = [record.get("mass_u") for record in records]
+    if (
+        context["isotope_numbers"] != [record["mass_number"] for record in records]
+        or context["isotope_masses_u"] != masses
+        or context["isotope_selection_policies"]
+        != [record["selection_policy"] for record in records]
+        or reference_digests != {context["isotope_reference_sha256"]}
+        or context["atom_id_policy"]
+        != (
+            "source_identifiers"
+            if molecule.get("atom_ids") is not None
+            else "input_ordinal"
+        )
+    ):
+        raise ValueError(
+            "Advanced stage isotope provenance differs from retained isotope records."
+        )
+    stage = result["stages"]["harmonic_analysis"]
+    harmonic = stage.get("value") if stage.get("status") == "available" else None
+    count = len(harmonic["frequencies_cm1"]) if harmonic is not None else 0
+    basis_digest = None
+    if harmonic is not None:
+        if (
+            harmonic["coordinates_bohr"] != context["geometry_bohr"]
+            or harmonic["isotope_masses_u"] != masses
+        ):
+            raise ValueError(
+                "Retained harmonic basis belongs to a different geometry/isotopologue."
+            )
+        if count:
+            basis_digest = artifact_digest(
+                {
+                    "mass_weighted_modes": harmonic["mass_weighted_modes"],
+                    "isotope_masses_u": harmonic["isotope_masses_u"],
+                    "geometry_bohr": harmonic["coordinates_bohr"],
+                    "convention": harmonic["convention"],
+                }
+            )
+    if (
+        context["mode_count"] != count
+        or context["mode_order"] != [f"mode-{index}" for index in range(count)]
+        or context["mode_basis_sha256"] != basis_digest
+    ):
+        raise ValueError(
+            "Advanced stage mode identities/basis digest differ from "
+            "retained harmonic data."
+        )
+    if context["frame_type"] == "principal_inertia":
+        rotor_stage = result["stages"]["equilibrium_constants"]
+        if rotor_stage.get("status") != "available" or context[
+            "frame_axes_columns"
+        ] != (rotor_stage.get("value") or {}).get("principal_axes_columns"):
+            raise ValueError(
+                "Advanced stage principal frame differs from retained inertia axes."
+            )
+
+
 def seal_shard(
     directory: str | Path,
     *,
@@ -78,6 +174,7 @@ def seal_shard(
         raise ValueError("A shard requires its authentic request and typed result.")
     manifest = {
         "schema_version": "cochem.torq.shard/1",
+        "serialization_profile": CANONICALIZATION_PROFILE,
         "request_id": request_id,
         "request_sha256": request_sha256,
         "recipe_sha256": recipe_sha256,
@@ -85,6 +182,21 @@ def seal_shard(
         "worker_id": worker_id,
         "files": inventory(directory),
     }
+    sealed_request = CalculationRequest.model_validate(
+        read_json(directory / "request.json")
+    )
+    sealed_result = read_json(directory / "result.json")
+    content = scientific_content(
+        sealed_request,
+        sealed_result["recipe"],
+        resolved_isotope_records=sealed_result.get("resolved_isotopes"),
+        constants_provenance=sealed_result["constants"],
+    )
+    # A failed calculation can still have genuine isotope data resolution.
+    # Persist cache inputs so a viewer never substitutes its local source edition.
+    manifest["scientific_cache_isotope_evidence"] = content["resolved_isotope_evidence"]
+    manifest["scientific_cache_constants_evidence"] = content["constants_evidence"]
+    manifest["scientific_cache_key"] = digest(content)
     with (directory / "manifest.json").open("xb") as stream:
         stream.write(canonical_json(manifest) + b"\n")
         stream.flush()
@@ -106,6 +218,9 @@ def verify_shard(
     manifest = read_json(directory / "manifest.json")
     if manifest.get("schema_version") != "cochem.torq.shard/1":
         raise ValueError("Unsupported shard schema.")
+    profile = manifest.get("serialization_profile", LEGACY_CANONICALIZATION_PROFILE)
+    if profile not in {CANONICALIZATION_PROFILE, LEGACY_CANONICALIZATION_PROFILE}:
+        raise ValueError("Unsupported shard serialization profile.")
     for field in ("request_sha256", "recipe_sha256"):
         value = manifest.get(field, "")
         if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
@@ -136,7 +251,10 @@ def verify_shard(
     request = read_json(directory / "request.json")
     result = read_json(directory / "result.json")
     CalculationRequest.model_validate(request)
-    if sha256(canonical_json(request)).hexdigest() != manifest["request_sha256"]:
+    if (
+        sha256(canonical_json(request, profile=profile)).hexdigest()
+        != manifest["request_sha256"]
+    ):
         raise ValueError("Request bytes do not match the canonical request identity.")
     if (
         str(request.get("request_id")) != manifest["request_id"]
@@ -152,10 +270,52 @@ def verify_shard(
     recipe = dict(result.get("recipe", {}))
     recipe.pop("recipe_sha256", None)
     if (
-        digest(recipe) != manifest["recipe_sha256"]
+        digest(recipe, profile=profile) != manifest["recipe_sha256"]
         or recipe.get("id") != request["recipe"]
     ):
         raise ValueError("Scientific recipe bytes/identity mismatch.")
+    if profile == CANONICALIZATION_PROFILE:
+        if result.get("scientific_goal") != request.get("scientific_goal"):
+            raise ValueError("Scientific goal differs from the original request.")
+        isotope_evidence = manifest.get("scientific_cache_isotope_evidence")
+        constants_evidence = manifest.get("scientific_cache_constants_evidence")
+        if constants_evidence is None or result.get("constants") is None:
+            raise ValueError("Scientific cache requires sealed constants evidence.")
+        if set(request["products"]) - {"geometry"} and isotope_evidence is None:
+            raise ValueError(
+                "Mass-dependent cache identity requires sealed isotope evidence."
+            )
+        parsed_request = CalculationRequest.model_validate(request)
+        key = scientific_cache_key(
+            parsed_request,
+            result["recipe"],
+            resolved_isotope_records=isotope_evidence,
+            constants_provenance=constants_evidence,
+        )
+        if manifest.get("scientific_cache_key") != key:
+            raise ValueError("Scientific cache content identity mismatch.")
+        if (
+            scientific_content(
+                parsed_request,
+                result["recipe"],
+                resolved_isotope_records=isotope_evidence,
+                constants_provenance=result["constants"],
+            )["constants_evidence"]
+            != constants_evidence
+        ):
+            raise ValueError("Cache constants differ from retained result definitions.")
+        if result.get("resolved_isotopes") is not None:
+            actual = scientific_content(
+                parsed_request,
+                result["recipe"],
+                resolved_isotope_records=result["resolved_isotopes"],
+                constants_provenance=constants_evidence,
+            )["resolved_isotope_evidence"]
+            if actual != isotope_evidence:
+                raise ValueError(
+                    "Cache isotope evidence differs from retained "
+                    "result isotope records."
+                )
     if result.get("schema_version") != "cochem.torq.result/1" or result.get(
         "status"
     ) not in {"complete", "partial", "failed"}:
@@ -166,8 +326,37 @@ def verify_shard(
         result["stages"]
     ):
         raise ValueError("The complete typed spectroscopy-stage ledger is missing.")
+    retained_hashes = {item["sha256"] for item in listed}
     for stage in result["stages"].values():
         StageResult.model_validate(stage)
+        if (
+            profile == CANONICALIZATION_PROFILE
+            and stage["status"] != "available"
+            and stage.get("absence_kind") is None
+        ):
+            raise ValueError("An unavailable stage requires an explicit absence kind.")
+        context = (stage.get("value") or {}).get("scientific_context")
+        if context is not None:
+            molecule = request["molecule"]
+            expected_ids = molecule.get("atom_ids") or [
+                f"atom-{index}" for index in range(len(molecule["symbols"]))
+            ]
+            if (
+                context["evidence_class"] != "engine_calculation"
+                or context["symbols"] != molecule["symbols"]
+                or context["charge"] != molecule["charge"]
+                or context["multiplicity"] != molecule["multiplicity"]
+                or context["atom_ids"] != expected_ids
+                or context["recipe_sha256"] != manifest["recipe_sha256"]
+                or context["geometry_bohr"]
+                != result.get("native_result", {}).get("geometry_bohr")
+                or not set(context["parent_artifact_sha256"]).issubset(retained_hashes)
+            ):
+                raise ValueError(
+                    "Advanced stage provenance does not match its genuine "
+                    "request/geometry/retained parent artifacts."
+                )
+            _verify_advanced_isotopes_and_modes(context, molecule, result)
     if not isinstance(result.get("errors"), list):
         raise ValueError("Scientific result errors must be an explicit list.")
     if result["status"] == "complete" and (

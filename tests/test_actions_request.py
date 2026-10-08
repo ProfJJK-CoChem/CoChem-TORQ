@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from ci_tools.actions_request import decode_request, write_request
+from ci_tools.actions_request import decode_approval, decode_request, write_request
 
 
 def request_bytes() -> tuple[bytes, str]:
@@ -57,6 +57,46 @@ def test_exact_submitted_bytes_and_immutable_transport_record(tmp_path: Path):
     assert evidence["scientific_calculation_performed"] is False
     with pytest.raises(FileExistsError):
         write_request(output, decoded, data, source_commit=evidence["source_commit"])
+
+
+def test_exact_reviewed_plan_and_budget_survive_hosted_transport():
+    from cochem_torq.application import source_identity
+    from cochem_torq.domain import canonical_json
+    from cochem_torq.service import approve_plan, plan_request, validate_approved_plan
+
+    _, identifier = request_bytes()
+    request = json.loads(request_bytes()[0])
+    request["request_id"] = identifier
+    review = plan_request(request)
+    approved = approve_plan(
+        review, actor="explicit transport contract check", max_scratch_bytes=1024**2
+    )
+    raw = canonical_json(approved)
+    commit = source_identity()["git_commit"]
+    decoded, value = decode_approval(
+        base64.b64encode(raw).decode(),
+        hashlib.sha256(raw).hexdigest(),
+        approved["plan"]["request"],
+        source_commit=commit,
+    )
+    assert decoded == raw
+    assert validate_approved_plan(value).approval.max_scratch_bytes == 1024**2
+    wrong_request = dict(approved["plan"]["request"])
+    wrong_request["recipe"] = "hf-cc-pvdz-research"
+    with pytest.raises(ValueError, match="bind"):
+        decode_approval(
+            base64.b64encode(raw).decode(),
+            hashlib.sha256(raw).hexdigest(),
+            wrong_request,
+            source_commit=commit,
+        )
+    with pytest.raises(ValueError, match="SHA-256"):
+        decode_approval(
+            base64.b64encode(raw).decode(),
+            "0" * 64,
+            approved["plan"]["request"],
+            source_commit=commit,
+        )
 
 
 def test_changed_digest_rejected():

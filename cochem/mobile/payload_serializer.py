@@ -14,7 +14,6 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from mendeleev import element as _mendeleev_element
 from pydantic import BaseModel
 
 from cochem.mobile.job_state import ExecutionPayload, ManifestReference
@@ -79,10 +78,13 @@ def strict_json_loads(raw: Union[str, bytes]) -> Any:
 
 def validate_job_id(job_id: str) -> str:
     """Require an opaque identifier that is safe as a single filename component."""
-    if not isinstance(job_id, str) or re.fullmatch(
-        r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", job_id
-    ) is None:
-        raise ValueError("job_id must be 1-128 ASCII letters, digits, underscores or hyphens.")
+    if (
+        not isinstance(job_id, str)
+        or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", job_id) is None
+    ):
+        raise ValueError(
+            "job_id must be 1-128 ASCII letters, digits, underscores or hyphens."
+        )
     return job_id
 
 
@@ -120,9 +122,10 @@ def verify_payload_signature(
 ) -> bool:
     """Verify HMAC-SHA256 signature using constant-time digest comparison."""
     secret = get_hmac_secret(secret_key)
-    if not isinstance(signature, str) or re.fullmatch(
-        r"[0-9a-fA-F]{64}", signature.strip()
-    ) is None:
+    if (
+        not isinstance(signature, str)
+        or re.fullmatch(r"[0-9a-fA-F]{64}", signature.strip()) is None
+    ):
         return False
     expected_signature = sign_payload(canonical_bytes, secret)
     return hmac.compare_digest(expected_signature, signature.strip().lower())
@@ -200,57 +203,57 @@ def ensure_tripartite_dirs(
 def validate_xyz_structure_dynamic(
     xyz_block: str,
 ) -> List[Tuple[str, float, float, float, float]]:
-    """Dynamically validate XYZ coordinate elements and look up atomic masses via Mendeleev.
+    """Validate one standard XYZ frame without dropping atoms or isotope identity.
 
-    Returns:
-        List of tuples: (element_symbol, x, y, z, dynamic_atomic_weight)
+    Returns ``(isotope_label, x, y, z, tabulated_mass_u)`` per atom. Explicit
+    isotopes use their actual database mass. Bare elements select the most
+    abundant natural isotope under the shared, explicitly documented mass policy.
+    These tabulated masses are not exact SI constants or IUPAC average weights.
     """
+    from Libraries.cochem_isotopes import isotope_record
+
     if not isinstance(xyz_block, str) or not xyz_block.strip():
         raise ValueError("XYZ coordinates must be nonempty.")
     # Keep physical line positions: the standard XYZ comment may be blank.
     lines = xyz_block.splitlines()
-    coord_lines = lines
-    declared_count: Optional[int] = None
-    if re.fullmatch(r"[+-]?[0-9]+", lines[0].strip()):
-        declared_count = int(lines[0].strip())
-        if declared_count <= 0 or len(lines) < 2:
-            raise ValueError("XYZ requires a positive atom count and a comment line.")
-        coord_lines = lines[2:]
-        if len(coord_lines) != declared_count:
-            raise ValueError(
-                f"XYZ atom count mismatch: declared {declared_count}, got {len(coord_lines)}."
-            )
-    if not coord_lines:
-        raise ValueError("XYZ coordinates must contain at least one atom.")
+    if re.fullmatch(r"[+-]?[0-9]+", lines[0].strip()) is None:
+        raise ValueError(
+            "Standard XYZ requires an integer atom count on its first line."
+        )
+    declared_count = int(lines[0].strip())
+    if declared_count <= 0 or len(lines) < 2:
+        raise ValueError("XYZ requires a positive atom count and a comment line.")
+    coord_lines = lines[2:]
+    if len(coord_lines) != declared_count:
+        raise ValueError(
+            f"XYZ atom count mismatch: declared {declared_count}, got {len(coord_lines)}."
+        )
 
     parsed_atoms: List[Tuple[str, float, float, float, float]] = []
     for index, line in enumerate(coord_lines, start=1):
         parts = line.split()
-        if len(parts) != 4 or re.fullmatch(r"[A-Z][a-z]?", parts[0]) is None:
-            raise ValueError(f"Invalid XYZ atom record {index}: expected element and x, y, z.")
+        if len(parts) != 4:
+            raise ValueError(
+                f"Invalid XYZ atom record {index}: expected element and x, y, z."
+            )
         try:
             x, y, z = (float(value) for value in parts[1:])
         except ValueError as exc:
-            raise ValueError(f"Invalid XYZ coordinates in atom record {index}.") from exc
+            raise ValueError(
+                f"Invalid XYZ coordinates in atom record {index}."
+            ) from exc
         if not all(math.isfinite(value) for value in (x, y, z)):
             raise ValueError(f"XYZ coordinates in atom record {index} must be finite.")
-        # Actual conventional atomic weights; unavailable data are not zero mass.
-        try:
-            elem = _mendeleev_element(parts[0])
-        except (ValueError, KeyError) as exc:
-            raise ValueError(f"Unknown XYZ element in atom record {index}: {parts[0]}") from exc
-        if elem.symbol != parts[0] or elem.atomic_weight is None:
-            raise ValueError(f"Atomic weight is unavailable for XYZ element {parts[0]}.")
-        atomic_mass = float(elem.atomic_weight)
-        if not math.isfinite(atomic_mass) or atomic_mass <= 0:
-            raise ValueError(f"Atomic weight is invalid for XYZ element {parts[0]}.")
-        parsed_atoms.append((elem.symbol, x, y, z, atomic_mass))
+        resolved_isotope = isotope_record(parts[0])
+        parsed_atoms.append(
+            (resolved_isotope["label"], x, y, z, resolved_isotope["mass_u"])
+        )
 
     return parsed_atoms
 
 
 def calculate_xyz_molecular_mass_dynamic(xyz_block: str) -> float:
-    """Calculate total molecular mass dynamically using Mendeleev IUPAC atomic weights."""
+    """Sum actual isotope masses using the shared explicit/default isotope policy."""
     atoms = validate_xyz_structure_dynamic(xyz_block)
     return sum(atom[4] for atom in atoms)
 
@@ -324,7 +327,9 @@ def load_staged_payload(
             f"got {len(raw_bytes)} bytes."
         )
 
-    if not verify_payload_signature(raw_bytes, manifest_ref.hmac_sha256, resolved_secret):
+    if not verify_payload_signature(
+        raw_bytes, manifest_ref.hmac_sha256, resolved_secret
+    ):
         raise ValueError(
             f"Cryptographic HMAC-SHA256 integrity verification failed for payload {manifest_ref.job_id}"
         )
@@ -332,14 +337,18 @@ def load_staged_payload(
     parsed_json = strict_json_loads(raw_bytes.decode("utf-8"))
     if not isinstance(parsed_json, dict):
         raise ValueError("Staged JSON payload must be a root object.")
-    unexpected = set(parsed_json) - (set(ExecutionPayload.model_fields) - {"hmac_sha256"})
+    unexpected = set(parsed_json) - (
+        set(ExecutionPayload.model_fields) - {"hmac_sha256"}
+    )
     if unexpected:
         raise ValueError("Staged payload contains unsupported fields.")
     payload = ExecutionPayload.model_validate(parsed_json)
     if payload.job_id != manifest_ref.job_id:
         raise ValueError("Staged payload job_id does not match the manifest identity.")
     if payload.created_at_utc != manifest_ref.created_at_utc:
-        raise ValueError("Staged payload created_at_utc does not match the manifest identity.")
+        raise ValueError(
+            "Staged payload created_at_utc does not match the manifest identity."
+        )
     validate_xyz_structure_dynamic(payload.molecule_xyz)
     payload.hmac_sha256 = manifest_ref.hmac_sha256
     return payload

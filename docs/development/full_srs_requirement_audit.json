@@ -1,0 +1,1878 @@
+{
+  "schema_version": "cochem.torq.full-srs-audit/1",
+  "reviewed_at": "2026-10-08",
+  "reviewed_source_commit": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+  "specification": {
+    "path": "docs/wiki/CoChem-TORQ_Implementation_SRS.md",
+    "sha256": "e456cc0ef37f4a3e13cf3c2f4dab0d1b1e75962846c4ce1a06c06a061fc9e536"
+  },
+  "scope": "All 73 normative requirements, 41 acceptance definitions and 140 historical matrix identities remain visible. Source/test pointers are implementation coverage references, never passing execution evidence. Actual evidence must bind the complete tested source/configuration tree. The bounded experimental supplied-candidate workflow is distinct from complete full-SRS scientific or deployed student qualification.",
+  "requirements": [
+    {
+      "id": "TORQ-GOV-001",
+      "title": "Evidence and truthful status",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-FAIL",
+        "V-RELEASE"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_remaining_scientific_integrity.py"
+      ],
+      "remaining_work": "Qualification is per profile. An available class or mathematical test cannot enable unexecuted scientific or remote deployment claims; full enabled-profile evidence ledger remains required."
+    },
+    {
+      "id": "TORQ-GOV-002",
+      "title": "Bounded change",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-PLAN"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_remaining_scientific_integrity.py"
+      ],
+      "remaining_work": "Qualification is per profile. An available class or mathematical test cannot enable unexecuted scientific or remote deployment claims; full enabled-profile evidence ledger remains required."
+    },
+    {
+      "id": "TORQ-SCI-001",
+      "title": "Product declaration",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SCHEMA",
+        "V-UQ"
+      ],
+      "source_references": [
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/scientific_contracts.py"
+      ],
+      "test_references": [
+        "tests/test_student_interface.py",
+        "tests/test_scientific_contracts.py"
+      ],
+      "remaining_work": "Strict A/B/C/BENCHMARK declarations now enforce identified anchors for experimental products, explicit theoretical/anchored differences, immutable family/parent/source partitions and no validation observations used to anchor predictions. Declarations remain unqualified; actual reference-byte verification/curation, anchored inference and executed independent validation are still required."
+    },
+    {
+      "id": "TORQ-SCI-002",
+      "title": "Canonical units",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-UNITS"
+      ],
+      "source_references": [
+        "src/cochem_torq/units.py",
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/spectroscopy/harmonic.py",
+        "src/cochem_torq/spectroscopy/rotational.py",
+        "src/cochem_torq/energetics.py",
+        "src/cochem_torq/ecosystem.py"
+      ],
+      "test_references": [
+        "tests/test_units.py",
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_ecosystem_serialization_profile.py"
+      ],
+      "remaining_work": "One immutable CODATA-2022-compatible constants service, explicit unit/frame/quantity contracts and migrated modern spectroscopy/energetics/ecosystem conversions now exist. Every historical adapter, tensor/property interchange and version-migration round trip still needs the applicable source-bound qualification; fundamental-constant uncertainty does not establish molecular model accuracy."
+    },
+    {
+      "id": "TORQ-SCI-003",
+      "title": "State and stoichiometry",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SCHEMA"
+      ],
+      "source_references": [
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/ecosystem.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_student_interface.py"
+      ],
+      "remaining_work": "Single-molecule state/identity checks exist; fragment electronic states, multi-reference diagnostics and every advertised open-shell/element domain need separate authentic profiles."
+    },
+    {
+      "id": "TORQ-SCI-004",
+      "title": "Observable identity",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-ROT",
+        "V-VIB"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/rotational.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_spectroscopy_integrity.py"
+      ],
+      "remaining_work": "Be and correction identities are distinct. Native independently validated alpha, distortion and force-field sources are required before B0 or identification output is enabled."
+    },
+    {
+      "id": "TORQ-SCI-005",
+      "title": "Scientific labels",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-EXPORT"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/rotational.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_spectroscopy_integrity.py"
+      ],
+      "remaining_work": "Be and correction identities are distinct. Native independently validated alpha, distortion and force-field sources are required before B0 or identification output is enabled."
+    },
+    {
+      "id": "TORQ-ARC-001",
+      "title": "Layering",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-PACKAGE",
+        "V-E2E"
+      ],
+      "source_references": [
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/student_app.py",
+        "src/cochem_torq/cli.py"
+      ],
+      "test_references": [
+        "tests/test_student_interface.py",
+        "tests/test_pyscf_integration.py"
+      ],
+      "remaining_work": "A shared student workflow exists; full advertised headless/UI journey and each separate worker boundary require actual platform execution evidence."
+    },
+    {
+      "id": "TORQ-ARC-002",
+      "title": "Ownership",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-STATE",
+        "V-HPC"
+      ],
+      "source_references": [
+        "src/cochem_torq/ecosystem.py",
+        "cochem/orchestration/sqlite_queue.py",
+        "cochem/orchestration/campaign.py",
+        "src/cochem_torq/base_bridge.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_persistence_integrity.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_chain.py"
+      ],
+      "remaining_work": "An authoritative local campaign coordinator now provides revision-CAS lifecycle, lease fencing and reservations; real isolated BASE/TOPOS producer/consumer compatibility is separately testable. The sibling services and deployed multi-worker/remote lifecycle must qualify their own compatible authority contract."
+    },
+    {
+      "id": "TORQ-ARC-003",
+      "title": "Engine adapter interface",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-ENGINE",
+        "V-FAIL"
+      ],
+      "source_references": [
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "Libraries/cochem_torq_engine.py",
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/engines/diagnostics.py"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_engine_integrity.py",
+        "tests/test_student_execution.py",
+        "tests/test_pathway_diagnostics_integration.py"
+      ],
+      "remaining_work": "Owned subprocess launch, wall/resource supervision, cancellation, artifact collection and strict native parsing are implemented for bounded local profiles. Every enabled engine tuple still needs the complete asynchronous adapter lifecycle and independent source-bound qualification."
+    },
+    {
+      "id": "TORQ-DATA-001",
+      "title": "Versioned records",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SCHEMA"
+      ],
+      "source_references": [
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/ecosystem.py",
+        "Libraries/cochem_torq_spectroscopy.py",
+        "src/cochem_torq/spectroscopy/results.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_spectroscopy_integrity.py",
+        "tests/test_canonical_serialization.py",
+        "tests/test_ecosystem_serialization_profile.py",
+        "tests/test_advanced_scientific_results.py"
+      ],
+      "remaining_work": "RFC 8785 serialization, separate scientific-cache/submission identities, explicit legacy serialization verification and advanced typed result records are implemented. Full required record families and digest-preserving schema migrations remain acceptance work."
+    },
+    {
+      "id": "TORQ-DATA-002",
+      "title": "Field semantics",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SCHEMA",
+        "V-FAIL"
+      ],
+      "source_references": [
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/ecosystem.py",
+        "Libraries/cochem_torq_spectroscopy.py",
+        "src/cochem_torq/spectroscopy/results.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_spectroscopy_integrity.py",
+        "tests/test_advanced_scientific_results.py"
+      ],
+      "remaining_work": "Advanced payloads now validate scientific-context and parent identities, and absent values remain unavailable with reasons. Full not_requested/unsupported/not_applicable/failed/not_computed semantics across every required and legacy record remain incomplete."
+    },
+    {
+      "id": "TORQ-DATA-003",
+      "title": "Independent provenance axes",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-EXPORT"
+      ],
+      "source_references": [
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/ecosystem.py",
+        "Libraries/cochem_torq_spectroscopy.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_spectroscopy_integrity.py"
+      ],
+      "remaining_work": "Strict missingness/identity contracts exist. Full semantic-version migration, independent provenance axes and all legacy record/export round trips remain per-format acceptance work."
+    },
+    {
+      "id": "TORQ-METHOD-001",
+      "title": "Separate dimensions",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-METHOD"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        "Libraries/cochem_torq_matrix_loader.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_matrix_loader.py"
+      ],
+      "remaining_work": "All 140 legacy row identities remain documentary. Each runnable exact recipe/basis/reference/property/version/hardware tuple requires its own evidence; no matrix row implies an executable engine."
+    },
+    {
+      "id": "TORQ-METHOD-002",
+      "title": "Capability registry",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-METHOD",
+        "V-ENGINE"
+      ],
+      "source_references": [
+        "src/cochem_torq/capabilities.py",
+        "src/cochem_torq/registry.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_capability_restart_integrity.py",
+        "tests/test_actions_request.py",
+        "tests/test_pyscf_integration.py"
+      ],
+      "remaining_work": "Strict immutable exact method/basis/ECP/reference/property/derivative/engine-version/optimizer/hardware/recipe tuples distinguish documented, experimental, locally validated, unsupported and unknown. Built-in native routes remain experimental and permit only controlled validation. Genuine local evidence binds the exact normalized native request, actual artifact/source/basis/installation identities; no neighboring request or scientific-accuracy profile inherits its scope. All140 historical rows remain documentary; production-quality scientific/domain and deployed exact-tuple qualification are outstanding."
+    },
+    {
+      "id": "TORQ-METHOD-003",
+      "title": "No silent fallback",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-FAIL"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        "Libraries/cochem_torq_matrix_loader.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_matrix_loader.py"
+      ],
+      "remaining_work": "All 140 legacy row identities remain documentary. Each runnable exact recipe/basis/reference/property/version/hardware tuple requires its own evidence; no matrix row implies an executable engine."
+    },
+    {
+      "id": "TORQ-METHOD-004",
+      "title": "Double hybrids",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-DH"
+      ],
+      "source_references": [
+        "src/cochem_torq/engines/revdsd.py"
+      ],
+      "test_references": [
+        "tests/test_revdsd_integration.py"
+      ],
+      "remaining_work": "Exact revDSD DH0/DH1 are blocked by complete primary recipe and independent reference evidence; analytic orbital-response and higher derivatives remain separate research milestones."
+    },
+    {
+      "id": "TORQ-METHOD-005",
+      "title": "Counterpoise and composites",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-CP"
+      ],
+      "source_references": [
+        "src/cochem_torq/energetics.py",
+        "src/cochem_torq/engines/counterpoise.py",
+        "Libraries/cochem_torq_engine.py"
+      ],
+      "test_references": [
+        "tests/test_energetics_integration.py",
+        "tests/torq/test_counterpoise_frozen_monomer.py"
+      ],
+      "remaining_work": "Actual same-complex-basis ghost-fragment HF/DFT energies and full moving-grid-response gradients, frozen interaction and independently optimized monomer deformation/De/D0/RRHO contracts exist in the experimental API. Legacy CP optimization rejects unsupported optimizer keywords. Qualified CP geometry refinement, selected half-CP/composite equations and independent method-domain accuracy remain incomplete."
+    },
+    {
+      "id": "TORQ-METHOD-006",
+      "title": "Reuse compatibility",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-RESTART"
+      ],
+      "source_references": [
+        "src/cochem_torq/capabilities.py",
+        "src/cochem_torq/artifacts.py",
+        "src/cochem_torq/service.py"
+      ],
+      "test_references": [
+        "tests/test_capability_restart_integrity.py",
+        "tests/test_service_lifecycle.py"
+      ],
+      "remaining_work": "Actual native wavefunction/Hessian registration preserves original bytes, creates a new read-only sealed input and fingerprints exact geometry, atom/isotope order, state, basis definitions, method/recipe, engine installation/version, adapter/source and canonical numerical settings. Final-result compatibility requires exact fingerprints; explicitly permitted initial-guess geometry/settings changes still require a new physical calculation and a separate mutable working copy. Native engine consumption/checkpoint continuation is not asserted or implemented; grids/integrals/force-fields/model-checkpoints require separate authentic registration adapters and deployed restart gates."
+    },
+    {
+      "id": "TORQ-PLAN-001",
+      "title": "Goal specification",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-PLAN"
+      ],
+      "source_references": [
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/scientific_contracts.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_student_interface.py",
+        "tests/test_scientific_contracts.py"
+      ],
+      "remaining_work": "ScientificGoal now declares product classes, target observables/units, approximations, chemical domain, optional spectral range, target errors or explicit unknown accuracy and request-resource budget binding. Full multi-task Goal/BudgetContract/TaskSpec policy, actual error-target achievement and independent calibration/reference execution remain required."
+    },
+    {
+      "id": "TORQ-PLAN-002",
+      "title": "Budget enforcement",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-BUDGET"
+      ],
+      "source_references": [
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/artifacts.py",
+        "cochem/orchestration/campaign.py",
+        "src/cochem_torq/operations.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_persistence_integrity.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_operations_integrity.py",
+        "tests/test_student_execution.py"
+      ],
+      "remaining_work": "The SQLite campaign authority now atomically reserves and settles wall/CPU/GPU consumption and worker/CPU/GPU/RAM/scratch/task capacities, including retry ceilings. Local execution records actual wall/owned-byte consumption and explicitly unknown CPU/exact memory peaks. Cross-campaign host allocation, full primitive-stage accounting, native/GPU scheduler ceilings and deployed contention/consumption evidence remain required."
+    },
+    {
+      "id": "TORQ-PLAN-003",
+      "title": "Approvals",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-PLAN",
+        "V-STATE"
+      ],
+      "source_references": [
+        "src/cochem_torq/service.py",
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/github.py",
+        "cochem/orchestration/campaign.py"
+      ],
+      "test_references": [
+        "tests/test_service_lifecycle.py",
+        "tests/test_service_input_integrity.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_actions_request.py"
+      ],
+      "remaining_work": "Actual explicit approval binds the complete request, current scientific recipe/plan, code identity, finite resource ceilings and aware expiry; the canonical Actions request carries and verifies the same approval. Local authority revocation preserves completed lineage. Complete multi-task scope-change/needs_review policy and remotely authenticated deployed execution remain to be qualified."
+    },
+    {
+      "id": "TORQ-PLAN-004",
+      "title": "Digest versus signature",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SECURITY"
+      ],
+      "source_references": [
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/artifacts.py",
+        "src/cochem_torq/service.py",
+        "cochem/orchestration/campaign.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_persistence_integrity.py",
+        "tests/test_service_lifecycle.py",
+        "tests/test_campaign_coordinator.py"
+      ],
+      "remaining_work": "Plan/approval digests explicitly do not claim signatures; campaign operator authority is a private opaque capability separate from worker leases. Deployed actor authentication, remote approval/cancellation and platform trust-policy qualification remain required."
+    },
+    {
+      "id": "TORQ-PLAN-005",
+      "title": "Candidate retention",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-UQ",
+        "V-PLAN"
+      ],
+      "source_references": [
+        "src/cochem_torq/candidate_ledger.py",
+        "src/cochem_torq/student_app.py",
+        "Libraries/cochem_torq_active_learning.py"
+      ],
+      "test_references": [
+        "tests/test_candidate_ledger_integrity.py",
+        "tests/test_candidate_interface_integrity.py",
+        "tests/test_surrogate_integrity.py"
+      ],
+      "remaining_work": "A private append-only candidate ledger now preserves genuine request/result references, retained/excluded/quarantined states, exact revisions, criteria/observations, blind versus assignment-assisted decisions and reversible actor-labeled selections. The thin interface exposes history and clears prior approval on changed selection; no uncalibrated ML value automatically deletes candidates. Independent multi-search basin recall, scientific filtering/assignment qualification and deployed identity/security evidence remain outstanding."
+    },
+    {
+      "id": "TORQ-GEO-001",
+      "title": "Mapping and alignment",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-GEO"
+      ],
+      "source_references": [
+        "src/cochem_torq/ecosystem.py",
+        "src/cochem_torq/spectroscopy/harmonic.py",
+        "Libraries/cochem_spcat_bridge.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_spcat_integrity.py"
+      ],
+      "remaining_work": "Stable atom/isotope identities and proper-rotation kernels exist. Complete connectivity/stereochemistry/isotope-preserving permutation deduplication, uncertain-match retention and threshold-sensitive mapping still require implementation and adversarial qualification; hashes alone cannot certify equivalence."
+    },
+    {
+      "id": "TORQ-GEO-002",
+      "title": "Symmetry",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-SYM"
+      ],
+      "source_references": [
+        "src/cochem_torq/ecosystem.py",
+        "src/cochem_torq/spectroscopy/harmonic.py",
+        "Libraries/cochem_spcat_bridge.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_spcat_integrity.py"
+      ],
+      "remaining_work": "Frame/identity calculations are present. Distinct tolerance-swept molecular point group, computational subgroup, mass symmetry and feasible permutation-inversion workflows remain incomplete; point groups cannot supply isotope-dependent nuclear-spin weights or tunneling selection rules."
+    },
+    {
+      "id": "TORQ-GEO-003",
+      "title": "Stationarity",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-OPT",
+        "V-TS"
+      ],
+      "source_references": [
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "src/cochem_torq/spectroscopy/harmonic.py",
+        "src/cochem_torq/engines/diagnostics.py",
+        "src/cochem_torq/engines/pathway.py"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_pathway_diagnostics_integration.py"
+      ],
+      "remaining_work": "Actual restricted SCF stability, projected Hessian stationarity diagnostics and separately labelled first-order saddle candidates are implemented. Full constrained-Lagrangian curvature, target-level domain qualification and verified chemical connectivity remain required."
+    },
+    {
+      "id": "TORQ-GEO-004",
+      "title": "Electronic-state diagnostics",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-ELECTRONIC"
+      ],
+      "source_references": [
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "src/cochem_torq/spectroscopy/harmonic.py",
+        "src/cochem_torq/engines/diagnostics.py"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_pathway_diagnostics_integration.py"
+      ],
+      "remaining_work": "Native electronic diagnostics now retain actual convergence, state and stability evidence for bounded restricted profiles. Multi-state/open-shell/near-degenerate chemistry and each diagnostic model still need independent domain qualification."
+    },
+    {
+      "id": "TORQ-GEO-005",
+      "title": "Isotopologues",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-ISO"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/harmonic.py",
+        "Libraries/cochem_isotopes.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_pyscf_integration.py"
+      ],
+      "remaining_work": "Mass/inertia/harmonic remassing exists. Isotopic B0 requires renewed anharmonic/resonance analysis and, where needed, Born-Oppenheimer corrections; it is not inertia rescaling alone."
+    },
+    {
+      "id": "TORQ-PES-001",
+      "title": "Scan definition",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-PES"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_storage.py",
+        "cochem/storage/cochem_core_pes_store.py",
+        "Libraries/cochem_torq_pipeline.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_pipeline.py"
+      ],
+      "remaining_work": "Storage integrity and rapid refinement do not qualify scans. Real periodic/reverse branch calculations, target-level anchors and stationary-point checks remain required."
+    },
+    {
+      "id": "TORQ-PES-002",
+      "title": "Surface identity",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-PES",
+        "V-AL"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_storage.py",
+        "cochem/storage/cochem_core_pes_store.py",
+        "Libraries/cochem_torq_pipeline.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_pipeline.py"
+      ],
+      "remaining_work": "Storage integrity and rapid refinement do not qualify scans. Real periodic/reverse branch calculations, target-level anchors and stationary-point checks remain required."
+    },
+    {
+      "id": "TORQ-PES-003",
+      "title": "Candidate versus stationary point",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-PES",
+        "V-TS"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_storage.py",
+        "cochem/storage/cochem_core_pes_store.py",
+        "Libraries/cochem_torq_pipeline.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_pipeline.py"
+      ],
+      "remaining_work": "Storage integrity and rapid refinement do not qualify scans. Real periodic/reverse branch calculations, target-level anchors and stationary-point checks remain required."
+    },
+    {
+      "id": "TORQ-PES-004",
+      "title": "Path construction",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-TS"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_pipeline.py",
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "src/cochem_torq/engines/pathway.py"
+      ],
+      "test_references": [
+        "tests/test_pipeline.py",
+        "tests/test_pyscf_integration.py",
+        "tests/test_pathway_diagnostics_integration.py"
+      ],
+      "remaining_work": "Actual analytic-Hessian saddle optimization and separately relaxed downhill endpoint candidates are implemented. They explicitly do not claim IRC trajectories or verified chemical connectivity; target-level path construction and endpoint identity qualification remain required."
+    },
+    {
+      "id": "TORQ-PES-005",
+      "title": "Transition-state verification",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-TS"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_pipeline.py",
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "src/cochem_torq/engines/pathway.py",
+        "src/cochem_torq/engines/diagnostics.py"
+      ],
+      "test_references": [
+        "tests/test_pipeline.py",
+        "tests/test_pyscf_integration.py",
+        "tests/test_pathway_diagnostics_integration.py"
+      ],
+      "remaining_work": "Native projected curvature and first-order saddle-candidate evidence are implemented. A qualified TS still requires appropriate reaction-mode/connectivity evidence, verified endpoints and the genuine target-level TS/IRC reference campaign."
+    },
+    {
+      "id": "TORQ-PES-006",
+      "title": "Adaptive algorithm",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-AL"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_active_learning.py",
+        "Libraries/cochem_torq_delta_ml.py"
+      ],
+      "test_references": [
+        "tests/test_surrogate_integrity.py"
+      ],
+      "remaining_work": "Advisory models cannot become physical observations or automatic pruning. Independent missed-basin, out-of-domain and calibration benchmarks are outstanding."
+    },
+    {
+      "id": "TORQ-PES-007",
+      "title": "Kinetics and bifurcations",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-KINETICS"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_pipeline.py",
+        "Libraries/cochem_jax_builder.py"
+      ],
+      "test_references": [
+        "tests/test_numerical_integrity.py"
+      ],
+      "remaining_work": "A PES or rotor kernel does not qualify kinetics. TST/RRKM units, tunneling, state/population assumptions and bifurcation domain require authentic dedicated acceptance cases."
+    },
+    {
+      "id": "TORQ-VIB-001",
+      "title": "Derivative provenance",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-DERIV"
+      ],
+      "source_references": [
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "src/cochem_torq/spectroscopy/harmonic.py"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_spectroscopy_physics.py"
+      ],
+      "remaining_work": "Numerical/analytic provenance and external-mode handling exist for bounded cases; every enabled method/state/basis Hessian and independent reference-frequency profile needs qualification."
+    },
+    {
+      "id": "TORQ-VIB-002",
+      "title": "Harmonic analysis",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-VIB"
+      ],
+      "source_references": [
+        "src/cochem_torq/engines/pyscf_backend.py",
+        "src/cochem_torq/spectroscopy/harmonic.py"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_spectroscopy_physics.py"
+      ],
+      "remaining_work": "Numerical/analytic provenance and external-mode handling exist for bounded cases; every enabled method/state/basis Hessian and independent reference-frequency profile needs qualification."
+    },
+    {
+      "id": "TORQ-VIB-003",
+      "title": "VPT2 profile",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-VPT2"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/forcefield.py",
+        "src/cochem_torq/spectroscopy/perturbation.py",
+        "src/cochem_torq/spectroscopy/results.py",
+        "src/cochem_torq/research_pipeline.py"
+      ],
+      "test_references": [
+        "tests/test_anharmonic_research.py",
+        "tests/test_advanced_scientific_results.py",
+        "tests/test_student_execution.py"
+      ],
+      "remaining_work": "Actual displacement and vibrational VPT2/polyad machinery exists. Independent molecular force-field/VPT2 validation, rovibrational alpha, distortion and full GVPT2/resonance domain qualification are outstanding."
+    },
+    {
+      "id": "TORQ-VIB-004",
+      "title": "LAM profile",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-DVR"
+      ],
+      "source_references": [
+        "Libraries/cochem_jax_builder.py"
+      ],
+      "test_references": [
+        "tests/test_numerical_integrity.py",
+        "tests/test_wkb_integrity.py"
+      ],
+      "remaining_work": "Numerical rotor/DVR safeguards do not supply a coupled molecular torsion-rotation or VRT model. PES/kinetic operator, symmetry, spin weights and spectral convergence need authentic domain-specific evidence."
+    },
+    {
+      "id": "TORQ-VIB-005",
+      "title": "Spectroscopic properties",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-PROP"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/rotational.py",
+        "Libraries/cochem_tensor_extractor.py",
+        "Libraries/cochem_torq_asymmetric_rotor.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_remaining_scientific_integrity.py",
+        "tests/test_asymmetric_rotor.py"
+      ],
+      "remaining_work": "The modern rigid-rotor screening model uses actual dipoles. Legacy rotor numerical levels retain unassigned eigenstate identity; unimplemented Watson S, guessed Ka/Kc and arbitrary-intensity catalog generation now fail explicitly. Independently qualified distortion, hyperfine, dipole surfaces/vibrational averaging and identification-band validity remain separate required properties."
+    },
+    {
+      "id": "TORQ-SPEC-001",
+      "title": "Independent typed stages",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-STAGES",
+        "V-SCHEMA",
+        "V-FAIL",
+        "V-ENGINE",
+        "V-ELECTRONIC",
+        "V-OPT",
+        "V-ROT",
+        "V-ISO",
+        "V-VIB",
+        "V-DERIV",
+        "V-VPT2",
+        "V-DVR",
+        "V-UQ",
+        "V-SPCAT",
+        "V-CONSUMER",
+        "V-BENCH"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_spectroscopy.py",
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/spectroscopy/results.py",
+        "src/cochem_torq/scientific_values.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_integrity.py",
+        "tests/test_student_interface.py",
+        "tests/test_advanced_scientific_results.py",
+        "tests/test_application_contracts.py"
+      ],
+      "remaining_work": "Advanced stages now have strict scientific-context, atom/isotope/frame/mode/protocol and parent/result identity schemas. Genuine rotation-vibration alpha/Coriolis/distortion, full engine/version/convergence envelopes and independently qualified later-stage outputs remain incomplete."
+    },
+    {
+      "id": "TORQ-SPEC-002",
+      "title": "Spectroscopic accuracy ladder",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-BENCH",
+        "V-UQ",
+        "V-PROP",
+        "V-ISO",
+        "V-SPCAT"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/rotational.py",
+        "src/cochem_torq/registry.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_revdsd_integration.py"
+      ],
+      "remaining_work": "The spectroscopic accuracy ladder is a specification, not achieved accuracy. Each component and independent held-out observable benchmark must qualify before identification claims."
+    },
+    {
+      "id": "TORQ-SPEC-003",
+      "title": "Requested products and truthful partial completion",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-STAGES",
+        "V-FAIL",
+        "V-EXPORT"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_spectroscopy.py",
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_integrity.py",
+        "tests/test_student_interface.py"
+      ],
+      "remaining_work": "Typed partial results preserve earlier physics. Full electronic-to-identification execution remains blocked when authentic later-stage sources or solvers are unavailable."
+    },
+    {
+      "id": "TORQ-ANA-001",
+      "title": "Wavefunction interchange",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-WFN"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_engine.py",
+        "Libraries/cochem_tensor_extractor.py"
+      ],
+      "test_references": [
+        "tests/test_engine_integrity.py",
+        "tests/test_remaining_scientific_integrity.py"
+      ],
+      "remaining_work": "Unsupported wavefunction conversion is rejected. Authentic NBO/JANPA/QTAIM adapters, density normalization/basin convergence and scientifically distinct analysis outputs need separate evidence."
+    },
+    {
+      "id": "TORQ-ANA-002",
+      "title": "NBO and alternatives",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-ANALYSIS"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_engine.py",
+        "Libraries/cochem_tensor_extractor.py"
+      ],
+      "test_references": [
+        "tests/test_engine_integrity.py",
+        "tests/test_remaining_scientific_integrity.py"
+      ],
+      "remaining_work": "Unsupported wavefunction conversion is rejected. Authentic NBO/JANPA/QTAIM adapters, density normalization/basin convergence and scientifically distinct analysis outputs need separate evidence."
+    },
+    {
+      "id": "TORQ-ANA-003",
+      "title": "Density analyses",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-ANALYSIS"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_engine.py",
+        "Libraries/cochem_tensor_extractor.py"
+      ],
+      "test_references": [
+        "tests/test_engine_integrity.py",
+        "tests/test_remaining_scientific_integrity.py"
+      ],
+      "remaining_work": "Unsupported wavefunction conversion is rejected. Authentic NBO/JANPA/QTAIM adapters, density normalization/basin convergence and scientifically distinct analysis outputs need separate evidence."
+    },
+    {
+      "id": "TORQ-UQ-001",
+      "title": "Error budget",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-UQ"
+      ],
+      "source_references": [
+        "benchmarks/rotational-identification/preregistration.json",
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/scientific_contracts.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_integrity.py",
+        "tests/test_scientific_contracts.py"
+      ],
+      "remaining_work": "Strict error budgets preserve all five sources separately, reject unknown/sensitivity values as covariance uncertainties, and require covariance ordering or an explicit independence assumption. Mathematical J Sigma J^T propagation retains uncalibrated coverage and its linearization domain. Actual physical sensitivity runs, model/nuclear-motion/surrogate estimates and independent held-out calibration remain required."
+    },
+    {
+      "id": "TORQ-UQ-002",
+      "title": "Benchmark design",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-BENCH"
+      ],
+      "source_references": [
+        "benchmarks/rotational-identification/preregistration.json",
+        "src/cochem_torq/domain.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_integrity.py"
+      ],
+      "remaining_work": "Bounded benchmark proposal exists but curation, accepted targets, freeze and execution are outstanding. No calibrated uncertainty or universal accuracy follows from the current tests."
+    },
+    {
+      "id": "TORQ-UQ-003",
+      "title": "Calibrated claims",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-UQ",
+        "V-AL"
+      ],
+      "source_references": [
+        "benchmarks/rotational-identification/preregistration.json",
+        "src/cochem_torq/domain.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_integrity.py"
+      ],
+      "remaining_work": "Bounded benchmark proposal exists but curation, accepted targets, freeze and execution are outstanding. No calibrated uncertainty or universal accuracy follows from the current tests."
+    },
+    {
+      "id": "TORQ-UQ-004",
+      "title": "Publication bundle",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-RELEASE"
+      ],
+      "source_references": [
+        "src/cochem_torq/publication.py",
+        "src/cochem_torq/artifacts.py",
+        "src/cochem_torq/scientific_contracts.py"
+      ],
+      "test_references": [
+        "tests/test_publication_integrity.py",
+        "tests/test_scientific_contracts.py"
+      ],
+      "remaining_work": "An immutable reproducibility exporter preserves and verifies authentic native/shard bytes, matching scientific source snapshots, actual recipe/engine references, units/isotopes/frames/uncertainty flags and explicitly absent calibration or bibliography. It refuses fabricated scientific qualification and source substitution. A publication-ready scientific bundle still requires independently curated authentic references, preregistered/held-out benchmark results, executed uncertainty analysis and reviewed complete methods text; packaging cannot establish peer-review readiness."
+    },
+    {
+      "id": "TORQ-EXP-001",
+      "title": "Eligibility",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-EXPORT"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_export.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_export_integrity.py",
+        "tests/test_student_interface.py"
+      ],
+      "remaining_work": "Explicit partial export eligibility exists. Every additional publication profile must bind its qualified stages and distinguish measured, derived and exploratory values."
+    },
+    {
+      "id": "TORQ-EXP-002",
+      "title": "Pickett interface",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-SPCAT"
+      ],
+      "source_references": [
+        "Libraries/cochem_torq_spcat.py",
+        "Libraries/cochem_spcat_bridge.py",
+        "src/cochem_torq/spectroscopy/rotational.py"
+      ],
+      "test_references": [
+        "tests/test_spcat_integrity.py",
+        "tests/test_spectroscopy_physics.py"
+      ],
+      "remaining_work": "Internal rigid-rotor lines are explicitly screening output. A real pinned SPCAT/SPFIT independent round trip, matched Hamiltonian and measured/predicted distinction remain release gates."
+    },
+    {
+      "id": "TORQ-EXP-003",
+      "title": "Partition functions and intensities",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SPCAT",
+        "V-PROP"
+      ],
+      "source_references": [
+        "src/cochem_torq/spectroscopy/rotational.py",
+        "Libraries/cochem_spcat_bridge.py"
+      ],
+      "test_references": [
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_spcat_integrity.py"
+      ],
+      "remaining_work": "Finite-J partition/convergence indicators exist. Complete spin statistics, additional states, distortion and measured/calibrated intensity domains remain unqualified."
+    },
+    {
+      "id": "TORQ-EXP-004",
+      "title": "HDF5 contract",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-STORAGE",
+        "V-CONSUMER"
+      ],
+      "source_references": [
+        "src/cochem_torq/ecosystem.py",
+        "Libraries/cochem_torq_export.py"
+      ],
+      "test_references": [
+        "tests/test_ecosystem_integration.py",
+        "tests/test_export_integrity.py"
+      ],
+      "remaining_work": "BASE compatibility tests exist; the actual versioned SpycFit consumer and its reviewed HDF5 schema must qualify field/frame/state semantics before claiming interoperability."
+    },
+    {
+      "id": "TORQ-OPS-001",
+      "title": "Durable transitions",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-STATE"
+      ],
+      "source_references": [
+        "cochem/orchestration/sqlite_queue.py",
+        "src/cochem_torq/application.py",
+        "cochem/orchestration/campaign.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_actions_request.py",
+        "tests/test_campaign_coordinator.py"
+      ],
+      "remaining_work": "The authoritative campaign implements all SRS states, revision compare-and-swap, append-only actor/time/reason events and immutable terminal attempts. Full each-transition crash/restart, duplicate-delivery and deployed service evidence remains required."
+    },
+    {
+      "id": "TORQ-OPS-002",
+      "title": "Idempotence and leases",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-STATE",
+        "V-RESTART"
+      ],
+      "source_references": [
+        "cochem/orchestration/sqlite_queue.py",
+        "src/cochem_torq/application.py",
+        "cochem/orchestration/campaign.py",
+        "src/cochem_torq/service.py",
+        "src/cochem_torq/domain.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_actions_request.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_service_lifecycle.py",
+        "tests/test_canonical_serialization.py"
+      ],
+      "remaining_work": "Local campaign tasks have immutable logical identities, explicit worker leases/generations, attempt lineage and owned-process reconciliation; scientific cache identity is separate from submission identity. Native compatible checkpoint restart and deployed multi-worker/source-compatible recovery remain required."
+    },
+    {
+      "id": "TORQ-OPS-003",
+      "title": "Process supervision",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-FAIL",
+        "V-BUDGET"
+      ],
+      "source_references": [
+        "cochem/core/process_reaper.py",
+        "Libraries/cochem_torq_engine.py",
+        "cochem/orchestration/campaign.py",
+        "src/cochem_torq/operations.py",
+        "src/cochem_torq/application.py"
+      ],
+      "test_references": [
+        "tests/test_async_runner_integrity.py",
+        "tests/test_persistence_integrity.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_operations_integrity.py",
+        "tests/test_student_execution.py"
+      ],
+      "remaining_work": "Owned process-group cancellation, wall timeout, sampled resident-memory ceilings, scratch/output backpressure and campaign reservation/settlement are now wired locally. Exact process-tree CPU and memory peak measurements remain explicitly unavailable; cross-campaign host/GPU allocation and canonical-platform qualification remain required."
+    },
+    {
+      "id": "TORQ-OPS-004",
+      "title": "Artifact commit",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-STORAGE"
+      ],
+      "source_references": [
+        "src/cochem_torq/artifacts.py",
+        "cochem/storage/cochem_core_pes_store.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_ecosystem_integration.py"
+      ],
+      "remaining_work": "Immutable shards and single-writer storage are implemented. Interrupted merge, stale-attempt publication and coordinator-authority fencing must be qualified through the deployed multi-worker path."
+    },
+    {
+      "id": "TORQ-OPS-005",
+      "title": "HDF5 ownership",
+      "classification": "missing_implementation",
+      "acceptance_ids": [
+        "V-STORAGE",
+        "V-HPC"
+      ],
+      "source_references": [
+        "src/cochem_torq/artifacts.py",
+        "cochem/storage/cochem_core_pes_store.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_ecosystem_integration.py"
+      ],
+      "remaining_work": "Fence merger admission/publication against current coordinator attempts; plain file locks plus matching manifests do not establish current-lease authority or interrupted-merge recovery."
+    },
+    {
+      "id": "TORQ-OPS-006",
+      "title": "Bounded retries",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-FAIL"
+      ],
+      "source_references": [
+        "src/cochem_torq/application.py",
+        "cochem/orchestration/sqlite_queue.py",
+        "cochem/orchestration/campaign.py",
+        "src/cochem_torq/service.py"
+      ],
+      "test_references": [
+        "tests/test_persistence_integrity.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_service_lifecycle.py"
+      ],
+      "remaining_work": "The authority enforces approved retry ceilings, immutable attempts and bounded automatic retry classes; cancellations cannot automatically retry and every settled attempt retains costs/provenance. Full deployed scientific-recipe retry/resume policy, compatible native checkpoints and all recovery classes remain required."
+    },
+    {
+      "id": "TORQ-UI-001",
+      "title": "Shared workflow",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-E2E"
+      ],
+      "source_references": [
+        "src/cochem_torq/student_app.py",
+        "src/cochem_torq/application.py",
+        "UI/Start_TORQ.ipynb",
+        "src/cochem_torq/service.py",
+        "src/cochem_torq/cli.py"
+      ],
+      "test_references": [
+        "tests/test_student_interface.py",
+        "tests/test_actions_request.py",
+        "tests/test_service_lifecycle.py"
+      ],
+      "remaining_work": "Shared service/CLI doctor, plan/approval, run, resume and export contracts are implemented with explicit same-model resume and no falsely claimed checkpoint reuse. Complete thin-UI parity, owned remote cancel and actual Codespaces-to-Actions lifecycle evidence remain required."
+    },
+    {
+      "id": "TORQ-UI-002",
+      "title": "Rapid refinement",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-E2E",
+        "V-ROT"
+      ],
+      "source_references": [
+        "src/cochem_torq/student_app.py",
+        "src/cochem_torq/application.py",
+        "UI/Start_TORQ.ipynb"
+      ],
+      "test_references": [
+        "tests/test_student_interface.py",
+        "tests/test_actions_request.py"
+      ],
+      "remaining_work": "The shared interface and rapid teaching path exist. An actual Codespaces-to-Actions import/submit/status/cancel/download/export journey is mandatory before that deployed path is declared student-qualified."
+    },
+    {
+      "id": "TORQ-UI-003",
+      "title": "Inspection",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-E2E",
+        "V-FAIL"
+      ],
+      "source_references": [
+        "src/cochem_torq/candidate_ledger.py",
+        "src/cochem_torq/student_app.py",
+        "src/cochem_torq/application.py",
+        "UI/Start_TORQ.ipynb"
+      ],
+      "test_references": [
+        "tests/test_candidate_interface_integrity.py",
+        "tests/test_candidate_ledger_integrity.py",
+        "tests/test_student_interface.py"
+      ],
+      "remaining_work": "The supplied-candidate interface now provides accessible retained/excluded/quarantined selection tables, genuine request/result references, missing capabilities and immutable selection/history inspection. Selection changes invalidate the reviewed plan/approval and exclusion prevents submission. A complete ensemble/landscape uncertainty/coverage visualization, independently qualified filtering and the canonical deployed Codespaces-to-Actions journey remain incomplete."
+    },
+    {
+      "id": "TORQ-DEP-001",
+      "title": "Packaging",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-PACKAGE"
+      ],
+      "source_references": [
+        "pyproject.toml",
+        ".devcontainer/devcontainer.json",
+        "docker/engines/pyscf/Dockerfile",
+        ".github/workflows/calculation.yml"
+      ],
+      "test_references": [
+        "tests/test_pyproject.py",
+        "tests/test_devcontainer.py",
+        "tests/test_actions_request.py"
+      ],
+      "remaining_work": "Packaging/configuration and local engine checks cannot qualify an image or remote platform. Actual immutable image build/digest, dependency lock and genuine Actions/Codespaces execution evidence are required; GPU/Slurm profiles remain separately qualified."
+    },
+    {
+      "id": "TORQ-DEP-002",
+      "title": "Provisioning",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SECURITY",
+        "V-DEPLOY"
+      ],
+      "source_references": [
+        "pyproject.toml",
+        ".devcontainer/devcontainer.json",
+        "docker/engines/pyscf/Dockerfile",
+        ".github/workflows/calculation.yml"
+      ],
+      "test_references": [
+        "tests/test_pyproject.py",
+        "tests/test_devcontainer.py",
+        "tests/test_actions_request.py"
+      ],
+      "remaining_work": "Packaging/configuration and local engine checks cannot qualify an image or remote platform. Actual immutable image build/digest, dependency lock and genuine Actions/Codespaces execution evidence are required; GPU/Slurm profiles remain separately qualified."
+    },
+    {
+      "id": "TORQ-DEP-003",
+      "title": "Platform profiles",
+      "classification": "optional_profile_or_credentials",
+      "acceptance_ids": [
+        "V-HPC",
+        "V-DEPLOY"
+      ],
+      "source_references": [
+        "pyproject.toml",
+        ".devcontainer/devcontainer.json",
+        "docker/engines/pyscf/Dockerfile",
+        ".github/workflows/calculation.yml"
+      ],
+      "test_references": [
+        "tests/test_pyproject.py",
+        "tests/test_devcontainer.py",
+        "tests/test_actions_request.py"
+      ],
+      "remaining_work": "Packaging/configuration and local engine checks cannot qualify an image or remote platform. Actual immutable image build/digest, dependency lock and genuine Actions/Codespaces execution evidence are required; GPU/Slurm profiles remain separately qualified."
+    },
+    {
+      "id": "TORQ-DEP-004",
+      "title": "Operational behavior",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-DEPLOY"
+      ],
+      "source_references": [
+        "src/cochem_torq/artifacts.py",
+        "src/cochem_torq/github.py",
+        "src/cochem_torq/application.py",
+        "src/cochem_torq/operations.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_student_interface.py",
+        "tests/test_operations_integrity.py"
+      ],
+      "remaining_work": "Owned artifact quota/backpressure, immutable-shard backup/restore and rollback are implemented and tested locally. Coordinator database backup/restore, schema migration/rollback and actual deployed readiness/quota-exhaustion scenarios remain required."
+    },
+    {
+      "id": "TORQ-SEC-001",
+      "title": "Trust boundaries",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-SECURITY"
+      ],
+      "source_references": [
+        "src/cochem_torq/github.py",
+        "src/cochem_torq/domain.py",
+        "src/cochem_torq/artifacts.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_ecosystem_integration.py"
+      ],
+      "remaining_work": "Request/path/identity validation is present. Deployed tenant isolation, authenticated submission/cancel, secret exposure and restricted-component provisioning require actual boundary tests."
+    },
+    {
+      "id": "TORQ-DEP-005",
+      "title": "Telemetry",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-BUDGET",
+        "V-DEPLOY"
+      ],
+      "source_references": [
+        "src/cochem_torq/artifacts.py",
+        "src/cochem_torq/github.py",
+        "src/cochem_torq/application.py",
+        "cochem/orchestration/campaign.py"
+      ],
+      "test_references": [
+        "tests/test_actions_request.py",
+        "tests/test_student_interface.py",
+        "tests/test_campaign_coordinator.py",
+        "tests/test_student_execution.py"
+      ],
+      "remaining_work": "Local campaign records actual worker elapsed time, sampled resident-memory status, observed owned bytes, resource failures and explicitly unknown exact CPU/memory peaks. Full queue/host/contention telemetry, geometry-private summaries and canonical-platform measurement/retention evidence remain required."
+    },
+    {
+      "id": "TORQ-VAL-001",
+      "title": "Core open-source release",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-RELEASE"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        ".github/workflows/integrity.yml",
+        "benchmarks/rotational-identification/preregistration.json"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_revdsd_integration.py"
+      ],
+      "remaining_work": "Run and archive nonlinear, linear, isotope-pair and real weakly bound dimer within the selected method domain, plus cancellation/restart/install failure scenarios. Existing water/H2 checks do not constitute the complete required campaign."
+    },
+    {
+      "id": "TORQ-VAL-002",
+      "title": "Advanced releases",
+      "classification": "missing_independent_qualification",
+      "acceptance_ids": [
+        "V-BENCH",
+        "V-RELEASE"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        ".github/workflows/integrity.yml",
+        "benchmarks/rotational-identification/preregistration.json"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_revdsd_integration.py"
+      ],
+      "remaining_work": "A bounded real-physics teaching path is testable. Full SRS acceptance requires nonlinear/linear/isotope/weak-dimer cases plus complete enabled-profile, deployment and independently preregistered scientific evidence; no advanced release pass is asserted here."
+    },
+    {
+      "id": "TORQ-VAL-003",
+      "title": "Deployment gate",
+      "classification": "partial_supported_scope",
+      "acceptance_ids": [
+        "V-RELEASE"
+      ],
+      "source_references": [
+        "src/cochem_torq/registry.py",
+        ".github/workflows/integrity.yml",
+        "benchmarks/rotational-identification/preregistration.json",
+        "ci_tools/validate_release_evidence.py"
+      ],
+      "test_references": [
+        "tests/test_pyscf_integration.py",
+        "tests/test_spectroscopy_physics.py",
+        "tests/test_revdsd_integration.py",
+        "tests/test_release_evidence_validator.py"
+      ],
+      "remaining_work": "The full current historical test inventory now collects without errors. Full-SRS deployment still requires the complete actual test execution and every mandatory scientific/platform qualification gate; passing bounded profiles or collection alone cannot declare completion."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "V-STAGES",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Strict baseline/advanced payloads preserve real earlier results and atom/isotope/frame/mode/parent identities. The complete independently qualified rovibration/VPT2/B0/identification route and source-bound execution ledger remain outstanding."
+    },
+    {
+      "id": "V-SCHEMA",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "RFC 8785 identities, separate submission/cache keys and strict advanced payloads exist; all SRS record families, absence states and complete version migrations still require implementation/qualification."
+    },
+    {
+      "id": "V-UNITS",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "An immutable versioned CODATA-2022-compatible constants service and strict unit/frame/coordinate contracts now exist, with mathematical round-trip tests. All historical adapter/property migrations and source-bound full gate evidence remain incomplete; a mathematical conversion cannot qualify scientific model accuracy."
+    },
+    {
+      "id": "V-GEO",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Stable identity and simple proper rotations exist; graph/isotope/stereochemistry preserving deduplication and ambiguous-permutation cases lack complete contract/evidence."
+    },
+    {
+      "id": "V-ROT",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Genuine bounded baseline rotor calculations and independent mathematical checks exist; exact source-bound gate evidence for full supported geometry domains remains to be recorded."
+    },
+    {
+      "id": "V-ISO",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Real remassing/axis calculations exist; near-degenerate-frame continuity and the selected anharmonic/isotope domain require independent qualification."
+    },
+    {
+      "id": "V-SYM",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "No complete tolerance-swept point-group/computational/mass/PI symmetry workflow has passed its required gate."
+    },
+    {
+      "id": "V-METHOD",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Immutable exact capability tuples and source/native-request-bound local evidence now exist. Built-in methods remain experimental and unknown tuples cannot inherit support; all140 matrix identities remain documentary. Each production scientific/domain/deployment tuple still requires genuine qualification and current source-bound execution evidence."
+    },
+    {
+      "id": "V-ENGINE",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Real baseline engine execution exists; complete asynchronous adapter lifecycle and source-bound evidence for all advertised tuples remain required."
+    },
+    {
+      "id": "V-OPT",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Real water/H2 optimization exists; full required minimum/linear/dimer/domain campaign and source-bound acceptance evidence remain incomplete."
+    },
+    {
+      "id": "V-ELECTRONIC",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Real restricted SCF stability exists; advanced/open-shell/state diagnostics and profile-specific independent references remain unqualified."
+    },
+    {
+      "id": "V-DERIV",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Real finite differences/analytic checks exist; exact revDSD response/higher derivatives and independently qualified molecular higher-order fields remain incomplete."
+    },
+    {
+      "id": "V-VIB",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Real harmonic baseline exists; complete required reference-frequency/linear/isotope/weak-binding challenge campaign remains incomplete."
+    },
+    {
+      "id": "V-VPT2",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Vibrational perturbation machinery exists; independent molecular alpha/Coriolis/distortion outputs and solver-reference comparisons are not implemented/qualified."
+    },
+    {
+      "id": "V-DVR",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Mathematical limiting cases exist; actual coupled molecular PES/kinetic/spin-sector applicability and convergence evidence remain unqualified."
+    },
+    {
+      "id": "V-PES",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Selected-scan/state/branch/challenge orchestration with genuine physical anchors is not implemented as the canonical workflow."
+    },
+    {
+      "id": "V-TS",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine"
+      ],
+      "evidence_ids": [],
+      "reason": "Actual first-order saddle and downhill endpoint candidates are implemented without claiming IRC/connectivity. Full target-level verified reaction-mode/endpoints and independent TS/IRC evidence remain outstanding."
+    },
+    {
+      "id": "V-AL",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Advisory ML safeguards exist; bounded physical-anchor adaptive loop, independent coverage/recall campaign and preregistered targets remain unqualified."
+    },
+    {
+      "id": "V-CP",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Genuine same-complex-basis ghost-fragment energies, full moving-grid-response gradients and explicit interaction/deformation/De/D0/RRHO calculations exist experimentally. CP geometry optimization, selected composites and authenticated independent method-domain accuracy remain unqualified."
+    },
+    {
+      "id": "V-DH",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Exact primary revDSD recipe reconciliation and independent component/response/higher-derivative comparison remain blocked."
+    },
+    {
+      "id": "V-PROP",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Genuine baseline dipoles/origin shifts exist; all enabled EFG/coupling/response/Hamiltonian properties and independent reference tensors remain unqualified."
+    },
+    {
+      "id": "V-WFN",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "No complete basis/spin/occupation/ECP/normalization/electron-density interchange reference campaign has passed."
+    },
+    {
+      "id": "V-ANALYSIS",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Named optional analyses remain individually unqualified; genuine licensed/open implementations and independent grid/basin/identity reference cases are required."
+    },
+    {
+      "id": "V-KINETICS",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Optional kinetic models do not have the required qualified physical partition functions/range/assumption campaign."
+    },
+    {
+      "id": "V-UQ",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Strict declaration/leakage controls, separate five-source error budgets and mathematical covariance propagation exist. Actual target-domain sensitivities, independently curated calibration/held-out references and predictive interval/domain evidence remain outstanding; all declared goals remain unqualified."
+    },
+    {
+      "id": "V-BENCH",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Benchmark proposal contains empty references/null targets; independent accepted preregistration and blind numerical/predictive results are absent."
+    },
+    {
+      "id": "V-PLAN",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Explicit review binds the exact request, current recipe/plan and code source, finite budgets and expiry. Actions transport preserves the same approval; local revocation prevents future work. Full multi-task branch/change-policy semantics, deployed authenticated lifecycle and scientific target achievement remain unqualified."
+    },
+    {
+      "id": "V-BUDGET",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "platform"
+      ],
+      "evidence_ids": [],
+      "reason": "Atomic campaign reservations/settlement, real process contention tests and local wall/memory/scratch supervision exist. Cross-campaign host allocation, complete primitive-stage accounting, applicable native/GPU scheduler ceilings and exact source-bound platform evidence remain outstanding."
+    },
+    {
+      "id": "V-FAIL",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "New calculations and scientific stages reject absent properties, unsupported methods and fabricated legacy rotor/torsional substitutions. A narrow AST inventory is only a software policy observation. Complete executed failure-profile coverage and source-bound gate evidence remain required."
+    },
+    {
+      "id": "V-STATE",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Authoritative full-state revision-CAS/events/immutable attempts and fenced publication exist. Every-transition crash/restart and deployed duplicate-delivery/ownership qualification remain outstanding."
+    },
+    {
+      "id": "V-RESTART",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Genuine native checkpoint/Hessian fingerprints, original-preserving read-only registration, exact final-result compatibility and distinct mutable initial-guess preparation exist. Explicit initial guesses require recomputation and no engine checkpoint consumption is claimed. Other artifact adapters, actual native checkpoint continuation and deployed crash/state/source/basis rejection campaigns remain unqualified."
+    },
+    {
+      "id": "V-STORAGE",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Immutable shards and committed-prefix safeguards exist; coordinator-fenced merger admission and interrupted/recovery/platform contracts remain incomplete."
+    },
+    {
+      "id": "V-CONSUMER",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Actual versioned SpycFit consumer and convention/schema round trips have not been supplied or qualified."
+    },
+    {
+      "id": "V-SPCAT",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "real_engine",
+        "independent_reference"
+      ],
+      "evidence_ids": [],
+      "reason": "Strict export rejects missing constants; genuine pinned SPCAT/SPFIT/reference transition/intensity campaign remains unqualified."
+    },
+    {
+      "id": "V-EXPORT",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Truthful baseline exploratory exports exist; complete publication-eligibility/provenance/advanced Hamiltonian contract and selected consumer profiles remain incomplete."
+    },
+    {
+      "id": "V-PACKAGE",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "Actual bounded wheel/engine/interface installs and clean historical collection exist. Full executed import/test inventory and every advertised profile need source-bound qualification evidence."
+    },
+    {
+      "id": "V-SECURITY",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "platform"
+      ],
+      "evidence_ids": [],
+      "reason": "Path/hash/basic isolation checks exist; unauthorized cancel/approval/tenant controls and the complete tested trust-policy/retention boundary remain incomplete."
+    },
+    {
+      "id": "V-E2E",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "platform"
+      ],
+      "evidence_ids": [],
+      "reason": "Shared doctor/plan/approval/run/resume/export contracts exist locally. Complete owned cancel and actual Codespaces-to-Actions user journey remain required."
+    },
+    {
+      "id": "V-HPC",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "platform"
+      ],
+      "evidence_ids": [],
+      "reason": "Named Slurm allocation/cancel/requeue/staging and optional GPU/MPS profile credentials/environment evidence remain unavailable."
+    },
+    {
+      "id": "V-DEPLOY",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software",
+        "platform"
+      ],
+      "evidence_ids": [],
+      "reason": "Local immutable-shard quota/backpressure and backup/restore/rollback are implemented. Coordinator database/schema operational recovery and actual deployed Codespaces/Actions full lifecycle remain outstanding."
+    },
+    {
+      "id": "V-RELEASE",
+      "status": "blocked",
+      "required_evidence_kinds": [
+        "software"
+      ],
+      "evidence_ids": [],
+      "reason": "No all-required-gates passing full-SRS execution manifest exists. Current collection succeeds, but unmet implementation, independent scientific and platform qualification gates continue to prevent full release."
+    }
+  ],
+  "actual_evidence": [],
+  "initial_collection_observation": {
+    "command": "python -m pytest --collect-only -q tests --continue-on-collection-errors -p no:cacheprovider",
+    "performed": true,
+    "collected": 1272,
+    "collection_errors": [
+      "tests/test_chain.py: same-environment BASE import and stale APIs",
+      "tests/torq/test_counterpoise_frozen_monomer.py: same-environment BASE router import"
+    ],
+    "scope": "Collection only; no claim of executed passing tests or scientific method qualification."
+  },
+  "current_collection_observation": {
+    "command": "python -m pytest --collect-only -q tests --continue-on-collection-errors -p no:cacheprovider",
+    "performed": true,
+    "collected": 1438,
+    "collection_errors": [],
+    "elapsed_seconds": 14.02,
+    "observed_date": "2026-10-08",
+    "scope": "Collection only; no claim of executed passing tests or scientific method qualification."
+  },
+  "current_narrow_test_policy_observation": {
+    "command": "python ci_tools/check_scientific_test_policy.py tests",
+    "performed": true,
+    "files_checked": 88,
+    "explicit_runtime_replacement_violations": 0,
+    "environment_configuration_calls": 2,
+    "scope": "Narrow AST policy only; not a general scientific-authenticity or no-fabrication certification."
+  },
+  "reviewed_working_tree": "Review includes uncommitted release-candidate implementation after reviewed_source_commit; source-bound final execution evidence is pending the final frozen tree.",
+  "release_scope": {
+    "full_srs_release_ready": false,
+    "bounded_student_release_qualification": "pending final frozen-source gates and canonical deployed user journey",
+    "implemented_experimental_routes": [
+      "restricted HF supplied-candidate optimization/harmonic/Be/rigid-rotor screening",
+      "explicit local PBE-D4/B3LYP-D4/MP2 finite-derivative validation profiles",
+      "bounded finite-displacement vibrational force fields and vibrational-only VPT2 with applicability rejection",
+      "frozen/relaxed interaction energetics, genuine ghost-basis energy and gradient calculations",
+      "first-order-saddle and downhill endpoint candidates without a falsely asserted verified IRC",
+      "exact experimental native capability routing and artifact/source/domain-bound local numerical-integration evidence",
+      "authentic native wavefunction/Hessian compatibility, preserved original/sealed inputs and separate initial-guess working-copy preparation without asserted engine consumption",
+      "reversible candidate retention/selection with accessible immutable history and approval invalidation",
+      "immutable verified reproducibility export with matching source and explicit missing scientific qualifications"
+    ],
+    "independent_scientific_qualifications_outstanding": [
+      "exact primary-source revDSD orbital/semilocal/OS/SS/D4/core-definition reconciliation and authenticated independent components/response/higher derivatives",
+      "rovibrational alpha/Coriolis, vibration-corrected B0, centrifugal distortion/hyperfine and independently qualified identification catalog",
+      "named frozen independent molecular-family benchmark references, accepted observable error/coverage targets and blind validation",
+      "coupled molecular large-amplitude kinetic operator, feasible PI symmetry/spin statistics and nuclear-motion convergence",
+      "actual pinned external SPCAT/SPFIT and SpycFit consumer convention round trips"
+    ],
+    "canonical_platform_qualifications_outstanding": [
+      "reviewed calculation workflow available on default branch with actual repository Actions access",
+      "live Codespaces import/approve/submit/status/cancel/download/export journey",
+      "actual artifact download through permitted storage endpoint and original-byte verification",
+      "deployed coordinator/schema recovery, shared host allocation and full security/operational lifecycle"
+    ]
+  }
+}

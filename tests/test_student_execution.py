@@ -11,7 +11,7 @@ import pytest
 
 from cochem_torq.application import execute_request
 from cochem_torq.artifacts import merge_shards, seal_shard, verify_shard
-from cochem_torq.domain import StageResult, canonical_json, read_json
+from cochem_torq.domain import StageResult, canonical_json, digest, read_json
 from cochem_torq.ecosystem import export_base_calculation_result
 from cochem_torq.student_app import inspect_downloaded_results
 
@@ -110,7 +110,12 @@ def test_resealed_semantically_corrupted_real_result_is_rejected(
         result["experimental_accuracy_established"] = True
     elif corruption == "missing_product":
         stage = result["stages"]["rigid_rotor_catalog"]
-        stage.update(status="unavailable", value=None, reason="Deliberately removed.")
+        stage.update(
+            status="unavailable",
+            value=None,
+            reason="Deliberately removed.",
+            absence_kind="not_computed",
+        )
     else:
         result["errors"].append({"code": "DELIBERATELY_ADDED_ERROR"})
     (altered / "result.json").write_bytes(canonical_json(result) + b"\n")
@@ -124,6 +129,72 @@ def test_resealed_semantically_corrupted_real_result_is_rejected(
         worker_id=manifest["worker_id"],
     )
     with pytest.raises(ValueError, match="Completion contradicts|qualification"):
+        verify_shard(altered)
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        "isotope_number",
+        "isotope_mass",
+        "isotope_policy",
+        "isotope_reference",
+        "mode_count",
+        "mode_order",
+        "mode_basis",
+        "principal_axes",
+    ],
+)
+def test_resealed_genuine_catalog_context_must_match_retained_physical_data(
+    actual_water, tmp_path, corruption
+):
+    directory, _ = actual_water
+    altered = tmp_path / corruption
+    shutil.copytree(directory, altered)
+    manifest = read_json(altered / "manifest.json")
+    result = read_json(altered / "result.json")
+    catalog = result["stages"]["rigid_rotor_catalog"]
+    context = catalog["value"]["scientific_context"]
+    # The adversary changes a copy of a genuine engine calculation and reseals
+    # it. Schema validity/byte hashes alone must not certify physical identity.
+    if corruption == "isotope_number":
+        context["isotope_numbers"][1] = 2
+    elif corruption == "isotope_mass":
+        context["isotope_masses_u"][1] += 0.00001
+    elif corruption == "isotope_policy":
+        context["isotope_selection_policies"][1] = "explicit_mass_number"
+    elif corruption == "isotope_reference":
+        context["isotope_reference_sha256"] = "0" * 64
+    elif corruption == "mode_count":
+        context["mode_count"] -= 1
+        context["mode_order"].pop()
+    elif corruption == "mode_order":
+        context["mode_order"].reverse()
+    elif corruption == "mode_basis":
+        context["mode_basis_sha256"] = "0" * 64
+    else:
+        # Sign-flipping two axes is still an orthonormal right-handed frame, so
+        # the strict schema passes, while the retained inertia frame disagrees.
+        axes = np.asarray(context["frame_axes_columns"])
+        axes[:, :2] *= -1
+        context["frame_axes_columns"] = axes.tolist()
+        context["frame_sha256"] = digest(
+            {"frame_type": context["frame_type"], "axes_columns": axes.tolist()}
+        )
+    StageResult.model_validate(catalog)
+    (altered / "result.json").write_bytes(canonical_json(result) + b"\n")
+    (altered / "manifest.json").unlink()
+    seal_shard(
+        altered,
+        request_sha256=manifest["request_sha256"],
+        request_id=manifest["request_id"],
+        recipe_sha256=manifest["recipe_sha256"],
+        source_identity=manifest["source_identity"],
+        worker_id=manifest["worker_id"],
+    )
+    with pytest.raises(
+        ValueError, match="isotope provenance|mode identities|principal frame"
+    ):
         verify_shard(altered)
 
 
@@ -213,7 +284,20 @@ def test_actual_application_anharmonic_validation_keeps_rotational_gates(
     field = result["stages"]["anharmonic_force_field"]
     assert field["status"] == "available" and field["value"]["derivative_converged"]
     assert "experimental_unqualified" in field["quality_flags"]
-    assert result["stages"]["vpt2"]["status"] == "blocked"
+    vpt2 = result["stages"]["vpt2"]
+    assert vpt2["observable"] == "vibrational_only_vpt2"
+    actual_vpt2 = result["anharmonic_validation"]["stages"]["vibrational_vpt2"]
+    assert vpt2["status"] == actual_vpt2["status"]
+    assert vpt2["value"] == actual_vpt2["value"]
+    if vpt2["status"] == "available":
+        assert vpt2["value"]["rotation_vibration_available"] is False
+        assert vpt2["value"]["independent_scientific_qualification"] is False
+    else:
+        assert vpt2["reason"] == actual_vpt2["reason"]
+        assert "perturbative applicability gate" in vpt2["reason"]
+        diagnostics = result["stages"]["resonance_analysis"]["value"]["resonances"]
+        assert diagnostics
+        assert all(item["kind"] == "strong_anharmonic_coupling" for item in diagnostics)
     assert result["stages"]["ground_state_constants"]["value"] is None
     assert result["resolved_isotopes"][0]["label"] == "1H"
     assert result["resolved_isotopes"][0]["source"]["database_sha256"]

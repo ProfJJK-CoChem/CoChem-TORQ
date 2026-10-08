@@ -47,6 +47,7 @@ import tempfile
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Union, cast
 
@@ -270,6 +271,12 @@ def _default_os_target() -> str:
 
 
 def get_mendeleev_isotopic_masses() -> Dict[str, float]:
+    """Return a fresh mapping from the actual installed database snapshot."""
+    return dict(_mendeleev_mass_items())
+
+
+@lru_cache(maxsize=1)
+def _mendeleev_mass_items() -> Tuple[Tuple[str, float], ...]:
     """
     Dynamically retrieve standard atomic and mono-isotopic masses via the `mendeleev` library.
     Strictly adheres to the Mendeleev Library Mandate (No hardcoded CODATA mass constants).
@@ -299,26 +306,25 @@ def get_mendeleev_isotopic_masses() -> Dict[str, float]:
                     iso_key = f"{iso.mass_number}{sym}"
                     masses[iso_key] = float(iso.mass)
 
+        required = {
+            symbol
+            for symbol, _ in elements_to_query
+        } | {
+            f"{number}{symbol}"
+            for symbol, numbers in elements_to_query
+            for number in numbers
+        }
+        if set(masses) != required or any(
+            not math.isfinite(value) or value <= 0 for value in masses.values()
+        ):
+            raise ValueError("Incomplete or invalid actual Mendeleev mass table.")
     except Exception as exc:
-        logger.warning(
-            f"Dynamic Mendeleev mass loading encountered warning ({exc}). Retrying standard access."
-        )
-        try:
-            from mendeleev import element
+        raise IntegrityCheckError(
+            "Actual Mendeleev mass retrieval failed; no partial table "
+            "or hardcoded isotope substitution is permitted."
+        ) from exc
 
-            masses["C"] = float(element("C").mass)
-            masses["13C"] = float(
-                [i.mass for i in element("C").isotopes if i.mass_number == 13 and i.mass is not None][0]
-            )
-            masses["12C"] = 12.00000000000
-        except Exception:
-            # Absolute fallback if mendeleev is unavailable during bootstrap
-            masses["12C"] = 12.00000000000
-            masses["13C"] = 13.00335483507
-            masses["1H"] = 1.00782503223
-            masses["16O"] = 15.99491461957
-
-    return masses
+    return tuple(masses.items())
 
 
 def verify_ieee754_subnormal_precision() -> bool:
@@ -1131,12 +1137,15 @@ class EnvironmentSchema(BaseModel):
         description="Path to persistent artifacts directory",
     )
     scratch_dir: Optional[str] = Field(default=None, description="Path to fast scratch directory")
-    codata_version: str = Field(default="2018", description="CODATA constant version")
+    codata_version: str = Field(
+        default="2022", pattern=r"^2022$", description="Canonical CODATA release"
+    )
     isotopic_mass_locking: bool = Field(
         default=True, description="Strict lock on atomic/isotopic masses"
     )
     isotopic_mass_13c: float = Field(
-        default=13.00335483507, description="Locked isotopic mass for Carbon-13"
+        default_factory=lambda: get_mendeleev_isotopic_masses()["13C"],
+        description="Actual tabulated Carbon-13 isotope mass in u",
     )
     isotopic_masses: Dict[str, float] = Field(
         default_factory=get_mendeleev_isotopic_masses,

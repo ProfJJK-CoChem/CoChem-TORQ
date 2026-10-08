@@ -53,10 +53,8 @@ from Libraries.cochem_tensor_extractor import (
     InertiaTensorResult,
     TorqTensorExtractor,
     TorqTensorOutput,
-    allocate_pyarrow_ipc_buffer,
     apply_cartesian_protections,
     calculate_rays_asymmetry,
-    compute_blake3_seal,
     diagonalize_inertia_tensor,
     dipole_phase_guard,
     dynamic_representation_switch,
@@ -99,7 +97,7 @@ def test_exact_physical_constants_codata_2022() -> None:
 def test_isotopic_mass_table_accuracy_and_parsing() -> None:
     """Validates CIAAW / AME2020 mono-isotopic mass lookups via mendeleev."""
     import mendeleev
-    
+
     # H
     elem_h = mendeleev.element("H")
     h1_mass = float(next(i for i in elem_h.isotopes if i.mass_number == 1).mass)
@@ -114,11 +112,15 @@ def test_isotopic_mass_table_accuracy_and_parsing() -> None:
 
     # C
     elem_c = mendeleev.element("C")
-    most_abundant_c = sorted([i for i in elem_c.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    most_abundant_c = sorted(
+        [i for i in elem_c.isotopes if i.abundance is not None],
+        key=lambda x: x.abundance,
+        reverse=True,
+    )[0]
     c_mass = float(most_abundant_c.mass)
     c12_mass = float(next(i for i in elem_c.isotopes if i.mass_number == 12).mass)
     c13_mass = float(next(i for i in elem_c.isotopes if i.mass_number == 13).mass)
-    
+
     assert abs(get_atomic_mass("C") - c_mass) < 1e-8
     assert abs(get_atomic_mass("12C") - c12_mass) < 1e-8
     assert abs(get_atomic_mass("13C") - c13_mass) < 1e-8
@@ -126,7 +128,11 @@ def test_isotopic_mass_table_accuracy_and_parsing() -> None:
 
     # N
     elem_n = mendeleev.element("N")
-    most_abundant_n = sorted([i for i in elem_n.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    most_abundant_n = sorted(
+        [i for i in elem_n.isotopes if i.abundance is not None],
+        key=lambda x: x.abundance,
+        reverse=True,
+    )[0]
     n_mass = float(most_abundant_n.mass)
     n15_mass = float(next(i for i in elem_n.isotopes if i.mass_number == 15).mass)
     assert abs(get_atomic_mass("N") - n_mass) < 1e-8
@@ -134,7 +140,11 @@ def test_isotopic_mass_table_accuracy_and_parsing() -> None:
 
     # O
     elem_o = mendeleev.element("O")
-    most_abundant_o = sorted([i for i in elem_o.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    most_abundant_o = sorted(
+        [i for i in elem_o.isotopes if i.abundance is not None],
+        key=lambda x: x.abundance,
+        reverse=True,
+    )[0]
     o_mass = float(most_abundant_o.mass)
     o18_mass = float(next(i for i in elem_o.isotopes if i.mass_number == 18).mass)
     assert abs(get_atomic_mass("O") - o_mass) < 1e-8
@@ -147,7 +157,7 @@ def test_isotopic_mass_table_accuracy_and_parsing() -> None:
     cl37_mass = float(next(i for i in elem_cl.isotopes if i.mass_number == 37).mass)
     assert abs(get_atomic_mass("35Cl") - cl35_mass) < 1e-8
     assert abs(get_atomic_mass("37Cl") - cl37_mass) < 1e-8
-    
+
     elem_br = mendeleev.element("Br")
     br79_mass = float(next(i for i in elem_br.isotopes if i.mass_number == 79).mass)
     br81_mass = float(next(i for i in elem_br.isotopes if i.mass_number == 81).mass)
@@ -155,13 +165,18 @@ def test_isotopic_mass_table_accuracy_and_parsing() -> None:
     assert abs(get_atomic_mass("81Br") - br81_mass) < 1e-8
 
     elem_i = mendeleev.element("I")
-    most_abundant_i = sorted([i for i in elem_i.isotopes if i.abundance is not None], key=lambda x: x.abundance, reverse=True)[0]
+    most_abundant_i = sorted(
+        [i for i in elem_i.isotopes if i.abundance is not None],
+        key=lambda x: x.abundance,
+        reverse=True,
+    )[0]
     i_mass = float(most_abundant_i.mass)
     assert abs(get_atomic_mass("I") - i_mass) < 1e-8
 
     # Strict Anti-Spoofing: Unrecognized elements must raise ValueError, no hardcoded fallbacks
     import pytest
-    with pytest.raises(ValueError, match="Symbol 'UnknownElement' not found"):
+
+    with pytest.raises(ValueError, match="Invalid element/isotope"):
         get_atomic_mass("UnknownElement")
 
 
@@ -465,8 +480,10 @@ def test_cartesian_protections_quasi_linear_complex() -> None:
         coords, symbols=symbols, threshold_linear=1e-2, angle_tolerance_deg=1.0
     )
     assert prot.is_quasi_linear is True
-    assert prot.rotational_dof == 2
-    assert prot.singularity_damping_applied is True
+    # A finite bend has three physical rotational degrees of freedom.
+    assert prot.rotational_dof == 3
+    assert prot.is_linear is False
+    assert prot.singularity_damping_applied is False
 
 
 # =============================================================================
@@ -513,27 +530,19 @@ def test_dynamic_representation_switch_all_six_representations() -> None:
 # =============================================================================
 
 
-
-
-
 # =============================================================================
 # Test Suite 7: Thermal NMR & Raman Polarizability Extractors
 # =============================================================================
 
 
-def test_thermal_nmr_extraction(tmp_path: Path) -> None:
-    """Validates thermal NMR shielding extraction from AIMD trajectory file."""
-    traj_file = Path(os.path.join(os.path.dirname(__file__), "fixtures", "aimd_traj.xyz"))
-
+def test_geometry_only_thermal_nmr_is_unavailable(tmp_path: Path) -> None:
+    """A trajectory without electronic response cannot determine shielding."""
     extractor = TorqTensorExtractor(
         symbols=["O", "H", "H"],
         coordinates=[[0.0, 0.0, 0.11], [0.0, 0.75, -0.46], [0.0, -0.75, -0.46]],
     )
-
-    nmr_res = extractor.extract_thermal_nmr(traj_file)
-    assert nmr_res["frame_count"] == 2
-    assert nmr_res["thermal_average"] > 0.0
-    assert len(nmr_res["isotropic_shielding"]) == 2
+    with pytest.raises(RuntimeError, match="per-frame/per-nucleus shielding"):
+        extractor.extract_thermal_nmr(tmp_path / "unprovided-trajectory.xyz")
 
 
 # =============================================================================
@@ -604,10 +613,11 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
     dvr_h5 = export_dir / "sinc_dvr.h5"
     from ase import Atoms
     from ase.calculators.emt import EMT
+
     at = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
     at.calc = EMT()
     e = at.get_potential_energy()
-    
+
     # Provide a simple 2D wavefunction payload
     wf = [[e, 0.0], [0.0, e]]
     dvr_payload = {
@@ -701,9 +711,18 @@ def test_ghost_atom_filtering_and_monoisotopic_resolution() -> None:
     res_ghost = diagonalize_inertia_tensor(coords, symbols=symbols)
 
     assert abs(res_clean.total_mass_u - res_ghost.total_mass_u) < 1e-9
-    assert abs(res_clean.principal_moments_u_A2[0] - res_ghost.principal_moments_u_A2[0]) < 1e-8
-    assert abs(res_clean.principal_moments_u_A2[1] - res_ghost.principal_moments_u_A2[1]) < 1e-8
-    assert abs(res_clean.principal_moments_u_A2[2] - res_ghost.principal_moments_u_A2[2]) < 1e-8
+    assert (
+        abs(res_clean.principal_moments_u_A2[0] - res_ghost.principal_moments_u_A2[0])
+        < 1e-8
+    )
+    assert (
+        abs(res_clean.principal_moments_u_A2[1] - res_ghost.principal_moments_u_A2[1])
+        < 1e-8
+    )
+    assert (
+        abs(res_clean.principal_moments_u_A2[2] - res_ghost.principal_moments_u_A2[2])
+        < 1e-8
+    )
 
 
 def test_lapack_eigh_spectral_diagonalization_so3_parity_lock() -> None:
@@ -756,7 +775,7 @@ def test_rays_asymmetry_spherical_top_intercept_and_mapping() -> None:
     """Validates Ray's asymmetry parameter with Spherical Top intercept and representation mapping."""
     # 1. Spherical top: A = B = C
     asym_sph = calculate_rays_asymmetry(A=10000.0, B=10000.0, C=10000.0)
-    assert asym_sph.kappa == 0.0
+    assert asym_sph.kappa is None  # (2B-A-C)/(A-C) is undefined when A=C.
     assert asym_sph.rotor_type == "Spherical Top"
     assert asym_sph.recommended_representation == "Ir"
 
@@ -781,14 +800,18 @@ def test_eckart_dipole_phase_guard_parity_preservation() -> None:
 
     # Test 1: Normal aligned principal axes
     r_pa_clean = np.eye(3)
-    res_clean = dipole_phase_guard(raw_dipole, eckart_matrix=r_ref, principal_axes_matrix=r_pa_clean)
+    res_clean = dipole_phase_guard(
+        raw_dipole, eckart_matrix=r_ref, principal_axes_matrix=r_pa_clean
+    )
     assert abs(res_clean["det_R_locked"] - 1.0) < 1e-8
     assert res_clean["mu_PA"] == raw_dipole
     assert abs(res_clean["mu_norm"] - np.linalg.norm(raw_dipole)) < 1e-8
 
     # Test 2: Inverted axis in principal axes (e.g. quantum solver flipped x and y signs)
     r_pa_flipped = np.array([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]])
-    res_flipped = dipole_phase_guard(raw_dipole, eckart_matrix=r_ref, principal_axes_matrix=r_pa_flipped)
+    res_flipped = dipole_phase_guard(
+        raw_dipole, eckart_matrix=r_ref, principal_axes_matrix=r_pa_flipped
+    )
     assert abs(res_flipped["det_R_locked"] - 1.0) < 1e-8
     # Phase flips must restore positive overlap with reference frame
     assert res_flipped["phase_flips"] == [-1, -1, 1]
@@ -805,7 +828,6 @@ def test_eckart_dipole_phase_guard_parity_preservation() -> None:
 
 def test_blake3_cryptographic_sealing_and_pyarrow_ipc_buffer() -> None:
     """Validates BLAKE3 Cryptographic Sealing & Zero-Copy PyArrow IPC Buffer Allocation."""
-    import pyarrow.ipc as pa_ipc
 
     symbols = ["O", "H", "H"]
     coords = [[0.0, 0.0, 0.1173], [0.0, 0.7572, -0.4692], [0.0, -0.7572, -0.4692]]
@@ -836,4 +858,3 @@ def test_blake3_cryptographic_sealing_and_pyarrow_ipc_buffer() -> None:
     assert "LINEAR_SINGULARITY" in table.column_names
     assert table["LINEAR_SINGULARITY"][0].as_py() is False
     assert table["is_planar"][0].as_py() is True
-

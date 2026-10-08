@@ -11,6 +11,7 @@ The selected D01 route remains development of exact open-source revDSD-PBEP86-D4
 3. Computes conventional real-orbital OS and SS second-order correlation from transformed `(ia|jb)` integrals and the original orbital energies. No conversion to HF, density fitting, shifted denominator or altered occupations is performed. Explicit frozen occupied indices are retained in the recipe.
 4. When specifically requested, resolves the named D4 BJ-EEQ-ATM entry from the installed DFTD4 parameter table, retains all six effective damping parameters and the table checksum, and computes its actual molecular energy once with the stated charge.
 5. Optionally evaluates full-energy centered numerical gradients at two or more user-specified displacement sizes. Every displaced energy reruns the complete orbital, PT2 and dispersion calculation, thereby including their response numerically. The returned step differences are evidence to assess, not an automatic convergence qualification.
+6. Optionally evaluates complete-energy Cartesian numerical Hessians at two or more displacement sizes. Diagonal and mixed stencils rerun every displaced energy, retaining all calculation-result hashes. The explicit cost is `1 + 2*(3*N)^2*number_of_scales`; a budget rejects oversized work before execution. Gradient and Hessian invariance diagnostics, orbital-gap ranges and scale differences are retained without automatic scientific qualification. Matrix symmetry follows from the stencil and is explicitly labeled `symmetry_by_construction`.
 
 For restricted real canonical orbitals,
 
@@ -19,7 +20,7 @@ E_{OS}=\sum_{ijab}\frac{(ia|jb)^2}{\epsilon_i+\epsilon_j-\epsilon_a-\epsilon_b},
 E_{SS}=\sum_{ijab}\frac{(ia|jb)[(ia|jb)-(ib|ja)]}{\epsilon_i+\epsilon_j-\epsilon_a-\epsilon_b}.
 \]
 
-The initial domain is closed-shell, integer occupations, first-row elements H through Ne, a nonrelativistic Hamiltonian, real orbitals, conventional PT2, and HF/LDA/GGA hybrid expressions without range separation. The full transformed PT2 tensor has an explicit memory limit. SCF failures, invalid references and resource overruns fail with retained artifacts. The implementation does not provide analytic orbital-response gradients, Hessians, anharmonic derivatives or a revDSD spectroscopy product.
+The initial domain is closed-shell, integer occupations, first-row elements H through Ne, a nonrelativistic Hamiltonian, real orbitals, conventional PT2, and HF/LDA/GGA hybrid expressions without range separation. The full transformed PT2 tensor has an explicit memory limit. SCF failures, invalid references and resource overruns fail with retained artifacts. The implementation does not provide analytic orbital-response gradients, analytic Hessians, anharmonic revDSD derivatives or a revDSD spectroscopy product. A numerical Hessian does not establish stationarity, a correct electronic state, a qualified vibrational analysis or spectroscopic accuracy.
 
 Results state `experimental_unqualified`, `reference_stability: not_evaluated`, and `independent_method_validation: unavailable`. These statuses must survive downstream handoffs. This research evaluator must not be inserted into a student release profile as a qualified named revDSD backend.
 
@@ -44,6 +45,14 @@ The original citation is Santra, Sylvetsky and Martin, *J. Phys. Chem. A* **123*
 
 The installed DFTD4 3.7.0 wheel parameter file in the current environment has SHA-256 `8254bfc673e763f7589b9be20506438b202a59ce795dc175d6ea9ba623e23e1f`; packaging differs from the upstream asset, and each executed result retains its actual table checksum. The resolved target dispersion values agree with those above. Runtime software is currently PySCF **2.14.0**, LibXC **7.0.0**, DFTD4 **3.7.0**; these are the actual executed versions, rather than a claim to have tested the protocol's proposed PySCF 2.8.0 pin.
 
+## Additional source reconciliation on 2026-10-08
+
+Two immutable secondary sources corroborate a **candidate** electronic coefficient table: HF exchange `0.69`, PBE exchange `0.31`, P86 correlation `0.4210`, OS PT2 `0.5922`, SS PT2 `0.0636`. The Gellrich group's [ORCA input template](https://github.com/baaam24/gellrich_scripts/blob/110278967f64ad6b19be469a9e60804726d35308/custom_2input/rev-DSD-PBEP86_D4_sp.sh) contains those settings, an explicit `FC_ELECTRONS` choice and RI directives. The independent [xcx semilocal code](https://github.com/nmrtist/xcx/blob/db458902604eebd9c75426de8782e3cc01ecadca/crates/xcx/src/functionals/hybrids.rs) cites Table 4 of the 2019 article and agrees on the table; its PT2 weights are metadata for a host calculation.
+
+These observations improve the evidence ledger but **do not open DH0/DH1**. Neither source supplies the original supporting information or matched native molecular component outputs. A template's `C_P86` label is insufficient to establish the LibXC P86/FT/VWN mapping; its explicit approximations also differ from TORQ's conventional CPU research domain. The xcx golden generator compares LibXC semilocal mixtures, rather than independent complete molecular revDSD energies. The original orbital/core definitions and 2019 versus `/2021` distinctions remain unresolved. No candidate recipe is automatically instantiated or silently substituted.
+
+The [machine-readable source ledger](revdsd_source_evidence.json) retains immutable URLs, source hashes, candidate values, source scope and the precise remaining gates. Retrieved source bytes are archived in the review artifacts. No independent native revDSD reference bundle was found in the inspected sources; absence in this search is not proof that such data do not exist elsewhere.
+
 ## Running real research checks
 
 The research dependencies are PySCF, DFTD4 3.7.0 and a TOML parser (`tomli`). Run the tests from an actual CoChem calculation sandbox:
@@ -54,7 +63,7 @@ cd /tmp/cochem_exec_revdsd_integration
 python -m pytest /path/to/CoChem-TORQ/tests/test_revdsd_integration.py -q
 ```
 
-The ten tests use genuine CPU engine calculations. They compare both OS/SS components and total canonical restricted MP2 energies against PySCF's MP2 implementation, verify explicit frozen indices, compare PT2 on actual PBE0 orbitals against the direct MP2 class that preserves those orbitals, compare the resolved D4 correction with the native DFTD4 method-name API, and check complete numerical HF-MP2 gradients against actual analytic MP2 gradients. A second derivative check includes an explicitly requested D4 contribution and compares the complete numerical derivative with actual MP2 and native D4 derivatives. A deliberately stringent SCF iteration limit confirms genuine nonconvergence retains the raw failure evidence. No engine outputs are mocked.
+Eighteen research tests exercise this module. Actual CPU engine checks compare both OS/SS components and total canonical restricted MP2 energies against PySCF's MP2 implementation, verify explicit frozen indices, compare PT2 on actual PBE0 orbitals against the direct MP2 class that preserves those orbitals, compare resolved dispersion against native DFTD4, and check complete numerical MP2 gradients against actual analytic MP2 gradients. The new MP2+D4 Hessian check performs 145 genuine full-energy calculations and compares a different stencil built from native MP2 and D4 gradients. Rigid translation/rotation and identical-atom permutation are checked on real molecular energies/components. Strict SCF limits verify genuine nonconvergence retains raw and derivative failure records; budget rejection performs no engine calculation. Complex coordinates and orbital energies are rejected before casting rather than discarding imaginary parts. No engine outputs are mocked.
 
 These checks validate reusable software machinery and numerical differentiation on the tested cases. They do **not** constitute independent validation of exact revDSD, validate a double-hybrid analytic gradient, or establish rotational-spectroscopy accuracy.
 

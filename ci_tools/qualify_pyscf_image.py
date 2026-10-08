@@ -125,6 +125,12 @@ def qualify(
         "energy_hartree": energy,
         "scf_converged": bool(electronic.converged),
         "finite_difference_step_bohr": step_bohr,
+        "native_derivative_units": {
+            "gradient": "hartree/bohr",
+            "hessian": "hartree/bohr^2",
+            "displacement_conversion_angstrom_per_bohr": float(lib.param.BOHR),
+            "conversion_source": "actual pyscf.lib.param.BOHR",
+        },
         "gradient_max_absolute_error": gradient_error,
         "hessian_max_absolute_error": hessian_error,
         "hessian_symmetry_error": symmetry_error,

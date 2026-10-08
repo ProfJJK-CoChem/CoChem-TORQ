@@ -1411,6 +1411,12 @@ def validate_fit_provenance(
                     logger.error(err)
                     raise ProvenanceIntegrityError(err)
                 datasets_verified += 1
+            else:
+                raise ProvenanceIntegrityError(
+                    "[HARD_ABORT: DATASET INTEGRITY VIOLATION] "
+                    f"Referenced dataset file '{dset_name}' is unavailable; "
+                    "its hash cannot be verified."
+                )
 
     logger.info(
         "fit_provenance.json verified successfully: path='%s', sha256='%s', datasets_verified=%d",

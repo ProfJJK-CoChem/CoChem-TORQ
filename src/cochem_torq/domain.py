@@ -8,6 +8,7 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 import numpy as np
+import rfc8785
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -16,6 +17,8 @@ from pydantic import (
     StrictInt,
     model_validator,
 )
+
+from .scientific_contracts import ScientificGoal
 
 ELEMENTS = (
     "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn "
@@ -54,6 +57,8 @@ SPECTROSCOPY_STAGES = (
     "ground_state_constants",
     "identification_catalog",
 )
+CANONICALIZATION_PROFILE = "RFC8785"
+LEGACY_CANONICALIZATION_PROFILE = "cochem.sorted-json/1"
 
 
 class PrerequisiteError(RuntimeError):
@@ -129,6 +134,7 @@ class CatalogSettings(Contract):
 
 class CalculationRequest(Contract):
     schema_version: Literal["cochem.torq.request/1"] = "cochem.torq.request/1"
+    serialization_profile: Literal["RFC8785"] = CANONICALIZATION_PROFILE
     request_id: UUID = Field(default_factory=uuid4)
     molecule: Molecule
     recipe: str = Field(min_length=1, max_length=128)
@@ -136,6 +142,7 @@ class CalculationRequest(Contract):
     resources: Resources = Field(default_factory=Resources)
     catalog: CatalogSettings = Field(default_factory=CatalogSettings)
     source_provenance: dict[str, Any] = Field(default_factory=dict)
+    scientific_goal: ScientificGoal | None = None
 
     @model_validator(mode="after")
     def known_products(self):
@@ -154,6 +161,12 @@ class StageResult(Contract):
     observable: str
     value: dict[str, Any] | None = None
     reason: str | None = None
+    absence_kind: (
+        Literal[
+            "not_requested", "unsupported", "not_applicable", "failed", "not_computed"
+        ]
+        | None
+    ) = None
     parents: list[str] = Field(default_factory=list)
     quality_flags: list[str] = Field(default_factory=list)
     uncertainty: dict[str, Any] = Field(
@@ -163,7 +176,11 @@ class StageResult(Contract):
     @model_validator(mode="after")
     def truthful_value(self):
         if self.status == "available":
-            if self.value is None or self.reason is not None:
+            if (
+                self.value is None
+                or self.reason is not None
+                or self.absence_kind is not None
+            ):
                 raise ValueError(
                     "An available stage requires a real value and no failure reason."
                 )
@@ -171,8 +188,16 @@ class StageResult(Contract):
             from .scientific_values import VALUE_SCHEMAS
 
             schema = VALUE_SCHEMAS.get(self.observable)
-            if schema is not None:
-                schema.model_validate(self.value)
+            if schema is None:
+                from .spectroscopy.results import ADVANCED_VALUE_SCHEMAS
+
+                schema = ADVANCED_VALUE_SCHEMAS.get(self.observable)
+            if schema is None:
+                raise ValueError(
+                    "An available scientific observable requires "
+                    "a registered typed schema."
+                )
+            schema.model_validate(self.value)
         elif self.value is not None or not self.reason:
             raise ValueError(
                 "An unavailable stage requires a reason and forbids substitute values."
@@ -180,14 +205,245 @@ class StageResult(Contract):
         return self
 
 
-def canonical_json(value: Any) -> bytes:
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode("utf-8")
+def canonical_json(value: Any, *, profile: str = CANONICALIZATION_PROFILE) -> bytes:
+    """JCS UTF-8 with IEEE-754, UTF-16 key ordering and numeric-range rejection.
+
+    The legacy profile is only for explicit verification of old version-1
+    records. New scientific/cache identities always use RFC 8785. Never cast a
+    large integer to float or normalize Unicode to make a hash succeed.
+    """
+    if profile == CANONICALIZATION_PROFILE:
+        return rfc8785.dumps(value)
+    if profile == LEGACY_CANONICALIZATION_PROFILE:
+        return json.dumps(
+            value, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    raise ValueError("Unsupported canonical serialization profile.")
 
 
-def digest(value: Any) -> str:
-    return sha256(canonical_json(value)).hexdigest()
+def digest(value: Any, *, profile: str = CANONICALIZATION_PROFILE) -> str:
+    return sha256(canonical_json(value, profile=profile)).hexdigest()
+
+
+def _resolved_isotope_evidence(
+    request: CalculationRequest,
+    retained_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]] | None:
+    """Identity-bearing mass observations for requested mass-dependent products.
+
+    Retain authoritative isotope values and source edition/checksum, excluding
+    local database paths or process metadata. This key has no accuracy claim.
+    """
+    if not set(request.products) - {"geometry"}:
+        return None
+    requested = request.molecule.isotopes or [None] * len(request.molecule.symbols)
+    if retained_records is None:
+        from Libraries.cochem_isotopes import isotope_record
+
+        retained_records = [
+            isotope_record(f"{number}{symbol}" if number is not None else symbol)
+            for symbol, number in zip(request.molecule.symbols, requested)
+        ]
+    if not isinstance(retained_records, list) or len(retained_records) != len(
+        requested
+    ):
+        raise ValueError("Cache identity requires an isotope record for every atom.")
+    records = []
+    for symbol, number, record in zip(
+        request.molecule.symbols, requested, retained_records
+    ):
+        if not isinstance(record, dict) or not isinstance(record.get("source"), dict):
+            raise ValueError("Cache isotope records require an explicit source.")
+        source = record["source"]
+        mass = record.get("mass_u")
+        uncertainty = record.get("mass_uncertainty_u")
+        source_digest = source.get("database_sha256")
+        if (
+            record.get("element") != symbol
+            or type(record.get("mass_number")) is not int
+            or not 1 <= record["mass_number"] <= 350
+            or (number is not None and record["mass_number"] != number)
+            or record.get("selection_policy")
+            != (
+                "explicit_mass_number"
+                if number is not None
+                else "most_abundant_naturally_occurring_isotope"
+            )
+            or type(mass) not in (int, float)
+            or not np.isfinite(mass)
+            or mass <= 0
+            or (
+                uncertainty is not None
+                and (
+                    type(uncertainty) not in (int, float)
+                    or not np.isfinite(uncertainty)
+                    or uncertainty < 0
+                )
+            )
+            or source.get("tabulated_mass_is_exact") is not False
+            or not isinstance(source_digest, str)
+            or len(source_digest) != 64
+            or any(char not in "0123456789abcdef" for char in source_digest)
+            or any(
+                not isinstance(source.get(field), str) or not source[field].strip()
+                for field in ("database", "distribution_version")
+            )
+            or (
+                "label" in record
+                and record["label"] != f"{record['mass_number']}{symbol}"
+            )
+        ):
+            raise ValueError(
+                "Cache isotope evidence contradicts atomic identity/source."
+            )
+        records.append(
+            {
+                "element": record["element"],
+                "mass_number": record["mass_number"],
+                "mass_u": record["mass_u"],
+                "mass_uncertainty_u": record.get("mass_uncertainty_u"),
+                "selection_policy": record["selection_policy"],
+                "source": {
+                    name: record["source"][name]
+                    for name in (
+                        "database",
+                        "distribution_version",
+                        "database_sha256",
+                        "tabulated_mass_is_exact",
+                    )
+                },
+            }
+        )
+    return records
+
+
+def _constants_evidence(retained: dict[str, Any] | None) -> dict[str, Any]:
+    """Validate retained conversion definitions without consulting a local table."""
+    if retained is None:
+        from .units import constants_provenance
+
+        retained = constants_provenance()
+    if not isinstance(retained, dict):
+        raise ValueError("Scientific cache requires actual constants provenance.")
+    fields = (
+        "profile",
+        "codata_release",
+        "constants",
+        "debye_convention",
+        "debye_coulomb_metre",
+        "debye_exact_reference_coulomb_metre",
+    )
+    if any(field not in retained for field in fields):
+        raise ValueError("Incomplete retained constants definition.")
+    definition = {field: retained[field] for field in fields}
+    constants = definition["constants"]
+    if (
+        any(
+            not isinstance(definition[field], str) or not definition[field].strip()
+            for field in ("profile", "codata_release", "debye_convention")
+        )
+        or not isinstance(constants, dict)
+        or not constants
+    ):
+        raise ValueError("Invalid retained constants profile/table.")
+    for name, record in constants.items():
+        if (
+            not isinstance(name, str)
+            or not name.strip()
+            or not isinstance(record, dict)
+            or set(record) != {"value", "si_unit", "standard_uncertainty", "source"}
+            or any(
+                not isinstance(record[field], str) or not record[field].strip()
+                for field in ("si_unit", "source")
+            )
+        ):
+            raise ValueError("Invalid retained fundamental-constant definition.")
+        for field, strictly_positive in (
+            ("value", True),
+            ("standard_uncertainty", False),
+        ):
+            value = record[field]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not np.isfinite(value)
+                or value < 0
+                or strictly_positive
+                and value == 0
+            ):
+                raise ValueError("Invalid retained constant value/uncertainty.")
+    for field in ("debye_coulomb_metre", "debye_exact_reference_coulomb_metre"):
+        value = definition[field]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not np.isfinite(value)
+            or value <= 0
+        ):
+            raise ValueError("Invalid retained dipole conversion.")
+    encoded = canonical_json(definition)
+    definition_sha256 = sha256(encoded).hexdigest()
+    if retained.get("definition_sha256") != definition_sha256:
+        raise ValueError("Retained constants definition digest mismatch.")
+    return {**definition, "definition_sha256": definition_sha256}
+
+
+def scientific_content(
+    request: CalculationRequest,
+    recipe: dict[str, Any],
+    *,
+    resolved_isotope_records: list[dict[str, Any]] | None = None,
+    constants_provenance: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Separate reusable scientific identity from record/submission provenance.
+
+    Atom order, exact geometry, state, isotope selection, properties and numerical
+    recipe remain identity-bearing. Mass-dependent products additionally bind
+    resolved masses, uncertainties and the actual isotope source edition/hash.
+    UUIDs, source timestamps, run IDs and resource allocations belong to the
+    record digest, not the scientific cache key.
+    """
+    recipe = dict(recipe)
+    recipe.pop("recipe_sha256", None)
+    return {
+        "schema_version": "cochem.torq.scientific-content/1",
+        "serialization_profile": CANONICALIZATION_PROFILE,
+        "molecule": request.molecule.model_dump(mode="json"),
+        "resolved_isotope_evidence": _resolved_isotope_evidence(
+            request, resolved_isotope_records
+        ),
+        "constants_evidence": _constants_evidence(constants_provenance),
+        "geometry_representation": {
+            "unit": "bohr",
+            "shape": [len(request.molecule.symbols), 3],
+            "dtype": "float64",
+        },
+        "recipe": recipe,
+        "products": sorted(request.products),
+        "scientific_goal": request.scientific_goal.model_dump(mode="json")
+        if request.scientific_goal is not None
+        else None,
+        "catalog": request.catalog.model_dump(mode="json")
+        if "rigid_rotor_catalog" in request.products
+        else None,
+    }
+
+
+def scientific_cache_key(
+    request: CalculationRequest,
+    recipe: dict[str, Any],
+    *,
+    resolved_isotope_records: list[dict[str, Any]] | None = None,
+    constants_provenance: dict[str, Any] | None = None,
+) -> str:
+    return digest(
+        scientific_content(
+            request,
+            recipe,
+            resolved_isotope_records=resolved_isotope_records,
+            constants_provenance=constants_provenance,
+        )
+    )
 
 
 def read_json(path) -> Any:

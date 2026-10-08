@@ -37,27 +37,57 @@ jobs:
             python -m pip install --require-hashes -r ci_tools/requirements-core-py312.txt
           fi
           python -m pip install dist/*.whl
-          python -m pip install 'pytest>=8,<10' 'qcelemental>=0.29,<1'
+          python -m pip install 'pytest>=8,<10' 'qcelemental>=0.29,<1' 'ruff==0.16.10'
           python -m pip check
       - name: Import and invoke installed package outside checkout
         working-directory: /tmp
         run: |
           python -I -c "import cochem_torq, Libraries.cochem_torq_export, cochem.orchestration.sqlite_queue, cochem.storage.cochem_core_pes_store, orchestrator, UI.torq_controller; print('installed package imports passed')"
           cochem-torq --help
+      - name: Record full SRS coverage and unresolved qualifications
+        run: |
+          python ci_tools/validate_release_evidence.py > "$RUNNER_TEMP/torq-full-srs-audit.json"
+          cat "$RUNNER_TEMP/torq-full-srs-audit.json"
+      - name: Require application implementation lint and formatting
+        run: |
+          python -m ruff check src/cochem_torq cochem/orchestration/campaign.py ci_tools/validate_release_evidence.py
+          python -m ruff format --check src/cochem_torq cochem/orchestration/campaign.py ci_tools/validate_release_evidence.py
       - name: Run core scientific-data and persistence regression tests
         run: |
-          python -m pytest -q -m 'not cpu_ml' \
+          if python -m pytest -q -m 'not cpu_ml and not real_engine and not ecosystem' \
+            --junitxml "$RUNNER_TEMP/torq-core-tests-report.xml" \
             tests/test_engine_integrity.py tests/test_export_integrity.py \
             tests/test_persistence_integrity.py tests/test_cfour_integrity.py \
             tests/test_spectroscopy_integrity.py tests/test_element_integrity.py \
             tests/test_spcat_integrity.py tests/test_async_runner_integrity.py \
             tests/test_model_selection_integrity.py tests/test_wkb_integrity.py \
-            tests/test_spcat_script_integrity.py tests/test_mobile_auth_integrity.py
+            tests/test_spcat_script_integrity.py tests/test_mobile_auth_integrity.py \
+            tests/test_operations_integrity.py tests/test_chain.py \
+            tests/test_service_lifecycle.py tests/test_service_input_integrity.py \
+            tests/test_canonical_serialization.py tests/test_scientific_contracts.py \
+            tests/test_campaign_coordinator.py tests/test_release_evidence_validator.py \
+            tests/test_advanced_scientific_results.py tests/test_ecosystem_serialization_profile.py \
+            tests/test_units.py tests/test_asymmetric_rotor.py \
+            tests/test_capability_restart_integrity.py tests/test_candidate_ledger_integrity.py \
+            tests/test_candidate_interface_integrity.py tests/test_publication_integrity.py \
+            tests/torq/test_counterpoise_frozen_monomer.py; then
+            python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-core-tests-report.xml"
+          else
+            torq_command_status=$?
+            python ci_tools/annotate_ci_failure.py --junit "$RUNNER_TEMP/torq-core-tests-report.xml" || true
+            exit "$torq_command_status"
+          fi
       - name: Retain wheel for inspection
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: wheel-python-${{ matrix.python }}
-          path: dist/*.whl
+          path: |
+            dist/*.whl
+            ${{ runner.temp }}/torq-core-tests-report.xml
+            ${{ runner.temp }}/torq-full-srs-audit.json
+          if-no-files-found: error
+          retention-days: 30
 
   cpu-numerical-integrity:
     runs-on: ubuntu-24.04
@@ -80,8 +110,12 @@ jobs:
           python -m pip check
       - name: Validate mathematical and surrogate integrity paths
         run: |
-          python -m pytest -q tests/test_numerical_integrity.py tests/test_surrogate_integrity.py tests/test_remaining_scientific_integrity.py
-          python -m pytest -q -m cpu_ml tests/test_persistence_integrity.py
+          python -m pytest -q --junitxml "$RUNNER_TEMP/torq-cpu-numerical-report.xml" \
+            tests/test_numerical_integrity.py tests/test_surrogate_integrity.py tests/test_remaining_scientific_integrity.py \
+            tests/test_dvr.py tests/test_asymmetric_rotor.py tests/test_jax_builder.py tests/test_slicer.py
+          python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-cpu-numerical-report.xml"
+          python -m pytest -q -m cpu_ml --junitxml "$RUNNER_TEMP/torq-cpu-persistence-report.xml" tests/test_persistence_integrity.py
+          python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-cpu-persistence-report.xml"
       - name: Require genuine molecular, dispersion and telemetry checks
         run: |
           python -m pytest -q --basetemp "$RUNNER_TEMP/torq-optional-scientific-tests" \
@@ -98,6 +132,8 @@ jobs:
           path: |
             ${{ runner.temp }}/torq-optional-scientific-tests/
             ${{ runner.temp }}/torq-optional-scientific-tests-report.xml
+            ${{ runner.temp }}/torq-cpu-numerical-report.xml
+            ${{ runner.temp }}/torq-cpu-persistence-report.xml
           if-no-files-found: error
           retention-days: 30
 
@@ -129,12 +165,17 @@ jobs:
           python -c "import pyscf, geometric; from dftd4.interface import DispersionModel; from importlib.metadata import version; assert pyscf.__version__ == '2.14.0'; assert version('geometric') == '1.1.1'; assert version('dftd4') == '3.7.0'"
       - name: Require actual energies, derivatives and optimization
         run: |
-          if python -m pytest -q --basetemp "$RUNNER_TEMP/torq-native-tests" \
+          if python -m pytest -q -m 'not ecosystem' --basetemp "$RUNNER_TEMP/torq-native-tests" \
             --junitxml "$RUNNER_TEMP/torq-native-tests-report.xml" \
             tests/test_pyscf_integration.py tests/test_revdsd_integration.py \
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \
             tests/test_application_contracts.py tests/test_actions_request.py \
-            tests/test_artifact_publication.py tests/test_anharmonic_research.py; then
+            tests/test_artifact_publication.py tests/test_anharmonic_research.py \
+            tests/test_operations_integrity.py tests/test_chain.py \
+            tests/test_energetics_integration.py tests/test_pathway_diagnostics_integration.py \
+            tests/test_goal_execution_integrity.py \
+            tests/test_publication_integrity.py tests/test_capability_restart_integrity.py \
+            tests/test_advanced_scientific_results.py tests/torq/test_counterpoise_frozen_monomer.py; then
             python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-native-tests-report.xml"
           else
             torq_command_status=$?
@@ -183,11 +224,13 @@ jobs:
           timeout --signal=TERM --kill-after=15s 180s docker run --rm -i --name torq-image-prepare-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --network none --cpus 2 --memory 3g --pids-limit 256 \
             --read-only --tmpfs /tmp:rw,noexec,nosuid,size=1g \
             --mount "type=bind,src=$RUNNER_TEMP/torq-image-input,dst=/input" \
+            --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
             --entrypoint python torq-pyscf:${GITHUB_SHA} - <<'PY'
           from hashlib import sha256
           from pathlib import Path
           import json
           from cochem_torq.domain import CalculationRequest, canonical_json
+          from cochem_torq.service import approve_plan, plan_request
           example = Path('/opt/torq-source/examples/student/water-hf-teaching.json')
           data = json.loads(example.read_text())
           data['products'].append('rigid_rotor_catalog')
@@ -198,6 +241,10 @@ jobs:
           (root / 'request.json').write_bytes(encoded)
           (root / 'request-id.txt').write_text(str(request.request_id))
           (root / 'request-sha256.txt').write_text(sha256(encoded).hexdigest())
+          approval = approve_plan(plan_request(request), actor='github-actions-image-qualification')
+          approval_bytes = canonical_json(approval)
+          (root / 'approved-plan.json').write_bytes(approval_bytes)
+          (root / 'approved-plan-sha256.txt').write_text(sha256(approval_bytes).hexdigest())
           PY
       - name: Require genuine image energy and derivative qualification
         run: |
@@ -217,6 +264,8 @@ jobs:
             --env COCHEM_SOURCE_COMMIT="$GITHUB_SHA" \
             --env COCHEM_IMAGE_ID="$(cat "$RUNNER_TEMP/torq-image-evidence/image-id.txt")" \
             torq-pyscf:${GITHUB_SHA} execute --request /input/request.json \
+            --approved-plan /input/approved-plan.json \
+            --expected-approval-sha256 "$(cat "$RUNNER_TEMP/torq-image-input/approved-plan-sha256.txt")" \
             --output-dir /results/water --request-id "$(cat "$RUNNER_TEMP/torq-image-input/request-id.txt")" \
             --expected-sha256 "$(cat "$RUNNER_TEMP/torq-image-input/request-sha256.txt")"
       - name: Verify the sealed typed artifact in the actual image
@@ -332,6 +381,8 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP']) / 'cochem-student-engine'
           with open(os.environ['GITHUB_ENV'], 'a') as target:
               target.write(f'COCHEM_ARTIFACT_DIR={root}\n')
+              target.write(f'COCHEM_MODULE_ROOT={root / "Modules"}\n')
+              target.write(f'COCHEM_MODULE_MANIFEST={Path.cwd() / "ci_tools/ecosystem-modules.json"}\n')
               for module in ('base', 'topos'):
                   receipt = json.loads((root / 'Modules' / module / 'installation.json').read_text())
                   target.write(f'COCHEM_{module.upper()}_SOURCE={receipt["source_path"]}\n')
@@ -341,7 +392,7 @@ jobs:
         run: |
           python -m pytest -q --basetemp "$RUNNER_TEMP/torq-ecosystem-native-tests" \
             --junitxml "$RUNNER_TEMP/torq-ecosystem-native-tests-report.xml" \
-            tests/test_ecosystem_integration.py
+            tests/test_ecosystem_integration.py tests/test_chain.py
           python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-ecosystem-native-tests-report.xml"
       - name: Record native derivative qualification evidence
         run: |
@@ -414,6 +465,8 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP']) / 'cochem-student'
           with open(os.environ['GITHUB_ENV'], 'a') as target:
               target.write(f'COCHEM_ARTIFACT_DIR={root}\n')
+              target.write(f'COCHEM_MODULE_ROOT={root / "Modules"}\n')
+              target.write(f'COCHEM_MODULE_MANIFEST={Path.cwd() / "ci_tools/ecosystem-modules.json"}\n')
               for module in ('base', 'topos'):
                   receipt = json.loads((root / 'Modules' / module / 'installation.json').read_text())
                   target.write(f'COCHEM_{module.upper()}_SOURCE={receipt["source_path"]}\n')
@@ -422,7 +475,7 @@ jobs:
       - name: Require actual sibling producers and notebook/widget workflow checks
         run: |
           python -m pytest -q -m 'not real_engine' --junitxml "$RUNNER_TEMP/torq-interface-tests-report.xml" \
-            tests/test_ecosystem_integration.py tests/test_student_interface.py tests/test_ui_start_torq.py
+            tests/test_ecosystem_integration.py tests/test_student_interface.py tests/test_ui_start_torq.py tests/test_chain.py
           python ci_tools/require_no_skips.py "$RUNNER_TEMP/torq-interface-tests-report.xml"
       - name: Check actual authenticated Jupyter lifecycle
         run: |

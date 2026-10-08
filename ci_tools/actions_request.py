@@ -18,6 +18,7 @@ import uuid
 from pathlib import Path
 
 MAX_REQUEST_BYTES = 16 * 1024
+MAX_APPROVAL_BYTES = 32 * 1024
 ALLOWED_RECIPES = {"hf-sto-3g-education", "hf-cc-pvdz-research"}
 ALLOWED_ELEMENTS = {"H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne"}
 
@@ -161,9 +162,79 @@ def write_request(output: Path, raw: bytes, data: dict, *, source_commit: str) -
         target.write("\n")
 
 
+def decode_approval(
+    encoded: str, expected_sha256: str, request: dict, *, source_commit: str
+) -> tuple[bytes, dict]:
+    """Verify approval transport; the worker validates scientific semantics."""
+    if not isinstance(encoded, str) or not 0 < len(encoded) <= 4 * (
+        (MAX_APPROVAL_BYTES + 2) // 3
+    ):
+        raise ValueError(
+            "The complete reviewed approval must fit the 32 KiB transport limit."
+        )
+    if not isinstance(expected_sha256, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", expected_sha256
+    ):
+        raise ValueError("Supply the exact reviewed approval byte SHA-256.")
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError("The reviewed approval must use strict base64.") from exc
+    if (
+        not raw
+        or len(raw) > MAX_APPROVAL_BYTES
+        or hashlib.sha256(raw).hexdigest() != expected_sha256
+    ):
+        raise ValueError("Reviewed approval bytes differ from their submitted SHA-256.")
+
+    def unique(items):
+        value = {}
+        for key, item in items:
+            if key in value:
+                raise ValueError(f"Duplicate approval field: {key}")
+            value[key] = item
+        return value
+
+    def nonfinite(value):
+        raise ValueError(f"Nonfinite approval value: {value}")
+
+    value = json.loads(
+        raw.decode("utf-8"), object_pairs_hook=unique, parse_constant=nonfinite
+    )
+    if (
+        not isinstance(value, dict)
+        or value.get("schema_version") != "cochem.torq.approved-plan/1"
+    ):
+        raise ValueError("Supply the complete versioned reviewed plan approval.")
+    plan = value.get("plan")
+    approval = value.get("approval")
+    identity = value.get("source_identity")
+    if (
+        not isinstance(plan, dict)
+        or not isinstance(approval, dict)
+        or not isinstance(identity, dict)
+    ):
+        raise ValueError(
+            "Reviewed approval requires plan, approval and source identities."
+        )
+    if plan.get("request") != request or approval.get("plan_sha256") != plan.get(
+        "plan_sha256"
+    ):
+        raise ValueError("The reviewed plan does not bind this complete request.")
+    if (
+        identity.get("git_commit") is not None
+        and identity["git_commit"] != source_commit
+    ):
+        raise ValueError(
+            "The reviewed source commit differs from this worker checkout."
+        )
+    return raw, value
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--approved-plan-output", type=Path, required=True)
     args = parser.parse_args()
     raw, request = decode_request(
         os.environ["TORQ_REQUEST_B64"],
@@ -180,7 +251,17 @@ if __name__ == "__main__":
             "The workflow source differs from the immutable commit "
             "approved at submission"
         )
+    approval_raw, approval = decode_approval(
+        os.environ["TORQ_APPROVED_PLAN_B64"],
+        os.environ["TORQ_APPROVED_PLAN_SHA256"],
+        request,
+        source_commit=expected_commit,
+    )
     write_request(args.output, raw, request, source_commit=os.environ["GITHUB_SHA"])
+    with args.approved_plan_output.open("xb") as stream:
+        stream.write(approval_raw)
+        stream.flush()
+        os.fsync(stream.fileno())
     print(
         json.dumps(
             {

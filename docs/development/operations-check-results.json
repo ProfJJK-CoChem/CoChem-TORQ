@@ -1,0 +1,53 @@
+{
+  "schema_version": "cochem.torq.operations-evidence/1",
+  "recorded_at": "2026-10-08T00:21:46.512405+00:00",
+  "execution_environment": "Actual managed-cloud local Linux filesystem and processes",
+  "tests": 13,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "source_worktree_status": "modified",
+  "raw_junit_path": "/workspace/torq-review/rc-hosted-verification/local-operations-final-guard.xml",
+  "raw_junit_sha256": "0df101d5c280be6ae632c8d09cdcfd5b3315573baa182805a5007b95e7cd534d",
+  "source_files": {
+    "src/cochem_torq/operations.py": "11d625279a205ed9f9461599bf2eedfbfa46c129449d485e47bb382b0011d454",
+    "tests/test_operations_integrity.py": "49f38bad9e14032e47f66a6d788d07146f667f3645174c707314442fb8a2cf17"
+  },
+  "genuine_shard": {
+    "result_path": "/tmp/pytest-of-agent/pytest-132/genuine-h2-backup0/shard/result.json",
+    "manifest_sha256": "f5a3921c33747413ce96048e4afc316f3f56758af79d63c7d86764eb47a7dec2",
+    "source_identity": {
+      "code_sha256": "f921f0d8902b227a7c2d6e6c6c6c40d71fc559dc70b87d4fc874806e2176ed93",
+      "declared_engine_image": null,
+      "declared_workflow_commit": null,
+      "distribution": "CoChem-TORQ",
+      "git_commit": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+      "working_tree_dirty": true
+    },
+    "request_id": "1a22cc2b-5494-48d3-8010-fc5a565787fb",
+    "actual_manifest_files": 34,
+    "engine": "PySCF",
+    "method": "Restricted HF / STO-3G",
+    "molecule": "H2",
+    "status": "complete",
+    "serialization_profile": "RFC8785"
+  },
+  "checked_contracts": [
+    "Actual owned bytes and bounded output growth",
+    "Actual filesystem free-space reserve rejection",
+    "Real concurrent process reservation prevents overbooking",
+    "Killed owner reservation requires exact-process reconciliation",
+    "Exception releases only owned local reservation",
+    "File-count and symlink rejection",
+    "Explicit integer budget validation",
+    "Backup/restore/prior-schema rollback preserves every genuine byte",
+    "Existing originals and backups cannot be overwritten",
+    "Native checkpoint corruption cannot be published",
+    "Unsupported schema cannot silently migrate",
+    "Independently retained manifest digest required"
+  ],
+  "scope": "Operational filesystem/process contracts and backups of a genuinely calculated shard. No experimental, identification, live-Codespaces or hosted operational qualification claimed. Quota growth monitoring is application-enforced, not a kernel project quota.",
+  "full_srs_accepted": false,
+  "static_type_check": "passed (operations.py and base_bridge.py)",
+  "source_after_run_changes": "Operational helper type annotations only; behavior checked by the retained real-process/genuine-H2 run."
+}

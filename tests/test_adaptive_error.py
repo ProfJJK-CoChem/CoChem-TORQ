@@ -12,6 +12,7 @@ Strict Zero-Mock Mandate & Authentic Computational Science:
 
 from __future__ import annotations
 
+import json
 import math
 from pathlib import Path
 
@@ -597,13 +598,13 @@ def test_pyarrow_manifest_export_empty_basins(tmp_path: Path) -> None:
     assert out_path.exists()
 
     table = pq.read_table(out_path)
-    assert table.num_rows == 1
-    assert table.column("point_id")[0].as_py() == "NONE_ESCALATED"
+    assert table.num_rows == 0
+    retained = json.loads(table.schema.metadata[b"torq_manifest"])
+    assert retained["manifest_id"] == manifest.manifest_id
+    assert retained["topographic_basins"] == []
 
 
 def test_convert_energy_unsupported_unit() -> None:
     """Assert ValueError when invalid energy unit is provided."""
     with pytest.raises(ValueError):
         convert_energy(1.0, "UNKNOWN_UNIT", EnergyUnit.KCAL_PER_MOL)
-
-

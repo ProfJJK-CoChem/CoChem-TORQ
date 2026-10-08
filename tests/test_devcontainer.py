@@ -31,9 +31,7 @@ def devcontainer_raw_bytes() -> bytes:
     assert DEVCONTAINER_FILE.exists(), (
         f"devcontainer.json not found at {DEVCONTAINER_FILE}"
     )
-    assert DEVCONTAINER_FILE.is_file(), (
-        f"{DEVCONTAINER_FILE} is not a regular file"
-    )
+    assert DEVCONTAINER_FILE.is_file(), f"{DEVCONTAINER_FILE} is not a regular file"
     return DEVCONTAINER_FILE.read_bytes()
 
 
@@ -68,9 +66,7 @@ def test_devcontainer_encoding_and_no_bom(devcontainer_raw_bytes: bytes) -> None
     assert len(decoded) > 0, "devcontainer.json is empty"
 
 
-def test_devcontainer_valid_json_structure(
-    devcontainer_config: dict[str, Any]
-) -> None:
+def test_devcontainer_valid_json_structure(devcontainer_config: dict[str, Any]) -> None:
     """Verify root keys and valid dictionary structure."""
     assert isinstance(devcontainer_config, dict)
     assert len(devcontainer_config) > 0
@@ -91,14 +87,10 @@ def test_devcontainer_name(devcontainer_config: dict[str, Any]) -> None:
     """Verify container name metadata."""
     name = devcontainer_config.get("name")
     assert isinstance(name, str), "Container name must be a string"
-    assert "CoChem-TORQ" in name, (
-        f"Container name '{name}' must contain 'CoChem-TORQ'"
-    )
+    assert "CoChem-TORQ" in name, f"Container name '{name}' must contain 'CoChem-TORQ'"
 
 
-def test_devcontainer_build_configuration(
-    devcontainer_config: dict[str, Any]
-) -> None:
+def test_devcontainer_build_configuration(devcontainer_config: dict[str, Any]) -> None:
     """Verify Docker build target points to adjacent Dockerfile with context '..'."""
     build_cfg = devcontainer_config.get("build")
     assert isinstance(build_cfg, dict), "build configuration must be an object"
@@ -108,9 +100,7 @@ def test_devcontainer_build_configuration(
     assert build_cfg.get("context") == "..", "build.context must reference '..'"
 
 
-def test_devcontainer_workspace_mapping(
-    devcontainer_config: dict[str, Any]
-) -> None:
+def test_devcontainer_workspace_mapping(devcontainer_config: dict[str, Any]) -> None:
     """Verify workspace folder is mapped to /workspaces/CoChem-TORQ."""
     workspace_folder = devcontainer_config.get("workspaceFolder")
     assert workspace_folder == "/workspaces/CoChem-TORQ", (
@@ -125,7 +115,7 @@ def test_devcontainer_workspace_mapping(
 
 
 def test_devcontainer_customizations_extensions(
-    devcontainer_config: dict[str, Any]
+    devcontainer_config: dict[str, Any],
 ) -> None:
     """Verify VS Code extensions declared under customizations.vscode.extensions."""
     customizations = devcontainer_config.get("customizations")
@@ -149,22 +139,27 @@ def test_devcontainer_customizations_extensions(
         )
 
 
-def test_devcontainer_post_create_command(
-    devcontainer_config: dict[str, Any]
-) -> None:
-    """Verify postCreateCommand is present and installs Python dependencies."""
+def test_devcontainer_post_create_command(devcontainer_config: dict[str, Any]) -> None:
+    """Verify lifecycle routes through the pinned isolated student installer."""
     cmd = devcontainer_config.get("postCreateCommand")
     assert isinstance(cmd, str), "postCreateCommand must be a string"
-    assert "pip install" in cmd, f"postCreateCommand should install: {cmd}"
+    assert cmd.split() == ["python", "scripts/student_setup.py", "setup"]
+    installer = REPO_ROOT / "scripts" / "student_setup.py"
+    assert installer.is_file()
+    source = installer.read_text(encoding="utf-8")
+    assert "--require-hashes" in source
+    assert "postStartCommand" in devcontainer_config
+    assert "scripts/student_setup.py start" in devcontainer_config["postStartCommand"]
+    assert devcontainer_config["containerEnv"]["COCHEM_CALCULATION_ENVIRONMENT"] == (
+        "github-actions"
+    )
     assert len(cmd.strip()) > 0, "postCreateCommand must not be empty"
 
 
 def test_devcontainer_remote_user(devcontainer_config: dict[str, Any]) -> None:
     """Verify remoteUser is set to non-root vscode user."""
     remote_user = devcontainer_config.get("remoteUser")
-    assert remote_user == "vscode", (
-        f"remoteUser must be 'vscode', got: {remote_user}"
-    )
+    assert remote_user == "vscode", f"remoteUser must be 'vscode', got: {remote_user}"
 
 
 def test_devcontainer_zero_banned_terms(devcontainer_text: str) -> None:

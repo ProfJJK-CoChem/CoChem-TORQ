@@ -37,7 +37,7 @@ fallback does not establish a physical model. Conversely, comments saying
 | [Mobile conformer engine](../../cochem/mobile/conformer_engine.py) | A missing force field or unsuccessful minimizer could be returned as successful minimization. | The current source retains actual partial coordinates, returns unavailable energy and unsuccessful optimization, and identifies the actual MMFF94/UFF model and minimizer status. Separate execution evidence is required for the mobile route; it is not activated by the student notebook. |
 | [Formula weights](../../cochem/mobile/inorganic/models.py) | Invalid/unknown formulas could yield a partial or zero mass while the result was called exact. | The current parser rejects invalid/unknown formula data. Its actual elemental-weight quantity is explicitly conventional formula-unit molar mass, distinct from an isotope-resolved exact mass. |
 | [Distance telemetry](../../Libraries/cochem_torq_telemetry.py) | A single atom could be assigned an invented 999 Å pair distance; nonfinite coordinates could become an invented zero-distance pair. | No pair returns `(None, None)`; invalid/overflowing geometry raises. Actual finite pair distances are calculated without dropping atoms or adding replacement coordinates. |
-| [Mobile payload serializer](../../cochem/mobile/payload_serializer.py) and [receiver](../../cochem/mobile/airgap_receiver.py) | A public fallback key authenticated unconfigured jobs; shared handler configuration could replace another receiver's key/storage; job identifiers affected paths; staged manifest identities were not bound to signed file identities; malformed XYZ atoms could disappear. | Authentication requires an explicit/configured nonblank key, preserving its exact bytes. Each receiver owns its configuration. Safe job identifiers cannot create nested paths; fresh receiver filenames contain no supplied identifier. Staged job/timestamp identities must match the signed file. Stored receiver files retain the exact authenticated bytes and WAL records. XYZ retains blank comments, enforces declared counts and all atom records, and rejects nonfinite coordinates/unknown elements. JSON rejects nonfinite numbers and duplicate keys. Actual conventional Mendeleev weights remain distinct from isotope-resolved exact masses. |
+| [Mobile payload serializer](../../cochem/mobile/payload_serializer.py) and [receiver](../../cochem/mobile/airgap_receiver.py) | A public fallback key authenticated unconfigured jobs; shared handler configuration could replace another receiver's key/storage; job identifiers affected paths; staged manifest identities were not bound to signed file identities; malformed XYZ atoms could disappear. | Authentication requires an explicit/configured nonblank key, preserving its exact bytes. Each receiver owns its configuration. Safe job identifiers cannot create nested paths; fresh receiver filenames contain no supplied identifier. Staged job/timestamp identities must match the signed file. Stored receiver files retain the exact authenticated bytes and WAL records. XYZ retains blank comments, enforces declared counts and all atom records, and rejects nonfinite coordinates/unknown elements. JSON rejects nonfinite numbers and duplicate keys. Actual isotope labels and tabulated masses are retained under the shared explicit/default isotope policy; these are not exact SI constants. |
 | [Historical SPCAT script](../../scripts/spcat_runner.py) | Invented deck uncertainties/partition values and a quiet replacement solver could yield unsupported catalog outputs. | The facade is disabled until scientifically qualified; unavailable catalog generation writes no deck, scratch directory or result. Its tested Ray parameter is an algebraic software check; no native SPCAT catalog or spectroscopic accuracy is certified. |
 
 The root application and earlier library repairs also remove missing-frequency,
@@ -115,6 +115,16 @@ The mobile checks concern transport/input integrity, not molecular or electronic
 structure qualification. No Docker/GPU/HPC execution is established by them.
 
 ## Remaining evidence and review boundaries
+
+A 2026-10-08 follow-up completed with **63 passed** in
+[the mobile authentication suite](../../tests/test_mobile_auth_integrity.py)
+and **3 passed** in the separately scoped SPCAT script suite. The authentication
+follow-up additionally rejects malformed atoms within an otherwise standard XYZ
+frame, requires one complete standard frame, retains explicit tabulated isotope
+identity/mass, and proves invalid credentials fail before binding an occupied
+actual port. These are authentic-input/transport contracts, not scientific-method
+or native SPCAT qualification. The existing earlier import-boundary evidence
+above remains scoped to its originally tested environments.
 
 The historical Delta-ML constructor's guessed D3 configuration now raises rather
 than silently selecting an arbitrary reference functional. Activating that model

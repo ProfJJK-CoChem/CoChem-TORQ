@@ -145,14 +145,22 @@ class AirGapReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
         if content_length < 0:
             self._send_json_response(
                 400,
-                {"status": "ERROR", "error": "Invalid Content-Length header", "tier": "TIER_1_REJECTED"},
+                {
+                    "status": "ERROR",
+                    "error": "Invalid Content-Length header",
+                    "tier": "TIER_1_REJECTED",
+                },
             )
             return
         body_bytes = self.rfile.read(content_length)
         if len(body_bytes) != content_length:
             self._send_json_response(
                 400,
-                {"status": "ERROR", "error": "Incomplete request body", "tier": "TIER_1_REJECTED"},
+                {
+                    "status": "ERROR",
+                    "error": "Incomplete request body",
+                    "tier": "TIER_1_REJECTED",
+                },
             )
             return
 
@@ -349,7 +357,9 @@ def make_airgap_receiver_server(
     if is_path_in_source_dir(resolved_scratch, resolved_src) or is_path_in_source_dir(
         resolved_db, resolved_src
     ):
-        raise ValueError("Receiver scratch and ledger paths must be outside the protected source directory.")
+        raise ValueError(
+            "Receiver scratch and ledger paths must be outside the protected source directory."
+        )
     resolved_scratch.mkdir(parents=True, exist_ok=True)
     resolved_db.parent.mkdir(parents=True, exist_ok=True)
 

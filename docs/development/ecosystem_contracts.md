@@ -45,6 +45,15 @@ are distinct observations. TORQ's `module_provider()` supplies metadata for the
 `cochem.modules` entry-point group; it does not advertise unrun operations as
 scientifically qualified.
 
+Existing BASE and TORQ recipe/molecule digests retain their explicit legacy
+serialization profile `cochem.sorted-json/1`. This profile uses sorted Python
+JSON serialization and is not RFC 8785 canonical JSON. New TORQ readers accept
+legacy conformer records without the additive `serialization_profile` field;
+older strict TORQ readers can reject new records carrying it. This is not a claim
+of bidirectional schema compatibility. BASE-owned manifest shape and method
+identity bytes are preserved. An RFC 8785 migration requires a separately
+versioned interchange contract rather than recomputing these historical digests.
+
 ## TORQ conformer contract
 
 The implementation is `src/cochem_torq/ecosystem.py`. Its strict Pydantic records
@@ -85,8 +94,9 @@ validator.
 
 `to_application_molecule()` returns the actual application fields
 `symbols`, `geometry_bohr`, `charge`, `multiplicity`, `atom_ids`, and `isotopes`.
-Angstrom inputs are converted explicitly using SciPy's documented Bohr-radius
-constant. `to_application_provenance()` is retained in the application request's
+Angstrom inputs are converted explicitly using the shared versioned CODATA
+[constants service](units_and_constants.md), preserving the original Bohr-radius
+factor and operation order. `to_application_provenance()` is retained in the application request's
 `source_provenance` field, including the complete handoff and source atom map.
 
 `write_conformer_handoff()` revalidates nested records, enforces the existing

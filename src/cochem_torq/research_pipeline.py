@@ -32,6 +32,12 @@ from .spectroscopy import (
     vibrational_vpt2,
 )
 from .spectroscopy.forcefield import _STENCILS
+from .spectroscopy.results import (
+    ForceFieldData,
+    ResonanceAnalysisData,
+    VibrationalVPT2Data,
+    make_scientific_context,
+)
 
 
 def _plain(value: Any) -> Any:
@@ -155,13 +161,14 @@ def execute_anharmonic_validation(
         )
     if harmonic_result.coordinates_bohr.shape != (len(model.molecule.symbols), 3):
         raise ValueError("Harmonic atom count must match the requested molecule.")
-    from Libraries.cochem_isotopes import isotope_mass
+    from Libraries.cochem_isotopes import isotope_record
 
     isotope_numbers = model.molecule.isotopes or [None] * len(model.molecule.symbols)
-    masses = [
-        isotope_mass(f"{number}{symbol}" if number is not None else symbol)
+    isotope_records = [
+        isotope_record(f"{number}{symbol}" if number is not None else symbol)
         for number, symbol in zip(isotope_numbers, model.molecule.symbols)
     ]
+    masses = [record["mass_u"] for record in isotope_records]
     if not np.array_equal(harmonic_result.isotope_masses_u, np.asarray(masses)):
         raise ValueError(
             "Harmonic masses must exactly match the resolved requested isotopologue."
@@ -226,6 +233,7 @@ def execute_anharmonic_validation(
     protocol["request_sha256"] = digest(model.model_dump(mode="json"))
     protocol["recipe_sha256"] = profile["recipe_sha256"]
     protocol["harmonic_source_digest"] = harmonic_result.source_digest
+    protocol["isotope_provenance"] = isotope_records
     protocol["runner_source_sha256"] = sha256(Path(__file__).read_bytes()).hexdigest()
     protocol_digest = digest(protocol)
     stages = {
@@ -351,9 +359,34 @@ def execute_anharmonic_validation(
             relative_tolerance=protocol["relative_derivative_tolerance"],
             max_evaluations=protocol["max_energy_evaluations"],
         )
+        context_arguments = {
+            "molecule": model.molecule.model_dump(mode="json"),
+            "geometry_bohr": harmonic_result.coordinates_bohr,
+            "isotope_provenance": isotope_records,
+            "recipe_sha256": profile["recipe_sha256"],
+            "protocol_sha256": protocol_digest,
+            "evidence_class": "engine_calculation",
+            "harmonic": harmonic_result,
+        }
+        field_value = _plain(field)
+        field_value["scientific_context"] = make_scientific_context(
+            **context_arguments,
+            parent_artifact_sha256=[
+                sha256((directory / name).read_bytes()).hexdigest()
+                for name in ("protocol.json", "harmonic-input.json")
+            ]
+            + [
+                record["manifest_sha256"] for record in result["displaced_calculations"]
+            ],
+        )
+        field_value = ForceFieldData.model_validate(field_value).model_dump(mode="json")
+        _checkpoint(directory / "force-field.json", field_value)
+        field_artifact_sha256 = sha256(
+            (directory / "force-field.json").read_bytes()
+        ).hexdigest()
         stages["anharmonic_force_field"] = {
             "status": "available",
-            "value": _plain(field),
+            "value": field_value,
             "reason": None,
             "qualification": "experimental_unqualified",
             "quality_flags": []
@@ -387,10 +420,19 @@ def execute_anharmonic_validation(
                     "force_field_sha256": field.source_digest,
                     "coriolis_resonances": "not_implemented",
                     "protocol_sha256": protocol_digest,
+                    "scientific_context": make_scientific_context(
+                        **context_arguments,
+                        parent_artifact_sha256=[field_artifact_sha256],
+                    ),
                 },
                 "reason": None,
                 "qualification": "experimental_unqualified",
             }
+            resonance_value = ResonanceAnalysisData.model_validate(
+                stages["resonance_analysis"]["value"]
+            ).model_dump(mode="json")
+            stages["resonance_analysis"]["value"] = resonance_value
+            _checkpoint(directory / "resonance-analysis.json", resonance_value)
             _checkpoint(directory / "result.json", result)
             try:
                 vpt = vibrational_vpt2(
@@ -400,9 +442,23 @@ def execute_anharmonic_validation(
                         "coupling_to_detuning_threshold"
                     ],
                 )
+                vpt_value = _plain(vpt)
+                vpt_value["scientific_context"] = make_scientific_context(
+                    **context_arguments,
+                    parent_artifact_sha256=[
+                        field_artifact_sha256,
+                        sha256(
+                            (directory / "resonance-analysis.json").read_bytes()
+                        ).hexdigest(),
+                    ],
+                )
+                vpt_value = VibrationalVPT2Data.model_validate(vpt_value).model_dump(
+                    mode="json"
+                )
+                _checkpoint(directory / "vibrational-vpt2.json", vpt_value)
                 stages["vibrational_vpt2"] = {
                     "status": "available",
-                    "value": _plain(vpt),
+                    "value": vpt_value,
                     "reason": None,
                     "qualification": "experimental_unqualified",
                 }

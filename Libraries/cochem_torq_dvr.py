@@ -1,8 +1,8 @@
-"""Authentic Relaxed-PES Sinc-DVR Torsional Solver (cochem_torq_dvr.py).
+"""Periodic constant-kinetic torsional DVR for explicitly supplied potential scans.
 
-Implements Colbert-Miller Sinc-DVR quantum torsional solver utilizing authentic
-relaxed-scan periodic B-spline potential energy surfaces, 64-bit precision, and
-dynamic Mendeleev mass retrieval per Method Matrix v4 §14 and §QS-3.
+The caller supplies and justifies the reduced rotational constant F and potential
+model. This mathematical solver cannot establish isotope masses, relaxed-scan
+provenance, rotation-vibration coupling or molecule-specific state assignments.
 """
 
 from __future__ import annotations
@@ -21,26 +21,38 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from mendeleev import element
 from scipy.interpolate import make_interp_spline
+
+from cochem_torq.units import (
+    ATOMIC_MASS_KG,
+    AVOGADRO_PER_MOL,
+    PLANCK_JOULE_SECOND,
+    SPEED_OF_LIGHT_METRE_SECOND,
+)
 
 try:
     import jax
+
     jax.config.update("jax_enable_x64", True)
     import jax.numpy as jnp
+
     HAS_JAX = True
-except Exception:
+except ImportError:
     HAS_JAX = False
     jnp = np
 
 # Physical conversion constants
-KCAL_MOL_TO_CM1: float = 349.755011
-CM1_TO_MHZ: float = 29979.2458
-HBAR2_2I_COEFF: float = 16.8576292  # h / (8 * pi^2 * c) in amu * Angstrom^2 * cm^-1
+KCAL_MOL_TO_CM1: float = 4184.0 / (
+    AVOGADRO_PER_MOL * PLANCK_JOULE_SECOND * SPEED_OF_LIGHT_METRE_SECOND * 100.0
+)
+CM1_TO_MHZ: float = SPEED_OF_LIGHT_METRE_SECOND * 100.0 / 1e6
+HBAR2_2I_COEFF: float = PLANCK_JOULE_SECOND / (
+    8.0 * math.pi**2 * SPEED_OF_LIGHT_METRE_SECOND * 100.0 * ATOMIC_MASS_KG * 1e-20
+)
 
 
 class RelaxedPESTorsionalDVR:
-    """Colbert-Miller periodic Sinc-DVR solver for authentic relaxed torsional scans."""
+    """Finite Fourier DVR for an explicitly declared constant-F periodic model."""
 
     def __init__(
         self,
@@ -63,29 +75,65 @@ class RelaxedPESTorsionalDVR:
         n_points : int, default=100
             Number of Colbert-Miller spatial grid points N.
         f_rotational_constant_cm1 : float, optional
-            Internal rotation reduced constant F in cm^-1. If None, derived dynamically.
+            Explicit independently justified internal-rotation constant F in cm^-1.
+            Missing values fail; neither an element name nor whole-molecule inertia
+            determines a reduced internal-rotation kinetic coefficient.
         symbols : sequence of str, optional
-            Atomic symbols for dynamic mass retrieval via Mendeleev.
+            Legacy metadata argument; does not derive a kinetic coefficient.
         coords : array-like, optional
-            Cartesian coordinates in Angstroms for moment of inertia calculation.
+            Legacy metadata argument; does not derive a kinetic coefficient.
         n_grid : int, optional
             Alias for n_points.
         """
+        for label, values in (("angles", theta_scan_rad), ("energies", energies_kcal)):
+            raw = np.asarray(values)
+            if np.iscomplexobj(raw):
+                raise ValueError(f"Torsional {label} must be real, not complex")
         self.theta_scan_rad = np.asarray(theta_scan_rad, dtype=np.float64)
         self.energies_kcal = np.asarray(energies_kcal, dtype=np.float64)
-        self.n_points = int(n_grid if n_grid is not None else n_points)
-
-        # Dynamic determination of reduced rotational constant F [D]
-        if f_rotational_constant_cm1 is not None:
-            self.f_rotational_constant_cm1 = float(f_rotational_constant_cm1)
-        elif symbols is not None and coords is not None:
-            self.f_rotational_constant_cm1 = self._compute_reduced_f(symbols, coords)
-        else:
-            # Default authentic hydrogen peroxide internal rotational constant F [M]
-            m_h = float(element("H").mass)
-            r_perp = 0.9082  # Authentic H-O-O perpendicular projection in Å
-            i_red = (m_h * (r_perp ** 2)) / 2.0
-            self.f_rotational_constant_cm1 = HBAR2_2I_COEFF / i_red
+        requested_points = n_grid if n_grid is not None else n_points
+        if isinstance(requested_points, bool) or not isinstance(
+            requested_points, (int, np.integer)
+        ):
+            raise ValueError("The DVR grid size must be an integer of at least four")
+        self.n_points = int(requested_points)
+        if self.n_points < 4:
+            raise ValueError("The DVR grid size must be an integer of at least four")
+        if (
+            self.theta_scan_rad.ndim != 1
+            or self.energies_kcal.ndim != 1
+            or self.theta_scan_rad.shape != self.energies_kcal.shape
+            or len(self.theta_scan_rad) < 4
+            or not np.isfinite(self.theta_scan_rad).all()
+            or not np.isfinite(self.energies_kcal).all()
+            or not np.all(np.diff(self.theta_scan_rad) > 0)
+        ):
+            raise ValueError(
+                "A matching finite scan on increasing angles "
+                "with at least four samples is required"
+            )
+        if not (
+            np.isclose(self.theta_scan_rad[0], 0.0, atol=1e-12, rtol=0.0)
+            and np.isclose(self.theta_scan_rad[-1], 2.0 * math.pi, atol=1e-12, rtol=0.0)
+        ):
+            raise ValueError("The periodic scan must explicitly span [0, 2*pi]")
+        if f_rotational_constant_cm1 is None:
+            raise ValueError(
+                "An explicit independently justified positive F in cm^-1 "
+                "is required; no inertia is inferred"
+            )
+        if isinstance(f_rotational_constant_cm1, (bool, complex, np.complexfloating)):
+            raise ValueError(
+                "The supplied reduced rotational constant F must be real and positive"
+            )
+        self.f_rotational_constant_cm1 = float(f_rotational_constant_cm1)
+        if (
+            not math.isfinite(self.f_rotational_constant_cm1)
+            or self.f_rotational_constant_cm1 <= 0
+        ):
+            raise ValueError(
+                "The supplied reduced rotational constant F must be finite and positive"
+            )
 
         # Construct C^2 periodic cubic B-spline interpolation [M]
         # Ensure endpoints wrap periodically for smooth boundary conditions
@@ -109,79 +157,24 @@ class RelaxedPESTorsionalDVR:
         self.eigenvectors: np.ndarray | None = None
 
     @staticmethod
-    def _compute_reduced_f(
-        symbols: Sequence[str],
-        coords: np.ndarray | Sequence[Sequence[float]],
-    ) -> float:
-        """Dynamically calculates reduced rotational constant F via Mendeleev."""
-        syms = [s.strip().capitalize() for s in symbols]
-        c = np.asarray(coords, dtype=np.float64)
-        masses = [float(element(s).mass) for s in syms]
-
-        # For standard diatomic rotors or symmetric tops (e.g. H2O2):
-        # Identify rotor tops rotating about central bond
-        if len(syms) == 4 and syms.count("H") == 2 and syms.count("O") == 2:
-            o_indices = [idx for idx, s in enumerate(syms) if s == "O"]
-            h_indices = [idx for idx, s in enumerate(syms) if s == "H"]
-            bond_vec = c[o_indices[1]] - c[o_indices[0]]
-            bond_len = np.linalg.norm(bond_vec)
-            if bond_len > 1e-6:
-                bond_u = bond_vec / bond_len
-                # Calculate perpendicular distance of H to O-O axis
-                r_perp_list = []
-                for h_idx in h_indices:
-                    v = c[h_idx] - c[o_indices[0]]
-                    proj = np.dot(v, bond_u) * bond_u
-                    perp = v - proj
-                    r_perp_list.append(float(np.linalg.norm(perp)))
-                r_perp_eff = float(np.mean(r_perp_list)) if r_perp_list else 0.9082
-                m_h = float(element("H").mass)
-                i_red = (m_h * (r_perp_eff ** 2)) / 2.0
-                return HBAR2_2I_COEFF / i_red
-
-        # General moment calculation fallback
-        m_tot = sum(masses)
-        com = np.sum(c * np.array(masses)[:, np.newaxis], axis=0) / m_tot
-        c_rel = c - com
-        i_tensor = np.full((3, 3), 0.0, dtype=np.float64)
-        for m, (x, y, z) in zip(masses, c_rel, strict=False):
-            i_tensor[0, 0] += m * (y**2 + z**2)
-            i_tensor[1, 1] += m * (x**2 + z**2)
-            i_tensor[2, 2] += m * (x**2 + y**2)
-            i_tensor[0, 1] -= m * x * y
-            i_tensor[0, 2] -= m * x * z
-            i_tensor[1, 2] -= m * y * z
-        i_tensor[1, 0] = i_tensor[0, 1]
-        i_tensor[2, 0] = i_tensor[0, 2]
-        i_tensor[2, 1] = i_tensor[1, 2]
-
-        principal_i = np.sort(np.linalg.eigvalsh(i_tensor))
-        i_red = float(principal_i[0])  # Minimum moment along internal axis
-        if i_red < 0.1:
-            i_red = 0.4162
-        return HBAR2_2I_COEFF / i_red
+    def _compute_reduced_f(symbols, coords) -> float:
+        """Reject the historical whole-molecule/peroxide inertia substitution."""
+        raise ValueError(
+            "Provide explicit F from a declared rotor/frame kinetic model; "
+            "geometry alone is insufficient"
+        )
 
     def _build_hamiltonian(self) -> np.ndarray:
-        """Constructs Colbert-Miller Sinc-DVR Hamiltonian in cm^-1."""
-        n = self.n_points
-        f = self.f_rotational_constant_cm1
+        """Represent -F d²/dtheta² on the finite periodic Fourier basis.
 
-        # Colbert-Miller kinetic energy matrix T [D]
-        # T_ii = F * pi^2 / 3
-        # T_ij = F * 2 * (-1)^(i-j) / sin^2(pi*(i-j)/N)
-        t_mat = np.full((n, n), 0.0, dtype=np.float64)
-        for i in range(n):
-            for j in range(n):
-                if i == j:
-                    t_mat[i, i] = f * (math.pi ** 2) / 3.0
-                else:
-                    diff = i - j
-                    sin_term = math.sin(math.pi * diff / n) ** 2
-                    t_mat[i, j] = f * 2.0 * ((-1) ** diff) / sin_term
-
-        v_mat = np.diag(self.v_grid_cm1)
-        h_mat = t_mat + v_mat
-        return h_mat
+        Fourier modes have E_m=F*m². Transforming that diagonal operator yields
+        the real symmetric circulant DVR kinetic matrix for either grid parity.
+        """
+        modes = np.fft.fftfreq(self.n_points, d=1.0 / self.n_points)
+        kernel = np.fft.ifft(self.f_rotational_constant_cm1 * modes**2).real
+        indices = np.arange(self.n_points)
+        kinetic = kernel[(indices[:, None] - indices[None, :]) % self.n_points]
+        return kinetic + np.diag(self.v_grid_cm1)
 
     def diagonalize(self) -> tuple[np.ndarray, np.ndarray]:
         """Diagonalizes Hamiltonian using JAX 64-bit or NumPy eigh.
@@ -207,7 +200,7 @@ class RelaxedPESTorsionalDVR:
 
     @property
     def tunneling_splitting_cm1(self) -> float:
-        """Authentic ground-state tunneling splitting delta E_01 in cm^-1."""
+        """Lowest adjacent-level gap; a tunneling-state assignment is not inferred."""
         if self.eigenvalues_cm1 is None:
             self.diagonalize()
         assert self.eigenvalues_cm1 is not None
@@ -240,6 +233,13 @@ class RelaxedPESTorsionalDVR:
             "barrier_height_kcal": self.barrier_height_kcal,
             "barrier_height_cm1": self.barrier_height_cm1,
             "f_rot_cm1": self.f_rotational_constant_cm1,
+            "kinetic_model": "explicit_constant_F_periodic_fourier_dvr",
+            "state_assignment": "unavailable",
+            "solver_backend": "jax" if HAS_JAX else "numpy",
+            "quality_flags": [
+                "constant_kinetic_approximation",
+                "uncalibrated_level_gap",
+            ],
         }
 
     @classmethod
@@ -250,8 +250,9 @@ class RelaxedPESTorsionalDVR:
         n_points: int = 100,
         symbols: Sequence[str] | None = None,
         coords: np.ndarray | Sequence[Sequence[float]] | None = None,
+        f_rotational_constant_cm1: float | None = None,
     ) -> RelaxedPESTorsionalDVR:
-        """Loads authentic relaxed torsional PES scan from Thread-Safe HDF5 store."""
+        """Load supplied scan bytes; file presence does not qualify the potential."""
         import filelock
         import h5py
 
@@ -265,9 +266,11 @@ class RelaxedPESTorsionalDVR:
                 if group not in h5f:
                     raise KeyError(f"Group '{group}' not found in HDF5 file: {p}")
                 grp = h5f[group]
-                angles_deg = np.array(grp["dihedral_deg"], dtype=np.float64)
-                energies_kcal = np.array(grp["energy_kcal_mol"], dtype=np.float64)
+                angles_deg = np.array(grp["dihedral_deg"])
+                energies_kcal = np.array(grp["energy_kcal_mol"])
 
+        if np.iscomplexobj(angles_deg) or np.iscomplexobj(energies_kcal):
+            raise ValueError("Torsional HDF5 scan values must be real, not complex")
         angles_rad = np.radians(angles_deg)
         return cls(
             theta_scan_rad=angles_rad,
@@ -275,4 +278,5 @@ class RelaxedPESTorsionalDVR:
             n_points=n_points,
             symbols=symbols,
             coords=coords,
+            f_rotational_constant_cm1=f_rotational_constant_cm1,
         )

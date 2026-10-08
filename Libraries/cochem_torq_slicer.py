@@ -30,7 +30,16 @@ from scipy.interpolate import (  # type: ignore[import-untyped]
     CubicSpline,
     RectBivariateSpline,
 )
-from scipy.optimize import brentq, minimize  # type: ignore[import-untyped]
+from scipy.optimize import brentq, root  # type: ignore[import-untyped]
+
+from cochem_torq.units import (
+    ATOMIC_MASS_KG,
+    AVOGADRO_PER_MOL,
+    HARTREE_CM1,
+    HARTREE_JOULE,
+    PLANCK_JOULE_SECOND,
+    SPEED_OF_LIGHT_METRE_SECOND,
+)
 
 # Configure module-level logger
 logger: Final[logging.Logger] = logging.getLogger("CoChem-TORQ.Slicer")
@@ -39,14 +48,18 @@ logger: Final[logging.Logger] = logging.getLogger("CoChem-TORQ.Slicer")
 # Fundamental Physical & Unit Conversion Constants (CODATA 2022)
 # =============================================================================
 
-HARTREE_TO_KCAL_MOL: Final[float] = 627.509474
-HARTREE_TO_CM1: Final[float] = 219474.63
-KCAL_MOL_TO_CM1: Final[float] = 349.755
-PLANCK_HBAR_SI: Final[float] = 1.054571817e-34  # J * s
-AMU_TO_KG: Final[float] = 1.66053906892e-27  # kg / u
+HARTREE_TO_KCAL_MOL: Final[float] = HARTREE_JOULE * AVOGADRO_PER_MOL / 4184.0
+HARTREE_TO_CM1: Final[float] = HARTREE_CM1
+KCAL_MOL_TO_CM1: Final[float] = 4184.0 / (
+    AVOGADRO_PER_MOL * PLANCK_JOULE_SECOND * SPEED_OF_LIGHT_METRE_SECOND * 100.0
+)
+PLANCK_HBAR_SI: Final[float] = PLANCK_JOULE_SECOND / (2 * math.pi)
+AMU_TO_KG: Final[float] = ATOMIC_MASS_KG
 ANGSTROM_TO_M: Final[float] = 1.0e-10  # m / Angstrom
-JOULE_TO_CM1: Final[float] = 5.034116567e22  # cm^-1 / J
-SPEED_OF_LIGHT_CM_S: Final[float] = 2.99792458e10  # cm / s
+JOULE_TO_CM1: Final[float] = 1.0 / (
+    PLANCK_JOULE_SECOND * SPEED_OF_LIGHT_METRE_SECOND * 100.0
+)
+SPEED_OF_LIGHT_CM_S: Final[float] = SPEED_OF_LIGHT_METRE_SECOND * 100.0
 
 # Standard light rotor groups subject to potential tunneling splitting
 LIGHT_ROTOR_PATTERNS: Final[tuple[str, ...]] = (
@@ -93,9 +106,7 @@ class StationaryPoint(BaseModel):
     rel_energy_kcal_mol: float = Field(
         default=0.0, description="Relative energy in kcal/mol"
     )
-    rel_energy_cm1: float = Field(
-        default=0.0, description="Relative energy in cm^-1"
-    )
+    rel_energy_cm1: float = Field(default=0.0, description="Relative energy in cm^-1")
 
 
 class StationaryPoint2D(BaseModel):
@@ -124,9 +135,7 @@ class StationaryPoint2D(BaseModel):
     rel_energy_kcal_mol: float = Field(
         default=0.0, description="Relative energy in kcal/mol"
     )
-    rel_energy_cm1: float = Field(
-        default=0.0, description="Relative energy in cm^-1"
-    )
+    rel_energy_cm1: float = Field(default=0.0, description="Relative energy in cm^-1")
 
 
 class WKBTunnelingResult(BaseModel):
@@ -175,7 +184,8 @@ def get_dynamic_reduced_inertia(rotor_type: str) -> float:
     """
     raise ValueError(
         f"Cannot derive a reduced inertia from rotor name {rotor_type!r}; "
-        "provide geometry, isotope masses, rotor/frame partition and kinetic-energy model."
+        "provide geometry, isotope masses, rotor/frame partition "
+        "and kinetic-energy model."
     )
 
 
@@ -188,6 +198,8 @@ def fit_continuous_splines(
     angles_deg: Sequence[float] | np.ndarray,
     energies_hartree: Sequence[float] | np.ndarray,
     periodic: bool = True,
+    *,
+    periodic_endpoint_tolerance_hartree: float | None = None,
 ) -> dict[str, Any]:
     """Fits continuous 1D periodic cubic splines across discrete torsional PES points.
 
@@ -202,8 +214,17 @@ def fit_continuous_splines(
              maxima, global minimum, and barrier heights.
     :raises ValueError: If fewer than 4 points are supplied or lengths mismatch.
     """
+    if np.iscomplexobj(angles_deg) or np.iscomplexobj(energies_hartree):
+        raise ValueError("Spline angles and energies must be real, not complex")
     raw_angles = np.asarray(angles_deg, dtype=np.float64)
     raw_energies = np.asarray(energies_hartree, dtype=np.float64)
+    if (
+        raw_angles.ndim != 1
+        or raw_energies.ndim != 1
+        or not np.isfinite(raw_angles).all()
+        or not np.isfinite(raw_energies).all()
+    ):
+        raise ValueError("Spline angles and energies must be finite vectors")
 
     if len(raw_angles) != len(raw_energies):
         raise ValueError(
@@ -224,18 +245,40 @@ def fit_continuous_splines(
 
     # Convert to radians
     angles_rad = np.radians(sorted_deg)
+    endpoint_closure = None
 
     if periodic:
         # Wrap endpoints for smooth periodic spline: append 2*pi point if needed
         span_covers_circle = (
-            abs(sorted_deg[-1] - 360.0) > 1e-3
-            and abs(sorted_deg[0] - 0.0) < 1e-3
+            abs(sorted_deg[-1] - 360.0) > 1e-3 and abs(sorted_deg[0] - 0.0) < 1e-3
         )
         if span_covers_circle:
             angles_rad = np.append(angles_rad, 2.0 * math.pi)
             sorted_e = np.append(sorted_e, sorted_e[0])
             sorted_deg = np.append(sorted_deg, 360.0)
+            endpoint_closure = {
+                "source": "explicit_periodic_boundary_condition",
+                "sampled_endpoint": False,
+            }
         elif abs(sorted_deg[-1] - sorted_deg[0] - 360.0) < 1e-3:
+            difference = float(sorted_e[-1] - sorted_e[0])
+            if difference != 0.0:
+                if (
+                    periodic_endpoint_tolerance_hartree is None
+                    or not math.isfinite(periodic_endpoint_tolerance_hartree)
+                    or periodic_endpoint_tolerance_hartree < 0
+                    or abs(difference) > periodic_endpoint_tolerance_hartree
+                ):
+                    raise ValueError(
+                        "Unequal periodic endpoint energies require an explicit "
+                        "finite closure tolerance covering the observed difference"
+                    )
+            endpoint_closure = {
+                "source": "explicit_periodic_boundary_condition",
+                "sampled_endpoint": True,
+                "input_difference_hartree": difference,
+                "allowed_tolerance_hartree": periodic_endpoint_tolerance_hartree,
+            }
             sorted_e[-1] = sorted_e[0]
 
         spline = CubicSpline(angles_rad, sorted_e, bc_type="periodic")
@@ -292,43 +335,36 @@ def fit_continuous_splines(
     minima = [p for p in stationary_points if p["type"] == "MINIMUM"]
     maxima = [p for p in stationary_points if p["type"] == "MAXIMUM"]
 
-    # Identify global minimum
-    if minima:
-        global_min = min(minima, key=lambda p: float(p["energy_hartree"]))
-    elif stationary_points:
-        global_min = min(stationary_points, key=lambda p: float(p["energy_hartree"]))
-    else:
-        # Fallback to discrete minimum point
-        min_idx = int(np.argmin(sorted_e))
-        global_min = {
-            "angle_deg": float(sorted_deg[min_idx]),
-            "angle_rad": float(angles_rad[min_idx]),
-            "energy_hartree": float(sorted_e[min_idx]),
-            "energy_kcal_mol": float(sorted_e[min_idx] * HARTREE_TO_KCAL_MOL),
-            "energy_cm1": float(sorted_e[min_idx] * HARTREE_TO_CM1),
-            "curvature": 1.0,
-            "type": "MINIMUM",
-        }
+    # Retain sampled evidence separately; it is not a characterized stationary minimum.
+    global_min = (
+        min(minima, key=lambda p: float(p["energy_hartree"])) if minima else None
+    )
+    min_idx = int(np.argmin(sorted_e))
+    sampled_min = {
+        "angle_deg": float(sorted_deg[min_idx]),
+        "angle_rad": float(angles_rad[min_idx]),
+        "energy_hartree": float(sorted_e[min_idx]),
+        "type": "SAMPLED_POINT",
+    }
 
     # Relative energies relative to global minimum
-    e_ref = float(global_min["energy_hartree"])
+    e_ref = float((global_min or sampled_min)["energy_hartree"])
     for p in stationary_points:
         p["rel_energy_hartree"] = p["energy_hartree"] - e_ref
         p["rel_energy_kcal_mol"] = p["rel_energy_hartree"] * HARTREE_TO_KCAL_MOL
         p["rel_energy_cm1"] = p["rel_energy_hartree"] * HARTREE_TO_CM1
 
-    if maxima:
+    if maxima and global_min is not None:
         max_barrier_kcal = float(max(p["rel_energy_kcal_mol"] for p in maxima))
         max_barrier_cm1 = float(max(p["rel_energy_cm1"] for p in maxima))
     else:
-        # Difference between highest and lowest sampled point
-        delta_e = float(np.max(sorted_e)) - float(np.min(sorted_e))
-        max_barrier_kcal = float(delta_e * HARTREE_TO_KCAL_MOL)
-        max_barrier_cm1 = float(delta_e * HARTREE_TO_CM1)
+        max_barrier_kcal = None
+        max_barrier_cm1 = None
+    sampled_span = float(np.max(sorted_e) - np.min(sorted_e))
 
     logger.info(
         "1D Spline fitted: %d stationary points (%d minima, %d maxima, "
-        "max barrier = %.2f kcal/mol)",
+        "characterized stationary energy span = %s kcal/mol)",
         len(stationary_points),
         len(minima),
         len(maxima),
@@ -339,12 +375,25 @@ def fit_continuous_splines(
         "spline": spline,
         "stationary_points": stationary_points,
         "global_minimum": global_min,
+        "sampled_minimum": sampled_min,
+        "sampled_energy_span_hartree": sampled_span,
+        "relative_energy_reference": "characterized_minimum"
+        if global_min
+        else "sampled_minimum",
+        "quality_flags": [
+            "interpolated_surface",
+            "stationary_search_completeness_unverified",
+            "transition_connectivity_unverified",
+        ],
         "minima": minima,
         "maxima": maxima,
         "max_barrier_kcal_mol": max_barrier_kcal,
         "max_barrier_cm1": max_barrier_cm1,
         "angles_deg": sorted_deg,
         "energies_hartree": sorted_e,
+        "input_angles_deg": raw_angles.copy(),
+        "input_energies_hartree": raw_energies.copy(),
+        "endpoint_closure": endpoint_closure,
     }
 
 
@@ -371,9 +420,20 @@ def fit_continuous_2d_splines(
              minima, saddles, maxima, and global minimum.
     :raises ValueError: If dimensions are mismatched or fewer than 4x4 points.
     """
+    if any(
+        np.iscomplexobj(values)
+        for values in (angles_deg_1, angles_deg_2, energies_hartree)
+    ):
+        raise ValueError("Spline angles and energies must be real, not complex")
     deg1 = np.asarray(angles_deg_1, dtype=np.float64)
     deg2 = np.asarray(angles_deg_2, dtype=np.float64)
     energies = np.asarray(energies_hartree, dtype=np.float64)
+    if (
+        deg1.ndim != 1
+        or deg2.ndim != 1
+        or not all(np.isfinite(values).all() for values in (deg1, deg2, energies))
+    ):
+        raise ValueError("Spline angles and energies must be finite arrays")
 
     if energies.shape != (len(deg1), len(deg2)):
         raise ValueError(
@@ -407,27 +467,44 @@ def fit_continuous_2d_splines(
 
     found_roots: list[tuple[float, float]] = []
 
-    def norm_grad(coords: np.ndarray) -> float:
-        r1, r2 = coords[0], coords[1]
-        g1 = float(spline_2d(r1, r2, dx=1, dy=0)[0, 0])
-        g2 = float(spline_2d(r1, r2, dx=0, dy=1)[0, 0])
-        return float(g1**2 + g2**2)
+    energy_scale = float(np.ptp(energies))
 
-    for r1_init in test_r1:
-        for r2_init in test_r2:
-            res_opt = minimize(
-                norm_grad,
-                x0=np.array([r1_init, r2_init]),
-                bounds=[(rad1[0], rad1[-1]), (rad2[0], rad2[-1])],
-                method="L-BFGS-B",
-                tol=1e-8,
+    def gradient(coords):
+        r1, r2 = coords
+        return (
+            np.array(
+                [
+                    float(spline_2d(r1, r2, dx=1, dy=0)[0, 0]),
+                    float(spline_2d(r1, r2, dx=0, dy=1)[0, 0]),
+                ]
             )
-            if res_opt.success and res_opt.fun < 1e-6:
-                r1_opt, r2_opt = float(res_opt.x[0]), float(res_opt.x[1])
-                # Check uniqueness within 0.05 rad
+            / energy_scale
+        )
+
+    def gradient_jacobian(coords):
+        r1, r2 = coords
+        h11 = float(spline_2d(r1, r2, dx=2, dy=0)[0, 0])
+        h12 = float(spline_2d(r1, r2, dx=1, dy=1)[0, 0])
+        h22 = float(spline_2d(r1, r2, dx=0, dy=2)[0, 0])
+        return np.array([[h11, h12], [h12, h22]]) / energy_scale
+
+    # A flat sampled surface has no isolated stationary points to characterize.
+    if energy_scale > 0:
+        for r1_init in test_r1:
+            for r2_init in test_r2:
+                solved = root(gradient, [r1_init, r2_init], jac=gradient_jacobian)
+                if not solved.success or not np.isfinite(solved.x).all():
+                    continue
+                r1_opt, r2_opt = map(float, solved.x)
+                if not (
+                    rad1[0] <= r1_opt <= rad1[-1] and rad2[0] <= r2_opt <= rad2[-1]
+                ):
+                    continue
+                if np.linalg.norm(gradient(solved.x)) > 1e-8:
+                    continue
                 if not any(
-                    math.hypot(r1_opt - fr[0], r2_opt - fr[1]) < 0.05
-                    for fr in found_roots
+                    math.hypot(r1_opt - old1, r2_opt - old2) < 0.05
+                    for old1, old2 in found_roots
                 ):
                     found_roots.append((r1_opt, r2_opt))
 
@@ -474,44 +551,35 @@ def fit_continuous_2d_splines(
     saddles_2d = [p for p in stationary_points_2d if p["type"] == "SADDLE"]
     maxima_2d = [p for p in stationary_points_2d if p["type"] == "MAXIMUM"]
 
-    if minima_2d:
-        global_min_2d = min(minima_2d, key=lambda p: float(p["energy_hartree"]))
-    elif stationary_points_2d:
-        global_min_2d = min(
-            stationary_points_2d, key=lambda p: float(p["energy_hartree"])
-        )
-    else:
-        min_idx = np.unravel_index(np.argmin(energies), energies.shape)
-        global_min_2d = {
-            "angles_deg": (float(deg1[min_idx[0]]), float(deg2[min_idx[1]])),
-            "angles_rad": (float(rad1[min_idx[0]]), float(rad2[min_idx[1]])),
-            "energy_hartree": float(energies[min_idx]),
-            "energy_kcal_mol": float(energies[min_idx] * HARTREE_TO_KCAL_MOL),
-            "energy_cm1": float(energies[min_idx] * HARTREE_TO_CM1),
-            "hessian_eigenvalues": (1.0, 1.0),
-            "type": "MINIMUM",
-        }
-
-    e_ref_2d = float(global_min_2d["energy_hartree"])
+    global_min_2d = (
+        min(minima_2d, key=lambda p: float(p["energy_hartree"])) if minima_2d else None
+    )
+    min_idx = np.unravel_index(np.argmin(energies), energies.shape)
+    sampled_min_2d = {
+        "angles_deg": (float(deg1[min_idx[0]]), float(deg2[min_idx[1]])),
+        "angles_rad": (float(rad1[min_idx[0]]), float(rad2[min_idx[1]])),
+        "energy_hartree": float(energies[min_idx]),
+        "type": "SAMPLED_POINT",
+    }
+    e_ref_2d = float((global_min_2d or sampled_min_2d)["energy_hartree"])
     for p in stationary_points_2d:
         p["rel_energy_hartree"] = p["energy_hartree"] - e_ref_2d
         p["rel_energy_kcal_mol"] = p["rel_energy_hartree"] * HARTREE_TO_KCAL_MOL
         p["rel_energy_cm1"] = p["rel_energy_hartree"] * HARTREE_TO_CM1
 
-    if saddles_2d:
+    if saddles_2d and global_min_2d is not None:
         barrier_2d_kcal = float(max(p["rel_energy_kcal_mol"] for p in saddles_2d))
         barrier_2d_cm1 = float(max(p["rel_energy_cm1"] for p in saddles_2d))
-    elif maxima_2d:
+    elif maxima_2d and global_min_2d is not None:
         barrier_2d_kcal = float(max(p["rel_energy_kcal_mol"] for p in maxima_2d))
         barrier_2d_cm1 = float(max(p["rel_energy_cm1"] for p in maxima_2d))
     else:
-        delta_2d = float(np.max(energies)) - float(np.min(energies))
-        barrier_2d_kcal = float(delta_2d * HARTREE_TO_KCAL_MOL)
-        barrier_2d_cm1 = float(delta_2d * HARTREE_TO_CM1)
+        barrier_2d_kcal = None
+        barrier_2d_cm1 = None
 
     logger.info(
         "2D Spline fitted: %d stationary points (%d minima, %d saddles, "
-        "%d maxima, max barrier = %.2f kcal/mol)",
+        "%d maxima, characterized stationary energy span = %s kcal/mol)",
         len(stationary_points_2d),
         len(minima_2d),
         len(saddles_2d),
@@ -523,6 +591,16 @@ def fit_continuous_2d_splines(
         "spline": spline_2d,
         "stationary_points": stationary_points_2d,
         "global_minimum": global_min_2d,
+        "sampled_minimum": sampled_min_2d,
+        "sampled_energy_span_hartree": float(np.ptp(energies)),
+        "relative_energy_reference": "characterized_minimum"
+        if global_min_2d
+        else "sampled_minimum",
+        "quality_flags": [
+            "interpolated_surface",
+            "stationary_search_completeness_unverified",
+            "transition_connectivity_unverified",
+        ],
         "minima": minima_2d,
         "saddles": saddles_2d,
         "maxima": maxima_2d,
@@ -559,13 +637,27 @@ def wkb_tunneling_estimator(
     is_light_rotor = any(group in clean_rotor for group in LIGHT_ROTOR_PATTERNS)
 
     if potential_model != "cosine":
-        raise ValueError("WKB requires the explicitly selected cosine-potential approximation; no potential shape is inferred.")
-    if reduced_moment_inertia_amu_ang2 is None or not math.isfinite(reduced_moment_inertia_amu_ang2) or reduced_moment_inertia_amu_ang2 <= 0:
-        raise ValueError("A finite positive, independently justified reduced inertia is required.")
+        raise ValueError(
+            "WKB requires the explicitly selected cosine-potential approximation; "
+            "no potential shape is inferred."
+        )
+    if (
+        reduced_moment_inertia_amu_ang2 is None
+        or not math.isfinite(reduced_moment_inertia_amu_ang2)
+        or reduced_moment_inertia_amu_ang2 <= 0
+    ):
+        raise ValueError(
+            "A finite positive, independently justified reduced inertia is required."
+        )
     if type(periodicity) is not int or periodicity < 1:
-        raise ValueError("A positive integer potential periodicity must be specified explicitly.")
+        raise ValueError(
+            "A positive integer potential periodicity must be specified explicitly."
+        )
     if not math.isfinite(barrier_height_cm1) or barrier_height_cm1 <= 0:
-        raise ValueError("Below-barrier WKB requires a finite positive barrier; free rotation needs another model.")
+        raise ValueError(
+            "Below-barrier WKB requires a finite positive barrier; "
+            "free rotation needs another model."
+        )
     eff_inertia = float(reduced_moment_inertia_amu_ang2)
 
     # Moment of inertia in SI units: kg * m^2
@@ -578,19 +670,27 @@ def wkb_tunneling_estimator(
     omega_0 = float(periodicity) * math.sqrt(v0_joules / (2.0 * i_red_si))
     e0_joules = 0.5 * PLANCK_HBAR_SI * omega_0
     if e0_joules >= v0_joules:
-        raise ValueError("Estimated ground-state energy is above the barrier; below-barrier WKB is inapplicable.")
+        raise ValueError(
+            "Estimated ground-state energy is above the barrier; "
+            "below-barrier WKB is inapplicable."
+        )
     turning_1 = math.acos(1.0 - 2.0 * e0_joules / v0_joules) / periodicity
     turning_2 = 2.0 * math.pi / periodicity - turning_1
     action = evaluate_wkb_action_integral(
         lambda theta: 0.5 * v0_joules * (1.0 - math.cos(periodicity * theta)),
-        e0_joules, turning_1, turning_2, i_red_si,
+        e0_joules,
+        turning_1,
+        turning_2,
+        i_red_si,
     )
     tunneling_probability = math.exp(-2.0 * action)
     # Isolated symmetric two-well estimate DeltaE=(hbar*omega/pi)*exp(-S).
     # It is not a periodic-rotor A/E splitting or a spin-statistical assignment.
     splitting_energy = PLANCK_HBAR_SI * omega_0 / math.pi * math.exp(-action)
     tunneling_splitting_mhz = splitting_energy / (2 * math.pi * PLANCK_HBAR_SI) / 1e6
-    quantum_required = True  # A qualified nuclear-motion solver must validate this estimate.
+    quantum_required = (
+        True  # A qualified nuclear-motion solver must validate this estimate.
+    )
 
     logger.info(
         "WKB tunneling estimate for %s: barrier=%.1f cm^-1, P_tunnel=%.2e, "
@@ -611,7 +711,11 @@ def wkb_tunneling_estimator(
         "tunneling_splitting_mhz": tunneling_splitting_mhz,
         "quantum_treatment_required": quantum_required,
         "model": "cosine_potential_symmetric_two_well_wkb_estimate",
-        "quality_flags": ["harmonic_local_ground_energy", "not_periodic_rotor_A_E_splitting", "uncalibrated"],
+        "quality_flags": [
+            "harmonic_local_ground_energy",
+            "not_periodic_rotor_A_E_splitting",
+            "uncalibrated",
+        ],
         "log_tunneling_probability": -2.0 * action,
     }
 
@@ -636,10 +740,20 @@ def evaluate_wkb_action_integral(
     :return: Dimensionless WKB action integral S.
     """
 
-    if not all(math.isfinite(value) for value in (energy_joules, theta_turning_1_rad, theta_turning_2_rad, reduced_moment_inertia_kg_m2)):
+    if not all(
+        math.isfinite(value)
+        for value in (
+            energy_joules,
+            theta_turning_1_rad,
+            theta_turning_2_rad,
+            reduced_moment_inertia_kg_m2,
+        )
+    ):
         raise ValueError("WKB action inputs must be finite.")
     if reduced_moment_inertia_kg_m2 <= 0 or theta_turning_2_rad <= theta_turning_1_rad:
-        raise ValueError("WKB action requires positive inertia and an ordered forbidden interval.")
+        raise ValueError(
+            "WKB action requires positive inertia and an ordered forbidden interval."
+        )
 
     def integrand(theta: float) -> float:
         v_val = potential_func(theta)
@@ -647,7 +761,9 @@ def evaluate_wkb_action_integral(
             raise ValueError("The potential returned a nonfinite energy.")
         delta = v_val - energy_joules
         if delta < 0:
-            raise ValueError("The supplied interval includes a classically allowed region.")
+            raise ValueError(
+                "The supplied interval includes a classically allowed region."
+            )
         return math.sqrt(2.0 * reduced_moment_inertia_kg_m2 * delta)
 
     integral_val, _ = quad(
@@ -675,5 +791,3 @@ __all__ = [
     "evaluate_wkb_action_integral",
     "get_dynamic_reduced_inertia",
 ]
-
-

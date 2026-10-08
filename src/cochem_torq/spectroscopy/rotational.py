@@ -10,15 +10,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from math import exp, factorial, isfinite, pi, sqrt
+from math import exp, factorial, isfinite, sqrt
 from typing import Any
 
 import numpy as np
-from scipy.constants import c, epsilon_0, h, k
 
+from ..units import DEBYE_COULOMB_METRE, c, epsilon_0, h, k, pi
 from .harmonic import EquilibriumRotor, finite_array
-
-DEBYE_COULOMB_METRE = 3.33564e-30
 
 
 @dataclass(frozen=True)

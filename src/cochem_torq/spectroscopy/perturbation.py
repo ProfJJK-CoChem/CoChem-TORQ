@@ -119,6 +119,12 @@ def analyze_resonances(
     coupling_to_detuning_threshold: float = 0.1,
     coupling_floor_cm1: float = 1e-6,
 ) -> tuple[Resonance, ...]:
+    """Return near-degeneracy candidates and strong-coupling diagnostics.
+
+    A large single-mode cubic matrix element is an applicability diagnostic,
+    not evidence of a Fermi or Darling–Dennison resonance. Thresholds are
+    explicit conservative protocol choices, not a calibrated accuracy bound.
+    """
     count = _check(force_field)
     if not all(
         isfinite(x) and x > 0
@@ -188,9 +194,11 @@ def vibrational_vpt2(
 
     Quartic first order and cubic second order are retained; quartic second order
     and cubic higher orders would exceed this perturbative Hamiltonian order.
-    Resonances stop this routine and may be handled by an explicitly supplied
-    polyad. Returned frequencies remain exploratory until independent molecular
-    reference qualification has passed.
+    Near-degeneracy candidates stop this routine and may be handled by an
+    explicitly supplied polyad. Strong nondegenerate couplings separately stop
+    it at the configured perturbative applicability gate; a perturbative polyad
+    alone is not proof that such a model is valid. Returned frequencies remain
+    exploratory until independent molecular reference qualification has passed.
     """
     count = _check(force_field)
     states = _targets(count)
@@ -201,6 +209,15 @@ def vibrational_vpt2(
         coupling_to_detuning_threshold=coupling_to_detuning_threshold,
     )
     if resonances:
+        strong = sum(item.kind == "strong_anharmonic_coupling" for item in resonances)
+        if strong:
+            raise ValueError(
+                f"Detected {strong} strong anharmonic coupling diagnostic(s) "
+                "that exceed the configured perturbative applicability gate; "
+                "independent nonperturbative validation or an explicitly "
+                "validated treatment is required. "
+                f"Additional resonance candidate(s): {len(resonances) - strong}."
+            )
         raise ValueError(
             f"Detected {len(resonances)} resonance(s); "
             "explicit polyad treatment required."

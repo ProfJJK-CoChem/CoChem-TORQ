@@ -16,18 +16,12 @@ No synthetic test doubles or unit-test mocking frameworks are utilized.
 
 from __future__ import annotations
 
-import datetime
-import json
 import os
-import signal
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
-from typing import List
 
-from mendeleev import element as mendeleev_element
 import psutil
 import pytest
 from pydantic import ValidationError
@@ -35,10 +29,7 @@ from pydantic import ValidationError
 from Libraries.cochem_torq_watchdog import (
     AirGapViolationError,
     CudaGuardResult,
-    CudaLeakGuardError,
     FailureMode,
-    MemoryBackoffError,
-    MemoryBackoffResult,
     ProcessTeardownError,
     ProcessTelemetry,
     RecoveryAction,
@@ -48,8 +39,6 @@ from Libraries.cochem_torq_watchdog import (
     StepBackResult,
     TorqWatchdogDaemon,
     WatchdogConfig,
-    WatchdogError,
-    WatchdogStatus,
     collect_process_telemetry,
     cuda_memory_leak_guard,
     dynamic_memory_backoff,
@@ -70,16 +59,69 @@ from Libraries.cochem_torq_watchdog import (
 )
 
 
+@pytest.fixture(scope="module")
+def real_scf_logs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
+    """Retain unedited output from genuinely converged and failed PySCF calculations.
+
+    These runs qualify generic log monitoring. They do not validate ORCA input
+    syntax, engine recovery, or the changed scientific grid in a restart draft.
+    """
+    directory = tmp_path_factory.mktemp("actual_watchdog_pyscf")
+    logs = {}
+    for name, atom, max_cycle, expected in (
+        ("failed", "O 0 0 0; H 0 0 0.96; H 0.93 0 -0.24", 1, False),
+        ("converged", "H 0 0 0; H 0 0 0.74", 50, True),
+    ):
+        path = directory / f"{name}.out"
+        script = (
+            "from pyscf import gto, scf, lib\n"
+            "lib.num_threads(1)\n"
+            f"mol = gto.M(atom={atom!r}, basis='sto-3g', verbose=4)\n"
+            "method = scf.RHF(mol)\n"
+            f"method.max_cycle = {max_cycle}\n"
+            "method.kernel()\n"
+            f"assert method.converged is {expected!r}\n"
+        )
+        with path.open("w", encoding="utf-8") as stream:
+            subprocess.run(
+                [sys.executable, "-c", script],
+                stdout=stream,
+                stderr=subprocess.STDOUT,
+                check=True,
+                timeout=45,
+            )
+        logs[name] = path
+    assert scan_log_for_scf_failure(logs["failed"].read_text())[0]
+    assert not scan_log_for_scf_failure(logs["converged"].read_text())[0]
+    return logs
+
+
+@pytest.fixture
+def owned_worker():
+    """Start a genuine idle OS child for bounded process lifecycle tests."""
+    process = subprocess.Popen(
+        [sys.executable, "-c", "import threading; threading.Event().wait()"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        yield process
+    finally:
+        if process.poll() is None:
+            process.terminate()
+        process.wait(timeout=5)
+
+
 # =============================================================================
 # 1. Mendeleev Dynamic Periodic Table Property Tests
 # =============================================================================
 
 
 class TestMendeleevDynamicProperties:
-    """Authentic physical tests for dynamic atomic and isotopic retrieval via Mendeleev."""
+    """Actual Mendeleev atomic and isotope database lookups."""
 
     def test_dynamic_atomic_weights(self) -> None:
-        """Verify dynamic retrieval of standard atomic weights without hardcoded tables."""
+        """Retrieve tabulated standard atomic weights from Mendeleev."""
         h_mass = get_atomic_mass("H")
         c_mass = get_atomic_mass("C")
         n_mass = get_atomic_mass("N")
@@ -96,7 +138,19 @@ class TestMendeleevDynamicProperties:
 
     def test_dynamic_atomic_weights_extended_series(self) -> None:
         """Verify dynamic atomic weight lookup for main group and transition metals."""
-        elements_to_verify = ["Si", "P", "S", "Cl", "Br", "I", "Cu", "Ag", "Au", "Pb", "Bi"]
+        elements_to_verify = [
+            "Si",
+            "P",
+            "S",
+            "Cl",
+            "Br",
+            "I",
+            "Cu",
+            "Ag",
+            "Au",
+            "Pb",
+            "Bi",
+        ]
         for sym in elements_to_verify:
             mass = get_atomic_mass(sym)
             assert mass > 0.0
@@ -141,20 +195,23 @@ class TestTripartiteAirGapCompliance:
     """Rigorous verification of Tripartite Filesystem Air-Gap protection."""
 
     def test_repo_root_discovery(self) -> None:
-        """Verify that get_repo_root discovers the repository root containing pyproject.toml."""
+        """Locate the repository root and its project metadata."""
         repo_root = get_repo_root()
         assert repo_root.is_dir()
         assert (repo_root / "pyproject.toml").is_file() or (repo_root / ".git").exists()
 
     def test_airgap_scratch_and_artifacts_directories(self) -> None:
-        """Verify scratch and artifacts directories resolve to valid non-repo locations."""
+        """Resolve scratch and artifacts directories outside the repository."""
         scratch = get_scratch_dir()
         artifacts = get_artifacts_dir()
         assert scratch.is_dir()
         assert artifacts.is_dir()
 
     def test_airgap_violation_raised_for_repo_write(self) -> None:
-        """Verify AirGapViolationError is raised if attempting a runtime write inside Domain A."""
+        """
+        Verify AirGapViolationError is raised if attempting a runtime write inside
+        Domain A.
+        """
         repo_root = get_repo_root()
         illegal_target = repo_root / "Libraries" / "runtime_leak.tmp"
 
@@ -171,7 +228,7 @@ class TestTripartiteAirGapCompliance:
         assert validated == valid_target.resolve()
 
     def test_step_back_airgap_enforcement(self, tmp_path: Path) -> None:
-        """Verify execute_grid_collapse_step_back rejects illegal scratch paths in repo root."""
+        """Reject recovery draft writes inside the source repository."""
         repo_root = get_repo_root()
         illegal_scratch = repo_root / "Libraries"
 
@@ -192,7 +249,9 @@ class TestTripartiteAirGapCompliance:
         illegal_scratch = repo_root / "tests"
 
         input_file = tmp_path / "test.inp"
-        input_file.write_text("%maxcore 2000\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8")
+        input_file.write_text(
+            "%maxcore 2000\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8"
+        )
 
         with pytest.raises(AirGapViolationError):
             dynamic_memory_backoff(
@@ -210,7 +269,7 @@ class TestTripartiteAirGapCompliance:
 
 
 class TestWatchdogDataModels:
-    """Verify validation constraints, defaults, and immutability across Pydantic models."""
+    """Validate configuration and result schemas."""
 
     def test_default_watchdog_config(self) -> None:
         """Verify scientific and operational defaults for WatchdogConfig."""
@@ -272,7 +331,10 @@ class TestWatchdogDataModels:
         assert len(event.event_id) > 10
 
     def test_pydantic_json_roundtrip_all_models(self) -> None:
-        """Verify JSON round-trip serialization and deserialization across all watchdog models."""
+        """
+        Verify JSON round-trip serialization and deserialization across all
+        watchdog models.
+        """
         config = WatchdogConfig()
         config_json = config.model_dump_json()
         assert WatchdogConfig.model_validate_json(config_json) == config
@@ -308,21 +370,28 @@ class TestWatchdogDataModels:
 
 
 class TestProcessTreeTeardown:
-    """Authentic physical tests spawning and terminating multi-level OS process trees."""
+    """Start and stop real operating-system process trees."""
 
     def test_safe_process_tree_teardown_multi_tier(self) -> None:
-        """Spawn a real 2-tier process hierarchy and verify complete recursive termination."""
+        """Stop a real parent and child while allowing their OS parents to reap."""
         spawn_script = (
-            "import subprocess, sys\n"
-            "child = subprocess.Popen([sys.executable, '-c', 'from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles(\"C\"*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]'])\n"
-            "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]\n"
+            "import signal, subprocess, sys, threading\n"
+            "child = subprocess.Popen([sys.executable, '-c', "
+            "'import threading; threading.Event().wait()'])\n"
+            "def stop(signum, frame):\n"
+            "    child.wait(timeout=5)\n"
+            "    sys.exit(0)\n"
+            "signal.signal(signal.SIGTERM, stop)\n"
+            "print(child.pid, flush=True)\n"
+            "threading.Event().wait()\n"
         )
-
         parent_proc = subprocess.Popen(
             [sys.executable, "-c", spawn_script],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
         )
+        assert int(parent_proc.stdout.readline()) > 0
 
         time.sleep(1.0)
         parent_pid = parent_proc.pid
@@ -351,6 +420,33 @@ class TestProcessTreeTeardown:
         """Verify zombie MPI reaper executes cleanly without errors."""
         reaped = zombie_mpi_reaper()
         assert isinstance(reaped, list)
+
+    def test_teardown_refuses_the_callers_own_pid(self):
+        with pytest.raises(ProcessTeardownError, match="outside"):
+            safe_process_tree_teardown(os.getpid())
+        with pytest.raises(ProcessTeardownError, match="outside"):
+            zombie_mpi_reaper(os.getpid())
+
+    def test_missing_process_measurements_remain_unknown(self):
+        child = subprocess.Popen([sys.executable, "-c", "pass"])
+        child.wait(timeout=5)
+        telemetry = collect_process_telemetry(child.pid)
+        assert telemetry.is_running is False
+        assert telemetry.ram_used_bytes is None
+        assert telemetry.cpu_percent is None
+        assert telemetry.num_threads is None
+        assert telemetry.measurement_status["ram_used_bytes"] == "not_measured"
+        assert telemetry.measurement_reasons["ram_used_bytes"]
+
+    def test_unavailable_gpu_never_becomes_a_zero_usage_measurement(self):
+        telemetry = collect_process_telemetry(os.getpid())
+        if telemetry.measurement_status["vram_used_bytes"] == "observed":
+            assert telemetry.vram_used_bytes >= 0
+            assert telemetry.gpu_measurement_scope
+        else:
+            assert telemetry.vram_used_bytes is None
+            assert telemetry.vram_percent is None
+            assert telemetry.measurement_reasons["vram_used_bytes"]
 
 
 # =============================================================================
@@ -400,7 +496,9 @@ class TestTelemetryAndLogScanner:
 
     def test_scan_log_detects_oom_failure(self) -> None:
         """Verify scanner isolates host Out-Of-Memory failure message."""
-        log_snippet = "Fatal error: OUT OF MEMORY during correlation matrix diagonalization."
+        log_snippet = (
+            "Fatal error: OUT OF MEMORY during correlation matrix diagonalization."
+        )
         has_failed, mode, desc = scan_log_for_scf_failure(log_snippet)
         assert has_failed is True
         assert mode == FailureMode.RAM_EXHAUSTION
@@ -421,7 +519,9 @@ class TestTelemetryAndLogScanner:
     def test_tail_log_file_operation(self, tmp_path: Path) -> None:
         """Verify physical tailing of execution log files."""
         log_file = tmp_path / "quantum_engine.out"
-        lines = [f"Line {i}: Calculating density matrix block {i}..." for i in range(1, 51)]
+        lines = [
+            f"Line {i}: Calculating density matrix block {i}..." for i in range(1, 51)
+        ]
         log_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
         tailed = tail_log_file(log_file, n_lines=10)
@@ -452,10 +552,18 @@ class TestTelemetryAndLogScanner:
 
 
 class TestGridCollapseStepBack:
-    """Authentic physical tests for autonomous torsional grid widening and input rewrite."""
+    """Generate explicit recovery drafts without claiming engine qualification."""
 
-    def test_execute_grid_collapse_step_back_success(self, tmp_path: Path) -> None:
-        """Verify step-back guard shifts grid angle by 3.0 degrees and injects SlowConv and SOSCF."""
+    def test_execute_grid_collapse_step_back_success(
+        self,
+        tmp_path: Path,
+        real_scf_logs,
+        owned_worker,
+    ) -> None:
+        """
+        Verify step-back guard shifts grid angle by 3.0 degrees and injects
+        SlowConv and SOSCF.
+        """
         scratch_dir = tmp_path / "scratch_space"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
@@ -476,18 +584,8 @@ class TestGridCollapseStepBack:
         )
         input_file.write_text(initial_input, encoding="utf-8")
 
-        log_file = tmp_path / "ethanol_scan.out"
-        orca_fail_input = tmp_path / "orca_fail.inp"
-        orca_fail_input.write_text("! RHF STO-3G\n%scf MaxIter 1 end\n* xyz 0 1\nH 0 0 0\nH 0 0 2\n*\n", encoding="utf-8")
-        with open(log_file, "w") as f:
-            subprocess.run(["orca", str(orca_fail_input)], stdout=f)
-
-        worker = subprocess.Popen(
-            [sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        worker_pid = worker.pid
+        log_file = real_scf_logs["failed"]
+        worker_pid = owned_worker.pid
 
         result = execute_grid_collapse_step_back(
             engine_pid=worker_pid,
@@ -519,7 +617,9 @@ class TestGridCollapseStepBack:
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
         input_file = tmp_path / "butane_scan.inp"
-        input_file.write_text("! PBE0 def2-SVP\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8")
+        input_file.write_text(
+            "! PBE0 def2-SVP\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8"
+        )
 
         result = execute_grid_collapse_step_back(
             engine_pid=None,
@@ -533,15 +633,20 @@ class TestGridCollapseStepBack:
         assert result.new_grid_angle_deg == 65.5
 
     def test_step_back_with_linear_dependence_log(self, tmp_path: Path) -> None:
-        """Verify step-back detects linear dependence from log and tags event accordingly."""
+        """Parse the specified linear-dependence diagnostic into its event."""
         scratch_dir = tmp_path / "scratch_ld"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
         input_file = tmp_path / "dimer.inp"
-        input_file.write_text("! wB97X-D4 def2-QZVPP\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8")
+        input_file.write_text(
+            "! wB97X-D4 def2-QZVPP\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8"
+        )
 
         log_file = tmp_path / "dimer.out"
-        log_file.write_text("OVERLAP MATRIX ILL-CONDITIONED: NEAR LINEAR DEPENDENCE DETECTED\n", encoding="utf-8")
+        log_file.write_text(
+            "OVERLAP MATRIX ILL-CONDITIONED: NEAR LINEAR DEPENDENCE DETECTED\n",
+            encoding="utf-8",
+        )
 
         result = execute_grid_collapse_step_back(
             engine_pid=None,
@@ -572,10 +677,16 @@ class TestGridCollapseStepBack:
 
 
 class TestDynamicMemoryBackoff:
-    """Authentic physical tests for %maxcore scaling, scratch sanitization, and input update."""
+    """
+    Authentic physical tests for %maxcore scaling, scratch sanitization, and input
+    update.
+    """
 
     def test_scratch_matrix_purging(self, tmp_path: Path) -> None:
-        """Verify purge_bloated_scratch_matrices removes .tmp and .mat files and returns byte metrics."""
+        """
+        Verify purge_bloated_scratch_matrices removes .tmp and .mat files and
+        returns byte metrics.
+        """
         scratch_dir = tmp_path / "orca_scratch"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
@@ -586,7 +697,7 @@ class TestDynamicMemoryBackoff:
 
         tmp_file_1.write_bytes(b"A" * 1024 * 100)  # 100 KB
         tmp_file_2.write_bytes(b"B" * 1024 * 200)  # 200 KB
-        tmp_file_3.write_bytes(b"C" * 1024 * 50)   # 50 KB
+        tmp_file_3.write_bytes(b"C" * 1024 * 50)  # 50 KB
         persistent_file.write_text("3\nTitle\nC 0 0 0\n", encoding="utf-8")
 
         purged_files, purged_bytes = purge_bloated_scratch_matrices(scratch_dir)
@@ -599,7 +710,7 @@ class TestDynamicMemoryBackoff:
         assert persistent_file.exists()
 
     def test_dynamic_memory_backoff_execution(self, tmp_path: Path) -> None:
-        """Verify dynamic memory backoff reduces maxcore by 30% and sanitizes scratch space."""
+        """Reduce the memory draft allocation and remove scoped scratch files."""
         scratch_dir = tmp_path / "orca_tmp"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
@@ -608,16 +719,22 @@ class TestDynamicMemoryBackoff:
 
         input_file = tmp_path / "heavy_dlpno.inp"
         initial_input = (
-            "! DLPNO-CCSD(T) def2-TZVP\n"
-            "%maxcore 4000\n"
-            "* xyz 0 1\n"
-            "C 0.0 0.0 0.0\n"
-            "*\n"
+            "! DLPNO-CCSD(T) def2-TZVP\n%maxcore 4000\n* xyz 0 1\nC 0.0 0.0 0.0\n*\n"
         )
         input_file.write_text(initial_input, encoding="utf-8")
 
         worker = subprocess.Popen(
-            [sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"],
+            [
+                sys.executable,
+                "-c",
+                (
+                    "from rdkit import Chem; from rdkit.Chem import "
+                    "AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); "
+                    "AllChem.EmbedMolecule(m); "
+                    "[AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for "
+                    "_ in range(500)]"
+                ),
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -665,13 +782,20 @@ class TestDynamicMemoryBackoff:
         # 600 * 0.7 = 420 -> floored to min_maxcore_mb 500
         assert result.new_maxcore_mb == 500
 
-    def test_dynamic_memory_backoff_no_action_when_ram_healthy(self, tmp_path: Path) -> None:
-        """Verify memory backoff returns success=False without modifying files when RAM is below threshold."""
+    def test_dynamic_memory_backoff_no_action_when_ram_healthy(
+        self, tmp_path: Path
+    ) -> None:
+        """
+        Verify memory backoff returns success=False without modifying files when
+        RAM is below threshold.
+        """
         scratch_dir = tmp_path / "scratch_healthy"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
         input_file = tmp_path / "healthy.inp"
-        input_file.write_text("%maxcore 3000\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8")
+        input_file.write_text(
+            "%maxcore 3000\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8"
+        )
 
         # Threshold set to 100% RAM -> current system RAM is strictly less than 100%
         result = dynamic_memory_backoff(
@@ -697,19 +821,26 @@ class TestCudaMemoryLeakGuard:
     """Authentic physical tests for GPU VRAM and host garbage collection cleanup."""
 
     def test_cuda_memory_leak_guard_execution(self) -> None:
-        """Verify cuda_memory_leak_guard executes garbage collection and cache clearance."""
+        """Observe real garbage collection and any available CUDA cache cleanup."""
         result = cuda_memory_leak_guard(force_flush=True)
 
         assert isinstance(result, CudaGuardResult)
-        assert result.vram_percent_before >= 0.0
-        assert result.vram_percent_after >= 0.0
-        assert result.freed_bytes >= 0
+        assert result.vram_percent_before is None or result.vram_percent_before >= 0.0
+        assert result.vram_percent_after is None or result.vram_percent_after >= 0.0
+        assert result.freed_bytes is None or result.freed_bytes >= 0
         assert result.gc_collected_count >= 0
         assert result.event is not None
-        assert result.event.action == RecoveryActionType.CUDA_CACHE_CLEAR
+        assert result.event.action == (
+            RecoveryActionType.CUDA_CACHE_CLEAR
+            if result.cupy_freed or result.torch_freed
+            else RecoveryActionType.HOST_GARBAGE_COLLECTION
+        )
 
     def test_cuda_memory_leak_guard_no_flush_below_threshold(self) -> None:
-        """Verify cuda_memory_leak_guard skips cleanup when VRAM is below threshold and force_flush is False."""
+        """
+        Verify cuda_memory_leak_guard skips cleanup when VRAM is below threshold
+        and force_flush is False.
+        """
         # Threshold set to 100% VRAM
         result = cuda_memory_leak_guard(threshold_vram_pct=100.0, force_flush=False)
 
@@ -725,25 +856,27 @@ class TestCudaMemoryLeakGuard:
 class TestTorqWatchdogDaemon:
     """Authentic physical tests for the stateful TorqWatchdogDaemon."""
 
-    def test_daemon_lifecycle_and_stepback_intercept(self, tmp_path: Path) -> None:
-        """Arm daemon, simulate SCF divergence in output log, and verify autonomous step-back intercept."""
+    def test_daemon_lifecycle_and_stepback_intercept(
+        self,
+        tmp_path: Path,
+        real_scf_logs,
+        owned_worker,
+    ) -> None:
+        """
+        Arm daemon, simulate SCF divergence in output log, and verify autonomous
+        step-back intercept.
+        """
         scratch_dir = tmp_path / "daemon_scratch"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
         input_file = tmp_path / "pes_point_01.inp"
-        input_file.write_text("! RHF STO-3G\n%scf MaxIter 1 end\n* xyz 0 1\nH 0 0 0\nH 0 0 2\n*\n", encoding="utf-8")
+        input_file.write_text(
+            "! RHF STO-3G\n%scf MaxIter 1 end\n* xyz 0 1\nH 0 0 0\nH 0 0 2\n*\n",
+            encoding="utf-8",
+        )
 
-        log_file = tmp_path / "pes_point_01.out"
-        with open(log_file, "w") as f:
-            worker = subprocess.Popen(
-                ["orca", str(input_file)],
-                stdout=f,
-                stderr=subprocess.PIPE,
-            )
-        
-        import time
-        time.sleep(2.0)
-        worker_pid = worker.pid
+        log_file = real_scf_logs["failed"]
+        worker_pid = owned_worker.pid
 
         daemon = TorqWatchdogDaemon(
             config=WatchdogConfig(grid_step_shift_deg=3.0),
@@ -768,34 +901,34 @@ class TestTorqWatchdogDaemon:
         assert not psutil.pid_exists(worker_pid)
 
         status = daemon.get_status()
-        assert status.active is True
+        assert status.active is False
         assert status.active_grid_angle_deg == 33.0
-        assert status.restart_count == 1
+        assert status.restart_count == 0
+        assert status.recovery_draft_count == 1
+        assert event.details["engine_validated"] is False
+        assert event.details["requires_new_plan_approval"] is True
         assert len(status.events) == 1
 
         daemon.stop_monitoring()
         assert daemon.is_active is False
 
-    def test_daemon_poll_health_no_event_when_healthy(self, tmp_path: Path) -> None:
-        """Verify daemon returns None when monitoring a healthy process with no log failure."""
+    def test_daemon_poll_health_no_event_when_healthy(
+        self,
+        tmp_path: Path,
+        real_scf_logs,
+        owned_worker,
+    ) -> None:
+        """Return no event for an owned child and an actual converged SCF log."""
         scratch_dir = tmp_path / "daemon_healthy"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
         input_file = tmp_path / "healthy.inp"
-        input_file.write_text("! B3LYP\n%maxcore 2000\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8")
-
-        log_file = tmp_path / "healthy.out"
-        orca_success_input = tmp_path / "orca_succ.inp"
-        orca_success_input.write_text("! RHF STO-3G\n* xyz 0 1\nH 0 0 0\nH 0 0 0.74\n*\n", encoding="utf-8")
-        with open(log_file, "w") as f:
-            subprocess.run(["orca", str(orca_success_input)], stdout=f)
-
-        worker = subprocess.Popen(
-            [sys.executable, "-c", "from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.AddHs(Chem.MolFromSmiles('C'*50)); AllChem.EmbedMolecule(m); [AllChem.MMFFOptimizeMolecule(m, maxIters=1000) for _ in range(500)]"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        input_file.write_text(
+            "! B3LYP\n%maxcore 2000\n* xyz 0 1\nC 0 0 0\n*\n", encoding="utf-8"
         )
-        worker_pid = worker.pid
+
+        log_file = real_scf_logs["converged"]
+        worker_pid = owned_worker.pid
 
         daemon = TorqWatchdogDaemon(
             config=WatchdogConfig(ram_threshold_pct=100.0, vram_threshold_pct=100.0),

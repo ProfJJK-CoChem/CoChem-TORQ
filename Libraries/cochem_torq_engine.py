@@ -570,6 +570,21 @@ class DispatchPayload(BaseModel):
         Serializes this payload into a complete, syntactically valid ORCA 6.1 input deck.
         Handles %pal nprocs conditionally so single-core and Windows non-MPI runs execute safely.
         """
+        is_opt = bool(
+            re.search(
+                r"\b(?:opt(?:ts)?|(?:very)?tightopt|looseopt|copt|l-opt|"
+                r"neb(?:-ts|-ci)?)\b",
+                f"{self.method} {self.extra_options}",
+                flags=re.IGNORECASE,
+            )
+        )
+        if is_opt and (self.counterpoise or self.ghost_atom_indices):
+            raise NotImplementedError(
+                "Counterpoise/ghost-basis optimization requires a separately "
+                "qualified consistently differentiated CP surface. This legacy "
+                "ORCA deck adapter cannot silently remove ghost centers or "
+                "replace the requested physical model."
+            )
         method_parts = []
         if self.method:
             method_parts.append(self.method)
@@ -622,18 +637,12 @@ class DispatchPayload(BaseModel):
         if self.extra_options:
             lines.append(self.extra_options)
 
-        # Coordinate block with ghost atom support (':')
-        # Purge automatic ghosting of atoms from standard geometry optimization (! Opt) decks
-        is_opt = (
-            "opt" in self.extra_options.lower()
-            or "opt" in self.method.lower()
-            or any("opt" in line_text.lower() for line_text in lines)
-        )
+        # Single-point ghost basis centers retain their requested identities.
         lines.append(f"* xyz {self.charge} {self.multiplicity}")
         for idx, (sym, (x, y, z)) in enumerate(
             zip(self.symbols, self.coordinates, strict=False)
         ):
-            is_ghost = (not is_opt) and (
+            is_ghost = (
                 self.ghost_atom_indices is not None and idx in self.ghost_atom_indices
             )
             sym_tag = f"{sym}:" if is_ghost else sym

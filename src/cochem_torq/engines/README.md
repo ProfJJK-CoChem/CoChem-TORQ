@@ -30,7 +30,9 @@ request = {
         "multiplicity": 1,
     },
     "method": {
-        "name": "hf", "basis": "sto-3g", "reference": "restricted",
+        "name": "hf",
+        "basis": "sto-3g",
+        "reference": "restricted",
         "frozen_core": False,
     },
     "properties": ["energy", "gradient", "hessian", "dipole"],

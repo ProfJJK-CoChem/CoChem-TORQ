@@ -1,6 +1,6 @@
 {
   "schema_version": "cochem.student-release-evidence/1",
-  "recorded_at": "2026-10-07T23:14:46.051160+00:00",
+  "recorded_at": "2026-10-08T00:18:20.702075+00:00",
   "source_base_commit": "d7a4739a5f7d6f22ed659b32eeb4706bef16225e",
   "scope": "Local actual execution; selections overlap and are not summed. Neither complete historical-suite acceptance nor high-accuracy identification qualification.",
   "python_version": "3.12.14",
@@ -156,18 +156,28 @@
   "full_srs_accepted": false,
   "hosted_ci": {
     "performed": true,
-    "run_id": 37696948074,
-    "url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37696948074",
-    "source_commit": "bf3eb24da276ba93a3c2ce574d4f8340d68d8ed4",
-    "status": "failed",
-    "findings": [
-      "Private BASE/TOPOS require approved cross-repository source-read identity; built-in TORQ Actions token cannot read them.",
-      "Mobile eager imports required optional RDKit in core authentication tests; fixed and 58 clean-core checks passed.",
-      "CPU DFTD3 lacked its supported TOML parser and inorganic imports loaded optional UI; fixed and all 103 checks passed in the exact clean CPU profile."
-    ],
-    "qualification_pass": false,
-    "scope": "First actual PR CI; subsequent source fixes require hosted rerun. This record is not a latest-run success claim.",
+    "run_id": 37701912649,
+    "url": "https://github.com/ProfJJK-CoChem/CoChem-TORQ/actions/runs/37701912649",
+    "source_commit": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+    "status": "success",
+    "qualification_pass": true,
+    "qualification_scope": "Bounded hosted teaching/numerical and selected integrity gates only. Current later modified source must be rerun; fullSRS/experimental qualification remains false.",
+    "passed_jobs": 7,
+    "artifact_upload_verified": true,
+    "artifact_bytes_independently_downloaded": false,
+    "evidence_file": "hosted-actions-check-results.json",
     "additional_historical_observations": [
+      {
+        "run_id": 37696948074,
+        "source_commit": "bf3eb24da276ba93a3c2ce574d4f8340d68d8ed4",
+        "status": "failed",
+        "findings": [
+          "Private BASE/TOPOS require approved cross-repository source-read identity; built-in TORQ Actions token cannot read them.",
+          "Mobile eager imports required optional RDKit in core authentication tests; fixed and 58 clean-core checks passed.",
+          "CPU DFTD3 lacked its supported TOML parser and inorganic imports loaded optional UI; fixed and all 103 checks passed in the exact clean CPU profile."
+        ],
+        "scope": "First actual PR CI; subsequent source fixes require hosted rerun. This record is not a latest-run success claim."
+      },
       {
         "run_id": 37698704548,
         "source_commit": "6ffe17f33bf3c30efb221c3558e5b9926289c38d",
@@ -256,6 +266,19 @@
     "endpoint": "GET /repos/ProfJJK-CoChem/CoChem-TORQ/codespaces/machines",
     "http_status": 403,
     "github_message": "Resource not accessible by integration",
-    "scope": "Current GitHub integration cannot select a repository Codespaces machine; no Codespace created and no live-platform qualification claimed."
-  }
+    "scope": "Current GitHub integration cannot select a repository Codespaces machine; no Codespace created and no live-platform qualification claimed.",
+    "recorded_at": "2026-10-08T00:18:20.702075+00:00"
+  },
+  "source_head_when_observed": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+  "source_worktree_status": "modified",
+  "base_companion_hosted_ci": {
+    "performed": true,
+    "run_id": 37702143257,
+    "source_commit": "8bd9925902e0771383c7fa1ade5296a630877b69",
+    "pinned_torq_commit": "c6d6088bee8ab6570de2dbfb2bb96ab1e5957db7",
+    "status": "success",
+    "artifact_upload_verified": true,
+    "artifact_bytes_independently_downloaded": false
+  },
+  "public_student_dispatch_active": false
 }

@@ -20,33 +20,27 @@ Authoritative Standards:
 
 import math
 import os
-import platform
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
-from typing import Generator, List, Tuple
 
 import h5py
-from mendeleev import element
 import numpy as np
 import psutil
 import pytest
+from mendeleev import element
 
 from Libraries.cochem_torq_engine import (
     AirGapViolationError,
     DispatchPayload,
     EnvironmentTier,
     ExecutionContext,
-    ORCAStepResult,
-    SCFResult,
+    SpinContaminationError,
     detect_complex_and_monomers,
     detect_non_covalent_contacts,
-    dynamic_wavefunction_propagation,
     execute_subprocess_safe,
     get_atomic_mass,
-    get_atomic_number,
     get_isotopic_mass,
     get_pyykko_radius,
     get_vdw_radius,
@@ -59,14 +53,13 @@ from Libraries.cochem_torq_engine import (
     validate_spin_contamination,
 )
 
-
 # ============================================================================
 # Declared mathematical Molecular Geometry Fixtures
 # ============================================================================
 
 
 @pytest.fixture
-def water_dimer_geometry() -> Tuple[List[str], np.ndarray]:
+def water_dimer_geometry() -> tuple[list[str], np.ndarray]:
     """
     Declared model Water Dimer (H2O)2 geometry (Cs symmetry, R(O...O) = 2.91 A).
     """
@@ -86,7 +79,7 @@ def water_dimer_geometry() -> Tuple[List[str], np.ndarray]:
 
 
 @pytest.fixture
-def formic_acid_dimer_geometry() -> Tuple[List[str], np.ndarray]:
+def formic_acid_dimer_geometry() -> tuple[list[str], np.ndarray]:
     """
     Declared model Formic Acid Dimer (HCOOH)2 (C2h symmetry, double H-bonded).
     """
@@ -110,7 +103,7 @@ def formic_acid_dimer_geometry() -> Tuple[List[str], np.ndarray]:
 
 
 @pytest.fixture
-def zinc_formate_geometry() -> Tuple[List[str], np.ndarray]:
+def zinc_formate_geometry() -> tuple[list[str], np.ndarray]:
     """
     Declared Zinc-shaped model(II) Formate complex [Zn(HCOO)3]^- geometry.
     """
@@ -137,7 +130,7 @@ def zinc_formate_geometry() -> Tuple[List[str], np.ndarray]:
 
 
 @pytest.fixture
-def ethanediol_geometry() -> Tuple[List[str], np.ndarray]:
+def ethanediol_geometry() -> tuple[list[str], np.ndarray]:
     """
     Declared 1,2-ethanediol-shaped model (HO-CH2-CH2-OH) gauche conformer geometry.
     """
@@ -161,7 +154,7 @@ def ethanediol_geometry() -> Tuple[List[str], np.ndarray]:
 
 
 @pytest.fixture
-def propane_geometry() -> Tuple[List[str], np.ndarray]:
+def propane_geometry() -> tuple[list[str], np.ndarray]:
     """
     Declared propane-shaped model (C3H8) equilibrium geometry (N=11 atoms, 33x33 Hessian).
     """
@@ -295,7 +288,7 @@ class TestMethodMatrixCascade:
     """Tests Method Matrix v4 rules, complex detection, grid tightening, and initial Hessian enforcement."""
 
     def test_water_dimer_complex_detection(
-        self, water_dimer_geometry: Tuple[List[str], np.ndarray]
+        self, water_dimer_geometry: tuple[list[str], np.ndarray]
     ) -> None:
         syms, coords = water_dimer_geometry
         is_complex, components = detect_complex_and_monomers(syms, coords)
@@ -305,7 +298,7 @@ class TestMethodMatrixCascade:
         assert components[1] == [3, 4, 5]
 
     def test_formic_acid_dimer_frozen_monomer_routing(
-        self, formic_acid_dimer_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, formic_acid_dimer_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
         syms, coords = formic_acid_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
@@ -336,7 +329,7 @@ class TestMethodMatrixCascade:
         assert "{ C 0 C }" in orca_inp
 
     def test_grid_level_custom_routing(
-        self, formic_acid_dimer_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, formic_acid_dimer_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
         syms, coords = formic_acid_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
@@ -355,7 +348,7 @@ class TestMethodMatrixCascade:
         assert "DEFGRID1" in orca_inp
 
     def test_zinc_formate_complex_routing(
-        self, zinc_formate_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, zinc_formate_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
         syms, coords = zinc_formate_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
@@ -383,7 +376,7 @@ class TestMethodMatrixCascade:
         assert "InHess Lindh" in orca_inp
 
     def test_calc_hess_prohibition_error(
-        self, water_dimer_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, water_dimer_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
         syms, coords = water_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
@@ -397,7 +390,7 @@ class TestMethodMatrixCascade:
             )
 
     def test_dispersion_requirement_enforcement(
-        self, water_dimer_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, water_dimer_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
         syms, coords = water_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
@@ -438,7 +431,7 @@ class TestMethodMatrixCascade:
         tier: str,
         expected_method: str,
         expected_basis: str,
-        ethanediol_geometry: Tuple[List[str], np.ndarray],
+        ethanediol_geometry: tuple[list[str], np.ndarray],
         tmp_path: Path,
     ) -> None:
         syms, coords = ethanediol_geometry
@@ -459,7 +452,7 @@ class TestCounterpoiseAndGhostAtoms:
     """Tests Counterpoise ghost atom routing and non-covalent contact detection."""
 
     def test_water_dimer_counterpoise_ghost_routing(
-        self, water_dimer_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+        self, water_dimer_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
         syms, coords = water_dimer_geometry
         ctx = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
@@ -481,7 +474,7 @@ class TestCounterpoiseAndGhostAtoms:
         assert "H: " in orca_inp
 
     def test_non_covalent_contact_detection(
-        self, water_dimer_geometry: Tuple[List[str], np.ndarray]
+        self, water_dimer_geometry: tuple[list[str], np.ndarray]
     ) -> None:
         syms, coords = water_dimer_geometry
         has_contacts, components, pairs = detect_non_covalent_contacts(syms, coords)
@@ -517,11 +510,13 @@ class TestSpinContamination:
         assert math.isclose(s_id, 6.0, abs_tol=1e-6)
 
     def test_spin_contamination_rejection_above_10_percent(self) -> None:
-        with pytest.raises(ValueError, match=r"\[ERR_SPIN_CONTAMINATION\].*20.00%"):
+        with pytest.raises(
+            SpinContaminationError, match=r"\[ERR_SPIN_CONTAMINATION\].*20.0%"
+        ):
             validate_spin_contamination(2, 0.90)
 
     def test_singlet_spin_contamination_rejection(self) -> None:
-        with pytest.raises(ValueError, match=r"\[ERR_SPIN_CONTAMINATION\].*singlet"):
+        with pytest.raises(SpinContaminationError, match=r"Ideal = 0.0000"):
             validate_spin_contamination(1, 0.25)
 
 
@@ -625,30 +620,25 @@ class TestStatefulCheckpointing:
 class TestGPU4PySCFBatching:
     """Tests hardware-aware dynamic batching and VRAM headroom retention."""
 
-    def test_gpu4pyscf_dynamic_batching_partitioning(
-        self, propane_geometry: Tuple[List[str], np.ndarray], tmp_path: Path
+    def test_gpu_batching_requires_observed_device_capacity(
+        self, propane_geometry: tuple[list[str], np.ndarray], tmp_path: Path
     ) -> None:
-        syms, coords = propane_geometry
-        ctx = ExecutionContext(
-            custom_scratch_dir=tmp_path / "scratch",
-            vram_mb=12288,
-        )
-
-        grid_points = [
-            coords + (0.01 * i * np.random.randn(*coords.shape)) for i in range(100)
-        ]
-
-        batches = gpu4pyscf_dynamic_batching(
-            grid_points=grid_points,
-            context=ctx,
-            system_size=len(syms),
-            basis_functions_per_atom=35,
-            memory_headroom_fraction=0.15,
-        )
-
-        total_points = sum(len(b) for b in batches)
-        assert total_points == 100
-        assert len(batches) >= 2
+        """Use actual hardware discovery; missing GPUs must never gain assumed VRAM."""
+        symbols, coordinates = propane_geometry
+        context = ExecutionContext(custom_scratch_dir=tmp_path / "scratch")
+        # Declared PES input coordinates; no engine energies are supplied or inferred.
+        points = [coordinates + i * 0.001 for i in range(100)]
+        if not context.gpu_available or context.vram_mb <= 0:
+            with pytest.raises(ValueError, match="requires observed GPU memory"):
+                gpu4pyscf_dynamic_batching(points, context, system_size=len(symbols))
+        else:
+            batches = gpu4pyscf_dynamic_batching(
+                points, context, system_size=len(symbols), memory_headroom_fraction=0.15
+            )
+            assert [id(point) for batch in batches for point in batch] == [
+                id(point) for point in points
+            ]
+            assert all(batch for batch in batches)
 
 
 # ============================================================================
