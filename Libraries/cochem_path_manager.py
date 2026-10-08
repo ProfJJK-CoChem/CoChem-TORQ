@@ -1442,45 +1442,50 @@ def get_atomic_mass(symbol_or_z: str | int) -> float:
         Float atomic weight in atomic mass units.
     """
     elem = _get_mendeleev_element(symbol_or_z)
-    return float(elem.atomic_weight or elem.mass or elem.mass_number)
+    if elem.atomic_weight is None:
+        raise ValueError(f"No standard atomic weight is tabulated for {elem.symbol}.")
+    weight = float(elem.atomic_weight)
+    if not np.isfinite(weight) or weight <= 0:
+        raise ValueError(f"The standard atomic weight for {elem.symbol} is invalid.")
+    return weight
 
 
 def get_isotopic_mass(symbol_or_z: str | int, mass_number: int | None = None) -> float:
-    """Retrieve exact isotopic mass dynamically from Mendeleev isotopes table.
+    """Retrieve a tabulated isotope mass using the shared isotope policy.
 
     Args:
         symbol_or_z: Element symbol or atomic number.
         mass_number: Specific isotopic mass number (e.g. 13 for 13C, 2 for 2H/D).
 
     Returns:
-        Float isotopic mass in Daltons (u).
+        Tabulated isotope mass in Daltons (u), with measurement uncertainty.
+        Unspecified isotopes select the most abundant natural isotope; absence
+        of a tabulated natural abundance requires an explicit mass number.
     """
+    from Libraries.cochem_isotopes import isotope_mass
+
+    if mass_number is not None and (
+        type(mass_number) is not int or mass_number <= 0
+    ):
+        raise ValueError("An explicit isotope requires a positive integer mass number.")
     elem = _get_mendeleev_element(symbol_or_z)
-    if mass_number is None:
-        isotopes = sorted(elem.isotopes, key=lambda iso: iso.abundance or 0.0, reverse=True)
-        if isotopes and isotopes[0].mass is not None:
-            return float(isotopes[0].mass)
-        return float(elem.atomic_weight or elem.mass)
-
-    for iso in elem.isotopes:
-        if iso.mass_number == mass_number:
-            if iso.mass is not None:
-                return float(iso.mass)
-            return float(iso.mass_number)
-
-    return float(mass_number)
+    label = elem.symbol if mass_number is None else f"{mass_number}{elem.symbol}"
+    return isotope_mass(label)
 
 
 def enforce_ciaaw_masses(symbols: Sequence[str]) -> np.ndarray:
-    """Maps atomic elemental or isotopic symbols to exact CIAAW mono-isotopic masses.
+    """Map element/isotope symbols to the selected tabulated isotope masses.
 
-    Uses the mendeleev package exclusively for all isotopic mass lookups.
+    The historical function name is retained for compatibility. The installed
+    Mendeleev database is the provider; its measured masses have uncertainty and
+    are not independently verified CIAAW reference values or exact constants.
+    Missing isotope masses or natural-abundance defaults are errors.
 
     Args:
         symbols: List or sequence of atomic symbols (e.g. ['C', 'H', 'H', '13C', 'D']).
 
     Returns:
-        1D numpy array of dtype float64 containing exact masses in atomic mass units (Da / u).
+        1D numpy array of dtype float64 containing tabulated masses in u.
 
     Raises:
         ValueError: If an unrecognized symbol or invalid element is provided.

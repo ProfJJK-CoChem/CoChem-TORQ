@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import math
 import pathlib
-from typing import Dict, List, Optional, Protocol, Tuple, Union, runtime_checkable
+from typing import Dict, List, Literal, Optional, Protocol, Tuple, Union, runtime_checkable
 
 from mendeleev import element
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -81,8 +81,16 @@ class MolecularStructureData(BaseModel):
     coordinates: List[Tuple[float, float, float]] = Field(..., description="Cartesian coordinates in Angstroms")
     charge: int = Field(default=0, description="Net molecular charge")
     multiplicity: int = Field(default=1, description="Spin multiplicity (2S + 1 >= 1)")
-    masses: List[float] = Field(default_factory=list, description="Atomic mass units resolved via Mendeleev")
+    masses: List[float] = Field(
+        default_factory=list,
+        description="Masses in u: requested tabulated isotopes, actual standard weights, or explicit supplied values",
+    )
     isotopes: Optional[List[int]] = Field(default=None, description="Optional mass numbers for isotopologue analysis")
+    mass_selection: Literal[
+        "tabulated_requested_isotope_masses",
+        "database_standard_atomic_weights",
+        "explicitly_supplied_masses",
+    ] = "database_standard_atomic_weights"
 
     @model_validator(mode="before")
     @classmethod
@@ -101,6 +109,8 @@ class MolecularStructureData(BaseModel):
             raise ValueError("Both 'symbols' and 'coordinates' must be provided as lists.")
 
         n_atoms = len(syms)
+        if n_atoms == 0:
+            raise ValueError("Molecular structures require at least one physical atom.")
         if len(coords) != n_atoms:
             raise ValueError(f"Mismatch: {n_atoms} symbols but {len(coords)} coordinate triplets provided.")
 
@@ -129,51 +139,64 @@ class MolecularStructureData(BaseModel):
                         f"and atom {j} ({syms[j]}). Minimum physical threshold is 0.5 Å."
                     )
 
-        # 2. Dynamic mass resolution strictly via Mendeleev
+        # 2. Validate identity independently of an optional supplied mass vector.
+        # Standard atomic weights are database quantities for unspecified isotopes;
+        # they cannot replace an explicitly requested isotope's unavailable mass.
         resolved_masses: List[float] = []
-        iso_list = isotopes if isinstance(isotopes, list) else None
+        if isotopes is not None and not isinstance(isotopes, list):
+            raise ValueError("Explicit isotope mass numbers must be supplied as a list.")
+        iso_list = isotopes
         if iso_list is not None and len(iso_list) != n_atoms:
             raise ValueError(f"Mismatch: {n_atoms} symbols but {len(iso_list)} isotopic mass numbers provided.")
+        if iso_list is not None and any(type(number) is not int or number <= 0 for number in iso_list):
+            raise ValueError("Requested isotope mass numbers must be positive integers.")
 
-        if user_masses is not None and isinstance(user_masses, list) and len(user_masses) == n_atoms:
+        supplied_masses: Optional[List[float]] = None
+        if user_masses is not None:
+            if not isinstance(user_masses, list) or len(user_masses) != n_atoms:
+                raise ValueError("Supplied masses must contain one value per physical atom.")
+            supplied_masses = []
             for m in user_masses:
+                if isinstance(m, bool):
+                    raise MendeleevInvariantError("A boolean is not an atomic mass.")
                 val = float(m)
-                if val <= 0.0 or math.isnan(val) or math.isinf(val):
+                if val <= 0.0 or not math.isfinite(val):
                     raise MendeleevInvariantError(f"Invalid positive atomic mass: {val}")
-                resolved_masses.append(val)
-        else:
-            for idx, sym in enumerate(syms):
-                clean_sym = str(sym).strip().capitalize()
-                try:
-                    elem = element(clean_sym)
-                except Exception as exc:
-                    raise MendeleevInvariantError(
-                        f"Dynamic element resolution failed for symbol '{clean_sym}': {exc}"
-                    ) from exc
-                target_iso = iso_list[idx] if iso_list is not None else None
+                supplied_masses.append(val)
 
-                if target_iso is not None:
-                    matched_mass: Optional[float] = None
-                    for iso in elem.isotopes:
-                        if iso.mass_number == target_iso and iso.mass is not None:
-                            matched_mass = float(iso.mass)
-                            break
-                    if matched_mass is not None:
-                        resolved_masses.append(matched_mass)
-                    else:
-                        weight = elem.atomic_weight or float(target_iso)
-                        resolved_masses.append(float(weight))
-                else:
-                    if elem.atomic_weight is not None and float(elem.atomic_weight) > 0.0:
-                        resolved_masses.append(float(elem.atomic_weight))
-                    elif elem.mass_number is not None and float(elem.mass_number) > 0.0:
-                        resolved_masses.append(float(elem.mass_number))
-                    else:
-                        raise MendeleevInvariantError(
-                            f"Element '{clean_sym}' lacks a standard atomic weight and default mass number in dynamic "
-                            "Mendeleev/IUPAC tables. A physical isotopic mass number must be explicitly specified in "
-                            "'isotopes' (e.g., isotopes=[252, ...]) or 'masses'."
-                        )
+        for idx, sym in enumerate(syms):
+            if not isinstance(sym, str) or not sym.strip():
+                raise MendeleevInvariantError("Each physical atom requires an element symbol.")
+            clean_sym = sym.strip().capitalize()
+            try:
+                elem = element(clean_sym)
+            except Exception as exc:
+                raise MendeleevInvariantError(
+                    f"Dynamic element resolution failed for symbol '{clean_sym}': {exc}"
+                ) from exc
+            target_iso = iso_list[idx] if iso_list is not None else None
+            if target_iso is not None:
+                matched = next((iso for iso in elem.isotopes if iso.mass_number == target_iso), None)
+                if matched is None or matched.mass is None:
+                    raise MendeleevInvariantError(
+                        f"No tabulated mass for requested isotope {target_iso}{clean_sym}; no replacement mass is permitted."
+                    )
+                selected_mass = float(matched.mass)
+                if supplied_masses is not None and not math.isclose(
+                    supplied_masses[idx], selected_mass, rel_tol=1e-12, abs_tol=0.0
+                ):
+                    raise MendeleevInvariantError(
+                        f"Supplied mass contradicts the requested tabulated isotope {target_iso}{clean_sym}."
+                    )
+            elif supplied_masses is not None:
+                selected_mass = supplied_masses[idx]
+            elif elem.atomic_weight is not None:
+                selected_mass = float(elem.atomic_weight)
+            else:
+                raise MendeleevInvariantError(
+                    f"No standard atomic weight is tabulated for {clean_sym}; supply a supported explicit isotope or a declared physical mass."
+                )
+            resolved_masses.append(selected_mass)
 
         for m in resolved_masses:
             if m <= 0.0 or math.isnan(m) or math.isinf(m):
@@ -181,6 +204,13 @@ class MolecularStructureData(BaseModel):
 
         data["coordinates"] = cleaned_coords
         data["masses"] = resolved_masses
+        data["mass_selection"] = (
+            "tabulated_requested_isotope_masses"
+            if iso_list is not None
+            else "explicitly_supplied_masses"
+            if supplied_masses is not None
+            else "database_standard_atomic_weights"
+        )
         return data
 
 

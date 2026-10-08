@@ -67,7 +67,11 @@ jobs:
             tests/test_canonical_serialization.py tests/test_scientific_contracts.py \
             tests/test_campaign_coordinator.py tests/test_release_evidence_validator.py \
             tests/test_advanced_scientific_results.py tests/test_ecosystem_serialization_profile.py \
-            tests/test_units.py tests/test_asymmetric_rotor.py \
+            tests/test_units.py tests/test_asymmetric_rotor.py tests/test_ingestion_integrity.py \
+            tests/test_topology_mass_integrity.py tests/test_goat_rmsd_integrity.py \
+            tests/test_ipc_mass_integrity.py \
+            tests/test_cascade_admission_integrity.py \
+            tests/test_crest_identity_integrity.py \
             tests/test_capability_restart_integrity.py tests/test_candidate_ledger_integrity.py \
             tests/test_candidate_interface_integrity.py tests/test_publication_integrity.py \
             tests/test_fenced_pes_integrity.py tests/test_repository_regression_evidence.py \

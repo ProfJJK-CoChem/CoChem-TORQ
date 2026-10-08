@@ -319,7 +319,7 @@ def test_crest_command_line_flags() -> None:
 def test_cregen_referee_deduplication(
     tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Run the in-process deduplicator on genuine same-method energies."""
+    """Genuine HF observations cannot be culled by an unverified identity sieve."""
     symbols, coordinates = water_geometry
     near = coordinates + np.array([[0, 0, 0], [0, 0.0001, 0], [0, -0.0001, 0]])
     distant = coordinates + np.array([[0, 0, 0], [0, 0.08, 0], [0, -0.08, 0]])
@@ -328,7 +328,12 @@ def test_cregen_referee_deduplication(
         config=CregenConfig(ewin_kcal=100.0, ethr_kcal=0.05, rthr_angstrom=0.125)
     )
     survivors = referee.referee_ensemble(records)
-    assert len(survivors) == 2
+    assert len(survivors) == len(records)
+    assert all(retained is original for retained, original in zip(survivors, records))
+    assert [record.index for record in survivors] == [
+        record.index for record in records
+    ]
+    assert all(record.origin_engine == "PySCF/HF/STO-3G" for record in survivors)
     assert all(
         record.energy_hartree in {item.energy_hartree for item in records}
         for record in survivors
@@ -343,13 +348,13 @@ def test_cregen_referee_deduplication(
 def test_spectroscopic_deduplication_tight_threshold(
     tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Exercise a declared numerical threshold, not a universal resolution claim."""
+    """Numerical agreement cannot discard genuine observations without identity."""
     symbols, coordinates = water_geometry
     near = coordinates + np.array([[0, 0, 0], [0, 0.0003, 0], [0, -0.0003, 0]])
     records = _real_hf_records(symbols, [coordinates, near], tmp_path / "hf")
     survivors = deduplicate_spectroscopic(records, bthr_spectroscopic=0.001)
-    assert len(survivors) == 1
-    assert survivors[0].energy_hartree in {record.energy_hartree for record in records}
+    assert len(survivors) == len(records)
+    assert all(retained is original for retained, original in zip(survivors, records))
 
 
 # =============================================================================
@@ -391,9 +396,9 @@ def test_hdf5_serialization_and_attributes(
         n_goat_raw=0,
         n_crest_raw=0,
         n_union_raw=0,
-        n_goat_unique=0,
-        n_crest_unique=0,
-        n_shared_intersection=0,
+        n_goat_unique=None,
+        n_crest_unique=None,
+        n_shared_intersection=None,
         n_survivors_stage_a=0,
         n_survivors_stage_b=0,
         provenance_tag="serialization_only_no_engine_execution",

@@ -387,41 +387,49 @@ class ExecutionContext(BaseModel):
 
 
 def get_atomic_mass(symbol: str) -> float:
-    """Retrieve the standard atomic mass (weight) dynamically from Mendeleev.
+    """Retrieve the tabulated standard atomic weight from Mendeleev.
 
     Args:
         symbol: Chemical element symbol (e.g. 'H', 'C', 'O').
 
     Returns:
-        Standard atomic mass in Da (g/mol).
+        Standard atomic weight represented as a mass in u. This is not a
+        selected isotope mass; no isotope or integer proxy replaces absence.
     """
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("A physical atom requires an element symbol.")
     clean_sym = symbol.strip().capitalize()
     el = element(clean_sym)
-    if el.atomic_weight is not None:
-        return float(el.atomic_weight)
-    if el.isotopes:
-        return float(el.isotopes[0].mass or el.isotopes[0].mass_number)
-    raise ValueError(f"No atomic mass available in mendeleev for '{symbol}'.")
+    if el.atomic_weight is None:
+        raise ValueError(f"No standard atomic weight is tabulated for {el.symbol}.")
+    weight = float(el.atomic_weight)
+    if not np.isfinite(weight) or weight <= 0:
+        raise ValueError(f"The standard atomic weight for {el.symbol} is invalid.")
+    return weight
 
 
 def get_isotopic_mass(symbol: str, mass_number: int) -> float:
-    """Retrieve the exact physical isotopic mass dynamically from Mendeleev.
+    """Retrieve the requested tabulated isotope mass with its actual identity.
 
     Args:
         symbol: Chemical element symbol (e.g. 'C', 'H').
         mass_number: Isotope nucleon number (e.g. 13 for C-13, 2 for Deuterium).
 
     Returns:
-        Exact isotopic mass in Da.
+        Tabulated isotope mass in u, with measurement uncertainty. Missing
+        requested isotope data fail; integer mass numbers are not masses.
     """
+    from Libraries.cochem_isotopes import isotope_mass
+
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("A physical atom requires an element symbol.")
+    if type(mass_number) is not int or mass_number <= 0:
+        raise ValueError("An explicit isotope requires a positive integer mass number.")
     clean_sym = symbol.strip().capitalize()
-    el = element(clean_sym)
-    for iso in el.isotopes:
-        if iso.mass_number == mass_number:
-            if iso.mass is not None:
-                return float(iso.mass)
-            return float(iso.mass_number)
-    raise ValueError(f"Isotope '{clean_sym}-{mass_number}' not found in mendeleev database.")
+    mass = isotope_mass(f"{mass_number}{clean_sym}")
+    if not np.isfinite(mass) or mass <= 0:
+        raise ValueError(f"The tabulated isotope mass for {mass_number}{clean_sym} is invalid.")
+    return mass
 
 
 def get_atomic_number(symbol: str) -> int:

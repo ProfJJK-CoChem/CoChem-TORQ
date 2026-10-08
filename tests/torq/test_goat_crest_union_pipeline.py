@@ -15,7 +15,7 @@ from Libraries.cochem_torq_pipeline import (
 
 
 def test_deduplicate_conformer_union_rotational_and_rmsd():
-    """Verify conformer candidate deduplication with Delta B / B > 0.002 and RMSD filtering."""
+    """Actual EMT values cannot resolve absent graph/stereo/state identity."""
     symbols = ["C", "C", "O", "H", "H", "H", "H", "H", "H"]
     coords_trans = np.array(
         [
@@ -101,9 +101,8 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
         raw_pool, delta_b_rel_threshold=0.002, rmsd_threshold=0.15
     )
 
-    assert len(deduped) == 2, (
-        f"Expected 2 conformers after deduplication, got {len(deduped)}"
-    )
+    assert len(deduped) == len(raw_pool)
+    assert all(after is before for after, before in zip(deduped, raw_pool))
     assert deduped[0]["origin"] == "ASE/EMT"
     energies = [d["energy_hartree"] for d in deduped]
     assert energy_trans in energies

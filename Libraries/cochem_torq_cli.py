@@ -415,6 +415,27 @@ def action_run(args: argparse.Namespace) -> int:
                 print(TermColor.fail(f"Invalid JSON in config {config_path}: {json_err}"))
             return 1
 
+        if not isinstance(config_dict, dict):
+            print(json.dumps({
+                "status": "FAILED", "error_type": "InvalidConfiguration",
+                "message": "Configuration must be a JSON object.",
+            }) if args.json else TermColor.fail("Configuration must be a JSON object."))
+            return 1
+        if (
+            config_dict.get("schema_version") == "cochem.torq.legacy-cascade-planning/1"
+            or config_dict.get("status") == "planning_only"
+            or config_dict.get("dispatch_authorized") is False
+        ):
+            message = (
+                "This document is a non-executable plan or explicitly prohibits dispatch. "
+                "Select a supported, separately reviewed runtime recipe."
+            )
+            print(json.dumps({
+                "status": "FAILED", "error_type": "DispatchNotAuthorized",
+                "message": message,
+            }) if args.json else TermColor.fail(message))
+            return 1
+
         # Validate hardware schema if this is cochem_system_config.json
         if "mpi_threads" in config_dict or "maxcore_mb" in config_dict:
             try:

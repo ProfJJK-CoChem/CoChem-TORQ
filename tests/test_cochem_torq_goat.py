@@ -404,24 +404,26 @@ def _real_hf_records(
 def test_two_stage_deduplication(
     tmp_path: Path, water_geometry: tuple[list[str], np.ndarray]
 ) -> None:
-    """Deduplicate actual same-method HF inputs; no search completeness is claimed."""
+    """Real HF energies do not establish unknown graph/stereo/state equivalence."""
     symbols, coordinates = water_geometry
     near = coordinates + np.array([[0, 0, 0], [0, 0.002, 0], [0, -0.002, 0]])
     distant = coordinates + np.array([[0, 0, 0], [0, 0.08, 0], [0, -0.08, 0]])
     pool = _real_hf_records(
         symbols, [coordinates, coordinates.copy(), near, distant], tmp_path / "hf"
     )
+    original_records = [record.model_dump() for record in pool]
     stage_a = deduplicate_stage_a(
         pool, rmsd_thr=0.125, ethr_kcal=0.100, bthr_frac=0.025
     )
-    assert len(stage_a) < len(pool)
-    assert any(c.index == 0 for c in stage_a)
-    assert any(c.index == 3 for c in stage_a)
-    assert not any(c.index == 1 for c in stage_a)
+    assert len(stage_a) == len(pool)
+    assert all(actual is original for actual, original in zip(stage_a, pool))
+    assert [record.model_dump() for record in stage_a] == original_records
     stage_b = deduplicate_stage_b_spectroscopic(
         stage_a, rmsd_thr=0.125, ethr_kcal=0.05, bthr_frac=0.001
     )
-    assert len(stage_b) >= 1
+    assert len(stage_b) == len(pool)
+    assert all(actual is original for actual, original in zip(stage_b, pool))
+    assert [record.model_dump() for record in stage_b] == original_records
 
 
 # =============================================================================

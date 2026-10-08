@@ -23,21 +23,27 @@ def test_v4_tier_mapping() -> None:
 
     t1 = topo.generate_cascade_parameters(tier="T1-10s")
     assert t1["tier"] == "T1-10s"
-    assert t1["engine"] == "MPQC"
-    assert "! r2SCAN-3c" in t1["keywords"]
+    assert t1["proposal"]["documentary_preferred_engine"] == "MPQC"
+    assert t1["proposal"]["requested_method"] == "r2SCAN-3c"
 
     t2 = topo.generate_cascade_parameters(tier="T2-1m")
     assert t2["tier"] == "T2-1m"
-    assert "! wB97X-D4" in t2["keywords"]
+    assert t2["proposal"]["requested_method"] == "wB97X-D4"
 
     t3 = topo.generate_cascade_parameters(tier="T3-1h")
     assert t3["tier"] == "T3-1h"
-    assert "! CCSD(T)-F12" in t3["keywords"]
+    assert t3["proposal"]["requested_method"] == "CCSD(T)-F12"
 
     t4 = topo.generate_cascade_parameters(tier="T4-1mo")
     assert t4["tier"] == "T4-1mo"
-    assert t4["engine"] == "CFOUR"
-    assert "! CCSD(T)" in t4["keywords"]
+    assert t4["proposal"]["documentary_preferred_engine"] == "CFOUR"
+    assert t4["proposal"]["requested_method"] == "CCSD(T)"
+    for plan in (t1, t2, t3, t4):
+        assert plan["status"] == "planning_only"
+        assert plan["dispatch_authorized"] is False
+        assert plan["engine"] is None
+        assert plan["engine_input"] is None
+        assert plan["keywords"] == []
 
 
 def test_counterpoise_rules() -> None:
@@ -72,26 +78,29 @@ def test_topology_cascade_counterpoise_integration() -> None:
     ]
     topo_complex = TorqTopology(syms, coords, is_complex=True)
 
-    # Non-aug TZ basis set -> CP appended
+    # Preserve the documentary policy as a suggestion, without executable CP.
     p1 = topo_complex.generate_cascade_parameters(
         tier="T2-1m", basis_set="def2-TZVP", method="wB97X-D4"
     )
-    assert p1["bsse_correction"] == "Counterpoise"
-    assert "! CP" in p1["keywords"]
+    assert p1["proposal"]["counterpoise_policy_suggestion"] is True
+    assert p1["bsse_correction"] is None
+    assert p1["keywords"] == []
 
     # Augmented basis set -> CP prohibited
     p2 = topo_complex.generate_cascade_parameters(
         tier="T2-1m", basis_set="aug-cc-pVTZ", method="wB97X-D4"
     )
     assert p2["bsse_correction"] is None
-    assert "! CP" not in p2["keywords"]
+    assert p2["proposal"]["counterpoise_policy_suggestion"] is False
+    assert p2["keywords"] == []
 
     # CBS composite row -> CP prohibited
     p3 = topo_complex.generate_cascade_parameters(
         tier="T3-1h", basis_set="cc-pVTZ-F12", method="CCSD(T)-F12/CBS"
     )
     assert p3["bsse_correction"] is None
-    assert "! CP" not in p3["keywords"]
+    assert p3["proposal"]["counterpoise_policy_suggestion"] is False
+    assert p3["keywords"] == []
 
 
 def test_route_method_track() -> None:

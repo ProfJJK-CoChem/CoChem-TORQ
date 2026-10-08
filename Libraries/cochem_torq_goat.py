@@ -37,9 +37,10 @@ import subprocess
 import tempfile
 import time
 import uuid
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Final, Optional, Tuple, Union
+from typing import Any, Final, Literal, Optional, Tuple, Union
 
 try:
     import torch
@@ -165,9 +166,12 @@ def get_dynamic_covalent_radius(symbol: str) -> float:
     """Dynamically retrieves Pyykko single-bond covalent radius in Angstroms via mendeleev."""
     clean_sym = symbol.strip().rstrip(":").capitalize()
     el = mendeleev_element(clean_sym)
-    return _positive_tabulated_property(
-        el.covalent_radius_pyykko, el.symbol, "covalent_radius_pyykko"
-    ) / 100.0
+    return (
+        _positive_tabulated_property(
+            el.covalent_radius_pyykko, el.symbol, "covalent_radius_pyykko"
+        )
+        / 100.0
+    )
 
 
 @functools.lru_cache(maxsize=256)
@@ -503,6 +507,8 @@ class EnsembleContainer(BaseModel):
         default_factory=list,
         description="Normalized Boltzmann probability weights at temperature_k.",
     )
+    thermodynamic_state_status: Optional[Literal["not_established"]] = None
+    thermodynamic_unavailability_reason: Optional[str] = None
     provenance_tag: str = Field(
         default="[D]",
         description="Method Matrix provenance tag.",
@@ -541,6 +547,8 @@ class GoatAuditReport(BaseModel):
         default=None,
         description="Conformational entropy from GOAT ensemble in cal/(mol*K).",
     )
+    thermodynamic_state_status: Optional[Literal["not_established"]] = None
+    thermodynamic_unavailability_reason: Optional[str] = None
     wall_time_seconds: float = Field(
         default=0.0, description="Total execution wall clock time in seconds."
     )
@@ -794,18 +802,58 @@ def compute_moments_and_constants(
     return constants, ghz, delta, planar, kappa
 
 
+def _rmsd_coordinates(value: Any) -> np.ndarray:
+    """Validate declared mathematical coordinates without inventing missing data."""
+    if np.iscomplexobj(value):
+        raise ValueError("RMSD coordinates must be real.")
+    coordinates = np.asarray(value, dtype=np.float64)
+    if (
+        coordinates.ndim != 2
+        or coordinates.shape[1] != 3
+        or coordinates.shape[0] == 0
+        or not np.isfinite(coordinates).all()
+    ):
+        raise ValueError("RMSD requires a nonempty finite Nx3 coordinate matrix.")
+    return coordinates
+
+
+def _rmsd_symbols(value: Sequence[str], count: int) -> list[str]:
+    if isinstance(value, str):
+        raise ValueError("Provide an explicit atom-label sequence, not one string.")
+    labels = list(value)
+    if len(labels) != count or any(
+        not isinstance(label, str) or not label.strip() for label in labels
+    ):
+        raise ValueError("Every coordinate row requires its explicit nonempty label.")
+    return labels
+
+
 def kabsch_align(P: np.ndarray, Q: np.ndarray) -> np.ndarray:
-    """Optimal rotation matrix to align Cartesian coordinate matrix P onto Q using Kabsch algorithm."""
-    P_cent = P - np.mean(P, axis=0)
-    Q_cent = Q - np.mean(Q, axis=0)
-    H = np.dot(P_cent.T, Q_cent)
-    U, S, Vt = np.linalg.svd(H)
-    R = np.dot(Vt.T, U.T)
-    if np.linalg.det(R) < 0:
-        Vt[-1, :] *= -1
-        R = np.dot(Vt.T, U.T)
-    aligned_P = np.dot(P_cent, R.T) + np.mean(Q, axis=0)
-    return aligned_P
+    """Align finite equally indexed point clouds with a proper SO(3) rotation.
+
+    Atom identity, graph and stereochemistry are not established by this metric.
+    """
+    source, target = _rmsd_coordinates(P), _rmsd_coordinates(Q)
+    if source.shape != target.shape:
+        raise ValueError("RMSD coordinate matrices must have equal atom counts.")
+    try:
+        with np.errstate(over="raise", invalid="raise", divide="raise"):
+            source_centroid, target_centroid = source.mean(axis=0), target.mean(axis=0)
+            source_centered = source - source_centroid
+            target_centered = target - target_centroid
+            u, _, vt = np.linalg.svd(source_centered.T @ target_centered)
+            rotation = u @ vt
+            if np.linalg.det(rotation) < 0:
+                vt[-1, :] *= -1
+                rotation = u @ vt
+            aligned = source_centered @ rotation + target_centroid
+    except (FloatingPointError, np.linalg.LinAlgError) as error:
+        raise ValueError(
+            "RMSD alignment exceeded its finite numerical domain."
+        ) from error
+    if not np.isfinite(aligned).all():
+        raise ValueError("RMSD alignment did not produce finite coordinates.")
+    return aligned
 
 
 def compute_rmsd(
@@ -814,101 +862,84 @@ def compute_rmsd(
     symbols: Optional[Union[Sequence[str], Tuple[Sequence[str], Sequence[str]]]] = None,
     symbols2: Optional[Sequence[str]] = None,
 ) -> float:
-    """Computes permutation-invariant Cartesian Root-Mean-Square Deviation (RMSD) in Angstroms [M].
+    """Return a declared mathematical Cartesian RMSD in angstroms.
 
-    Evaluates Hungarian matching (scipy.optimize.linear_sum_assignment) over chemically
-    identical nuclei to eliminate atom-order swapping artifacts between GOAT and CREST.
+    With no labels this uses the given atom indices, translation and SO(3).
+    Chemical-label constraints require both label lists (or their explicit pair).
+    Matching within equal label classes uses a bounded Kabsch/Hungarian heuristic;
+    its result is neither a global correspondence optimum nor chemical identity.
+    Formula agreement cannot establish graph, stereochemistry or electronic-state
+    equivalence, and this scalar cannot authorize candidate deletion.
     """
-    if isinstance(P, (list, tuple)) and len(P) > 0 and isinstance(P[0], str):
-        # Called as compute_rmsd(symbols, P, Q)
-        sym_arg = P
-        actual_P = Q
-        actual_Q = symbols if symbols is not None else np.array([])
-        P, Q, symbols = actual_P, actual_Q, sym_arg
-
-    P_arr = np.asarray(P, dtype=np.float64)
-    Q_arr = np.asarray(Q, dtype=np.float64)
-
-    if P_arr.shape != Q_arr.shape or P_arr.shape[0] == 0:
-        return 0.0
-
-    from scipy.optimize import linear_sum_assignment
-    from scipy.spatial.distance import cdist
-
-    curr_P = np.array(P_arr, dtype=np.float64, copy=True)
-    target_Q = np.array(Q_arr, dtype=np.float64, copy=True)
-    n_atoms = curr_P.shape[0]
-
-    # Resolve symbols for P and Q
-    syms_P: Optional[list[str]] = None
-    syms_Q: Optional[list[str]] = None
-    if symbols2 is not None:
-        syms_P = [str(s) for s in symbols] if symbols is not None else None
-        syms_Q = [str(s) for s in symbols2]
-    elif symbols is not None:
-        if (
+    source, target = _rmsd_coordinates(P), _rmsd_coordinates(Q)
+    if source.shape != target.shape:
+        raise ValueError("RMSD coordinate matrices must have equal atom counts.")
+    count = source.shape[0]
+    if symbols is None and symbols2 is None:
+        groups = []
+        current = source.copy()
+    else:
+        if symbols2 is None and (
             isinstance(symbols, tuple)
             and len(symbols) == 2
             and isinstance(symbols[0], (list, tuple))
+            and isinstance(symbols[1], (list, tuple))
         ):
-            syms_P = [str(s) for s in symbols[0]]
-            syms_Q = [str(s) for s in symbols[1]]
-        elif len(symbols) == n_atoms:
-            syms_P = [str(s) for s in symbols]
-            syms_Q = list(syms_P)
+            source_symbols, target_symbols = symbols
+        elif symbols is not None and symbols2 is not None:
+            source_symbols, target_symbols = symbols, symbols2
+        else:
+            raise ValueError(
+                "Chemical-label RMSD requires both source and target lists."
+            )
+        labels_source = _rmsd_symbols(source_symbols, count)
+        labels_target = _rmsd_symbols(target_symbols, count)
+        if Counter(labels_source) != Counter(labels_target):
+            raise ValueError(
+                "Conflicting chemical-label inventories cannot be matched."
+            )
+        order = list(range(count))
+        groups = []
+        for label in sorted(set(labels_source)):
+            source_indices = [
+                i for i, value in enumerate(labels_source) if value == label
+            ]
+            target_indices = [
+                i for i, value in enumerate(labels_target) if value == label
+            ]
+            for first, second in zip(source_indices, target_indices):
+                order[second] = first
+            if len(target_indices) > 1:
+                groups.append(target_indices)
+        current = source[order].copy()
+    from scipy.optimize import linear_sum_assignment
 
-    # Partition indices by chemical element equivalence classes
-    element_pairs: list[tuple[list[int], list[int]]] = []
-    if (
-        syms_P is not None
-        and syms_Q is not None
-        and len(syms_P) == n_atoms
-        and len(syms_Q) == n_atoms
-    ):
-        unique_elems = set(syms_P).union(set(syms_Q))
-        valid_partition = True
-        for elem in unique_elems:
-            p_idx = [i for i, s in enumerate(syms_P) if s == elem]
-            q_idx = [j for j, s in enumerate(syms_Q) if s == elem]
-            if len(p_idx) != len(q_idx):
-                valid_partition = False
-                break
-            if len(p_idx) > 0:
-                element_pairs.append((p_idx, q_idx))
-        if not valid_partition:
-            element_pairs = [(list(range(n_atoms)), list(range(n_atoms)))]
-    else:
-        element_pairs = [(list(range(n_atoms)), list(range(n_atoms)))]
-
-    # Iterative Kabsch + Hungarian assignment
-    best_rmsd = float("inf")
-    for _ in range(5):
-        aligned_P = kabsch_align(curr_P, target_Q)
-        reordered_P = np.copy(curr_P)
-        has_reordered = False
-        for p_indices, q_indices in element_pairs:
-            if len(p_indices) <= 1:
-                continue
-            P_grp = aligned_P[p_indices]
-            Q_grp = target_Q[q_indices]
-            cost = cdist(P_grp, Q_grp)
-            row_ind, col_ind = linear_sum_assignment(cost)
-            for r, c in zip(row_ind, col_ind):
-                reordered_P[q_indices[c]] = curr_P[p_indices[r]]
-            has_reordered = True
-        curr_P = reordered_P
-        aligned_iter = kabsch_align(curr_P, target_Q)
-        diff_iter = aligned_iter - target_Q
-        iter_rmsd = float(np.sqrt(np.mean(np.sum(diff_iter**2, axis=1))))
-        if iter_rmsd < best_rmsd:
-            best_rmsd = iter_rmsd
-        if not has_reordered:
+    best = None
+    for _ in range(5 if groups else 1):
+        aligned = kabsch_align(current, target)
+        try:
+            with np.errstate(over="raise", invalid="raise", divide="raise"):
+                difference = aligned - target
+                value = float(np.sqrt(np.mean(np.sum(difference**2, axis=1))))
+        except FloatingPointError as error:
+            raise ValueError("RMSD exceeded its finite numerical domain.") from error
+        if not math.isfinite(value):
+            raise ValueError("RMSD must remain finite; missingness cannot become zero.")
+        best = value if best is None else min(best, value)
+        reordered = current.copy()
+        for indices in groups:
+            cost = cdist(aligned[indices], target[indices])
+            if not np.isfinite(cost).all():
+                raise ValueError("RMSD correspondence costs must remain finite.")
+            rows, columns = linear_sum_assignment(cost)
+            for row, column in zip(rows, columns):
+                reordered[indices[column]] = current[indices[row]]
+        if np.array_equal(reordered, current):
             break
-
-    aligned_final = kabsch_align(curr_P, target_Q)
-    diff = aligned_final - target_Q
-    rmsd = float(np.sqrt(np.mean(np.sum(diff**2, axis=1))))
-    return min(rmsd, best_rmsd)
+        current = reordered
+    if best is None:
+        raise ValueError("No mathematical RMSD was evaluated.")
+    return best
 
 
 def check_rotational_equivalence(
@@ -981,8 +1012,10 @@ def deduplicate_conformers(
     rmsd_threshold: float = 0.15,
     ethr_kcal: Optional[float] = None,
 ) -> list[Any]:
-    """Deduplicates a pool of conformers using full rotational tensor (A, B, C),
-    inertial defect, and permutation-invariant Hungarian RMSD (Method Matrix v4 §9B.1–§9B.3).
+    """Retain legacy candidates while evaluating optional numerical screens.
+
+    These records lack a validated graph/stereo/state/mapping contract. Energy,
+    inertia and element-labelled RMSD are advisory and cannot delete candidates.
     """
     if not conformers:
         return []
@@ -1034,7 +1067,8 @@ def deduplicate_conformers(
                 "Conformer deduplication requires symbols and coordinates."
             )
         syms = list(syms)
-        coords = np.asarray(raw_coords, dtype=np.float64)
+        coords = _rmsd_coordinates(raw_coords)
+        _rmsd_symbols(syms, len(coords))
         if not syms or coords.shape != (len(syms), 3) or not np.isfinite(coords).all():
             raise ValueError(
                 "Conformer geometry must be finite with one coordinate row per atom."
@@ -1062,10 +1096,10 @@ def deduplicate_conformers(
 
     for cand in sorted_confs:
         c_syms, c_coords, c_rot, c_defect, c_planar = extract_props(cand)
-        is_dup = False
-
         for acc in accepted:
             a_syms, a_coords, a_rot, a_defect, a_planar = extract_props(acc)
+            if Counter(c_syms) != Counter(a_syms):
+                continue
 
             if ethr_kcal is not None:
                 dE = comparable_energy_delta_kcal(cand, acc)
@@ -1086,11 +1120,8 @@ def deduplicate_conformers(
 
             rmsd = compute_rmsd(c_coords, a_coords, symbols=c_syms, symbols2=a_syms)
             if rmsd <= rmsd_threshold:
-                is_dup = True
-                break
-
-        if not is_dup:
-            accepted.append(cand)
+                continue  # Numerical screening does not authorize deletion.
+        accepted.append(cand)
 
     return accepted
 
@@ -1144,37 +1175,70 @@ def calculate_conformational_entropy(
     temperature_k: float = 298.15,
     degeneracies: Optional[Sequence[int]] = None,
 ) -> tuple[float, list[float]]:
-    """Calculates thermodynamic conformational entropy S_conf in cal / (mol * K).
+    """Entropy of explicitly declared equal-energy microstate groups, in cal/mol/K.
 
-    S_conf = -R * sum(p_i * ln(p_i)) where p_i = (g_i * exp(-dE_i / kT)) / Z
+    Each entry denotes a distinct state group; g_i positive integer microstates
+    have the declared energy. With p_i = g_i exp(-E_i/RT)/Z, entropy is
+    -R sum[p_i log(p_i/g_i)]. Default g_i=1 is an explicit mathematical assumption.
+    This helper does not establish physical state identity or free-energy validity;
+    the unresolved legacy candidate pool must not call it as thermodynamics.
     """
-    if not relative_energies_kcal:
-        return 0.0, []
+    from scipy.special import logsumexp
 
-    energies = np.array(relative_energies_kcal, dtype=np.float64)
-    min_e = np.min(energies)
-    shifted_e = energies - min_e
-
-    degen = (
-        np.array(degeneracies, dtype=np.float64)
-        if degeneracies is not None
-        else np.ones_like(energies)
+    if np.iscomplexobj(relative_energies_kcal) or np.iscomplexobj(temperature_k):
+        raise ValueError("Declared energies and temperature must be real.")
+    energies = np.asarray(relative_energies_kcal, dtype=np.float64)
+    if energies.ndim != 1 or energies.size == 0 or not np.isfinite(energies).all():
+        raise ValueError("Declare a nonempty finite one-dimensional state-energy list.")
+    if (
+        isinstance(temperature_k, bool)
+        or not math.isfinite(temperature_k)
+        or temperature_k <= 0
+    ):
+        raise ValueError("Temperature must be positive and finite.")
+    if np.iscomplexobj(degeneracies):
+        raise ValueError("Declared microstate counts must be real.")
+    counts = (
+        np.ones_like(energies)
+        if degeneracies is None
+        else np.asarray(degeneracies, dtype=np.float64)
     )
-
-    beta = 1.0 / (BOLTZMANN_CONSTANT_K_CAL_MOL * temperature_k)
-    boltz = degen * np.exp(-beta * shifted_e)
-    Z = np.sum(boltz)
-
-    if Z <= 0.0 or not np.isfinite(Z):
-        p = np.ones_like(energies) / len(energies)
-    else:
-        p = boltz / Z
-
-    p = np.clip(p, 1e-15, 1.0)
-    p = p / np.sum(p)
-
-    s_conf = -GAS_CONSTANT_R_CAL_MOL * np.sum(p * np.log(p))
-    return float(s_conf), p.tolist()
+    if (
+        counts.shape != energies.shape
+        or not np.isfinite(counts).all()
+        or np.any(counts <= 0)
+        or np.any(counts != np.floor(counts))
+    ):
+        raise ValueError(
+            "Every declared state requires a positive finite integer microstate count."
+        )
+    try:
+        with np.errstate(over="raise", invalid="raise", divide="raise", under="ignore"):
+            log_counts = np.log(counts)
+            shifted = energies - np.min(energies)
+            log_weights = log_counts - shifted / (
+                BOLTZMANN_CONSTANT_K_CAL_MOL * temperature_k
+            )
+            normalizer = float(logsumexp(log_weights))
+            if not math.isfinite(normalizer):
+                raise ValueError("The declared state normalization is not finite.")
+            log_probabilities = log_weights - normalizer
+            probabilities = np.exp(log_probabilities)
+            positive = probabilities > 0
+            entropy = float(
+                -GAS_CONSTANT_R_CAL_MOL
+                * np.sum(
+                    probabilities[positive]
+                    * (log_probabilities[positive] - log_counts[positive])
+                )
+            )
+    except FloatingPointError as error:
+        raise ValueError(
+            "Declared thermodynamic arithmetic exceeded its finite domain."
+        ) from error
+    if not np.isfinite(probabilities).all() or not math.isfinite(entropy):
+        raise ValueError("No finite declared-state population/entropy was established.")
+    return entropy, probabilities.tolist()
 
 
 # =============================================================================
@@ -1363,9 +1427,10 @@ def deduplicate_stage_a(
     ethr_kcal: float = 0.100,
     bthr_frac: float = 0.025,
 ) -> list[ConformerRecord]:
-    """Stage A: Engine-level broad deduplication (Method Matrix §9B.1 / §9B.3).
+    """Stage A: advisory broad screening with every legacy candidate retained.
 
     Defaults: RMSD = 0.125 Å, ΔE = 0.100 kcal/mol, Δ(A,B,C) = 1.0–2.5%, Δ(defect) = 0.05.
+    Formula/metric agreement does not establish graph/stereo/state identity.
     """
     if not records:
         return []
@@ -1376,11 +1441,13 @@ def deduplicate_stage_a(
     survivors: list[ConformerRecord] = []
 
     for cand in sorted_records:
-        cand_c = np.array(cand.coordinates, dtype=np.float64)
-        is_duplicate = False
+        cand_c = _rmsd_coordinates(cand.coordinates)
+        _rmsd_symbols(cand.symbols, len(cand_c))
 
         for surv in survivors:
             surv_c = np.array(surv.coordinates, dtype=np.float64)
+            if Counter(cand.symbols) != Counter(surv.symbols):
+                continue
 
             # Energy check
             if cand.energy_kcal_rel is None or surv.energy_kcal_rel is None:
@@ -1415,13 +1482,12 @@ def deduplicate_stage_a(
                 continue
 
             # Permutation-invariant RMSD check
-            rmsd = compute_rmsd(cand_c, surv_c, symbols=cand.symbols)
+            rmsd = compute_rmsd(
+                cand_c, surv_c, symbols=cand.symbols, symbols2=surv.symbols
+            )
             if rmsd < rmsd_thr:
-                is_duplicate = True
-                break
-
-        if not is_duplicate:
-            survivors.append(cand)
+                continue  # Unknown graph/stereo/state identity remains retained.
+        survivors.append(cand)
 
     return survivors
 
@@ -1432,10 +1498,11 @@ def deduplicate_stage_b_spectroscopic(
     ethr_kcal: float = 0.05,
     bthr_frac: float = 0.001,
 ) -> list[ConformerRecord]:
-    """Stage B: Microwave spectroscopic deduplication (Method Matrix §9B.3 Step 5).
+    """Stage B: advisory spectroscopic screening, retaining legacy candidates.
 
     Tightens rotational constant window to --bthr 0.001 (0.1% ≈ 12 MHz at 12 GHz)
     and evaluates (A, B, C) tri-constants alongside inertial defect Delta [M].
+    These metrics do not establish graph/stereo/state identity or permit culling.
     """
     if not records:
         return []
@@ -1446,11 +1513,13 @@ def deduplicate_stage_b_spectroscopic(
     survivors: list[ConformerRecord] = []
 
     for cand in sorted_records:
-        cand_c = np.array(cand.coordinates, dtype=np.float64)
-        is_duplicate = False
+        cand_c = _rmsd_coordinates(cand.coordinates)
+        _rmsd_symbols(cand.symbols, len(cand_c))
 
         for surv in survivors:
             surv_c = np.array(surv.coordinates, dtype=np.float64)
+            if Counter(cand.symbols) != Counter(surv.symbols):
+                continue
 
             if cand.energy_kcal_rel is None or surv.energy_kcal_rel is None:
                 continue  # Missing energy is not zero and cannot justify deletion.
@@ -1483,13 +1552,12 @@ def deduplicate_stage_b_spectroscopic(
             if d_defect > 0.05:
                 continue
 
-            rmsd = compute_rmsd(cand_c, surv_c, symbols=cand.symbols)
+            rmsd = compute_rmsd(
+                cand_c, surv_c, symbols=cand.symbols, symbols2=surv.symbols
+            )
             if rmsd < rmsd_thr:
-                is_duplicate = True
-                break
-
-        if not is_duplicate:
-            survivors.append(cand)
+                continue  # Unknown graph/stereo/state identity remains retained.
+        survivors.append(cand)
 
     return survivors
 
@@ -1570,6 +1638,12 @@ def save_ensemble_to_hdf5(
         f.attrs["temperature_k"] = ensemble.temperature_k
         if ensemble.s_conf_cal_mol_k is not None:
             f.attrs["s_conf_cal_mol_k"] = ensemble.s_conf_cal_mol_k
+        if ensemble.thermodynamic_state_status is not None:
+            f.attrs["thermodynamic_state_status"] = ensemble.thermodynamic_state_status
+        if ensemble.thermodynamic_unavailability_reason is not None:
+            f.attrs["thermodynamic_unavailability_reason"] = (
+                ensemble.thermodynamic_unavailability_reason
+            )
         f.attrs["missing_physical_values"] = (
             "NaN means unavailable, never a numerical zero"
         )
@@ -1914,29 +1988,30 @@ class GoatRunner:
             for candidate in all_raw_records:
                 raw_archive.write(candidate.model_dump_json() + "\n")
 
-        # 3. Pairwise RMSD deduplication (delta_RMSD >= rmsd_threshold_angstrom, default 0.15 A)
+        # 3. Advisory RMSD screen. Legacy records lack chemical identity evidence;
+        # retain every original candidate and its generator-provided index.
         unique_confs: list[ConformerRecord] = []
         for cand in window_confs:
-            cand_coords = np.array(cand.coordinates, dtype=np.float64)
-            is_dup = False
+            cand_coords = _rmsd_coordinates(cand.coordinates)
+            _rmsd_symbols(cand.symbols, len(cand_coords))
             for acc in unique_confs:
                 acc_coords = np.array(acc.coordinates, dtype=np.float64)
-                rmsd_val = compute_rmsd(cand_coords, acc_coords, symbols=cand.symbols)
+                if Counter(cand.symbols) != Counter(acc.symbols):
+                    continue
+                rmsd_val = compute_rmsd(
+                    cand_coords, acc_coords, symbols=cand.symbols, symbols2=acc.symbols
+                )
                 if rmsd_val < multi_config.rmsd_threshold_angstrom:
-                    is_dup = True
-                    break
-            if not is_dup:
-                cand.index = len(unique_confs)
-                unique_confs.append(cand)
+                    continue  # A scalar screen cannot authorize candidate removal.
+            unique_confs.append(cand)
 
-        # Thermodynamic conformational entropy S_conf
-        e_rels = [c.energy_kcal_rel for c in unique_confs]
-        if any(energy is None for energy in e_rels):
-            s_conf, weights = None, []
-        else:
-            s_conf, weights = calculate_conformational_entropy(
-                e_rels, temperature_k=self.config.conftemp_k
-            )
+        # Candidate counts do not establish distinct thermodynamic states or
+        # degeneracies. Repeated observations cannot become extra populations.
+        s_conf, weights = None, []
+        thermodynamic_reason = (
+            "Distinct graph/stereo/state identities, degeneracies and common "
+            "free-energy comparability are not established for this legacy pool."
+        )
 
         ensemble = EnsembleContainer(
             name=f"{system_name}_GOAT_Ensemble",
@@ -1944,6 +2019,8 @@ class GoatRunner:
             temperature_k=self.config.conftemp_k,
             s_conf_cal_mol_k=s_conf,
             boltzmann_weights=weights,
+            thermodynamic_state_status="not_established",
+            thermodynamic_unavailability_reason=thermodynamic_reason,
             provenance_tag="[M]",
         )
 
@@ -1957,6 +2034,8 @@ class GoatRunner:
             n_goat_dedup_stage_b=len(unique_confs),
             goat_f1_baseline=None,
             s_conf_cal_mol_k=s_conf,
+            thermodynamic_state_status="not_established",
+            thermodynamic_unavailability_reason=thermodynamic_reason,
             wall_time_seconds=elapsed,
             provenance_tag="[M]",
         )
