@@ -1,5 +1,13 @@
 # Genuine published-value comparison product
 
+**Latest access/source update:** [the new source-acquisition note](reference_acquisition_20261009.md)
+and [agent handoff](AGENT_HANDOFF.md) record genuine successful NIST WebBook,
+CCCBDB and QCArchive information requests, with an independent HTTP 200/exit-zero
+recheck on 9 October 2026 UTC. Their earlier denied requests remain historical.
+Nine unqualified source candidates are retained; zero accepted benchmark records
+or identification qualifications were added. The live API information response
+is server metadata, not a molecular calculation record.
+
 Student deployment is **on hold**. The base product can retrieve bounded public
 scientific sources, parse original QM9 records, execute a genuine small-molecule
 calculation, verify its native publication bundle and compare individual results

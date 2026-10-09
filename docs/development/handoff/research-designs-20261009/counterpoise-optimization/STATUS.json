@@ -1,0 +1,36 @@
+{
+  "schema_version": "cochem.torq.agent-research-design-status/1",
+  "workstream": "W06",
+  "topic": "counterpoise-total-potential-geometry-optimization",
+  "status": "UNIMPLEMENTED_UNVALIDATED_DESIGN_ONLY",
+  "production_files_created": [],
+  "production_files_modified": [],
+  "code_drafts_created": [],
+  "native_calculations_started": 0,
+  "tests_started": 0,
+  "tests_passed": null,
+  "implementation_complete": false,
+  "scientific_profile_qualified": false,
+  "full_w06_complete": false,
+  "full_srs_gate_evidence": [],
+  "inspected_repository_head": "cbf53f57109c6842ff1ca50025c522058026bfe4",
+  "inspected_source_sha256": {
+    "src/cochem_torq/engines/counterpoise.py": "28fe9a4367caea95b1fd2b3f17ed6b57e910399f9e62dd42cc9eb5d36bafab8e",
+    "src/cochem_torq/energetics.py": "677e1522bac7066005cf500a08bda19231fcd42b45a56d440f4f9959ce9740e8",
+    "src/cochem_torq/engines/constrained_optimization.py": "943d09ce095dbd0b6b4e4b578adf441503addf3fdd4e8e149a5937b4e70765a0",
+    "src/cochem_torq/engines/diagnostics.py": "f3d28f49f6f6ca37ce04fe1984cf4be447f90f93df201447400ce888571543fe"
+  },
+  "reserved_but_absent_production_paths": [
+    "src/cochem_torq/engines/counterpoise_optimization.py",
+    "tests/test_counterpoise_optimization.py",
+    "docs/development/counterpoise_optimization.md"
+  ],
+  "counterpoise_total_potential": "E_complex_full_basis + sum_i(E_fragment_own_basis_at_current_geometry - E_fragment_full_complex_ghost_basis)",
+  "half_counterpoise_total_potential": "E_complex_full_basis + 0.5 * sum_i(E_fragment_own_basis_at_current_geometry - E_fragment_full_complex_ghost_basis)",
+  "gradient_requirement": "Full complex gradient plus explicitly embedded own-basis fragment gradients minus all physical-and-ghost-center fragment gradients, with explicit CP/half-CP weight.",
+  "fresh_final_native_batch_required": true,
+  "minimum_or_de_d0_claim_permitted_without_matched_cp_curvature_and_endpoints": false,
+  "student_deployment_state": "ON_HOLD",
+  "design_path": "DESIGN_UNIMPLEMENTED.md",
+  "stop_reason": "The coordinating agent relayed the user request to prepare an agent handoff before implementation began."
+}

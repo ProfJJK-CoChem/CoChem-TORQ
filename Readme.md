@@ -18,6 +18,8 @@ gates and scientifically valid earlier results when a later stage is unavailable
 for the base calculation product and retrieved peer-reviewed QM9 data. The
 [researcher context](docs/development/agent_and_researcher_context.md) records
 remaining agent implementation and the specific owner/researcher prerequisites.
+Agents continuing implementation should start with the
+[repository handoff](docs/development/AGENT_HANDOFF.md).
 
 **Author/PI:** Dr. Joshua John Klaassen
 **ORCiD:** [0009-0007-1506-4401](https://orcid.org/0009-0007-1506-4401)

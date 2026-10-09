@@ -1,0 +1,34 @@
+{
+  "schema_version": "cochem.torq.public-evidence-file-index/1",
+  "files": {
+    "README.md": {
+      "bytes": 2044,
+      "sha256": "3d608a9764dcb1cd35ccac884b34a62f5771cc6750cfea7e49694b5dbc19e6b3"
+    },
+    "actual-table-readback.json": {
+      "bytes": 2162,
+      "sha256": "492898312c94b5f899371d5201e6ab4a92d4093ee5e41aa29eef4e07d03fabb3"
+    },
+    "nist-cccbdb-water.receipt.json": {
+      "bytes": 541,
+      "sha256": "59aa960eef9fc4f4b147aeef702ee7a0d5629b1b0891e231416d64e5d804ebea"
+    },
+    "nist-webbook-water.receipt.json": {
+      "bytes": 553,
+      "sha256": "46089220cd71154775e78cdf970ac7927c0491cbba49c6eb7c7a20cd0e69fef8"
+    },
+    "qcarchive-api-information.receipt.json": {
+      "bytes": 534,
+      "sha256": "b53fb54b5f5103e24b5bb039c19121c55390bd9f436b26879a24b234688f6ee5"
+    },
+    "source-byte-index.json": {
+      "bytes": 1318,
+      "sha256": "0692e10d302474d293a76f521390d0c03cb66a74a7a078afda2222b4ad364014"
+    },
+    "source-candidates.json": {
+      "bytes": 10048,
+      "sha256": "b2293d40e505bd174b69f779f8a531ae7392a92cfc5923be2dcf2a06505615ac"
+    }
+  },
+  "index_self_excluded": true
+}

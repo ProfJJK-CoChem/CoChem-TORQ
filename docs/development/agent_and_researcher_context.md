@@ -1,5 +1,13 @@
 # Agent and researcher context
 
+**Latest handoff update:** [the agent handoff](AGENT_HANDOFF.md) records normal
+successful NIST WebBook, CCCBDB and QCArchive information requests, independently
+rechecked with HTTP 200/exit zero on 9 October 2026 UTC. Earlier denied requests
+below are historical for these three endpoints. Nine source-only candidates were
+extracted; zero benchmark records or scientific qualifications were accepted.
+The handoff preserves five unimplemented scientific designs and an exact
+unvalidated GKS patch; production science code remains at the tested baseline.
+
 Updated 2026-10-08. **Student deployment is ON HOLD.** Agents should continue the feasible source, reference, research and authorized compute work below. This document does not authorize a student pilot, deployment or billing, and does not claim scientific publication or a qualified production release.
 
 The [complete SRS audit](full_srs_requirement_audit.json) tracks **73 requirements and 41 acceptance gates**. All **41/41 full-scope gates remain blocked** and no requirement is fully qualified. The 140 method-matrix identities remain documentary until their exact recipe/domain/profile is enabled with genuine evidence. Partial implementation, source retrieval, successful calculations and passing scoped tests are useful progress; they are separate from full scientific and platform acceptance.

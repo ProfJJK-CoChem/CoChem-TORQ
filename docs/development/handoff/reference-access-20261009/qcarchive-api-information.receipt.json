@@ -1,0 +1,18 @@
+{
+  "name": "qcarchive-api-information",
+  "url": "https://api.qcarchive.molssi.org/api/v1/information",
+  "started_at_utc": "2026-10-09T20:47:41.228711+00:00",
+  "finished_at_utc": "2026-10-09T20:47:41.666002+00:00",
+  "actual_curl_exit": 0,
+  "origin_http_code": 200,
+  "proxy_connect_http_code": 200,
+  "tls_verify_result": 0,
+  "body_bytes": 630,
+  "body_sha256": "93c228ddf2b78d42b8ba55c7f7cd3a8d6cb65003428b5329e992e193723d3c67",
+  "maximum_bytes": 1048576,
+  "maximum_wall_seconds": 25,
+  "inherited_proxy_preserved": true,
+  "tls_verification_disabled": false,
+  "scientific_values_accepted": false,
+  "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification."
+}

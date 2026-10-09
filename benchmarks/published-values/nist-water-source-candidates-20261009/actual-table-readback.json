@@ -1,0 +1,147 @@
+{
+  "schema_version": "cochem.torq.actual-source-table-readback/1",
+  "actual_original_source_reads": true,
+  "initial_extractor_attempt_failed": true,
+  "initial_extractor_error": "IndexError: list index out of range; original CCCBDB table omits closing row tag before closing table",
+  "corrected_extractor_handles_omitted_row_end": true,
+  "webbook_rows": [
+    [
+      ""
+    ],
+    [
+      "Sym.",
+      "No",
+      "Approximate",
+      "Selected Freq.",
+      "Infrared",
+      "Raman",
+      "Comments"
+    ],
+    [
+      "Species",
+      "",
+      "type of mode",
+      "Value",
+      "Rating",
+      "Value",
+      "Phase",
+      "Value",
+      "Phase",
+      ""
+    ],
+    [
+      ""
+    ],
+    [
+      "a1",
+      "1",
+      "Sym str",
+      "3657",
+      "A",
+      "3656.65",
+      "gas",
+      "3654",
+      "gas",
+      ""
+    ],
+    [
+      "a1",
+      "2",
+      "Bend",
+      "1595",
+      "A",
+      "1594.59",
+      "gas",
+      "",
+      "",
+      ""
+    ],
+    [
+      "b1",
+      "3",
+      "Anti str",
+      "3756",
+      "A",
+      "3755.79",
+      "gas",
+      "",
+      "",
+      ""
+    ],
+    [
+      ""
+    ]
+  ],
+  "cccbdb_vibrational_rows": [
+    [
+      "Mode Number",
+      "Symmetry",
+      "Frequency",
+      "Intensity",
+      "Comment",
+      "Description"
+    ],
+    [
+      "Fundamental(cm-1)",
+      "Harmonic(cm-1)",
+      "Reference",
+      "(km mol-1)",
+      "unc.",
+      "Reference"
+    ],
+    [
+      "1",
+      "A1",
+      "3657",
+      "3832",
+      "Shim",
+      "2.9",
+      "",
+      "1992Cul/Lie:502",
+      "",
+      "OH s-str"
+    ],
+    [
+      "2",
+      "A1",
+      "1595",
+      "1649",
+      "Shim",
+      "62.5",
+      "",
+      "1992Cul/Lie:502",
+      "",
+      "bend"
+    ],
+    [
+      "3",
+      "B2",
+      "3756",
+      "3943",
+      "1979HUB/HER",
+      "41.7",
+      "",
+      "",
+      "",
+      "OH a-str"
+    ]
+  ],
+  "cccbdb_rotational_rows": [
+    [
+      "A",
+      "B",
+      "C",
+      "reference",
+      "comment"
+    ],
+    [
+      "27.87700",
+      "14.51200",
+      "9.28500",
+      "1966Herzberg",
+      ""
+    ]
+  ],
+  "accepted_benchmark_records": 0,
+  "real_engine_runs": 0
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "cochem.torq.unimplemented-research-handoff/1",
+  "agent": "/root/periodic_nuclear_motion",
+  "recorded_at_utc": "2026-10-09 20:46:06 UTC",
+  "observed_head": "cbf53f57109c6842ff1ca50025c522058026bfe4",
+  "status": "design preserved; no implementation",
+  "owned_production_files_written": [],
+  "owned_test_files_written": [],
+  "owned_documentation_files_written_in_repository": [],
+  "test_runs_performed": [],
+  "native_engine_calls_performed": 0,
+  "native_artifacts_generated": 0,
+  "dependencies_installed": [],
+  "git_commits_created": [],
+  "qualification": false,
+  "identification_ready": false,
+  "full_srs_gate_activation": false,
+  "design_path": "RESEARCH_DESIGN.md",
+  "design_sha256": "bb40ddbbb1d86fb8f1aa21673148436e5b3da26f8bdf17e932224309a18d49cd",
+  "design_size_bytes": 12585,
+  "remaining_agent_work": [
+    "Coordinate/measure derivation review",
+    "Bounded periodic solver implementation",
+    "Meaningful mathematical/process tests",
+    "Authenticated molecular import and genuine cyclic data",
+    "Independent molecular calibration",
+    "Coupled torsion-rotation and PI/spin generalization"
+  ]
+}

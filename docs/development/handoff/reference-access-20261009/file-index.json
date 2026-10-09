@@ -1,0 +1,26 @@
+{
+  "schema_version": "cochem.torq.handoff-file-index/1",
+  "files": [
+    {
+      "path": "nist-cccbdb-water.receipt.json",
+      "bytes": 722,
+      "sha256": "8a3191d38573c992e6cb63e5698b75d1228fbd254c504434afed0d365a50d06b"
+    },
+    {
+      "path": "nist-webbook-water.receipt.json",
+      "bytes": 735,
+      "sha256": "cd98f727f36543d118fa634d48e0e543cbbfefd0a18a1fca2f72545e56912cee"
+    },
+    {
+      "path": "qcarchive-api-information.receipt.json",
+      "bytes": 723,
+      "sha256": "4f2e36beeb5e0713a9cf7822d4cce99ebc9387aa9f90d3faae1195b2561629d4"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 2528,
+      "sha256": "487c1275632f6eeec869e06969789de0effc8fad56339d8bbea7159f6ff9b9af"
+    }
+  ],
+  "index_self_excluded": true
+}

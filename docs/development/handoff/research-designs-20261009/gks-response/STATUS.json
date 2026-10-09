@@ -1,0 +1,25 @@
+{
+  "baseline_commit": "cbf53f57109c6842ff1ca50025c522058026bfe4",
+  "draft_new_module_written": false,
+  "full_srs_qualification": false,
+  "native_calculations_executed": 0,
+  "pytest_cases_executed": 0,
+  "restored_source_sha256": "db8aefd4b6cd398f218d98bbc1cfadf7f20c9f5cc8eedb291c1cec6bb0c5c44a",
+  "schema": "research-draft-handoff/1",
+  "scientific_validation_checks_executed": 0,
+  "source_path": "src/cochem_torq/engines/revdsd.py",
+  "source_restored_to_baseline": true,
+  "status": "unfinished_non_executable_draft",
+  "student_deployment": "on_hold",
+  "type_and_lint_checks_executed": 0,
+  "published_subset": [
+    "DESIGN.md",
+    "revdsd-unfinished-integration.patch"
+  ],
+  "local_original_manifest_sha256": "a0a23327c500ba7cd690b18673cd527db9782e50776a2c75f926c5b0a601f591",
+  "actual_preservation_checks": {
+    "exact_restoration_exit": 0,
+    "patch_applicability_exit": 0,
+    "scope": "Patch applicability/restoration only; no algorithm execution, lint, type or scientific validation."
+  }
+}

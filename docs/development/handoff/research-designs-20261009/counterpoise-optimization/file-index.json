@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "path": "DESIGN_UNIMPLEMENTED.md",
+      "sha256": "519376c7acfa60ce2269bb1163e9550fa8f5878c05303c7a9e4b39b727e4d9a8",
+      "size_bytes": 15394
+    },
+    {
+      "path": "STATUS.json",
+      "sha256": "ec272442270eff22653cc7a3c4ce53b51ef81b96b0e81a48334994b25fb6a5f0",
+      "size_bytes": 2148
+    }
+  ],
+  "schema_version": "cochem.torq.unimplemented-design-index/1",
+  "status": "DESIGN_ONLY_NO_CODE_OR_EXECUTION_EVIDENCE"
+}

@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "path": "UNVALIDATED_DESIGN.md",
+      "sha256": "97214b7376cb09ae57b995f50204ef11f1d677f00a6910e42aa95e79e5448c04",
+      "size_bytes": 9375
+    },
+    {
+      "path": "official-rhf-efg.py",
+      "sha256": "cb79741703b4174dcdaa1b661953c38eb51dde6eeb82da0d5203b9647180ffd5",
+      "size_bytes": 7841
+    }
+  ],
+  "native_calculations_executed": 0,
+  "production_files_changed": [],
+  "schema_version": "cochem-torq.unvalidated-handoff-draft/1",
+  "source_retrieval": {
+    "observed_curl_exit_code": 0,
+    "original_sha256": "cb79741703b4174dcdaa1b661953c38eb51dde6eeb82da0d5203b9647180ffd5",
+    "url": "https://raw.githubusercontent.com/pyscf/properties/4eee5a430fb47eca5962f36fdcaf75c2b87e7ede/pyscf/prop/efg/rhf.py"
+  },
+  "status": "unvalidated_design_only",
+  "tests_executed": 0
+}

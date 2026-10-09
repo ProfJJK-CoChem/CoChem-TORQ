@@ -1,0 +1,12 @@
+{
+  "schema_version": "cochem.torq.research-design-handoff/1",
+  "status": "Unimplemented and unvalidated continuation designs, not production modules.",
+  "native_calculations": 0,
+  "new_scientific_tests": 0,
+  "full_srs_qualification": false,
+  "student_deployment": "on_hold",
+  "exact_unfinished_patch_present": true,
+  "patch_applied_to_production": false,
+  "original_full_gks_manifest_published": false,
+  "note": "Selected designs are unchanged copies. Full local GKS baseline/draft source snapshots remain outside checkout; the selected patch references an unwritten module and must not be activated as complete code. Pinned unmodified Apache-2.0 PySCF EFG source is retained for read-only reference with its copyright header and full license."
+}

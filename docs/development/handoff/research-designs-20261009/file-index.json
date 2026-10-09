@@ -1,0 +1,86 @@
+{
+  "schema_version": "cochem.torq.handoff-file-index/1",
+  "files": [
+    {
+      "path": "counterpoise-optimization/DESIGN_UNIMPLEMENTED.md",
+      "bytes": 15394,
+      "sha256": "519376c7acfa60ce2269bb1163e9550fa8f5878c05303c7a9e4b39b727e4d9a8"
+    },
+    {
+      "path": "counterpoise-optimization/STATUS.json",
+      "bytes": 2148,
+      "sha256": "ec272442270eff22653cc7a3c4ce53b51ef81b96b0e81a48334994b25fb6a5f0"
+    },
+    {
+      "path": "counterpoise-optimization/file-index.json",
+      "bytes": 456,
+      "sha256": "03c0c0f753ffe63a875e45e1de2f475aa5b8289c7aed405a871dfcdb67d878ed"
+    },
+    {
+      "path": "density-properties/LICENSE-APACHE-2.0.txt",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "density-properties/UNVALIDATED_DESIGN.md",
+      "bytes": 9375,
+      "sha256": "97214b7376cb09ae57b995f50204ef11f1d677f00a6910e42aa95e79e5448c04"
+    },
+    {
+      "path": "density-properties/file-index.json",
+      "bytes": 817,
+      "sha256": "d3238940bde705faf68e7d5739ac359001590dc18ed2b7ff6da6a3a57a1ea518"
+    },
+    {
+      "path": "density-properties/official-rhf-efg.py",
+      "bytes": 7841,
+      "sha256": "cb79741703b4174dcdaa1b661953c38eb51dde6eeb82da0d5203b9647180ffd5"
+    },
+    {
+      "path": "gks-response/DESIGN.md",
+      "bytes": 11026,
+      "sha256": "52865c0d796d85c934b62b1ee6c33661539ebfa9f730d4e6f875cbf064023e50"
+    },
+    {
+      "path": "gks-response/STATUS.json",
+      "bytes": 1015,
+      "sha256": "fbe90b633b95fb6a2376d24059575538452bdbc9607ae4d85b06380418bafb34"
+    },
+    {
+      "path": "gks-response/revdsd-unfinished-integration.patch",
+      "bytes": 5787,
+      "sha256": "fe1477b28e20454f6cbe5212ceaf5880ebe91a0aa89f16d3803e0c36cae360a3"
+    },
+    {
+      "path": "irc/UNVALIDATED_IRC_DESIGN.md",
+      "bytes": 10261,
+      "sha256": "57bc374d1b1b376dabebba048d67cea6e202ecd33b8e9c5ee550a3b553295958"
+    },
+    {
+      "path": "irc/handoff-index.json",
+      "bytes": 460,
+      "sha256": "318f524886ee1c15e68c0ddde394eccb1613d396a4f9c698dedc86f0bc8d4ce9"
+    },
+    {
+      "path": "periodic-nuclear-motion/RESEARCH_DESIGN.md",
+      "bytes": 12585,
+      "sha256": "bb40ddbbb1d86fb8f1aa21673148436e5b3da26f8bdf17e932224309a18d49cd"
+    },
+    {
+      "path": "periodic-nuclear-motion/file-index.json",
+      "bytes": 397,
+      "sha256": "d3281df6fbb783542989926d53e2b5dc836a41e01152171afca1daa903c75baf"
+    },
+    {
+      "path": "periodic-nuclear-motion/progress.json",
+      "bytes": 1152,
+      "sha256": "1417dbef40269106b2fc736b2f680dddd3051c233fbec69a8fcb506821dedc2d"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 757,
+      "sha256": "1a3a88d9f709c31a1899ab4ee477f07e9d012cad5aeabc6e70a683a04022cc0f"
+    }
+  ],
+  "index_self_excluded": true
+}

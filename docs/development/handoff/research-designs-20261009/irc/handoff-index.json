@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "path": "UNVALIDATED_IRC_DESIGN.md",
+      "sha256": "57bc374d1b1b376dabebba048d67cea6e202ecd33b8e9c5ee550a3b553295958",
+      "size_bytes": 10261
+    }
+  ],
+  "native_calculations_run": 0,
+  "repository_changes": [],
+  "schema_version": "cochem.torq.agent-handoff-draft/1",
+  "scientific_qualification": false,
+  "status": "design_only_unimplemented_unvalidated",
+  "tests_run": 0,
+  "workstream": "W08 genuine mass-weighted IRC"
+}

@@ -1,0 +1,135 @@
+diff --git a/src/cochem_torq/engines/revdsd.py b/src/cochem_torq/engines/revdsd.py
+index 721c42f..5e65c54 100644
+--- a/src/cochem_torq/engines/revdsd.py
++++ b/src/cochem_torq/engines/revdsd.py
+@@ -10,7 +10,7 @@ from __future__ import annotations
+ 
+ import importlib.metadata
+ import json
+-from collections.abc import Sequence
++from collections.abc import Callable, Sequence
+ from dataclasses import asdict, dataclass
+ from hashlib import sha256
+ from pathlib import Path
+@@ -385,7 +385,7 @@ def resolved_d4_parameters(method: str) -> dict[str, Any]:
+     }
+ 
+ 
+-def _hf_pt2_analytic_gradient(
++def _canonical_pt2_analytic_gradient(
+     mf: Any,
+     recipe: ResearchRecipe,
+     *,
+@@ -393,8 +393,10 @@ def _hf_pt2_analytic_gradient(
+     response_max_cycle: int,
+     orbital_separation_tolerance: float,
+     max_ao_tensor_bytes: int,
++    explicit_fock_derivative: np.ndarray | None = None,
++    energy_gradient_callback: Callable[[int, np.ndarray], np.ndarray] | None = None,
+ ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+-    """Differentiate real, nondegenerate canonical HF OS/SS PT2 analytically.
++    """Differentiate real, nondegenerate canonical restricted OS/SS PT2.
+ 
+     The occupied CPHF solution supplies the induced density. The complete
+     canonical orbital derivative includes occupied/occupied and virtual/virtual
+@@ -435,7 +437,13 @@ def _hf_pt2_analytic_gradient(
+ 
+     before = _orbital_state_digest(mf)
+     mf.conv_tol_cpscf = response_tolerance
+-    h1 = np.asarray(mf.Hessian().make_h1(coefficients, mf.mo_occ))
++    h1 = (
++        np.asarray(mf.Hessian().make_h1(coefficients, mf.mo_occ))
++        if explicit_fock_derivative is None
++        else np.asarray(explicit_fock_derivative)
++    )
++    if h1.shape != (mol.natm, 3, mol.nao, mol.nao) or not np.all(np.isfinite(h1)):
++        raise ResearchCalculationError("Finite atom-ordered Fock derivatives required")
+     mo1, _ = rhf.solve_mo1(
+         mf,
+         energies,
+@@ -468,7 +476,11 @@ def _hf_pt2_analytic_gradient(
+     os_numerator = transformed**2
+     exchange_integrals = transformed.swapaxes(2, 3)
+     ss_numerator = transformed * (transformed - exchange_integrals)
+-    hf_gradient = np.asarray(mf.nuc_grad_method().kernel())
++    hf_gradient = (
++        np.asarray(mf.nuc_grad_method().kernel())
++        if energy_gradient_callback is None
++        else np.empty((mol.natm, 3))
++    )
+     os_gradient = np.empty_like(hf_gradient)
+     ss_gradient = np.empty_like(hf_gradient)
+     response_operator = mf.gen_response(hermi=1)
+@@ -488,6 +500,8 @@ def _hf_pt2_analytic_gradient(
+             "xpi,qi->xpq", occupied_response, coefficients[:, occupied]
+         )
+         density_response += density_response.transpose(0, 2, 1)
++        if energy_gradient_callback is not None:
++            hf_gradient[atom] = energy_gradient_callback(atom, density_response)
+         fock_derivative = h1[atom] + response_operator(density_response)
+         fock_mo = np.einsum(
+             "pi,xpq,qj->xij", coefficients, fock_derivative, coefficients
+@@ -641,8 +655,9 @@ class ExperimentalDoubleHybrid:
+ 
+     Numerical gradients include orbital response by rerunning the complete
+     energy at every displacement. An analytic first-derivative milestone is
+-    available for HF-generated spin-scaled PT2 models only. GKS/double-hybrid
+-    analytic response remains unavailable. Results are unqualified research.
++    available for HF-generated spin-scaled PT2 models. The separate bounded
++    ``gks_analytic_gradient`` entry point also differentiates custom all-electron
++    LDA/GGA GKS models with moving-grid response. Results are unqualified research.
+     """
+ 
+     def __init__(
+@@ -998,7 +1013,7 @@ class ExperimentalDoubleHybrid:
+                     mf.e_tot = saved["e_tot"]
+                     mf.converged = parent["scf_converged"]
+                     mf.max_memory = self.settings["max_memory_mb"]
+-                    components, diagnostics = _hf_pt2_analytic_gradient(
++                    components, diagnostics = _canonical_pt2_analytic_gradient(
+                         mf,
+                         self.recipe,
+                         response_tolerance=response_tolerance,
+@@ -1106,6 +1121,42 @@ class ExperimentalDoubleHybrid:
+             )
+             raise
+ 
++    def gks_analytic_gradient(
++        self,
++        symbols: Sequence[str],
++        coordinates_bohr: np.ndarray,
++        *,
++        charge: int,
++        multiplicity: int,
++        artifact_directory: Path | str,
++        response_tolerance: float = 1e-10,
++        response_max_cycle: int = 100,
++        orbital_separation_tolerance: float = 1e-7,
++        max_ao_tensor_bytes: int | None = None,
++        grid_block_size: int = 1024,
++    ) -> dict[str, Any]:
++        """Explicit custom all-electron LDA/GGA derivative research milestone.
++
++        This deliberately separate entry point includes nuclear motion of the
++        quadrature coordinates and weights, Pulay and canonical PT2 response.
++        It does not activate a named revDSD recipe, production profile or Hessian.
++        """
++        from .gks_response import custom_gks_analytic_gradient
++
++        return custom_gks_analytic_gradient(
++            self,
++            symbols,
++            coordinates_bohr,
++            charge=charge,
++            multiplicity=multiplicity,
++            artifact_directory=artifact_directory,
++            response_tolerance=response_tolerance,
++            response_max_cycle=response_max_cycle,
++            orbital_separation_tolerance=orbital_separation_tolerance,
++            max_ao_tensor_bytes=max_ao_tensor_bytes,
++            grid_block_size=grid_block_size,
++        )
++
+     def hessian_from_analytic_gradients(
+         self,
+         symbols: Sequence[str],

@@ -1,0 +1,16 @@
+{
+  "url": "https://api.qcarchive.molssi.org/api/v1/information",
+  "started_at": "2026-10-09T00:33:00.744067+00:00",
+  "finished_at": "2026-10-09T00:33:01.340686+00:00",
+  "curl_exit": 0,
+  "original_body_present": true,
+  "original_body_bytes": 630,
+  "body_sha256": "93c228ddf2b78d42b8ba55c7f7cd3a8d6cb65003428b5329e992e193723d3c67",
+  "verified_tls": true,
+  "inherited_proxy_preserved": true,
+  "maximum_bytes": 1048576,
+  "maximum_wall_seconds": 25,
+  "stderr": "",
+  "origin_http_code": 200,
+  "proxy_connect_http_code": 200
+}

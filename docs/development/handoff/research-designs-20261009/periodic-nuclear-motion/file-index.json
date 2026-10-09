@@ -1,0 +1,15 @@
+{
+  "schema_version": "cochem.torq.research-handoff-file-index/1",
+  "files": [
+    {
+      "path": "RESEARCH_DESIGN.md",
+      "size_bytes": 12585,
+      "sha256": "bb40ddbbb1d86fb8f1aa21673148436e5b3da26f8bdf17e932224309a18d49cd"
+    },
+    {
+      "path": "progress.json",
+      "size_bytes": 1152,
+      "sha256": "1417dbef40269106b2fc736b2f680dddd3051c233fbec69a8fcb506821dedc2d"
+    }
+  ]
+}

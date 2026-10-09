@@ -1,0 +1,18 @@
+{
+  "name": "nist-webbook-water",
+  "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=800",
+  "started_at_utc": "2026-10-09T20:47:41.227680+00:00",
+  "finished_at_utc": "2026-10-09T20:47:41.408671+00:00",
+  "actual_curl_exit": 0,
+  "origin_http_code": 200,
+  "proxy_connect_http_code": 200,
+  "tls_verify_result": 0,
+  "body_bytes": 25844,
+  "body_sha256": "31498a4e5577a5072b4dcd51cb8fa73097a568228168155fa3c25456d8021ec1",
+  "maximum_bytes": 1048576,
+  "maximum_wall_seconds": 25,
+  "inherited_proxy_preserved": true,
+  "tls_verification_disabled": false,
+  "scientific_values_accepted": false,
+  "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification."
+}

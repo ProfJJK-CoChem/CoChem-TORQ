@@ -1,0 +1,16 @@
+{
+  "url": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185&charge=0",
+  "started_at": "2026-10-09T00:33:00.743705+00:00",
+  "finished_at": "2026-10-09T00:33:01.352273+00:00",
+  "curl_exit": 0,
+  "original_body_present": true,
+  "original_body_bytes": 50382,
+  "body_sha256": "b92fab46ef02c8fa83aeab9039a2ff24e110ce3b64a11c3e3929d4348dc3ab43",
+  "verified_tls": true,
+  "inherited_proxy_preserved": true,
+  "maximum_bytes": 1048576,
+  "maximum_wall_seconds": 25,
+  "stderr": "",
+  "origin_http_code": 200,
+  "proxy_connect_http_code": 200
+}

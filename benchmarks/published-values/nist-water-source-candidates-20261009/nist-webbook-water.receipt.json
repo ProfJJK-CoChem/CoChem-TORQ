@@ -1,0 +1,16 @@
+{
+  "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=800",
+  "started_at": "2026-10-09T00:33:00.743327+00:00",
+  "finished_at": "2026-10-09T00:33:00.963393+00:00",
+  "curl_exit": 0,
+  "original_body_present": true,
+  "original_body_bytes": 25844,
+  "body_sha256": "71a6a45e8ba73a635e9e40b3281c33512122d2aff904e4b472d97216a30672ca",
+  "verified_tls": true,
+  "inherited_proxy_preserved": true,
+  "maximum_bytes": 1048576,
+  "maximum_wall_seconds": 25,
+  "stderr": "",
+  "origin_http_code": 200,
+  "proxy_connect_http_code": 200
+}

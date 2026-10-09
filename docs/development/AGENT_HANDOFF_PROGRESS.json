@@ -1,0 +1,251 @@
+{
+  "actual_full_release_evidence": [],
+  "application_sha256": "680f1415ee5e10867709c8d6c67f26f169c2c098d16b81ef0a6ef2331b65e1be",
+  "baseline_commit": "cbf53f57109c6842ff1ca50025c522058026bfe4",
+  "blocked_acceptance_count": 41,
+  "continuing_objective": "Complete the accepted CoChem-TORQ SRS and method matrix with authentic scientific and software evidence.",
+  "full_srs_release_ready": false,
+  "implementation_continuation": [
+    {
+      "actual_preservation_checks": {
+        "patch_applies_exit": 0,
+        "scientific_validation": false,
+        "source_restoration_exit": 0
+      },
+      "deliverable": "Moving-grid GKS/custom-DH response",
+      "draft_patch_path": "docs/development/handoff/research-designs-20261009/gks-response/revdsd-unfinished-integration.patch",
+      "handoff_path": "docs/development/handoff/research-designs-20261009/gks-response/DESIGN.md",
+      "instruction": "Read the indexed design/source note and actual original sources, implement and genuinely verify the supported scientific route. Do not promote the handoff itself to gate evidence.",
+      "intended_paths": [
+        "src/cochem_torq/engines/gks_response.py",
+        "src/cochem_torq/engines/revdsd.py"
+      ],
+      "new_native_calculations": 0,
+      "new_scientific_test_cases": 0,
+      "production_code_changed": false,
+      "qualified": false,
+      "state": "Exact unfinished patch preserved as a non-executable research draft; own production edit restored byte-for-byte.",
+      "workstream": "W03"
+    },
+    {
+      "deliverable": "CP total-potential geometry optimization",
+      "handoff_path": "docs/development/handoff/research-designs-20261009/counterpoise-optimization/DESIGN_UNIMPLEMENTED.md",
+      "instruction": "Read the indexed design/source note and actual original sources, implement and genuinely verify the supported scientific route. Do not promote the handoff itself to gate evidence.",
+      "intended_paths": [
+        "src/cochem_torq/engines/counterpoise_optimization.py"
+      ],
+      "new_native_calculations": 0,
+      "new_scientific_test_cases": 0,
+      "production_code_changed": false,
+      "qualified": false,
+      "state": "Unimplemented and unvalidated design; no production files were created.",
+      "workstream": "W06"
+    },
+    {
+      "deliverable": "Genuine bounded mass-weighted IRC",
+      "handoff_path": "docs/development/handoff/research-designs-20261009/irc/UNVALIDATED_IRC_DESIGN.md",
+      "instruction": "Read the indexed design/source note and actual original sources, implement and genuinely verify the supported scientific route. Do not promote the handoff itself to gate evidence.",
+      "intended_paths": [
+        "src/cochem_torq/engines/irc.py"
+      ],
+      "new_native_calculations": 0,
+      "new_scientific_test_cases": 0,
+      "production_code_changed": false,
+      "qualified": false,
+      "state": "Unimplemented and unvalidated design; no production files were created.",
+      "workstream": "W08"
+    },
+    {
+      "deliverable": "Authenticated density EFG",
+      "handoff_path": "docs/development/handoff/research-designs-20261009/density-properties/UNVALIDATED_DESIGN.md",
+      "instruction": "Read the indexed design/source note and actual original sources, implement and genuinely verify the supported scientific route. Do not promote the handoff itself to gate evidence.",
+      "intended_paths": [
+        "src/cochem_torq/engines/density_properties.py"
+      ],
+      "new_native_calculations": 0,
+      "new_scientific_test_cases": 0,
+      "production_code_changed": false,
+      "qualified": false,
+      "state": "Unimplemented and unvalidated design; no production files were created.",
+      "workstream": "W05/W10"
+    },
+    {
+      "deliverable": "Periodic nuclear motion",
+      "handoff_path": "docs/development/handoff/research-designs-20261009/periodic-nuclear-motion/RESEARCH_DESIGN.md",
+      "instruction": "Read the indexed design/source note and actual original sources, implement and genuinely verify the supported scientific route. Do not promote the handoff itself to gate evidence.",
+      "intended_paths": [
+        "src/cochem_torq/spectroscopy/periodic_nuclear_motion.py"
+      ],
+      "new_native_calculations": 0,
+      "new_scientific_test_cases": 0,
+      "production_code_changed": false,
+      "qualified": false,
+      "state": "Unimplemented and unvalidated design; no production files were created.",
+      "workstream": "W04"
+    },
+    {
+      "accepted_benchmark_count": 0,
+      "candidate_count": 9,
+      "deliverable": "New NIST/QCArchive source curation",
+      "handoff_path": "docs/development/reference_acquisition_20261009.md",
+      "instruction": "Read the indexed design/source note and actual original sources, implement and genuinely verify the supported scientific route. Do not promote the handoff itself to gate evidence.",
+      "intended_paths": [
+        "docs/development/reference_acquisition_20261009.md"
+      ],
+      "new_native_calculations": 0,
+      "new_scientific_test_cases": 0,
+      "production_code_changed": false,
+      "qualified": false,
+      "state": "Authentic source-only extraction: nine unqualified numerical candidates, zero accepted benchmark records; live QCArchive server metadata only.",
+      "workstream": "W01"
+    }
+  ],
+  "latest_deliverable": "Repository handoff for another agent.",
+  "prepared_at_utc": "2026-10-09T20:44:52.088754+00:00",
+  "publication_or_human_signoff_created": false,
+  "qualification_added_by_handoff": false,
+  "reference_access": {
+    "accepted_benchmark_records": 0,
+    "latest_receipt_path": "docs/development/handoff/reference-access-20261009/summary.json",
+    "preceding_requests": [
+      {
+        "body_sha256": "71a6a45e8ba73a635e9e40b3281c33512122d2aff904e4b472d97216a30672ca",
+        "curl_exit": 0,
+        "finished_at": "2026-10-09T00:33:00.963393+00:00",
+        "inherited_proxy_preserved": true,
+        "origin_http_code": 200,
+        "original_body_bytes": 25844,
+        "proxy_connect_http_code": 200,
+        "started_at": "2026-10-09T00:33:00.743327+00:00",
+        "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=800",
+        "verified_tls": true
+      },
+      {
+        "body_sha256": "b92fab46ef02c8fa83aeab9039a2ff24e110ce3b64a11c3e3929d4348dc3ab43",
+        "curl_exit": 0,
+        "finished_at": "2026-10-09T00:33:01.352273+00:00",
+        "inherited_proxy_preserved": true,
+        "origin_http_code": 200,
+        "original_body_bytes": 50382,
+        "proxy_connect_http_code": 200,
+        "started_at": "2026-10-09T00:33:00.743705+00:00",
+        "url": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185&charge=0",
+        "verified_tls": true
+      },
+      {
+        "body_sha256": "93c228ddf2b78d42b8ba55c7f7cd3a8d6cb65003428b5329e992e193723d3c67",
+        "curl_exit": 0,
+        "finished_at": "2026-10-09T00:33:01.340686+00:00",
+        "inherited_proxy_preserved": true,
+        "origin_http_code": 200,
+        "original_body_bytes": 630,
+        "proxy_connect_http_code": 200,
+        "started_at": "2026-10-09T00:33:00.744067+00:00",
+        "url": "https://api.qcarchive.molssi.org/api/v1/information",
+        "verified_tls": true
+      }
+    ],
+    "previous_denials": "Preserved historical observations, not current blockers for these tested endpoints.",
+    "requests": [
+      {
+        "actual_curl_exit": 0,
+        "body_bytes": 25844,
+        "body_sha256": "31498a4e5577a5072b4dcd51cb8fa73097a568228168155fa3c25456d8021ec1",
+        "finished_at_utc": "2026-10-09T20:47:41.408671+00:00",
+        "inherited_proxy_preserved": true,
+        "maximum_bytes": 1048576,
+        "maximum_wall_seconds": 25,
+        "name": "nist-webbook-water",
+        "origin_http_code": 200,
+        "proxy_connect_http_code": 200,
+        "scientific_values_accepted": false,
+        "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification.",
+        "started_at_utc": "2026-10-09T20:47:41.227680+00:00",
+        "tls_verification_disabled": false,
+        "tls_verify_result": 0,
+        "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=800"
+      },
+      {
+        "actual_curl_exit": 0,
+        "body_bytes": 50382,
+        "body_sha256": "172eb21fb7a493070e9058735fb71c3ab15b01887db54a39bb3ebda82864b933",
+        "finished_at_utc": "2026-10-09T20:47:41.718100+00:00",
+        "inherited_proxy_preserved": true,
+        "maximum_bytes": 1048576,
+        "maximum_wall_seconds": 25,
+        "name": "nist-cccbdb-water",
+        "origin_http_code": 200,
+        "proxy_connect_http_code": 200,
+        "scientific_values_accepted": false,
+        "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification.",
+        "started_at_utc": "2026-10-09T20:47:41.228080+00:00",
+        "tls_verification_disabled": false,
+        "tls_verify_result": 0,
+        "url": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185&charge=0"
+      },
+      {
+        "actual_curl_exit": 0,
+        "body_bytes": 630,
+        "body_sha256": "93c228ddf2b78d42b8ba55c7f7cd3a8d6cb65003428b5329e992e193723d3c67",
+        "finished_at_utc": "2026-10-09T20:47:41.666002+00:00",
+        "inherited_proxy_preserved": true,
+        "maximum_bytes": 1048576,
+        "maximum_wall_seconds": 25,
+        "name": "qcarchive-api-information",
+        "origin_http_code": 200,
+        "proxy_connect_http_code": 200,
+        "scientific_values_accepted": false,
+        "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification.",
+        "started_at_utc": "2026-10-09T20:47:41.228711+00:00",
+        "tls_verification_disabled": false,
+        "tls_verify_result": 0,
+        "url": "https://api.qcarchive.molssi.org/api/v1/information"
+      }
+    ],
+    "source_candidate_packet": "benchmarks/published-values/nist-water-source-candidates-20261009",
+    "source_candidates": 9,
+    "status": "Three actual HTTPS endpoints now reachable; extraction and scientific validation are separate."
+  },
+  "requirement_count": 73,
+  "research_design_inventory": "docs/development/handoff/research-designs-20261009/file-index.json",
+  "schema_version": "cochem.torq.agent-handoff/1",
+  "source_tree_sha256": "164926d7cb0778a7138398cd85ba8a78906da237f70946ea02cfc15b048e7902",
+  "student_deployment": "on_hold",
+  "tested_code_commit": "d43b8aa3eefc4768f2d52857cd3945677ed3a794",
+  "verified_baseline_lanes": {
+    "hosted_core310": {
+      "errors": 0,
+      "failures": 0,
+      "marker_deselection": null,
+      "passed": 1079,
+      "skipped": 0
+    },
+    "hosted_core312": {
+      "errors": 0,
+      "failures": 0,
+      "marker_deselection": null,
+      "passed": 1079,
+      "skipped": 0
+    },
+    "hosted_full": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 3277,
+      "run_id": 37856692326,
+      "skipped": 0
+    },
+    "local_bounded_relaxed_scan": {
+      "passed": 28,
+      "scope": "One unique water target through three independent scheduled attempts; not a complete PES."
+    },
+    "local_documentation_audit": {
+      "passed": 24
+    },
+    "local_host_allocation": {
+      "passed": 38
+    },
+    "local_interface_process": {
+      "passed": 50
+    }
+  }
+}

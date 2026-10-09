@@ -1,0 +1,34 @@
+{
+  "schema_version": "cochem.torq.original-source-byte-index/1",
+  "source_originals_committed": false,
+  "originals_retained_in_current_acquisition_environment": true,
+  "original_sources": [
+    {
+      "source_key": "nist-webbook-water",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=800",
+      "retrieved_at": "2026-10-09T00:33:00.963393+00:00",
+      "status": 200,
+      "bytes": 25844,
+      "sha256": "71a6a45e8ba73a635e9e40b3281c33512122d2aff904e4b472d97216a30672ca"
+    },
+    {
+      "source_key": "nist-cccbdb-water",
+      "url": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185&charge=0",
+      "retrieved_at": "2026-10-09T00:33:01.352273+00:00",
+      "status": 200,
+      "bytes": 50382,
+      "sha256": "b92fab46ef02c8fa83aeab9039a2ff24e110ce3b64a11c3e3929d4348dc3ab43"
+    },
+    {
+      "source_key": "qcarchive-api-information",
+      "url": "https://api.qcarchive.molssi.org/api/v1/information",
+      "retrieved_at": "2026-10-09T00:33:01.340686+00:00",
+      "status": 200,
+      "bytes": 630,
+      "sha256": "93c228ddf2b78d42b8ba55c7f7cd3a8d6cb65003428b5329e992e193723d3c67"
+    }
+  ],
+  "current_status_supersedes_denied_observation_only_for_these_three_requests": true,
+  "reuse_permission_reviewed": false,
+  "original_urls_recorded_for_retrieval": true
+}

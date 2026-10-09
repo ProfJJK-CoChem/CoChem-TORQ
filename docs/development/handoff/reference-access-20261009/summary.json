@@ -1,0 +1,60 @@
+{
+  "schema_version": "cochem.actual-handoff-reference-access/1",
+  "requests": [
+    {
+      "name": "nist-webbook-water",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Units=SI&Mask=800",
+      "started_at_utc": "2026-10-09T20:47:41.227680+00:00",
+      "finished_at_utc": "2026-10-09T20:47:41.408671+00:00",
+      "actual_curl_exit": 0,
+      "origin_http_code": 200,
+      "proxy_connect_http_code": 200,
+      "tls_verify_result": 0,
+      "body_bytes": 25844,
+      "body_sha256": "31498a4e5577a5072b4dcd51cb8fa73097a568228168155fa3c25456d8021ec1",
+      "maximum_bytes": 1048576,
+      "maximum_wall_seconds": 25,
+      "inherited_proxy_preserved": true,
+      "tls_verification_disabled": false,
+      "scientific_values_accepted": false,
+      "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification."
+    },
+    {
+      "name": "nist-cccbdb-water",
+      "url": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185&charge=0",
+      "started_at_utc": "2026-10-09T20:47:41.228080+00:00",
+      "finished_at_utc": "2026-10-09T20:47:41.718100+00:00",
+      "actual_curl_exit": 0,
+      "origin_http_code": 200,
+      "proxy_connect_http_code": 200,
+      "tls_verify_result": 0,
+      "body_bytes": 50382,
+      "body_sha256": "172eb21fb7a493070e9058735fb71c3ab15b01887db54a39bb3ebda82864b933",
+      "maximum_bytes": 1048576,
+      "maximum_wall_seconds": 25,
+      "inherited_proxy_preserved": true,
+      "tls_verification_disabled": false,
+      "scientific_values_accepted": false,
+      "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification."
+    },
+    {
+      "name": "qcarchive-api-information",
+      "url": "https://api.qcarchive.molssi.org/api/v1/information",
+      "started_at_utc": "2026-10-09T20:47:41.228711+00:00",
+      "finished_at_utc": "2026-10-09T20:47:41.666002+00:00",
+      "actual_curl_exit": 0,
+      "origin_http_code": 200,
+      "proxy_connect_http_code": 200,
+      "tls_verify_result": 0,
+      "body_bytes": 630,
+      "body_sha256": "93c228ddf2b78d42b8ba55c7f7cd3a8d6cb65003428b5329e992e193723d3c67",
+      "maximum_bytes": 1048576,
+      "maximum_wall_seconds": 25,
+      "inherited_proxy_preserved": true,
+      "tls_verification_disabled": false,
+      "scientific_values_accepted": false,
+      "scope": "Actual source reachability and bytes only; no new molecular computation or benchmark qualification."
+    }
+  ],
+  "qualified_reference_records_added": 0
+}
