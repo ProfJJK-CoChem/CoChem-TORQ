@@ -14,7 +14,7 @@ import json
 import shutil
 import sqlite3
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -56,7 +56,9 @@ def h2_request(cores: int = 1) -> dict:
 def approved(request: dict, *, hours: float = 48) -> dict:
     review = plan_request(request, execution="local_validation")
     return approve_plan(
-        review, actor="student", expires_at=datetime.now(UTC) + timedelta(hours=hours)
+        review,
+        actor="student",
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=hours),
     )
 
 

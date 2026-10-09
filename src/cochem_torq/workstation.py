@@ -34,7 +34,7 @@ import uuid
 import zipfile
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -61,7 +61,7 @@ MAX_RESULT_BYTES = 4 * 1024 * 1024 * 1024
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def default_ledger_path() -> Path:
@@ -443,7 +443,7 @@ class WorkstationQueue:
                     "This idempotency key was used for a different request."
                 )
             return self._receipt(existing)
-        remaining = approved.approval.expires_at - datetime.now(UTC)
+        remaining = approved.approval.expires_at - datetime.now(timezone.utc)
         if remaining.total_seconds() < self.min_approval_hours * 3600:
             raise PrerequisiteError(
                 "The workstation may hold a job while its owner uses the machine; "
