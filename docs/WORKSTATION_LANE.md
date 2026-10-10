@@ -19,8 +19,10 @@ workstation "COMPLETED" status is never scientific success by itself.
 ## Commands
 
 ```
+export COCHEM_WORKSTATION_FOLDER="G:/My Drive/CoChem workstation"   # or pass --folder to every command
+export COCHEM_WORKSTATION_STUDENT=alice                               # or pass --student
 cochem-torq workstation recommend --request request.json        # Actions or workstation, with reasons
-cochem-torq workstation assign  --folder "G:/My Drive/CoChem workstation" --student alice
+cochem-torq workstation assign                                  # creates inbox/, jobs/ and the identity file
 cochem-torq plan --request request.json --execution local_validation --output plan.json
 cochem-torq approve-plan --plan plan.json --actor alice --expires-at 2026-10-20T00:00:00+00:00 --output approved.json
 cochem-torq workstation submit  --request request.json --approved-plan approved.json --idempotency-key run-7
@@ -31,7 +33,7 @@ cochem-torq workstation cancel  cochem-torq:<request-id> --reason "no longer nee
 
 `--folder`/`--student` default to `COCHEM_TORQ_WORKSTATION_FOLDER` /
 `COCHEM_WORKSTATION_FOLDER` and `COCHEM_TORQ_WORKSTATION_STUDENT` /
-`COCHEM_WORKSTATION_STUDENT`. The approval must remain valid for at least 24 h
+`COCHEM_WORKSTATION_STUDENT`; `assign` does not remember the folder. The approval must remain valid for at least 24 h
 because the workstation may hold a job while its owner uses the machine.
 
 ## TPO ledger
@@ -41,8 +43,14 @@ submission: `PENDING_WORKSTATION` -> `PAUSED_WORKSTATION` /
 `RUNNING_WORKSTATION` -> `INGESTED`, or `FAILED_WORKSTATION`,
 `CANCELLED_WORKSTATION`, `REJECTED_RESULT` (returned results failed
 verification). Its event table is append-only (SQLite triggers reject UPDATE
-and DELETE). Idempotency keys prevent duplicate submissions; ingested shards
-are published once to an immutable `workstation-<request-id>/` folder.
+and DELETE). Each submission is ledgered before it is delivered to the folder:
+repeating `submit` with the same idempotency key delivers a job an
+interruption left undelivered and never duplicates a delivered one. Returned
+shards must name the exact `request.json` and `approved_plan.json` bytes
+submitted and the implementation (`code_sha256`) recorded at submission.
+Ingested shards are published once to an immutable `workstation-<request-id>/`
+folder; if an interruption follows publication, the next `poll` verifies that
+folder and completes the ledger entry.
 
 ## Workstation requirements
 

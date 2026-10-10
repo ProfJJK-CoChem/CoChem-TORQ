@@ -105,7 +105,9 @@ class TpoLedger:
               label TEXT,
               submitted_at TEXT NOT NULL,
               updated_at TEXT NOT NULL,
-              result_paths TEXT NOT NULL DEFAULT '[]'
+              result_paths TEXT NOT NULL DEFAULT '[]',
+              input_hashes TEXT NOT NULL DEFAULT '{{}}',
+              dispatched_at TEXT
             );
             CREATE TABLE IF NOT EXISTS workstation_events (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,6 +125,18 @@ class TpoLedger:
               BEGIN SELECT RAISE(ABORT, 'workstation events are append-only'); END;
             """
         )
+        columns = {
+            row["name"]
+            for row in self.db.execute("PRAGMA table_info(workstation_jobs)")
+        }
+        for name, definition in (
+            ("input_hashes", "TEXT NOT NULL DEFAULT '{}'"),
+            ("dispatched_at", "TEXT"),
+        ):
+            if name not in columns:
+                self.db.execute(
+                    f"ALTER TABLE workstation_jobs ADD COLUMN {name} {definition}"
+                )
 
     def close(self) -> None:
         self.db.close()
@@ -156,6 +170,15 @@ class TpoLedger:
                 list(row.values()),
             )
             self._event(row["client_job_id"], row["state"], None, "submitted")
+
+    def mark_dispatched(self, client_job_id: str) -> None:
+        with self._transaction():
+            self.db.execute(
+                "UPDATE workstation_jobs "
+                "SET dispatched_at = COALESCE(dispatched_at, ?) "
+                "WHERE client_job_id = ?",
+                (_now(), client_job_id),
+            )
 
     def get(self, client_job_id: str) -> dict[str, Any] | None:
         row = self.db.execute(
@@ -288,6 +311,12 @@ class LocalFolder:
     def pending(self, job_name: str) -> bool:
         return (self.folder / "inbox" / job_name).is_dir()
 
+    def delivered(self, job_name: str) -> bool:
+        """The job is in inbox/ or the workstation has already moved it to jobs/."""
+        return self.pending(job_name) or any(
+            (self.folder / "jobs").glob(job_name + "__*")
+        )
+
     def status(self, job_name: str, client_job_id: str) -> dict[str, Any] | None:
         for path in sorted((self.folder / "jobs").glob(job_name + "__*/status.json")):
             try:
@@ -298,6 +327,8 @@ class LocalFolder:
                 isinstance(document, dict)
                 and document.get("schema") == STATUS_SCHEMA
                 and document.get("client_job_id") == client_job_id
+                # The label is used in paths: it must name this very job folder.
+                and document.get("label") == path.parent.name
             ):
                 return document
         return None
@@ -395,11 +426,10 @@ class WorkstationQueue:
                 "Assign the lab workstation Drive folder: pass --folder or set "
                 "COCHEM_WORKSTATION_FOLDER."
             )
-        kwargs.setdefault(
-            "student_id",
-            os.environ.get("COCHEM_TORQ_WORKSTATION_STUDENT")
-            or os.environ.get("COCHEM_WORKSTATION_STUDENT"),
-        )
+        if kwargs.get("student_id") is None:  # the CLI passes None without --student
+            kwargs["student_id"] = os.environ.get(
+                "COCHEM_TORQ_WORKSTATION_STUDENT"
+            ) or os.environ.get("COCHEM_WORKSTATION_STUDENT")
         return cls(chosen, **kwargs)
 
     def close(self) -> None:
@@ -420,7 +450,7 @@ class WorkstationQueue:
         approved_plan: dict[str, Any],
         idempotency_key: str,
     ) -> dict[str, Any]:
-        from .application import source_identity, validate_request
+        from .application import validate_request
         from .service import validate_approved_plan
 
         if (
@@ -434,14 +464,14 @@ class WorkstationQueue:
             raise PrerequisiteError("; ".join(checked["blocking_reasons"]))
         approved = validate_approved_plan(approved_plan, request=checked["request"])
         existing = self.ledger.by_idempotency_key(idempotency_key)
-        if existing is not None:
-            if (
-                existing["request_sha256"] != checked["request_sha256"]
-                or existing["approved_plan_sha256"] != approved.approval.plan_sha256
-            ):
-                raise ValueError(
-                    "This idempotency key was used for a different request."
-                )
+        if existing is not None and (
+            existing["request_sha256"] != checked["request_sha256"]
+            or existing["approved_plan_sha256"] != approved.approval.plan_sha256
+        ):
+            raise ValueError("This idempotency key was used for a different request.")
+        if existing is not None and (
+            existing["dispatched_at"] or existing["state"] not in OPEN_STATES
+        ):
             return self._receipt(existing)
         remaining = approved.approval.expires_at - datetime.now(timezone.utc)
         if remaining.total_seconds() < self.min_approval_hours * 3600:
@@ -456,6 +486,10 @@ class WorkstationQueue:
         client_job_id = "cochem-torq:" + request_id
         job_name = "torq-" + request_id.replace("-", "")[:12]
         resources = CalculationRequest.model_validate(checked["request"]).resources
+        input_hashes = {
+            "request.json": hashlib.sha256(request_bytes).hexdigest(),
+            "approved_plan.json": hashlib.sha256(plan_bytes).hexdigest(),
+        }
         manifest = {
             "schema": JOB_SCHEMA,
             "engine": self.template,
@@ -467,14 +501,34 @@ class WorkstationQueue:
                 "max_hours": min(168, math.ceil(resources.wall_seconds / 3600) + 1),
             },
             "job_id": client_job_id,
-            "files": {
-                "request.json": hashlib.sha256(request_bytes).hexdigest(),
-                "approved_plan.json": hashlib.sha256(plan_bytes).hexdigest(),
-            },
+            "files": input_hashes,
         }
         if self.student_id:
             manifest["student_id"] = self.student_id
-        self.transport.submit(
+        if existing is None:
+            # Ledger first: a crash before delivery leaves a recoverable PENDING row.
+            now = _now()
+            self.ledger.add(
+                {
+                    "client_job_id": client_job_id,
+                    "idempotency_key": idempotency_key,
+                    "request_id": request_id,
+                    "request_sha256": checked["request_sha256"],
+                    "approved_plan_sha256": approved.approval.plan_sha256,
+                    "code_sha256": approved.source_identity["code_sha256"],
+                    "folder": str(self.folder),
+                    "student_id": self.student_id,
+                    "job_name": job_name,
+                    "template": self.template,
+                    "state": PENDING,
+                    "message": "Waiting for the workstation to pick the job up",
+                    "submitted_at": now,
+                    "updated_at": now,
+                    "input_hashes": json.dumps(input_hashes, sort_keys=True),
+                }
+            )
+        self._dispatch(
+            client_job_id,
             job_name,
             {
                 "request.json": request_bytes,
@@ -482,26 +536,24 @@ class WorkstationQueue:
                 "job.json": json.dumps(manifest, indent=2, sort_keys=True).encode(),
             },
         )
-        now = _now()
-        self.ledger.add(
-            {
-                "client_job_id": client_job_id,
-                "idempotency_key": idempotency_key,
-                "request_id": request_id,
-                "request_sha256": checked["request_sha256"],
-                "approved_plan_sha256": approved.approval.plan_sha256,
-                "code_sha256": source_identity()["code_sha256"],
-                "folder": str(self.folder),
-                "student_id": self.student_id,
-                "job_name": job_name,
-                "template": self.template,
-                "state": PENDING,
-                "message": "Waiting for the workstation to pick the job up",
-                "submitted_at": now,
-                "updated_at": now,
-            }
-        )
         return self._receipt(self.ledger.get(client_job_id))
+
+    def _dispatch(
+        self, client_job_id: str, job_name: str, files: dict[str, bytes]
+    ) -> None:
+        """Deliver the job to the folder once; repeating a submission resumes here."""
+        try:
+            if not self.transport.delivered(job_name):
+                self.transport.submit(job_name, files)
+        except (OSError, WorkstationError) as exc:
+            self.ledger.update(
+                client_job_id,
+                state=PENDING,
+                message=f"Not delivered to the workstation folder yet ({exc}); "
+                "repeat the submission with the same idempotency key.",
+            )
+            raise
+        self.ledger.mark_dispatched(client_job_id)
 
     @staticmethod
     def _receipt(row: dict[str, Any] | None) -> dict[str, Any]:
@@ -536,12 +588,15 @@ class WorkstationQueue:
             return self._receipt(row)
         document = self.transport.status(row["job_name"], client_job_id)
         if document is None:
-            waiting = self.transport.pending(row["job_name"])
-            message = (
-                "Waiting for the workstation to pick the job up"
-                if waiting
-                else "Between inbox and jobs/ (Drive may still be syncing)"
-            )
+            if self.transport.pending(row["job_name"]):
+                message = "Waiting for the workstation to pick the job up"
+            elif not row["dispatched_at"]:
+                message = (
+                    "Not delivered to the workstation folder yet; repeat the "
+                    "submission with the same idempotency key."
+                )
+            else:
+                message = "Between inbox and jobs/ (Drive may still be syncing)"
             return self._receipt(
                 self.ledger.update(client_job_id, state=row["state"], message=message)
             )
@@ -586,80 +641,107 @@ class WorkstationQueue:
         receipt["repairs"] = document.get("repairs") or []
         return receipt
 
-    def download(self, client_job_id: str, destination: str | Path) -> list[Path]:
-        """Verify and publish the returned sealed TORQ shards (immutable target)."""
-        from .application import source_identity
+    def _verified_shards(self, results: Path, row: dict[str, Any]) -> list[Path]:
+        """Shard roots in an extracted results folder bound to this exact submission."""
         from .artifacts import verify_shard
 
+        summary = read_json(results / "_runner" / "job_summary.json")
+        expected = json.loads(row["input_hashes"])
+        reported = summary.get("input_hashes") or {}
+        if (
+            summary.get("schema") != SUMMARY_SCHEMA
+            or summary.get("client_job_id") != row["client_job_id"]
+            or not expected
+            or any(reported.get(name) != digest for name, digest in expected.items())
+        ):
+            raise ValueError(
+                "The returned results belong to a different submission or approval."
+            )
+        roots = sorted(
+            path.parent
+            for path in results.rglob("manifest.json")
+            if isinstance(read_json(path), dict)
+            and read_json(path).get("schema_version") == SHARD_SCHEMA
+        )
+        if not roots:
+            raise ValueError("The workstation returned no sealed TORQ result shard.")
+        for root in roots:
+            manifest = verify_shard(root, expected_request_sha256=row["request_sha256"])
+            # The implementation approved at submission, not whatever is installed now.
+            if manifest["source_identity"].get("code_sha256") != row["code_sha256"]:
+                raise ValueError(
+                    "The workstation ran a different TORQ implementation than the "
+                    "approved plan; update the workstation's TORQ and resubmit."
+                )
+        return roots
+
+    def _ingested(
+        self,
+        row: dict[str, Any],
+        document: dict[str, Any] | None,
+        published: list[Path],
+    ) -> list[Path]:
+        self.ledger.update(
+            row["client_job_id"],
+            state=INGESTED,
+            observed=str((document or {}).get("state") or row["workstation_state"]),
+            message=f"Verified and ingested {len(published)} TORQ result shard(s) "
+            f"({EVIDENCE_LANE}).",
+            label=(document or {}).get("label"),
+            result_paths=[str(path) for path in published],
+        )
+        return published
+
+    def download(self, client_job_id: str, destination: str | Path) -> list[Path]:
+        """Verify and publish the returned sealed TORQ shards (immutable target)."""
         row = self._row(client_job_id)
         if row["state"] == INGESTED:
             return [Path(path) for path in json.loads(row["result_paths"])]
+        target = Path(destination).absolute() / f"workstation-{row['request_id']}"
+        if target.exists():
+            if row["state"] not in OPEN_STATES:
+                raise FileExistsError(
+                    "Ingested workstation results are immutable; "
+                    "choose a new destination."
+                )
+            try:  # published before an interruption: finish recording it
+                roots = self._verified_shards(target, row)
+            except (OSError, ValueError, KeyError) as exc:
+                raise FileExistsError(
+                    f"{target} already exists and is not this job's verified result "
+                    f"({exc}); choose a new destination."
+                ) from exc
+            return self._ingested(row, None, roots)
         document = self.transport.status(row["job_name"], client_job_id)
         if document is None or not document.get("result_file"):
             raise WorkstationError(
                 "The workstation has not published results for this job yet."
             )
-        target = Path(destination).absolute() / f"workstation-{row['request_id']}"
-        if target.exists():
-            raise FileExistsError(
-                "Ingested workstation results are immutable; choose a new destination."
+        expected = document.get("result_sha256")
+        if not isinstance(expected, str) or len(expected) != 64:
+            raise WorkstationError(
+                "The workstation has not published the results archive checksum yet."
             )
         target.parent.mkdir(parents=True, exist_ok=True)
         staging = Path(tempfile.mkdtemp(prefix=".torq-workstation-", dir=target.parent))
         try:
             archive = staging / "results.zip"
             shutil.copyfile(self.transport.result_archive(document), archive)
-            expected = document.get("result_sha256")
-            if (
-                expected
-                and hashlib.sha256(archive.read_bytes()).hexdigest() != expected
-            ):
+            if hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
                 raise WorkstationError(
                     "The results archive is still syncing (checksum differs)."
                 )
             extracted = staging / "results"
             try:
                 _safe_extract(archive, extracted)
-                summary = read_json(extracted / "_runner" / "job_summary.json")
-                hashes = summary.get("input_hashes") or {}
-                if (
-                    summary.get("schema") != SUMMARY_SCHEMA
-                    or summary.get("client_job_id") != client_job_id
-                    or "request.json" not in hashes
-                    or "approved_plan.json" not in hashes
-                ):
-                    raise ValueError(
-                        "The returned results belong to a different submission."
-                    )
-                roots = sorted(
-                    path.parent
-                    for path in extracted.rglob("manifest.json")
-                    if isinstance(read_json(path), dict)
-                    and read_json(path).get("schema_version") == SHARD_SCHEMA
-                )
-                if not roots:
-                    raise ValueError(
-                        "The workstation returned no sealed TORQ result shard "
-                        f"(workstation state {document.get('state')}: "
-                        f"{document.get('message', '')})."
-                    )
-                code = source_identity()["code_sha256"]
-                for root in roots:
-                    manifest = verify_shard(
-                        root, expected_request_sha256=row["request_sha256"]
-                    )
-                    if manifest["source_identity"].get("code_sha256") != code:
-                        raise ValueError(
-                            "The workstation ran a different TORQ implementation "
-                            "than this interface; update the workstation's TORQ "
-                            "and resubmit."
-                        )
+                roots = self._verified_shards(extracted, row)
             except (ValueError, KeyError, zipfile.BadZipFile) as exc:
                 self.ledger.update(
                     client_job_id,
                     state=REJECTED,
                     observed=str(document.get("state")),
-                    message=f"Returned results were not accepted: {exc}",
+                    message=f"Returned results were not accepted: {exc} "
+                    f"(workstation: {document.get('message', '')})",
                     label=document.get("label"),
                 )
                 raise WorkstationError(
@@ -669,16 +751,7 @@ class WorkstationQueue:
             published = [target / root.relative_to(extracted) for root in roots]
         finally:
             shutil.rmtree(staging, ignore_errors=True)
-        self.ledger.update(
-            client_job_id,
-            state=INGESTED,
-            observed=str(document.get("state")),
-            message=f"Verified and ingested {len(published)} TORQ result shard(s) "
-            f"({EVIDENCE_LANE}).",
-            label=document.get("label"),
-            result_paths=[str(path) for path in published],
-        )
-        return published
+        return self._ingested(row, document, published)
 
     def poll(self, destination: str | Path) -> list[dict[str, Any]]:
         """Refresh every open submission and ingest those whose results arrived."""

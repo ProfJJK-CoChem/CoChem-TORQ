@@ -104,7 +104,12 @@ def genuine_shard(work: Path, request: dict) -> Path:
 
 
 def publish(
-    job: Path, receipt: dict, state: str, work: Path | None = None, **extra
+    job: Path,
+    receipt: dict,
+    state: str,
+    work: Path | None = None,
+    reported: dict | None = None,
+    **extra,
 ) -> None:
     status = {
         "schema": "cochem.workstation-job-status/1",
@@ -134,7 +139,8 @@ def publish(
                     {
                         "schema": "cochem.workstation-job-summary/1",
                         "client_job_id": receipt["client_job_id"],
-                        "input_hashes": {
+                        "input_hashes": reported
+                        or {
                             name: hashlib.sha256((work / name).read_bytes()).hexdigest()
                             for name in ("request.json", "approved_plan.json")
                         },
@@ -320,3 +326,125 @@ def test_cli_recommend_and_submit(tmp_path: Path, capsys) -> None:
     )
     assert PENDING in capsys.readouterr().out
     assert len(list((tmp_path / "Drive" / "bob" / "inbox").iterdir())) == 1
+
+
+def test_status_with_a_foreign_label_is_ignored(tmp_path: Path) -> None:
+    station = queue(tmp_path)
+    request = h2_request(1)
+    receipt = station.submit(
+        request, approved_plan=approved(request), idempotency_key="lab-7"
+    )
+    job, _work = pick_up(station, receipt)
+    publish(job, receipt, "RUNNING")
+    status = json.loads((job / "status.json").read_text())
+    status["label"] = "../../elsewhere"
+    (job / "status.json").write_text(json.dumps(status))
+    assert station.status(receipt["client_job_id"])["state"] == PENDING
+    station.close()
+
+
+def test_results_under_another_approval_or_implementation_are_rejected(
+    tmp_path: Path,
+) -> None:
+    station = queue(tmp_path)
+    request = h2_request(1)
+    receipt = station.submit(
+        request, approved_plan=approved(request), idempotency_key="lab-8"
+    )
+    job, work = pick_up(station, receipt)
+    genuine_shard(work, request)
+    other_plan = hashlib.sha256(b"a different approved plan").hexdigest()
+    publish(
+        job,
+        receipt,
+        "COMPLETED",
+        work,
+        reported={
+            "request.json": hashlib.sha256(
+                (work / "request.json").read_bytes()
+            ).hexdigest(),
+            "approved_plan.json": other_plan,
+        },
+    )
+    with pytest.raises(WorkstationError, match="different submission or approval"):
+        station.download(receipt["client_job_id"], tmp_path / "ingested")
+    assert station.ledger.get(receipt["client_job_id"])["state"] == REJECTED
+
+    second = h2_request(1)
+    later = station.submit(
+        second, approved_plan=approved(second), idempotency_key="lab-9"
+    )
+    # The ledger keeps the implementation approved at submission; a shard from
+    # any other implementation is refused even if it matches the local install.
+    station.ledger.db.execute(
+        "UPDATE workstation_jobs SET code_sha256 = ? WHERE client_job_id = ?",
+        ("0" * 64, later["client_job_id"]),
+    )
+    job, work = pick_up(station, later)
+    genuine_shard(work, second)
+    publish(job, later, "COMPLETED", work)
+    with pytest.raises(WorkstationError, match="different TORQ implementation"):
+        station.download(later["client_job_id"], tmp_path / "ingested")
+    station.close()
+
+
+def test_interrupted_delivery_and_publication_are_recovered(tmp_path: Path) -> None:
+    (tmp_path / "Drive").mkdir()
+    station = WorkstationQueue(
+        tmp_path / "Drive" / "carol",
+        student_id="carol",
+        ledger_path=tmp_path / "state" / "tpo_ledger.sqlite",
+    )
+    request = h2_request(1)
+    plan = approved(request)
+    with pytest.raises(WorkstationError, match="assign"):
+        station.submit(request, approved_plan=plan, idempotency_key="lab-10")
+    (row,) = station.ledger.jobs()
+    assert row["state"] == PENDING and row["dispatched_at"] is None
+    assert "same idempotency key" in station.status(row["client_job_id"])["message"]
+    station.assign()
+    receipt = station.submit(request, approved_plan=plan, idempotency_key="lab-10")
+    assert (station.folder / "inbox" / receipt["job_name"]).is_dir()
+    assert station.ledger.get(receipt["client_job_id"])["dispatched_at"]
+    station.submit(request, approved_plan=plan, idempotency_key="lab-10")
+    assert len(list((station.folder / "inbox").iterdir())) == 1
+
+    job, work = pick_up(station, receipt)
+    genuine_shard(work, request)
+    publish(job, receipt, "COMPLETED", work)
+    published = station.download(receipt["client_job_id"], tmp_path / "ingested")
+    # Interrupted after publishing but before the ledger recorded it:
+    station.ledger.db.execute(
+        "UPDATE workstation_jobs SET state = ?, result_paths = '[]' "
+        "WHERE client_job_id = ?",
+        (RUNNING, receipt["client_job_id"]),
+    )
+    assert (
+        station.download(receipt["client_job_id"], tmp_path / "ingested") == published
+    )
+    assert station.ledger.get(receipt["client_job_id"])["state"] == INGESTED
+    station.close()
+
+
+def test_student_environment_variable_applies_without_student_option(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("COCHEM_WORKSTATION_STUDENT", "dana")
+    (tmp_path / "Drive").mkdir()
+    folder = tmp_path / "Drive" / "dana"
+    assert (
+        main(
+            [
+                "workstation",
+                "assign",
+                "--folder",
+                str(folder),
+                "--ledger",
+                str(tmp_path / "tpo.sqlite"),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    marker = json.loads((folder / "cochem_workstation_folder.json").read_text())
+    assert marker["student_id"] == "dana"
