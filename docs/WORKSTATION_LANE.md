@@ -12,8 +12,11 @@ cochem-torq execute --request request.json --approved-plan approved_plan.json --
 ```
 
 Workstation results form a **separate, labelled evidence lane**. They are
-accepted only after `verify_shard` (request identity and complete byte
-inventory) and a matching implementation identity (`code_sha256`); a
+accepted only when the workstation's **Ed25519 signature** (made with a key that
+never leaves the workstation) verifies against a key fingerprint you trust and
+names this submission, the exact `request.json`/`approved_plan.json` bytes and
+the downloaded archive, and after `verify_shard` (request identity and complete
+byte inventory) and a matching implementation identity (`code_sha256`); a
 workstation "COMPLETED" status is never scientific success by itself.
 
 ## Commands
@@ -21,6 +24,7 @@ workstation "COMPLETED" status is never scientific success by itself.
 ```
 export COCHEM_WORKSTATION_FOLDER="G:/My Drive/CoChem workstation"   # or pass --folder to every command
 export COCHEM_WORKSTATION_STUDENT=alice                               # or pass --student
+export COCHEM_WORKSTATION_TRUSTED_KEYS=<fingerprint>                  # from `cochem-runner key`; or --trusted-key
 cochem-torq workstation recommend --request request.json        # Actions or workstation, with reasons
 cochem-torq workstation assign                                  # creates inbox/, jobs/ and the identity file
 cochem-torq plan --request request.json --execution local_validation --output plan.json
@@ -33,8 +37,16 @@ cochem-torq workstation cancel  cochem-torq:<request-id> --reason "no longer nee
 
 `--folder`/`--student` default to `COCHEM_TORQ_WORKSTATION_FOLDER` /
 `COCHEM_WORKSTATION_FOLDER` and `COCHEM_TORQ_WORKSTATION_STUDENT` /
-`COCHEM_WORKSTATION_STUDENT`; `assign` does not remember the folder. The approval must remain valid for at least 24 h
-because the workstation may hold a job while its owner uses the machine.
+`COCHEM_WORKSTATION_STUDENT`; `assign` does not remember the folder.
+`--trusted-key` (repeatable) adds to `COCHEM_TORQ_WORKSTATION_TRUSTED_KEYS` /
+`COCHEM_WORKSTATION_TRUSTED_KEYS`. Signature verification needs the
+`workstation` extra: `pip install 'CoChem-TORQ[workstation]'` (`cryptography`).
+Results signed by an unknown key, or a signature that does not cover the
+downloaded archive, leave the job open (trust the key and `poll` again); a
+genuine signature naming other inputs rejects the results.
+
+The approval must remain valid for at least 24 h because the workstation may
+hold a job while its owner uses the machine.
 
 ## TPO ledger
 
@@ -42,7 +54,8 @@ because the workstation may hold a job while its owner uses the machine.
 submission: `PENDING_WORKSTATION` -> `PAUSED_WORKSTATION` /
 `RUNNING_WORKSTATION` -> `INGESTED`, or `FAILED_WORKSTATION`,
 `CANCELLED_WORKSTATION`, `REJECTED_RESULT` (returned results failed
-verification). Its event table is append-only (SQLite triggers reject UPDATE
+verification). `attested_by` records the workstation key fingerprint of every
+ingested result. Its event table is append-only (SQLite triggers reject UPDATE
 and DELETE). Each submission is ledgered before it is delivered to the folder:
 repeating `submit` with the same idempotency key delivers a job an
 interruption left undelivered and never duplicates a delivered one. Returned

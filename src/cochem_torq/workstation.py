@@ -15,6 +15,13 @@ is accepted only after ``verify_shard`` (request identity, byte inventory)
 and a matching implementation identity. A workstation "COMPLETED" status is
 not scientific success by itself.
 
+The runner signs every returned archive with its Ed25519 workstation key
+(``cochem.workstation-attestation/1``); results are ingested only when that
+signature verifies against a trusted key fingerprint (``--trusted-key``,
+``COCHEM_TORQ_WORKSTATION_TRUSTED_KEYS`` / ``COCHEM_WORKSTATION_TRUSTED_KEYS``)
+and names this submission and archive. Verification needs the ``workstation``
+extra (``cryptography``).
+
 Every submission is recorded in ``tpo_ledger.sqlite`` as PENDING_WORKSTATION
 and followed until INGESTED (or failed/cancelled/rejected); its event table
 is append-only. Nothing hard-codes the Drive folder: it is passed explicitly
@@ -23,10 +30,12 @@ or taken from ``COCHEM_TORQ_WORKSTATION_FOLDER`` / ``COCHEM_WORKSTATION_FOLDER``
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import sqlite3
 import tempfile
@@ -46,6 +55,8 @@ SUMMARY_SCHEMA = "cochem.workstation-job-summary/1"
 FOLDER_SCHEMA = "cochem.workstation-folder/1"
 FOLDER_MARKER = "cochem_workstation_folder.json"
 SHARD_SCHEMA = "cochem.torq.shard/1"
+ATTESTATION_SCHEMA = "cochem.workstation-attestation/1"
+ATTESTATION_FILE = "workstation-attestation.json"
 
 PENDING = "PENDING_WORKSTATION"
 PAUSED = "PAUSED_WORKSTATION"
@@ -107,7 +118,8 @@ class TpoLedger:
               updated_at TEXT NOT NULL,
               result_paths TEXT NOT NULL DEFAULT '[]',
               input_hashes TEXT NOT NULL DEFAULT '{{}}',
-              dispatched_at TEXT
+              dispatched_at TEXT,
+              attested_by TEXT
             );
             CREATE TABLE IF NOT EXISTS workstation_events (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,6 +144,7 @@ class TpoLedger:
         for name, definition in (
             ("input_hashes", "TEXT NOT NULL DEFAULT '{}'"),
             ("dispatched_at", "TEXT"),
+            ("attested_by", "TEXT"),
         ):
             if name not in columns:
                 self.db.execute(
@@ -220,6 +233,7 @@ class TpoLedger:
         message: str = "",
         label: str | None = None,
         result_paths: list[str] | None = None,
+        attested_by: str | None = None,
     ) -> dict[str, Any]:
         with self._transaction():
             current = self.get(client_job_id)
@@ -241,7 +255,8 @@ class TpoLedger:
             self.db.execute(
                 "UPDATE workstation_jobs SET state = ?, workstation_state = ?, "
                 "message = ?, label = COALESCE(?, label), "
-                "result_paths = COALESCE(?, result_paths), updated_at = ? "
+                "result_paths = COALESCE(?, result_paths), "
+                "attested_by = COALESCE(?, attested_by), updated_at = ? "
                 "WHERE client_job_id = ?",
                 (
                     state,
@@ -249,6 +264,7 @@ class TpoLedger:
                     message,
                     label,
                     json.dumps(result_paths) if result_paths is not None else None,
+                    attested_by,
                     _now(),
                     client_job_id,
                 ),
@@ -372,6 +388,81 @@ def _safe_extract(archive: Path, destination: Path) -> None:
                 shutil.copyfileobj(source, sink, 1024 * 1024)
 
 
+def key_fingerprints(value: Any) -> list[str]:
+    """SHA-256 key fingerprints from fingerprints or base64 Ed25519 public keys."""
+    entries = (
+        re.split(r"[\s,]+", value) if isinstance(value, str) else list(value or [])
+    )
+    found: list[str] = []
+    for entry in entries:
+        text = str(entry).strip()
+        if not text:
+            continue
+        compact = re.sub(r"^(?:sha256|ed25519):", "", text, flags=re.I)
+        compact = compact.replace(":", "").lower()
+        if re.fullmatch(r"[0-9a-f]{64}", compact):
+            fingerprint = compact
+        else:
+            try:
+                raw = base64.b64decode(text, validate=True)
+            except ValueError:
+                raw = b""
+            if len(raw) != 32:
+                raise ValueError(
+                    f"'{text[:20]}' is not a workstation key fingerprint "
+                    "(64 hexadecimal characters from `cochem-runner key`)"
+                )
+            fingerprint = hashlib.sha256(raw).hexdigest()
+        if fingerprint not in found:
+            found.append(fingerprint)
+    return found
+
+
+def verify_attestation(attestation: Any, trusted: list[str]) -> dict[str, Any]:
+    """The runner's signed statement, if it verifies against a trusted key."""
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PublicKey,
+        )
+    except ImportError as exc:
+        raise WorkstationError(
+            "Verifying workstation signatures needs the 'workstation' extra: "
+            "pip install 'CoChem-TORQ[workstation]'"
+        ) from exc
+    if (
+        not isinstance(attestation, dict)
+        or attestation.get("schema") != ATTESTATION_SCHEMA
+        or attestation.get("algorithm") != "ed25519"
+    ):
+        raise WorkstationError(
+            "The results are not signed by the workstation; update its job runner."
+        )
+    try:
+        public_key = base64.b64decode(attestation["public_key"], validate=True)
+        payload = base64.b64decode(attestation["statement"], validate=True)
+        signature = base64.b64decode(attestation["signature"], validate=True)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise WorkstationError("The workstation signature is malformed.") from exc
+    fingerprint = hashlib.sha256(public_key).hexdigest()
+    if fingerprint not in trusted:
+        raise WorkstationError(
+            f"The results are signed by workstation key {fingerprint}, which is not "
+            "trusted; if the workstation owner gave you this fingerprint, pass "
+            "--trusted-key or set COCHEM_WORKSTATION_TRUSTED_KEYS and poll again."
+        )
+    try:
+        Ed25519PublicKey.from_public_bytes(public_key).verify(signature, payload)
+    except (InvalidSignature, ValueError) as exc:
+        raise WorkstationError(
+            "The workstation signature does not match these results."
+        ) from exc
+    statement = json.loads(payload)
+    if not isinstance(statement, dict) or statement.get("schema") != ATTESTATION_SCHEMA:
+        raise WorkstationError("The signed workstation statement is malformed.")
+    return {"key_fingerprint": fingerprint, "statement": statement}
+
+
 # ---------------------------------------------------------------------------
 # Routing: when is the workstation the right lane?
 # ---------------------------------------------------------------------------
@@ -404,9 +495,11 @@ class WorkstationQueue:
         ledger_path: str | Path | None = None,
         template: str = "torq_execute",
         min_approval_hours: float = 24.0,
+        trusted_keys: Any = None,
     ) -> None:
         self.folder = Path(folder).expanduser()
         self.student_id = student_id
+        self.trusted_keys = key_fingerprints(trusted_keys)
         self.transport = LocalFolder(self.folder)
         self.ledger = TpoLedger(ledger_path or default_ledger_path())
         self.template = template
@@ -430,6 +523,13 @@ class WorkstationQueue:
             kwargs["student_id"] = os.environ.get(
                 "COCHEM_TORQ_WORKSTATION_STUDENT"
             ) or os.environ.get("COCHEM_WORKSTATION_STUDENT")
+        kwargs["trusted_keys"] = (
+            key_fingerprints(kwargs.get("trusted_keys"))
+            + key_fingerprints(
+                os.environ.get("COCHEM_TORQ_WORKSTATION_TRUSTED_KEYS", "")
+            )
+            + key_fingerprints(os.environ.get("COCHEM_WORKSTATION_TRUSTED_KEYS", ""))
+        )
         return cls(chosen, **kwargs)
 
     def close(self) -> None:
@@ -569,6 +669,7 @@ class WorkstationQueue:
             "request_sha256": row["request_sha256"],
             "approved_plan_sha256": row["approved_plan_sha256"],
             "result_paths": json.loads(row["result_paths"]),
+            "attested_by": row.get("attested_by"),
             "execution": "workstation",
             "evidence_lane": EVIDENCE_LANE,
         }
@@ -641,6 +742,33 @@ class WorkstationQueue:
         receipt["repairs"] = document.get("repairs") or []
         return receipt
 
+    def _signed_statement(
+        self, attestation: Any, row: dict[str, Any], archive_sha256: str | None
+    ) -> dict[str, Any]:
+        """Verify the workstation's signature covers this submission (and archive).
+
+        A signature that does not cover these results may be an edited or
+        half-synced status: ``WorkstationError`` leaves the job open. A genuine
+        signature naming other inputs means the workstation ran something
+        else: ``ValueError`` rejects the results.
+        """
+        attested = verify_attestation(attestation, self.trusted_keys)
+        statement = attested["statement"]
+        if statement.get("client_job_id") != row["client_job_id"] or (
+            archive_sha256 is not None
+            and statement.get("result_sha256") != archive_sha256
+        ):
+            raise WorkstationError(
+                "The workstation signature is for different results."
+            )
+        signed_inputs = statement.get("input_hashes") or {}
+        expected = json.loads(row["input_hashes"])
+        if not expected or any(signed_inputs.get(n) != d for n, d in expected.items()):
+            raise ValueError(
+                "The workstation signed that it ran a different submission or approval."
+            )
+        return attested
+
     def _verified_shards(self, results: Path, row: dict[str, Any]) -> list[Path]:
         """Shard roots in an extracted results folder bound to this exact submission."""
         from .artifacts import verify_shard
@@ -680,15 +808,18 @@ class WorkstationQueue:
         row: dict[str, Any],
         document: dict[str, Any] | None,
         published: list[Path],
+        attested: dict[str, Any],
     ) -> list[Path]:
+        fingerprint = attested["key_fingerprint"]
         self.ledger.update(
             row["client_job_id"],
             state=INGESTED,
             observed=str((document or {}).get("state") or row["workstation_state"]),
             message=f"Verified and ingested {len(published)} TORQ result shard(s) "
-            f"({EVIDENCE_LANE}).",
+            f"signed by workstation key {fingerprint[:16]}... ({EVIDENCE_LANE}).",
             label=(document or {}).get("label"),
             result_paths=[str(path) for path in published],
+            attested_by=fingerprint,
         )
         return published
 
@@ -705,13 +836,16 @@ class WorkstationQueue:
                     "choose a new destination."
                 )
             try:  # published before an interruption: finish recording it
+                attested = self._signed_statement(
+                    read_json(target / "_runner" / ATTESTATION_FILE), row, None
+                )
                 roots = self._verified_shards(target, row)
-            except (OSError, ValueError, KeyError) as exc:
+            except (OSError, ValueError, KeyError, WorkstationError) as exc:
                 raise FileExistsError(
                     f"{target} already exists and is not this job's verified result "
                     f"({exc}); choose a new destination."
                 ) from exc
-            return self._ingested(row, None, roots)
+            return self._ingested(row, None, roots, attested)
         document = self.transport.status(row["job_name"], client_job_id)
         if document is None or not document.get("result_file"):
             raise WorkstationError(
@@ -731,10 +865,17 @@ class WorkstationQueue:
                 raise WorkstationError(
                     "The results archive is still syncing (checksum differs)."
                 )
+            attestation = document.get("attestation")
             extracted = staging / "results"
             try:
+                attested = self._signed_statement(attestation, row, expected)
                 _safe_extract(archive, extracted)
                 roots = self._verified_shards(extracted, row)
+                # Kept with the published results so an interrupted ingestion can
+                # re-verify their provenance.
+                (extracted / "_runner" / ATTESTATION_FILE).write_bytes(
+                    canonical_json(attestation)
+                )
             except (ValueError, KeyError, zipfile.BadZipFile) as exc:
                 self.ledger.update(
                     client_job_id,
@@ -751,7 +892,7 @@ class WorkstationQueue:
             published = [target / root.relative_to(extracted) for root in roots]
         finally:
             shutil.rmtree(staging, ignore_errors=True)
-        return self._ingested(row, document, published)
+        return self._ingested(row, document, published, attested)
 
     def poll(self, destination: str | Path) -> list[dict[str, Any]]:
         """Refresh every open submission and ingest those whose results arrived."""

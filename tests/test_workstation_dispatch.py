@@ -3,11 +3,14 @@
 Scientific results here are genuine: the returned shard comes from TORQ's own
 ``worker_execute`` (real PySCF) for the exact submitted request, sealed with
 ``seal_shard``. Only the workstation job runner's protocol files (status.json
-and the results-archive summary) are written by the test, as the runner would.
+and the results-archive summary) are written by the test, as the runner would;
+the runner's result signature is a real Ed25519 signature made with a key
+generated here in place of the workstation's.
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import io
 import json
@@ -18,6 +21,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from cochem_torq.application import validate_request, worker_execute
 from cochem_torq.artifacts import seal_shard, verify_shard
@@ -28,6 +33,7 @@ from cochem_torq.workstation import (
     CANCELLED,
     FAILED,
     INGESTED,
+    OPEN_STATES,
     PENDING,
     REJECTED,
     RUNNING,
@@ -35,6 +41,31 @@ from cochem_torq.workstation import (
     WorkstationQueue,
     recommend_execution,
 )
+
+WORKSTATION_KEY = Ed25519PrivateKey.generate()  # stands in for the workstation key
+
+
+def fingerprint(key: Ed25519PrivateKey = WORKSTATION_KEY) -> str:
+    raw = key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    return hashlib.sha256(raw).hexdigest()
+
+
+def attestation(statement: dict, key: Ed25519PrivateKey = WORKSTATION_KEY) -> dict:
+    """What the runner's ``Signer.attest`` publishes in status.json."""
+    payload = json.dumps(
+        {"schema": "cochem.workstation-attestation/1", **statement},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    public = key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    return {
+        "schema": "cochem.workstation-attestation/1",
+        "algorithm": "ed25519",
+        "public_key": base64.b64encode(public).decode(),
+        "key_fingerprint": hashlib.sha256(public).hexdigest(),
+        "statement": base64.b64encode(payload).decode(),
+        "signature": base64.b64encode(key.sign(payload)).decode(),
+    }
 
 
 def h2_request(cores: int = 1) -> dict:
@@ -62,12 +93,13 @@ def approved(request: dict, *, hours: float = 48) -> dict:
     )
 
 
-def queue(tmp_path: Path) -> WorkstationQueue:
+def queue(tmp_path: Path, trusted: list[str] | None = None) -> WorkstationQueue:
     (tmp_path / "Drive").mkdir(exist_ok=True)
     station = WorkstationQueue(
         tmp_path / "Drive" / "alice",
         student_id="alice",
         ledger_path=tmp_path / "state" / "tpo_ledger.sqlite",
+        trusted_keys=[fingerprint()] if trusted is None else trusted,
     )
     station.assign()
     return station
@@ -109,6 +141,7 @@ def publish(
     state: str,
     work: Path | None = None,
     reported: dict | None = None,
+    key: Ed25519PrivateKey = WORKSTATION_KEY,
     **extra,
 ) -> None:
     status = {
@@ -151,6 +184,22 @@ def publish(
         status["result_file"] = f"{job.name}_results.zip"
         status["result_sha256"] = hashlib.sha256(archive).hexdigest()
         (job / status["result_file"]).write_bytes(archive)
+        inputs = reported or {
+            name: hashlib.sha256((work / name).read_bytes()).hexdigest()
+            for name in ("request.json", "approved_plan.json", "job.json")
+        }
+        status["attestation"] = attestation(
+            {
+                "client_job_id": receipt["client_job_id"],
+                "label": job.name,
+                "state": state,
+                "workstation": "lab-ws",
+                "input_hashes": inputs,
+                "result_file": status["result_file"],
+                "result_sha256": status["result_sha256"],
+            },
+            key,
+        )
     (job / "status.json").write_text(json.dumps(status))
 
 
@@ -366,7 +415,9 @@ def test_results_under_another_approval_or_implementation_are_rejected(
             "approved_plan.json": other_plan,
         },
     )
-    with pytest.raises(WorkstationError, match="different submission or approval"):
+    with pytest.raises(
+        WorkstationError, match="different submission or approval"
+    ):  # signed
         station.download(receipt["client_job_id"], tmp_path / "ingested")
     assert station.ledger.get(receipt["client_job_id"])["state"] == REJECTED
 
@@ -394,6 +445,7 @@ def test_interrupted_delivery_and_publication_are_recovered(tmp_path: Path) -> N
         tmp_path / "Drive" / "carol",
         student_id="carol",
         ledger_path=tmp_path / "state" / "tpo_ledger.sqlite",
+        trusted_keys=[fingerprint()],
     )
     request = h2_request(1)
     plan = approved(request)
@@ -448,3 +500,81 @@ def test_student_environment_variable_applies_without_student_option(
     )
     marker = json.loads((folder / "cochem_workstation_folder.json").read_text())
     assert marker["student_id"] == "dana"
+
+
+def test_only_results_signed_by_a_trusted_workstation_key_are_ingested(
+    tmp_path: Path,
+) -> None:
+    station = queue(tmp_path, trusted=[])
+    request = h2_request(1)
+    receipt = station.submit(
+        request, approved_plan=approved(request), idempotency_key="lab-11"
+    )
+    job, work = pick_up(station, receipt)
+    genuine_shard(work, request)
+    publish(job, receipt, "COMPLETED", work)
+    with pytest.raises(WorkstationError, match=f"key {fingerprint()}, which is not"):
+        station.download(receipt["client_job_id"], tmp_path / "ingested")
+    assert station.ledger.get(receipt["client_job_id"])["state"] in OPEN_STATES
+
+    impostor = Ed25519PrivateKey.generate()
+    publish(job, receipt, "COMPLETED", work, key=impostor)
+    trusting = WorkstationQueue(
+        station.folder,
+        student_id="alice",
+        ledger_path=station.ledger.path,
+        trusted_keys=f"sha256:{fingerprint()}",
+    )
+    with pytest.raises(WorkstationError, match="not trusted"):
+        trusting.download(receipt["client_job_id"], tmp_path / "ingested")
+
+    publish(job, receipt, "COMPLETED", work)
+    status = json.loads((job / "status.json").read_text())
+    status["result_sha256"] = hashlib.sha256(b"edited").hexdigest()
+    (job / "status.json").write_text(json.dumps(status))
+    with pytest.raises(WorkstationError, match="still syncing|different results"):
+        trusting.download(receipt["client_job_id"], tmp_path / "ingested")
+
+    publish(job, receipt, "COMPLETED", work)
+    (published,) = trusting.download(receipt["client_job_id"], tmp_path / "ingested")
+    row = trusting.ledger.get(receipt["client_job_id"])
+    assert row["state"] == INGESTED and row["attested_by"] == fingerprint()
+    saved = (
+        json.loads(
+            (published.parent / "_runner" / "workstation-attestation.json").read_text()
+        )
+        if (published.parent / "_runner").is_dir()
+        else None
+    )
+    assert saved is None or saved["key_fingerprint"] == fingerprint()
+    station.close()
+    trusting.close()
+
+
+def test_cli_trusted_key_option(tmp_path: Path, capsys) -> None:
+    (tmp_path / "Drive").mkdir()
+    assert (
+        main(
+            [
+                "workstation",
+                "assign",
+                "--folder",
+                str(tmp_path / "Drive" / "carol"),
+                "--student",
+                "carol",
+                "--ledger",
+                str(tmp_path / "tpo.sqlite"),
+                "--trusted-key",
+                fingerprint(),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert "carol" in capsys.readouterr().out
+    with pytest.raises(ValueError, match="not a workstation key fingerprint"):
+        WorkstationQueue(
+            tmp_path / "Drive" / "carol",
+            ledger_path=tmp_path / "tpo.sqlite",
+            trusted_keys="not-a-key",
+        )

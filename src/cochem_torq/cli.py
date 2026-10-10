@@ -335,6 +335,13 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument(
                 "--ledger", type=Path, help="TPO ledger (tpo_ledger.sqlite)"
             )
+            command.add_argument(
+                "--trusted-key",
+                action="append",
+                default=[],
+                help="Fingerprint of a workstation key whose signed results are "
+                "accepted (`cochem-runner key`); repeatable",
+            )
         if name in {"recommend", "submit"}:
             command.add_argument("--request", type=Path, required=True)
         if name == "submit":
@@ -780,6 +787,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 arguments.folder,
                 student_id=arguments.student,
                 ledger_path=arguments.ledger,
+                trusted_keys=arguments.trusted_key,
             )
             try:
                 if action == "assign":
