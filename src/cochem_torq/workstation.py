@@ -707,18 +707,45 @@ class WorkstationQueue:
         if observed in {"COMPLETED", "FAILED", "CANCELLED"} and not document.get(
             "result_file"
         ):
-            if document.get("attempts", 0) == 0:
-                final = CANCELLED if observed == "CANCELLED" else FAILED
+            if document.get("attestation"):
+                # Ended without results: final only as the workstation signed it.
+                try:
+                    attested = verify_attestation(
+                        document["attestation"], self.trusted_keys
+                    )
+                    signed = attested["statement"]
+                    if (
+                        signed.get("client_job_id") != client_job_id
+                        or signed.get("label") != label
+                        or signed.get("result_file") is not None
+                        or signed.get("state")
+                        not in {"COMPLETED", "FAILED", "CANCELLED"}
+                    ):
+                        raise WorkstationError(
+                            "The workstation signature is for a different outcome."
+                        )
+                except WorkstationError as exc:
+                    return self._receipt(
+                        self.ledger.update(
+                            client_job_id,
+                            state=row["state"],
+                            observed=observed,
+                            message=f"Final state not accepted yet: {exc}",
+                            label=label,
+                        )
+                    )
+                final = CANCELLED if signed["state"] == "CANCELLED" else FAILED
                 return self._receipt(
                     self.ledger.update(
                         client_job_id,
                         state=final,
-                        observed=observed,
+                        observed=signed["state"],
                         message=message,
                         label=label,
+                        attested_by=attested["key_fingerprint"],
                     )
                 )
-            state = RUNNING  # finished, results archive not yet published
+            state = RUNNING  # finished; outcome not yet published (or not signed)
         elif observed in {"COMPLETED", "FAILED", "CANCELLED"}:
             state = row["state"] if row["state"] in OPEN_STATES else RUNNING
         else:

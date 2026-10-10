@@ -307,14 +307,30 @@ def test_rejected_and_withdrawn_submissions_are_final(tmp_path: Path) -> None:
         request, approved_plan=approved(request), idempotency_key="lab-5"
     )
     job, _work = pick_up(station, first)
+    rejected = {
+        "attempts": 0,
+        "message": "Rejected: Unknown engine 'torq_execute'",
+    }
+    publish(job, first, "FAILED", **rejected)  # unsigned: anyone could write this
+    assert station.status(first["client_job_id"])["state"] == RUNNING
     publish(
         job,
         first,
         "FAILED",
-        attempts=0,
-        message="Rejected: Unknown engine 'torq_execute'",
+        attestation=attestation(
+            {
+                "client_job_id": first["client_job_id"],
+                "label": job.name,
+                "state": "FAILED",
+                "input_hashes": {},
+                "result_file": None,
+                "result_sha256": None,
+            }
+        ),
+        **rejected,
     )
     assert station.status(first["client_job_id"])["state"] == FAILED
+    assert station.ledger.get(first["client_job_id"])["attested_by"] == fingerprint()
     second_request = h2_request(1)
     second = station.submit(
         second_request, approved_plan=approved(second_request), idempotency_key="lab-6"
