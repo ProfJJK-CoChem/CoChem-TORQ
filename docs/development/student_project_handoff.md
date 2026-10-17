@@ -200,7 +200,11 @@ unverified. This hosted job outcome does not qualify the student private pilot,
 the complete SRS or independent scientific accuracy.
 
 The bounded Pickett consumer passed **52** focused checks with genuine
-externally compiled SPCAT/SPFIT and no failures, errors or skips. The native
+externally compiled SPCAT/SPFIT and no failures, errors or skips. Those checks
+were recorded at `e77e2a4` on the previous laserkelvin/Pickett `f5af2ff` pin.
+The pin is now Pickett's JPL calpgm distribution; GitHub Actions run
+38990246761 at `a05106c` compiled it and passed the native lane without skips
+([pickett_backend.md](pickett_backend.md)). The native
 source's redistribution permission is unresolved; no vendor source or binary
 is bundled. Strict native inputs, units, covariance, original outputs and
 digests are retained. Mathematical rigid-rotor comparisons and a fit to actual

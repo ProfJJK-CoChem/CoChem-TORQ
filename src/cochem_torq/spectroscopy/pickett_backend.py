@@ -35,8 +35,9 @@ from .rotational import rigid_rotor_catalog
 
 SUPPORTED_UPSTREAM = "https://spec.jpl.nasa.gov/ftp/pub/calpgm/"
 # Pickett's JPL distribution has no version tags, so these bytes are the pin
-# (SHA-256, size, file). Only the sources `make spcat spfit` needs, the README,
-# change log and manuals are retrieved; the directory's prebuilt binaries never are.
+# (SHA-256, size, file): the Makefile, the C files and headers `make spcat spfit`
+# uses, blas.h, the README, change log and manuals. The directory's prebuilt
+# binaries and objects are never retrieved.
 _SOURCE_TABLE = """
 2192f0ae5827a2c84fa1c2224651f054bb87d75c4e6601f2e4cce6b6d4530f26    2006 Makefile
 278b657d8cae34745ef324393a917b80a9c6e362205e399afd6188866096ec8b    1396 README
