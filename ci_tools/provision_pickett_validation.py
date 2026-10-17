@@ -9,27 +9,34 @@ and never qualifies a scientific method from compilation alone.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import shutil
 import stat
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
 from cochem_torq.domain import canonical_json, digest
 from cochem_torq.spectroscopy.pickett_backend import (
-    SUPPORTED_COMMIT,
+    SUPPORTED_SOURCE_INVENTORY,
     SUPPORTED_SOURCE_SHA256,
+    SUPPORTED_UPSTREAM,
     load_pickett_installation,
 )
 
-UPSTREAM = "https://github.com/laserkelvin/Pickett"
-_PREBUILT = "splib.a"
-_TOOLS = ("git", "gcc", "make", "ar", "ranlib")
+UPSTREAM = SUPPORTED_UPSTREAM
+_TOOLS = ("gcc", "make", "ar", "ranlib")
 _REPOSITORY = Path(__file__).absolute().parents[1]
+_FETCH_ATTEMPTS = 4
+_FETCH_TIMEOUT_SECONDS = 120
+_FETCH_BACKOFF_SECONDS = 2.0
 
 
 def _safe(path: Path) -> Path:
@@ -78,7 +85,6 @@ def _run(
     arguments: list[str], *, cwd: Path, log: Path, input_bytes: bytes | None = None
 ) -> bytes:
     environment = dict(os.environ)
-    environment["GIT_TERMINAL_PROMPT"] = "0"
     environment["MAKEFLAGS"] = ""
     environment["MFLAGS"] = ""
     try:
@@ -108,53 +114,78 @@ def _run(
     return result.stdout
 
 
-def _inventory(source: Path, log: Path) -> tuple[list[dict[str, Any]], str]:
-    listing = _run(["git", "ls-tree", "-r", "-z", "HEAD"], cwd=source, log=log)
-    inventory: list[dict[str, Any]] = []
-    prebuilt_sha: str | None = None
-    for entry in listing.split(b"\x00"):
-        if not entry:
-            continue
-        metadata, name_bytes = entry.split(b"\t", 1)
-        mode, kind, object_id = metadata.decode("ascii").split()
-        name = name_bytes.decode("utf-8")
-        relative = Path(name)
-        if (
-            mode not in {"100644", "100755"}
-            or kind != "blob"
-            or relative.is_absolute()
-            or ".." in relative.parts
-            or "\\" in name
-            or any(character in name for character in "\r\n\x00")
-        ):
-            raise ValueError("Pinned upstream contains an unsupported source entry.")
-        path = _safe(source / relative)
-        if not path.is_file():
-            raise ValueError("An actual pinned upstream source file is absent.")
-        actual_object = (
-            _run(
-                ["git", "hash-object", "--no-filters", "--", name],
-                cwd=source,
-                log=log,
+def _log_fetch(log: Path, record: dict[str, Any]) -> None:
+    with log.open("ab") as stream:
+        stream.write(json.dumps(record, sort_keys=True).encode() + b"\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def _fetch(name: str, expected_sha256: str, size: int, log: Path) -> bytes:
+    """Retrieve one pinned upstream file; only transient failures are retried."""
+    url = UPSTREAM + name
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "cochem-torq-pickett-provisioning"}
+    )
+    for attempt in range(1, _FETCH_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(
+                request, timeout=_FETCH_TIMEOUT_SECONDS
+            ) as response:
+                if response.geturl() != url:
+                    raise ValueError(
+                        f"Pinned upstream {name} redirected; no other source is used."
+                    )
+                content = response.read(size + 1)
+        except urllib.error.HTTPError as error:
+            _log_fetch(log, {"url": url, "attempt": attempt, "http": error.code})
+            if error.code < 500:
+                raise RuntimeError(
+                    f"Pinned upstream {name} is unavailable (HTTP {error.code})."
+                ) from error
+        except (OSError, http.client.HTTPException) as error:
+            _log_fetch(
+                log, {"url": url, "attempt": attempt, "error": type(error).__name__}
             )
-            .decode("ascii")
-            .strip()
-        )
-        if actual_object != object_id:
-            raise ValueError("Retained upstream bytes do not match their Git blobs.")
-        file_sha = _sha(path)
-        if name == _PREBUILT:
-            prebuilt_sha = file_sha
         else:
-            inventory.append(
-                {"path": name, "sha256": file_sha, "size_bytes": path.stat().st_size}
+            actual = sha256(content).hexdigest()
+            _log_fetch(
+                log,
+                {
+                    "url": url,
+                    "attempt": attempt,
+                    "bytes": len(content),
+                    "sha256": actual,
+                },
             )
+            if len(content) != size or actual != expected_sha256:
+                raise ValueError(
+                    f"Retrieved {name} differs from the pinned upstream bytes."
+                )
+            return content
+        if attempt < _FETCH_ATTEMPTS:
+            time.sleep(_FETCH_BACKOFF_SECONDS * 2 ** (attempt - 1))
+    raise RuntimeError(
+        f"Pinned upstream {name} could not be retrieved; inspect external log {log}."
+    )
+
+
+def _retrieve_sources(source: Path, log: Path) -> list[dict[str, Any]]:
+    inventory: list[dict[str, Any]] = []
+    for name, expected, size in SUPPORTED_SOURCE_INVENTORY:
+        if Path(name).name != name or any(c in name for c in "\\\r\n\x00"):
+            raise ValueError("Pinned upstream contains an unsupported source entry.")
+        path = _safe(source / name)
+        _write_new(path, _fetch(name, expected, size, log))
+        inventory.append(
+            {"path": name, "sha256": _sha(path), "size_bytes": path.stat().st_size}
+        )
     inventory.sort(key=lambda record: record["path"])
-    if digest(inventory) != SUPPORTED_SOURCE_SHA256 or prebuilt_sha is None:
+    if digest(inventory) != SUPPORTED_SOURCE_SHA256:
         raise ValueError(
             "Actual source inventory is outside the pinned adapter contract."
         )
-    return inventory, prebuilt_sha
+    return inventory
 
 
 def _append_github_env(path: Path, receipt: dict[str, Any]) -> None:
@@ -194,32 +225,12 @@ def provision(root: Path) -> dict[str, Any]:
         source.mkdir(mode=0o700)
         log = root / "provision.log"
         _write_new(log, b"")
-        _run(["git", "init", "."], cwd=source, log=log)
-        _run(["git", "remote", "add", "origin", UPSTREAM], cwd=source, log=log)
-        git = ["git", "-c", "core.autocrlf=false", "-c", "core.hooksPath=/dev/null"]
-        _run(
-            [*git, "fetch", "--depth", "1", "origin", SUPPORTED_COMMIT],
-            cwd=source,
-            log=log,
-        )
-        _run([*git, "checkout", "--detach", "FETCH_HEAD"], cwd=source, log=log)
-        actual_commit = (
-            _run(["git", "rev-parse", "HEAD"], cwd=source, log=log)
-            .decode("ascii")
-            .strip()
-        )
-        if actual_commit != SUPPORTED_COMMIT:
-            raise ValueError(
-                "Retrieved upstream commit differs from the pinned contract."
-            )
-        inventory, prebuilt_sha = _inventory(source, log)
-        for name in ("spcat", "spfit"):
+        inventory = _retrieve_sources(source, log)
+        for name in ("spcat", "spfit", "splib.a"):
             if (source / name).exists():
                 raise ValueError(
                     "Fresh source unexpectedly contains a prebuilt executable."
                 )
-        # This tracked upstream archive must never satisfy the actual native build.
-        (source / _PREBUILT).unlink()
         build_log = root / "build.log"
         _write_new(build_log, b"")
         build_command = ["make", "-j1", "spcat", "spfit"]
@@ -229,16 +240,14 @@ def provision(root: Path) -> dict[str, Any]:
         )
         # A native ELF check and source revalidation happen in the real consumer.
         manifest: dict[str, Any] = {
-            "schema_version": "cochem.torq.pickett-provisioning/1",
+            "schema_version": "cochem.torq.pickett-provisioning/2",
             "upstream_url": UPSTREAM,
-            "source_commit": actual_commit,
             "source_directory": str(source),
             "source_inventory": inventory,
             "source_inventory_sha256": digest(inventory),
-            "source_inventory_matches_upstream_git_blobs": True,
-            "excluded_prebuilt_or_build_output_paths": [_PREBUILT],
-            "upstream_prebuilt_splib_sha256": prebuilt_sha,
-            "rebuilt_splib_sha256": _sha(source / _PREBUILT),
+            "source_inventory_matches_pinned_bytes": True,
+            "upstream_prebuilt_files_retrieved": False,
+            "rebuilt_splib_sha256": _sha(source / "splib.a"),
             "build_command": build_command,
             "build_log_sha256": _sha(build_log),
             "compiler": compiler,
@@ -267,10 +276,10 @@ def provision(root: Path) -> dict[str, Any]:
             manifest_path, expected_manifest_sha256=manifest_sha
         ).verify()
         return {
-            "schema_version": "cochem.torq.pickett-provisioning-receipt/1",
+            "schema_version": "cochem.torq.pickett-provisioning-receipt/2",
             "provisioning_manifest_path": str(manifest_path),
             "provisioning_manifest_sha256": manifest_sha,
-            "source_commit": actual_commit,
+            "upstream_url": UPSTREAM,
             "source_inventory_sha256": SUPPORTED_SOURCE_SHA256,
             "spcat_sha256": manifest["spcat"]["sha256"],
             "spfit_sha256": manifest["spfit"]["sha256"],
