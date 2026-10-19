@@ -68,6 +68,7 @@ jobs:
             tests/test_campaign_coordinator.py tests/test_campaign_backup.py tests/test_host_allocation.py tests/test_release_evidence_validator.py \
             tests/test_advanced_scientific_results.py tests/test_ecosystem_serialization_profile.py \
             tests/test_units.py tests/test_asymmetric_rotor.py tests/test_ingestion_integrity.py \
+            tests/test_module_provider.py \
             tests/test_qm9_sources.py tests/test_reference_sources.py tests/test_reference_comparison.py \
             tests/test_topology_mass_integrity.py tests/test_goat_rmsd_integrity.py \
             tests/test_ipc_mass_integrity.py \
@@ -182,6 +183,7 @@ jobs:
           if python -m pytest -q -m 'not ecosystem' --basetemp "$RUNNER_TEMP/torq-native-tests" \
             --junitxml "$RUNNER_TEMP/torq-native-tests-report.xml" \
             tests/test_pyscf_integration.py tests/test_revdsd_integration.py \
+            tests/test_module_provider.py \
             tests/test_double_hybrid_stability_integrity.py tests/test_pes_scan_integrity.py \
             tests/test_adaptive_pes_integrity.py tests/test_rovibrational_precursors.py \
             tests/test_spectroscopy_physics.py tests/test_student_execution.py \

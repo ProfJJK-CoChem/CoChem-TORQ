@@ -910,13 +910,16 @@ def load_conformer_handoff(path: str | Path) -> ConformerHandoff:
     )
 
 
-def module_provider() -> dict[str, str]:
-    """BASE discovery metadata only; operation qualification remains explicit."""
+def module_provider() -> dict[str, Any]:
+    """Versioned canonical operations with observed optional-runtime availability."""
+    from .module_provider import scientific_metadata
+
     return {
         "module_id": "torq",
         "distribution": "CoChem-TORQ",
         "integration_contract": "cochem.module-handoff/1",
         "conformer_contract": "cochem.torq-conformer-handoff/1",
+        **scientific_metadata(),
     }
 
 
