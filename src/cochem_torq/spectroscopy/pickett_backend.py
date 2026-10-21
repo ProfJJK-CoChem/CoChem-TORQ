@@ -33,11 +33,46 @@ from ..publication import verify_publication_bundle
 from ..scientific_contracts import Name, ScientificContract
 from .rotational import rigid_rotor_catalog
 
-SUPPORTED_COMMIT = "f5af2ff0f1acb1eb11ecffe7ef3b55d457801f7b"
-SUPPORTED_SOURCE_SHA256 = (
-    "9ce0f0b761a4094eee4aaf2d32017d80b47c1fca4083861d68c80a3accd46053"
+SUPPORTED_UPSTREAM = "https://spec.jpl.nasa.gov/ftp/pub/calpgm/"
+# Pickett's JPL distribution has no version tags, so these bytes are the pin
+# (SHA-256, size, file): the Makefile, the C files and headers `make spcat spfit`
+# uses, blas.h, the README, change log and manuals. The directory's prebuilt
+# binaries and objects are never retrieved.
+_SOURCE_TABLE = """
+2192f0ae5827a2c84fa1c2224651f054bb87d75c4e6601f2e4cce6b6d4530f26    2006 Makefile
+278b657d8cae34745ef324393a917b80a9c6e362205e399afd6188866096ec8b    1396 README
+758e3895aca105d7c1ec77898b91fa4ee41ce3d55c62ac78f042fbe81a6933da    1127 blas.h
+bc1aa17b1d6814e813b74b81cf4c6c5aa8ab9d2874245d833428545d0f4009b4   28232 calcat.c
+a8b5e7e401cf0a52dff7639a269cc2b90417b87b5e0548d7c931feff2c31a158   33504 calfit.c
+5282b2f9d20668a1f930bb593fab1174ed322cb0a8f4536247b5a6d3481c51f5    5726 calpgm.h
+48796ff50df151916041aa4a8a68ec3a408a9982098265adc872faf79e49e8fb   76497 calpgm.pdf
+6bcc5566cbca79e40c18e349caebfe4958afdf7d767d4d3508adc25cdeed2e33    7209 catutil.c
+475afcee0609901a96393db241f7c4b2feb70a1656757c84c9640b8bd6158979     209 catutil.h
+7048f244ca6f3e4971daf3dc090dd1b9e66cb6c4a42b32638d9b2e456216a12e   32444 cblas.h
+7070ffb3ce8662d0b58972fdd04d4eb8cbb866fe4877a80784ac5c8baef00e2f    6839 cnjj.c
+f32a47e2d18ada07887642cacd2250deb65e5df275ed1be3581a4977a7d2df62     640 cnjj.h
+297f05b90110619c52111c64a62941b7a12a197dedee44b4129491a93cf8367e    7338 dblas.c
+d1d48b8f433560983c575a213bc547f36715767d0ae55e3095ce09bad6d7fdac   14842 lsqfit.c
+ddaa613533091b620bfa0677dd35dacc0d880396d4630e3dfc6456b10b084b46    1425 lsqfit.h
+ef73c18e143ca415d324404e5e2b0cbd1e138666e4af41658b2d6ce10d846f27     635 slib.h
+f0d4a14130298f918f808be67a6cdd5cb11e2a82f79aca1a2e5631a0481c6024    6522 slibgcc.c
+4741e105de470fec77f5a46dc33d3ef61bae82f37e484c72d9b35453960f6cc9    5895 sortsub.c
+6c2f09da62ed3932324a687b54af30da11ff3a9fe7bf58076d1114681666e38f   22405 spinit.c
+ee83b38694dadc88d668fe72015c0fc1b243efab211e48ebda27993ac25a4d79    1192 spinit.h
+cd07e6b51f47bfa9939a4710ab0c4ae9629c7709362c15f886d9c65da3ce7e4a  142846 spinv.c
+4dd04df5c2fa82e87e4ff0a6942a12e5d7d710be01b09e66f37c6952e2d488e9  226739 spinv.pdf
+967c965723e985cb6ad18148efcb9694f6fca733a12f6667797ce8e0ee8ea420   17279 subfit.c
+736f5d30291e735799aef9ebeaaa02c432fe2ca90eeac4766d87727d4344adf5   27404 ulib.c
+245713d299a7d89af08c633ef7c1a30f278b0ac935ab4ba60e7aa9006bd1fe0a    5860 whats.new
+"""
+SUPPORTED_SOURCE_INVENTORY: tuple[tuple[str, str, int], ...] = tuple(
+    (path, sha, int(size))
+    for sha, size, path in (row.split() for row in _SOURCE_TABLE.splitlines() if row)
 )
-_SCHEMA = "cochem.torq.pickett-native-artifacts/1"
+SUPPORTED_SOURCE_SHA256 = (
+    "de701d2b8a0fe232987518739cd9544a7e34a8c0b63a759c421083cfe8f55919"
+)
+_SCHEMA = "cochem.torq.pickett-native-artifacts/2"
 _PARAMETERS = {
     "A": (10000, 1.0),
     "B": (20000, 1.0),
@@ -136,9 +171,8 @@ def load_pickett_installation(
         )
     record = read_json(path)
     if (
-        record.get("schema_version") != "cochem.torq.pickett-provisioning/1"
-        or record.get("upstream_url") != "https://github.com/laserkelvin/Pickett"
-        or record.get("source_commit") != SUPPORTED_COMMIT
+        record.get("schema_version") != "cochem.torq.pickett-provisioning/2"
+        or record.get("upstream_url") != SUPPORTED_UPSTREAM
         or record.get("source_inventory_sha256") != SUPPORTED_SOURCE_SHA256
         or record.get("distribution_permission") != "unverified_not_bundled"
         or record.get("binary_redistribution_authorized") is not False
@@ -676,7 +710,7 @@ def _execute(
         receipt = {
             "schema_version": _SCHEMA,
             "program": program,
-            "source_commit": SUPPORTED_COMMIT,
+            "upstream_url": SUPPORTED_UPSTREAM,
             "source_inventory_sha256": SUPPORTED_SOURCE_SHA256,
             "provisioning_manifest_sha256": installation.manifest_sha256,
             "executable_sha256": installation.spcat_sha256
@@ -736,7 +770,7 @@ def verify_native_run(
     if (
         record.get("experimental_accuracy_established") is not False
         or record.get("identification_ready") is not False
-        or record.get("source_commit") != SUPPORTED_COMMIT
+        or record.get("upstream_url") != SUPPORTED_UPSTREAM
     ):
         raise ValueError("Native Pickett receipt cannot invent method qualification.")
     if (
