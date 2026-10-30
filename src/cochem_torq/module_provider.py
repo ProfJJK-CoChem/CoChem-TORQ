@@ -12,6 +12,7 @@ import importlib.metadata
 import json
 import math
 import os
+import platform
 import re
 import tempfile
 from pathlib import Path
@@ -29,6 +30,152 @@ _OPERATIONS = (
     "nbo_analysis",
     "wiberg_nao",
 )
+
+# Activation follows fresh bounded producer evidence and independent review.
+_NAO_PROFILE_ACTIVATED = True
+_NAO_PROFILE = "cochem.torq.pyscf-rhf-sto3g-nao-wiberg/1"
+_NAO_CONTROLLED_EVIDENCE = {
+    "id": "torq-nao-stage2-20261030",
+    "phase": "preactivation_direct_producer",
+    "controlled_provider_sha256": (
+        "c78d50a3f918fcad37bf4e6a9bcdeddccc531d8b1601058344e2c2d114b806b3"
+    ),
+    "native_controls_xml_sha256": (
+        "749d81dbb75514dabb76adb8b37b65d82bcf3d609b1a7f730b9a57d4d4bb2fb4"
+    ),
+    "actual_cases": ["H2", "H2O"],
+}
+_NAO_SOURCES = {
+    "lo/nao.py": "84af42a10aaefc993df44d780169f5e9c4f7667567ad86c20c19b34ff97a8fb2",
+    "lo/orth.py": "3f557d75ab73a0ee2c958cafc8a4e9889ed7403e8adfe3334dbda99b8bf4b342",
+    "data/elements.py": (
+        "a0cb75c2e6383d969f6415f02b6e3baa0ad4642eacfbfc7c1da0c368c0291338"
+    ),
+    "gto/basis/sto-3g.dat": (
+        "0514de5da5df92e477ce69ef906c81589a310260557bcda84531b144eed00cc3"
+    ),
+}
+_NAO_ATOMIC_CONFIGURATION = {
+    1: ("0s0p0d0f", "1s0p0d0f"),
+    8: ("1s0p0d0f", "2s1p0d0f"),
+}
+
+
+def _nao_algorithm_identity() -> dict[str, Any]:
+    """Bind the qualified natural-AO implementation and its mutable shell policy."""
+    import pyscf
+    from pyscf import gto
+    from pyscf.data import elements
+    from pyscf.lo import nao, orth
+
+    if pyscf.__version__ != "2.14.0" or platform.system() != "Linux":
+        raise ValueError(
+            "This NAO profile requires the qualified Linux CPU PySCF 2.14.0."
+        )
+    root = Path(pyscf.__file__).resolve(strict=True).parent
+    basis_directory = (root / "gto/basis").resolve(strict=True)
+    if (
+        gto.basis.ALIAS.get("sto3g") != "sto-3g.dat"
+        or Path(gto.basis._BASIS_DIR).resolve(strict=True) != basis_directory
+    ):
+        raise ValueError(
+            "The requested STO-3G loader no longer selects its pinned basis file."
+        )
+    sources = {}
+    for relative, module in (
+        ("lo/nao.py", nao),
+        ("lo/orth.py", orth),
+        ("data/elements.py", elements),
+        ("gto/basis/sto-3g.dat", None),
+    ):
+        source = (
+            (root / relative).resolve(strict=True)
+            if module is None
+            else Path(module.__file__).resolve(strict=True)
+        )
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        if source != root / relative or digest != _NAO_SOURCES[relative]:
+            raise ValueError("The qualified PySCF NAO algorithm source has changed.")
+        sources[relative] = {"path": str(source), "sha256": digest}
+    configuration = {}
+    for number, expected in _NAO_ATOMIC_CONFIGURATION.items():
+        try:
+            actual = tuple(nao.AOSHELL[number])
+            default = (
+                elements.N_CORE_SHELLS[number],
+                elements.N_CORE_VALENCE_SHELLS[number],
+            )
+        except (AttributeError, IndexError, KeyError, TypeError) as exc:
+            raise ValueError(
+                "The default H/O AOSHELL configuration is unavailable."
+            ) from exc
+        if actual != expected or default != expected:
+            raise ValueError(
+                "This NAO profile requires the pinned default H/O "
+                "AOSHELL configuration."
+            )
+        configuration[str(number)] = list(actual)
+    return {
+        "profile": _NAO_PROFILE,
+        "implementation": "pyscf.lo.nao.nao",
+        "engine": "pyscf",
+        "engine_version": pyscf.__version__,
+        "platform": "linux-cpu",
+        "source_files": sources,
+        "AOSHELL": configuration,
+        "restore": True,
+        "basis_loader": {
+            "normalized_name": "sto3g",
+            "alias": "sto-3g.dat",
+            "directory": str(basis_directory),
+        },
+    }
+
+
+def _nao_options(options: dict, symbols: list[str]) -> dict:
+    """Admit only an explicitly requested, bounded initial RHF NAO tuple."""
+    required = {"engine", "method", "charge", "multiplicity", "cores", "memory_mb"}
+    if not isinstance(options, dict) or set(options) != required:
+        raise ValueError(
+            "NAO analysis requires exact explicit engine, method, state "
+            "and resource options."
+        )
+    if options["engine"] != "pyscf":
+        raise ValueError(
+            "This NAO profile executes only an explicitly requested pyscf backend."
+        )
+    if options["method"] != {"name": "hf", "basis": "sto-3g"}:
+        raise ValueError(
+            "This NAO profile supports only explicit hf/sto-3g, "
+            "without method substitution."
+        )
+    if (
+        type(options["charge"]) is not int
+        or options["charge"] != 0
+        or type(options["multiplicity"]) is not int
+        or options["multiplicity"] != 1
+    ):
+        raise ValueError(
+            "This initial NAO profile requires an explicit neutral "
+            "closed-shell singlet."
+        )
+    if not 2 <= len(symbols) <= 50 or any(
+        symbol not in {"H", "O"} for symbol in symbols
+    ):
+        raise ValueError(
+            "This initial NAO profile supports unlabelled H/O nuclei only; "
+            "carbon and isotope profiles are unqualified."
+        )
+    if (
+        type(options["cores"]) is not int
+        or not 1 <= options["cores"] <= 2
+        or type(options["memory_mb"]) is not int
+        or not 256 <= options["memory_mb"] <= 2048
+    ):
+        raise ValueError(
+            "The bounded NAO profile permits 1–2 cores and 256–2048 MiB total memory."
+        )
+    return dict(options)
 
 
 def _source_digest() -> str:
@@ -93,7 +240,7 @@ def scientific_metadata() -> dict[str, Any]:
     if not probe.get("available"):
         for name in ("research_scan", "wiberg_lowdin"):
             definitions[name]["reason"] = probe.get("reason", "PySCF is unavailable.")
-    for name in ("nbo_analysis", "wiberg_nao"):
+    for name in ("nbo_analysis",):
         definitions[name] = {
             "available": False,
             "required_engines": ["pyscf", "nbo"],
@@ -107,6 +254,56 @@ def scientific_metadata() -> dict[str, Any]:
                 "differently named population analysis cannot enable it."
             ),
         }
+    try:
+        nao_identity = _nao_algorithm_identity() if probe.get("available") else None
+        nao_reason = (
+            "Fresh bounded NAO producer qualification is not yet activated."
+            if probe.get("available")
+            else probe.get("reason", "PySCF is unavailable.")
+        )
+    except (ImportError, OSError, ValueError, IndexError, TypeError) as exc:
+        nao_identity, nao_reason = None, str(exc)
+    definitions["wiberg_nao"] = {
+        "available": bool(probe.get("available"))
+        and bool(nao_identity)
+        and _NAO_PROFILE_ACTIVATED,
+        "required_engines": ["pyscf"],
+        "supported_engines": ["pyscf"],
+        "profile": _NAO_PROFILE,
+        "activation_status": "locally_validated"
+        if _NAO_PROFILE_ACTIVATED
+        else "experimental",
+        "scope": (
+            "Experimental H/O-only neutral real RHF/STO-3G PySCF NAO-basis "
+            "Wiberg pair descriptors; no NPA, NBO, organic bonding or "
+            "chemical-accuracy qualification."
+        ),
+        "required_options": [
+            "engine",
+            "method",
+            "charge",
+            "multiplicity",
+            "cores",
+            "memory_mb",
+        ],
+        "method": {"name": "hf", "basis": "sto-3g"},
+        "electronic_state": {"charge": 0, "multiplicity": 1},
+        "reference": "real_closed_shell_rhf",
+        "basis_convention": "all_electron_spherical",
+        "platform": "linux-cpu",
+        "input_elements": ["H", "O"],
+        "isotope_profiles": "unqualified",
+        "local_validation_cases": ["H2", "H2O"] if _NAO_PROFILE_ACTIVATED else [],
+        "local_validation_evidence": _NAO_CONTROLLED_EVIDENCE,
+        "experimental_descriptor": True,
+        "method_matrix_recipe_activated": False,
+        "independent_scientific_qualification": False,
+        "validated_allocation": {"cores": 1, "memory_mb_advisory": 512},
+        "algorithm": nao_identity,
+        "runtime_receipts": receipts,
+    }
+    if not definitions["wiberg_nao"]["available"]:
+        definitions["wiberg_nao"]["reason"] = nao_reason
     return {
         "scientific_api_version": "cochem.module-provider/1",
         "execute_handoff": "cochem_torq.module_provider:execute_handoff",
@@ -770,33 +967,13 @@ def research_scan(handoff_path: Path, directory: Path) -> dict[str, Any]:
     return snapshot()
 
 
-def wiberg_lowdin(handoff_path: Path, directory: Path) -> dict[str, Any]:
-    """Compute named Löwdin-AO Wiberg indices from real density/overlap matrices."""
-    record, _, symbols, positions = _load_handoff(handoff_path)
-    options = record["options"]
-    if not isinstance(options, dict) or set(options) - {
-        "method",
-        "charge",
-        "multiplicity",
-        "cores",
-        "memory_mb",
-    }:
-        raise ValueError("Unsupported Wiberg analysis option.")
-    # Reuse the exact checked model/state/resource contract without permitting
-    # scan geometry fields in this independent operation.
-    checked = _scan_options(
-        {
-            **options,
-            "fragments": [[0], list(range(1, len(symbols)))],
-            "distances_angstrom": [1.0],
-        },
-        len(symbols),
-    )
-    if checked["method"]["name"] == "mp2":
-        raise ValueError(
-            "A correlated MP2 density is not available in the retained "
-            "restricted SCF checkpoint."
-        )
+def _restricted_scf_density(
+    symbols: list[str],
+    positions: list[list[float]],
+    checked: dict[str, Any],
+    directory: Path,
+) -> tuple[Any, ...]:
+    """Return authenticated native restricted orbitals and their original AO metric."""
     import numpy as np
     from pyscf import lib
     from scipy.constants import physical_constants
@@ -859,10 +1036,10 @@ def wiberg_lowdin(handoff_path: Path, directory: Path) -> dict[str, Any]:
             " density identity, energy or geometry."
         )
     overlap = molecule.intor_symmetric("int1e_ovlp")
-    eigenvalues, eigenvectors = np.linalg.eigh(overlap)
+    eigenvalues, _ = np.linalg.eigh(overlap)
     if not np.isfinite(eigenvalues).all() or np.min(eigenvalues) <= 1e-10:
         raise ValueError(
-            "Löwdin analysis requires a positive, numerically "
+            "Restricted density analysis requires a positive, numerically "
             "independent AO overlap basis."
         )
     if not np.allclose(
@@ -874,6 +1051,42 @@ def wiberg_lowdin(handoff_path: Path, directory: Path) -> dict[str, Any]:
         raise ValueError(
             "The native restricted orbitals fail AO overlap normalization."
         )
+    return native, checkpoint, molecule, coefficients, occupations, overlap
+
+
+def wiberg_lowdin(handoff_path: Path, directory: Path) -> dict[str, Any]:
+    """Compute named Löwdin-AO Wiberg indices from real density/overlap matrices."""
+    record, _, symbols, positions = _load_handoff(handoff_path)
+    options = record["options"]
+    if not isinstance(options, dict) or set(options) - {
+        "method",
+        "charge",
+        "multiplicity",
+        "cores",
+        "memory_mb",
+    }:
+        raise ValueError("Unsupported Wiberg analysis option.")
+    # Reuse the exact checked model/state/resource contract without permitting
+    # scan geometry fields in this independent operation.
+    checked = _scan_options(
+        {
+            **options,
+            "fragments": [[0], list(range(1, len(symbols)))],
+            "distances_angstrom": [1.0],
+        },
+        len(symbols),
+    )
+    if checked["method"]["name"] == "mp2":
+        raise ValueError(
+            "A correlated MP2 density is not available in the retained "
+            "restricted SCF checkpoint."
+        )
+    import numpy as np
+
+    native, checkpoint, molecule, coefficients, occupations, overlap = (
+        _restricted_scf_density(symbols, positions, checked, directory)
+    )
+    eigenvalues, eigenvectors = np.linalg.eigh(overlap)
     square_root = (eigenvectors * np.sqrt(eigenvalues)) @ eigenvectors.T
     density_ao = (coefficients * occupations) @ coefficients.T
     density_lowdin = square_root @ density_ao @ square_root
@@ -957,6 +1170,423 @@ def wiberg_lowdin(handoff_path: Path, directory: Path) -> dict[str, Any]:
     }
 
 
+def _nao_atom_columns(molecule: Any) -> list[dict[str, Any]]:
+    """Validate original atom/shell slots preserved by pinned PySCF NAO construction."""
+    import numpy as np
+
+    locations = np.asarray(molecule.ao_loc_nr())
+    slices = np.asarray(molecule.aoslice_by_atom(locations))
+    if (
+        locations.shape != (molecule.nbas + 1,)
+        or slices.shape != (molecule.natm, 4)
+        or locations[0] != 0
+        or locations[-1] != molecule.nao_nr()
+        or not np.issubdtype(locations.dtype, np.integer)
+        or not np.issubdtype(slices.dtype, np.integer)
+        or np.any(np.diff(locations) <= 0)
+    ):
+        raise ValueError("The native spherical atom/shell partition is incomplete.")
+    mapping, covered = [], []
+    previous_shell = previous_column = 0
+    for atom, (shell_begin, shell_end, begin, end) in enumerate(slices):
+        shell_begin, shell_end, begin, end = map(
+            int, (shell_begin, shell_end, begin, end)
+        )
+        if (
+            shell_begin != previous_shell
+            or begin != previous_column
+            or not shell_begin < shell_end <= molecule.nbas
+            or not begin < end <= molecule.nao_nr()
+            or locations[shell_begin] != begin
+            or locations[shell_end] != end
+            or any(
+                molecule.bas_atom(shell) != atom
+                for shell in range(shell_begin, shell_end)
+            )
+        ):
+            raise ValueError("The native NAO atom-column ownership is inconsistent.")
+        columns = list(range(begin, end))
+        covered.extend(columns)
+        mapping.append(
+            {
+                "atom_index": atom,
+                "element": molecule.atom_pure_symbol(atom),
+                "columns": columns,
+                "shell_indices": list(range(shell_begin, shell_end)),
+            }
+        )
+        previous_shell, previous_column = shell_end, end
+    if (
+        previous_shell != molecule.nbas
+        or previous_column != molecule.nao_nr()
+        or covered != list(range(molecule.nao_nr()))
+    ):
+        raise ValueError(
+            "Every native NAO column must belong to exactly one original atom."
+        )
+    return mapping
+
+
+def _nao_transform(
+    molecule: Any,
+    coefficients: Any,
+    occupations: Any,
+    orbital_energies: Any,
+    overlap: Any,
+) -> tuple[Any, ...]:
+    """Transform an authenticated real RHF density; no SCF or NPA is performed here.
+
+    The caller retains the genuine native calculation and checks its exact tuple.
+    This mathematical helper also permits separate split-valence algorithm checks;
+    it does not admit those tuples through the public operation's preflight.
+    """
+    import numpy as np
+    from pyscf import scf
+    from pyscf.lo import nao
+
+    before = _nao_algorithm_identity()
+    count = molecule.nao_nr()
+    if (
+        molecule.cart is not False
+        or bool(molecule.ecp)
+        or bool(molecule._ecp)
+        or any(molecule.atom_nelec_core(atom) != 0 for atom in range(molecule.natm))
+        or any(
+            molecule.atom_charge(atom) not in {1, 8} for atom in range(molecule.natm)
+        )
+        or molecule.spin != 0
+        or molecule.nelectron <= 0
+        or molecule.nelectron % 2
+    ):
+        raise ValueError(
+            "NAO requires an actual all-electron spherical H/O "
+            "closed-shell checkpoint without ghosts."
+        )
+    arrays = (coefficients, occupations, orbital_energies, overlap)
+    if (
+        any(np.iscomplexobj(value) or not np.isfinite(value).all() for value in arrays)
+        or coefficients.shape != (count, count)
+        or occupations.shape != (count,)
+        or orbital_energies.shape != (count,)
+        or overlap.shape != (count, count)
+        or not np.isin(occupations, [0.0, 2.0]).all()
+        or abs(float(np.sum(occupations)) - molecule.nelectron) > 1e-8
+        or not np.allclose(
+            coefficients.T @ overlap @ coefficients, np.eye(count), rtol=0, atol=1e-7
+        )
+        or not np.allclose(overlap, overlap.T, rtol=0, atol=1e-10)
+        or float(np.min(np.linalg.eigvalsh(overlap))) <= 1e-10
+    ):
+        raise ValueError(
+            "NAO requires complete finite normalized real native RHF "
+            "orbitals and AO metric."
+        )
+    mapping = _nao_atom_columns(molecule)
+    basis_before = json.dumps(molecule._basis, sort_keys=True, allow_nan=False)
+    geometry_before = np.asarray(molecule.atom_coords(unit="Bohr")).copy()
+    mean_field = scf.RHF(molecule)
+    mean_field.mo_coeff, mean_field.mo_occ = coefficients, occupations
+    mean_field.mo_energy = orbital_energies
+    transform = np.asarray(nao.nao(molecule, mean_field, s=overlap, restore=True))
+    if (
+        transform.shape != (count, count)
+        or np.iscomplexobj(transform)
+        or not np.isfinite(transform).all()
+    ):
+        raise ValueError(
+            "The genuine PySCF NAO producer returned an incomplete "
+            "or non-real transform."
+        )
+    metric_residual = transform.T @ overlap @ transform - np.eye(count)
+    if not np.allclose(metric_residual, 0, rtol=0, atol=1e-7):
+        raise ValueError(
+            "The genuine NAO transform failed the existing "
+            "AO metric normalization guard."
+        )
+    density_ao = (coefficients * occupations) @ coefficients.T
+    density_nao = transform.T @ overlap @ density_ao @ overlap @ transform
+    occupied = transform.T @ overlap @ coefficients[:, occupations == 2.0]
+    projector_density = 2 * occupied @ occupied.T
+    trace = float(np.trace(density_nao))
+    if (
+        not np.isfinite(density_nao).all()
+        or not np.allclose(density_nao, density_nao.T, rtol=0, atol=1e-10)
+        or abs(trace - molecule.nelectron) > 1e-7
+        or abs(float(np.trace(density_ao @ overlap)) - molecule.nelectron) > 1e-7
+    ):
+        raise ValueError(
+            "The real NAO density failed symmetry or electron-count validation."
+        )
+    bonds, populations = [], []
+    for atom, entry in enumerate(mapping):
+        columns = entry["columns"]
+        populations.append(float(np.trace(density_nao[np.ix_(columns, columns)])))
+        for other in range(atom + 1, len(mapping)):
+            block = density_nao[np.ix_(columns, mapping[other]["columns"])]
+            value = float(np.sum(block**2))
+            if not math.isfinite(value) or value < 0:
+                raise ValueError("A NAO pair descriptor is nonfinite or negative.")
+            bonds.append({"atom_i": atom, "atom_j": other, "value": value})
+    charge_sum = math.fsum(
+        float(molecule.atom_charge(atom)) - value
+        for atom, value in enumerate(populations)
+    )
+    if abs(charge_sum - molecule.charge) > 1e-7:
+        raise ValueError(
+            "The internal NAO atom partition does not conserve total charge."
+        )
+    after_overlap = molecule.intor_symmetric("int1e_ovlp")
+    if (
+        _nao_algorithm_identity() != before
+        or _nao_atom_columns(molecule) != mapping
+        or json.dumps(molecule._basis, sort_keys=True, allow_nan=False) != basis_before
+        or not np.array_equal(molecule.atom_coords(unit="Bohr"), geometry_before)
+        or not np.array_equal(after_overlap, overlap)
+    ):
+        raise ValueError(
+            "The actual NAO algorithm, configuration, basis or geometry "
+            "changed during analysis."
+        )
+    eigenvalues = np.linalg.eigvalsh(density_nao)
+    validation = {
+        "electron_count": int(molecule.nelectron),
+        "density_trace": trace,
+        "charge_sum_internal": charge_sum,
+        "metric_max_abs_residual": float(np.max(np.abs(metric_residual))),
+        "metric_norm_residual": float(np.linalg.norm(metric_residual)),
+        "upstream_orthogonality_warning_threshold": 1e-9,
+        "final_metric_exceeds_upstream_warning_threshold": (
+            float(np.linalg.norm(metric_residual)) > 1e-9
+        ),
+        "density_symmetry_max_abs_residual": float(
+            np.max(np.abs(density_nao - density_nao.T))
+        ),
+        "idempotency_max_abs_residual_diagnostic": float(
+            np.max(np.abs(density_nao @ density_nao - 2 * density_nao))
+        ),
+        "backtransform_max_abs_residual_diagnostic": float(
+            np.max(np.abs(transform @ density_nao @ transform.T - density_ao))
+        ),
+        "occupied_projector_max_abs_residual_diagnostic": float(
+            np.max(np.abs(density_nao - projector_density))
+        ),
+        "density_eigenvalue_min_diagnostic": float(np.min(eigenvalues)),
+        "density_eigenvalue_max_diagnostic": float(np.max(eigenvalues)),
+        "minimum_overlap_eigenvalue": float(np.min(np.linalg.eigvalsh(overlap))),
+        "diagnostic_cutoffs": None,
+    }
+    return transform, density_ao, density_nao, mapping, bonds, validation, before
+
+
+def _nao_checkpoint_binding(
+    native: dict[str, Any],
+    checkpoint: Path,
+    molecule: Any,
+    checked: dict[str, Any],
+    symbols: list[str],
+) -> tuple[Any, str]:
+    """Bind checkpoint energy/basis to native and requested identities."""
+    import numpy as np
+    from pyscf import gto, lib
+
+    data = lib.chkfile.load(str(checkpoint), "scf")
+    energy = data.get("e_tot")
+    native_energy = native.get("scf", {}).get("energy_hartree")
+    numeric = (int, float, np.integer, np.floating)
+    if (
+        isinstance(energy, (bool, np.bool_))
+        or not isinstance(energy, numeric)
+        or not math.isfinite(float(energy))
+        or isinstance(native_energy, (bool, np.bool_))
+        or not isinstance(native_energy, numeric)
+        or not math.isfinite(float(native_energy))
+        or abs(float(energy) - float(native_energy)) > 1e-8
+    ):
+        raise ValueError(
+            "The NAO checkpoint requires a finite real energy matching "
+            "the actual native result."
+        )
+    basis_file = checkpoint.parent / "basis-definition.json"
+    basis_digest = hashlib.sha256(basis_file.read_bytes()).hexdigest()
+    retained_basis = json.loads(basis_file.read_bytes())
+    requested_source = checked["method"]["basis"]
+    if requested_source == "sto-3g":
+        identity = _nao_algorithm_identity()
+        requested_source = identity["source_files"]["gto/basis/sto-3g.dat"]["path"]
+    requested_basis = {
+        symbol: gto.basis.load(requested_source, symbol)
+        for symbol in dict.fromkeys(symbols)
+    }
+
+    def canonical(value):
+        return json.dumps(value, sort_keys=True, allow_nan=False)
+
+    if (
+        basis_digest != native.get("basis_definition_sha256")
+        or canonical(molecule._basis) != canonical(retained_basis)
+        or canonical(retained_basis) != canonical(requested_basis)
+    ):
+        raise ValueError(
+            "The actual NAO checkpoint basis differs from its native "
+            "or requested basis definition."
+        )
+    return np.asarray(data.get("mo_energy")), basis_digest
+
+
+def wiberg_nao(handoff_path: Path, directory: Path) -> dict[str, Any]:
+    """Produce only named NAO-basis pair descriptors from genuine native RHF."""
+    from cochem_torq.engines.pyscf_backend import _environment
+
+    record, _, symbols, positions = _load_handoff(handoff_path)
+    checked = _nao_options(record["options"], symbols)
+    source_before, algorithm_before = _source_digest(), _nao_algorithm_identity()
+    phase = directory / "nao-runtime"
+    phase.mkdir()
+    # The nested native SCF context restores to this same requested allocation;
+    # all later AO integrals/NAO transforms remain scoped and every exit restores
+    # the caller's previous PySCF thread/scratch state. BLAS remains the owning
+    # worker process allocation, not an invented OS-level memory/thread limit.
+    with _environment({"threads": checked["cores"]}, phase):
+        return _wiberg_nao_checked(
+            record,
+            symbols,
+            positions,
+            checked,
+            directory,
+            source_before,
+            algorithm_before,
+        )
+
+
+def _wiberg_nao_checked(
+    record: dict[str, Any],
+    symbols: list[str],
+    positions: list[list[float]],
+    checked: dict[str, Any],
+    directory: Path,
+    source_before: str,
+    algorithm_before: dict[str, Any],
+) -> dict[str, Any]:
+    """Execute the already-admitted operation inside its actual resource context."""
+    import numpy as np
+    from pyscf import lib
+    from scipy.constants import physical_constants
+
+    from cochem_torq.engines.diagnostics import verify_native_artifacts
+
+    native, checkpoint, molecule, coefficients, occupations, overlap = (
+        _restricted_scf_density(symbols, positions, checked, directory)
+    )
+    if (
+        native.get("engine") != "PySCF"
+        or native.get("engine_version") != "2.14.0"
+        or native.get("platform", {}).get("system") != "Linux"
+        or native.get("units", {}).get("geometry") != "bohr"
+        or native.get("method")
+        != {
+            "name": "hf",
+            "basis": "sto-3g",
+            "reference": "restricted",
+            "dispersion": None,
+            "frozen_core": False,
+            "density_fitting": False,
+        }
+        or molecule.charge != 0
+        or [molecule.atom_pure_symbol(atom) for atom in range(molecule.natm)] != symbols
+        or not np.allclose(
+            molecule.atom_coords(unit="Bohr"),
+            np.asarray(positions) * (1e-10 / physical_constants["Bohr radius"][0]),
+            rtol=0,
+            atol=1e-10,
+        )
+    ):
+        raise ValueError(
+            "The actual native NAO tuple differs from the explicitly requested profile."
+        )
+    checkpoint_before = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    orbital_energies, basis_digest = _nao_checkpoint_binding(
+        native, checkpoint, molecule, checked, symbols
+    )
+    transform, density_ao, density_nao, mapping, bonds, validation, algorithm = (
+        _nao_transform(molecule, coefficients, occupations, orbital_energies, overlap)
+    )
+    validation["requested_cpu_cores"] = checked["cores"]
+    validation["pyscf_threads_during_nao"] = int(lib.num_threads())
+    if validation["pyscf_threads_during_nao"] != checked["cores"]:
+        raise ValueError("The actual NAO phase differs from its CPU allocation.")
+    verify_native_artifacts(native)
+    after_energies, after_basis = _nao_checkpoint_binding(
+        native, checkpoint, molecule, checked, symbols
+    )
+    if (
+        algorithm != algorithm_before
+        or _source_digest() != source_before
+        or hashlib.sha256(checkpoint.read_bytes()).hexdigest() != checkpoint_before
+        or basis_digest != after_basis
+        or not np.array_equal(orbital_energies, after_energies)
+    ):
+        raise ValueError(
+            "The complete owning NAO producer source changed during execution."
+        )
+    matrices = directory / "nao-density-transform.npz"
+    with matrices.open("xb") as stream:
+        np.savez(
+            stream,
+            density_ao=density_ao,
+            overlap_ao=overlap,
+            density_nao=density_nao,
+            coefficients_nao=transform,
+            coefficients_mo=coefficients,
+            occupations=occupations,
+            orbital_energies_hartree=orbital_energies,
+        )
+    analysis = {
+        "schema_version": "cochem.wiberg-nao/1",
+        "analysis_kind": "wiberg_nao",
+        "profile": _NAO_PROFILE,
+        "engine": "pyscf",
+        "engine_version": "2.14.0",
+        "algorithm": algorithm,
+        "atoms": symbols,
+        "coordinates_angstrom": positions,
+        "atom_column_indices": mapping,
+        "bonds": bonds,
+        "method": checked["method"],
+        "electronic_state": {"charge": 0, "multiplicity": 1},
+        "definition": (
+            "P_NAO=C_NAO.T S D_AO S C_NAO; W_AB=sum(P_NAO[i,j]^2), real "
+            "spin-summed RHF density and assigned atom-column blocks."
+        ),
+        "scope": (
+            "Experimental H/O-only PySCF natural-AO Wiberg pair descriptors; "
+            "not NPA, full NBO, E(2), bond classification, carbon/organic "
+            "readiness or chemical-accuracy qualification."
+        ),
+        "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+        "basis_definition_sha256": basis_digest,
+        "native_manifest_sha256": native["manifest_sha256"],
+        "matrix_sha256": hashlib.sha256(matrices.read_bytes()).hexdigest(),
+        "validation": validation,
+    }
+    target = directory / "bond-analysis.json"
+    _publish_json(target, analysis)
+    return {
+        "schema_version": "cochem.module-operation/1",
+        "module_id": "torq",
+        "operation": "wiberg_nao",
+        "status": "completed",
+        "input_sha256": record["artifact"]["sha256"],
+        "provider_file": str(Path(__file__).resolve()),
+        "provider_sha256": source_before,
+        "scope": analysis["scope"],
+        "result": {
+            **analysis,
+            "analysis_path": target.name,
+            "analysis_sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+        },
+    }
+
+
 def execute_handoff(
     *,
     handoff_path: str | Path,
@@ -999,8 +1629,12 @@ def execute_handoff(
         payload = analyze(artifact)
     elif operation == "research_scan":
         payload = research_scan(path, directory)
-    else:
+    elif operation == "wiberg_lowdin":
         payload = wiberg_lowdin(path, directory)
+    elif operation == "wiberg_nao":
+        payload = wiberg_nao(path, directory)
+    else:
+        raise ValueError("No qualified scientific dispatch exists for this operation.")
     if (
         _load_handoff(path)[0] != record
         or hashlib.sha256(path.read_bytes()).hexdigest() != handoff_digest

@@ -70,12 +70,24 @@ def test_entry_point_exposes_unique_owned_callable_and_truthful_nbo_absence() ->
         entries[0].load()()["scientific_api_version"]
         == metadata["scientific_api_version"]
     )
-    for name in ("nbo_analysis", "wiberg_nao"):
+    for name in ("nbo_analysis",):
         assert metadata["scientific_apis"][name]["available"] is False
         assert "producer" in metadata["scientific_apis"][name]["reason"]
+    nao = metadata["scientific_apis"]["wiberg_nao"]
+    assert type(nao["available"]) is bool
+    if nao["available"]:
+        assert nao["algorithm"]["engine_version"] == "2.14.0"
+    else:
+        assert nao["reason"]
+    assert nao["supported_engines"] == nao["required_engines"] == ["pyscf"]
+    assert nao["experimental_descriptor"] is True
+    assert nao["method_matrix_recipe_activated"] is False
+    assert nao["independent_scientific_qualification"] is False
+    assert nao["local_validation_cases"] == ["H2", "H2O"]
+    assert "npa" not in metadata["operations"]
 
 
-@pytest.mark.parametrize("name", ["nbo_analysis", "wiberg_nao"])
+@pytest.mark.parametrize("name", ["nbo_analysis"])
 def test_unavailable_named_analysis_never_returns_a_substituted_result(
     tmp_path, name
 ) -> None:
@@ -302,8 +314,26 @@ def test_mp2_is_not_relabelled_as_a_correlated_checkpoint_density(tmp_path) -> N
         H2,
         {**options(), "method": {"name": "mp2", "basis": "sto-3g"}},
     )
+    # The producer rejects a correlated-density claim before optional imports.
     with pytest.raises(ValueError, match="correlated MP2 density"):
-        provider.execute_handoff(handoff_path=source, output_directory=tmp_path / "out")
+        provider.wiberg_lowdin(source, tmp_path / "direct")
+    assert not (tmp_path / "direct").exists()
+
+    # Preserve the public boundary's availability-first contract in both real
+    # installed-runtime and genuine no-PySCF core environments.
+    if provider.scientific_metadata()["scientific_apis"]["wiberg_lowdin"]["available"]:
+        with pytest.raises(ValueError, match="correlated MP2 density"):
+            provider.execute_handoff(
+                handoff_path=source, output_directory=tmp_path / "out"
+            )
+    else:
+        result = provider.execute_handoff(
+            handoff_path=source, output_directory=tmp_path / "out"
+        )
+        assert result["status"] == "unavailable"
+        assert result["result"] is None
+        assert result["reason"]
+    assert not any((tmp_path / "out").iterdir())
 
 
 @pytest.mark.parametrize(
@@ -354,3 +384,544 @@ def test_actual_failed_native_scan_keeps_failed_points_and_no_invented_energy(
     assert native["energy_hartree"] is None
     assert native["errors"]
     assert (directory / "scan-progress-000.json").is_file()
+
+
+# Direct producer calls remain explicit validation; the final test separately
+# exercises the activated public boundary.
+def nao_options():
+    return {**options(), "engine": "pyscf"}
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"engine": None},
+        {"engine": "orca"},
+        {"engine": "cfour"},
+        {"method": {"name": "mp2", "basis": "sto-3g"}},
+        {"method": {"name": "hf", "basis": "6-31g"}},
+        {"charge": True},
+        {"charge": 1},
+        {"multiplicity": 3},
+        {"cores": True},
+        {"memory_mb": 2049},
+    ],
+)
+def test_nao_refuses_other_explicit_tuples_before_native(tmp_path, change):
+    source = handoff(tmp_path, "wiberg_nao", H2, {**nao_options(), **change})
+    with pytest.raises(ValueError):
+        provider.wiberg_nao(source, tmp_path / "out")
+    assert not (tmp_path / "out/native-electronic").exists()
+
+
+def test_nao_requires_backend_and_refuses_carbon_before_native(tmp_path):
+    source = handoff(tmp_path, "wiberg_nao", H2, options())
+    with pytest.raises(ValueError, match="explicit"):
+        provider.wiberg_nao(source, tmp_path / "out")
+    with pytest.raises(ValueError, match="H/O"):
+        provider._nao_options(nao_options(), ["C", "H", "H", "H", "H"])
+    assert not (tmp_path / "out/native-electronic").exists()
+
+
+@pytest.mark.real_engine
+def test_nao_default_mutable_configuration_is_part_of_identity():
+    """Requires the genuine installed engine, but does not execute another SCF."""
+    from pyscf.lo import nao
+
+    original = nao.AOSHELL[1]
+    before = provider._nao_algorithm_identity()
+    try:
+        nao.AOSHELL[1] = (original[0], "2s0p0d0f")
+        with pytest.raises(ValueError, match="default H/O AOSHELL"):
+            provider._nao_algorithm_identity()
+    finally:
+        nao.AOSHELL[1] = original
+    assert provider._nao_algorithm_identity() == before
+
+
+def _independent_pair_checks(result, directory):
+    """Independently recontract matrices without invented chemistry references."""
+    import math
+    import os
+    import sys
+
+    import pyscf
+
+    expected = Path(
+        os.environ.get(
+            "COCHEM_NAO_EXPECTED_PROVIDER",
+            str(
+                Path(__file__).resolve().parents[1]
+                / "src/cochem_torq/module_provider.py"
+            ),
+        )
+    ).resolve()
+    wrapper = directory / "actual-operation-wrapper.json"
+    wrapper.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
+    assert Path(provider.__file__).resolve() == expected
+    assert Path(result["provider_file"]).resolve() == expected
+    assert (
+        result["provider_sha256"] == hashlib.sha256(expected.read_bytes()).hexdigest()
+    )
+    (directory / "invocation-origins.json").write_text(
+        json.dumps(
+            {
+                "cwd": os.getcwd(),
+                "pythonpath": os.environ.get("PYTHONPATH"),
+                "sys_executable": sys.executable,
+                "sys_prefix": sys.prefix,
+                "provider_module_file": str(Path(provider.__file__).resolve()),
+                "pyscf_module_file": str(Path(pyscf.__file__).resolve()),
+                "thread_environment": {
+                    name: os.environ.get(name)
+                    for name in (
+                        "OMP_NUM_THREADS",
+                        "OPENBLAS_NUM_THREADS",
+                        "MKL_NUM_THREADS",
+                    )
+                },
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+    data = result["result"]
+    assert data["schema_version"] == "cochem.wiberg-nao/1"
+    assert data["analysis_kind"] == "wiberg_nao"
+    assert data["engine"] == "pyscf" and data["engine_version"] == "2.14.0"
+    assert not {"charges_e", "populations_e", "npa", "nbo", "e2"}.intersection(data)
+    assert data["validation"]["diagnostic_cutoffs"] is None
+    with np.load(directory / "nao-density-transform.npz", allow_pickle=False) as arrays:
+        density = arrays["density_nao"]
+        assert arrays["coefficients_nao"].shape == density.shape
+        np.testing.assert_allclose(
+            arrays["coefficients_nao"].T
+            @ arrays["overlap_ao"]
+            @ arrays["coefficients_nao"],
+            np.eye(len(density)),
+            atol=1e-7,
+            rtol=0,
+        )
+        assert (
+            abs(float(np.trace(density)) - data["validation"]["electron_count"]) <= 1e-7
+        )
+        columns = [entry["columns"] for entry in data["atom_column_indices"]]
+        assert [i for group in columns for i in group] == list(range(len(density)))
+        for pair in data["bonds"]:
+            # Positive sum's floating summation bound, from dimension and machine
+            # epsilon, not a fitted chemical tolerance or np.testing default.
+            products = [
+                float(density[i, j]) ** 2
+                for i in columns[pair["atom_i"]]
+                for j in columns[pair["atom_j"]]
+            ]
+            reference = math.fsum(products)
+            rounding = len(products) * np.finfo(np.float64).eps
+            bound = rounding / (1 - rounding) * reference + math.ulp(reference)
+            assert abs(pair["value"] - reference) <= bound
+            assert pair["value"] >= 0
+    return data
+
+
+@pytest.mark.real_engine
+def test_actual_h2_nao_wiberg_analytic_limit(tmp_path):
+    from pyscf import lib
+
+    source = handoff(tmp_path, "wiberg_nao", H2, nao_options())
+    directory = tmp_path / "out"
+    directory.mkdir()
+    previous = lib.num_threads()
+    try:
+        # Actual caller state differs from request1: producer must scope itself,
+        # then restore this state, rather than merely relying on test envvars.
+        lib.num_threads(2)
+        result = provider.wiberg_nao(source, directory)
+        assert lib.num_threads() == 2
+    finally:
+        lib.num_threads(previous)
+    assert result["status"] == "completed"
+    data = _independent_pair_checks(result, directory)
+    # For equivalent normalized single1s AOs and the real RHF bonding state,
+    # this NAO construction reduces to symmetric orthogonalization: W_HH=1.
+    assert data["bonds"][0]["value"] == pytest.approx(1.0, abs=1e-10, rel=0)
+    assert data["validation"]["density_trace"] == pytest.approx(2.0, abs=1e-7, rel=0)
+    assert data["atom_column_indices"][0]["columns"] == [0]
+    assert data["atom_column_indices"][1]["columns"] == [1]
+    assert data["validation"]["pyscf_threads_during_nao"] == 1
+    original = (directory / "nao-density-transform.npz").read_bytes()
+    with pytest.raises((ValueError, FileExistsError)):
+        provider.wiberg_nao(source, directory)
+    assert (directory / "nao-density-transform.npz").read_bytes() == original
+
+
+WATER_NAO = np.asarray(
+    [
+        [0.0, 0.0, -0.09822449881565],
+        [0.0, -0.75808041118326, 0.53757836098152],
+        [0.0, 0.75808041118326, 0.53757836098152],
+    ]
+)
+
+
+def _declared_xyz(symbols, coordinates):
+    return (
+        str(len(symbols))
+        + "\nDeclared NAO engineering input, not optimized\n"
+        + "\n".join(
+            symbol + " " + " ".join(format(float(v), ".17g") for v in row)
+            for symbol, row in zip(symbols, coordinates, strict=True)
+        )
+        + "\n"
+    )
+
+
+@pytest.fixture(scope="module")
+def genuine_water_nao_cases(tmp_path_factory):
+    root = tmp_path_factory.mktemp("genuine-water-nao-invariance")
+    axis = np.asarray([1.0, 2.0, 3.0]) / np.sqrt(14.0)
+    angle = 0.37
+    cross = np.asarray(
+        [[0.0, -axis[2], axis[1]], [axis[2], 0.0, -axis[0]], [-axis[1], axis[0], 0.0]]
+    )
+    rotation = (
+        np.eye(3) * np.cos(angle)
+        + (1 - np.cos(angle)) * np.outer(axis, axis)
+        + np.sin(angle) * cross
+    )
+    permutation = [2, 0, 1]
+    definitions = [
+        ("original", ["O", "H", "H"], WATER_NAO, [0, 1, 2]),
+        (
+            "fixed-rotation-translation",
+            ["O", "H", "H"],
+            WATER_NAO @ rotation.T + np.asarray([0.25, -0.5, 0.75]),
+            [0, 1, 2],
+        ),
+        (
+            "fixed-atom-permutation",
+            ["H", "O", "H"],
+            WATER_NAO[permutation],
+            permutation,
+        ),
+    ]
+    cases = []
+    for name, symbols, geometry, mapping in definitions:
+        case = root / name
+        case.mkdir()
+        source = handoff(
+            case, "wiberg_nao", _declared_xyz(symbols, geometry), nao_options()
+        )
+        directory = case / "out"
+        directory.mkdir()
+        actual = provider.wiberg_nao(source, directory)
+        data = _independent_pair_checks(actual, directory)
+        cases.append((directory, data, mapping))
+    return root, cases
+
+
+@pytest.mark.real_engine
+def test_actual_water_nao_fixed_rotation_translation_and_permutation(
+    genuine_water_nao_cases,
+):
+    root, cases = genuine_water_nao_cases
+    original = {
+        (pair["atom_i"], pair["atom_j"]): pair["value"] for pair in cases[0][1]["bonds"]
+    }
+    comparisons = []
+    for directory, data, mapping in cases[1:]:
+        for pair in data["bonds"]:
+            key = tuple(sorted((mapping[pair["atom_i"]], mapping[pair["atom_j"]])))
+            error = abs(pair["value"] - original[key])
+            comparisons.append(
+                {
+                    "case": directory.parent.name,
+                    "original_pair": key,
+                    "absolute_error": error,
+                    "absolute_target": 1e-10,
+                    "relative_target": 0,
+                }
+            )
+    # Preserve all actual mapped errors before applying the predeclared NEW
+    # engineering invariance target; do not choose a favorable orientation.
+    (root / "mapped-pair-errors.json").write_text(
+        json.dumps(comparisons, indent=2) + "\n"
+    )
+    assert all(row["absolute_error"] <= 1e-10 for row in comparisons), comparisons
+
+
+@pytest.mark.real_engine
+def test_split_valence_nao_algorithm_does_not_activate_that_provider_tuple(tmp_path):
+    import sys
+
+    from pyscf.lo import nao
+
+    checked = {**nao_options(), "method": {"name": "hf", "basis": "6-31g"}}
+    with pytest.raises(ValueError, match="hf/sto-3g"):
+        provider._nao_options(checked, ["O", "H", "H"])
+    directory = tmp_path / "split-valence-algorithm-only"
+    directory.mkdir()
+    native, checkpoint, molecule, coefficients, occupations, overlap = (
+        provider._restricted_scf_density(
+            ["O", "H", "H"],
+            WATER_NAO.tolist(),
+            checked,
+            directory,
+        )
+    )
+    orbital_energies, _ = provider._nao_checkpoint_binding(
+        native,
+        checkpoint,
+        molecule,
+        checked,
+        ["O", "H", "H"],
+    )
+    entries = []
+    previous_profile = sys.getprofile()
+
+    def observe_actual_calls(frame, event, arg):
+        if event == "call" and frame.f_code is nao.nao.__code__:
+            entries.append(str(Path(frame.f_code.co_filename).resolve()))
+        if previous_profile is not None:
+            previous_profile(frame, event, arg)
+
+    try:
+        sys.setprofile(observe_actual_calls)
+        transform, density_ao, density_nao, mapping, bonds, validation, algorithm = (
+            provider._nao_transform(
+                molecule,
+                coefficients,
+                occupations,
+                orbital_energies,
+                overlap,
+            )
+        )
+    finally:
+        sys.setprofile(previous_profile)
+    assert entries == [str(Path(nao.__file__).resolve())]
+    values, vectors = np.linalg.eigh(overlap)
+    square_root = (vectors * np.sqrt(values)) @ vectors.T
+    lowdin_density = square_root @ density_ao @ square_root
+    lowdin_pairs, pair_differences = [], []
+    for pair in bonds:
+        left, right = (
+            mapping[pair["atom_i"]]["columns"],
+            mapping[pair["atom_j"]]["columns"],
+        )
+        value = float(np.sum(lowdin_density[np.ix_(left, right)] ** 2))
+        lowdin_pairs.append(
+            {"atom_i": pair["atom_i"], "atom_j": pair["atom_j"], "value": value}
+        )
+        pair_differences.append(
+            {
+                "atom_i": pair["atom_i"],
+                "atom_j": pair["atom_j"],
+                "nao_minus_lowdin": pair["value"] - value,
+            }
+        )
+    observation = {
+        "scope": (
+            "Separate actual split-valence NAO algorithm challenge; "
+            "no provider-tuple activation"
+        ),
+        "native": native,
+        "algorithm": algorithm,
+        "actual_nao_call_files": entries,
+        "validation": validation,
+        "atom_columns": mapping,
+        "bonds": bonds,
+        "lowdin_pairs_same_native_density": lowdin_pairs,
+        "gauge_invariant_pair_differences": pair_differences,
+        "nao_vs_lowdin_density_max_abs_difference": float(
+            np.max(np.abs(density_nao - lowdin_density))
+        ),
+        "difference_has_no_posthoc_cutoff": True,
+    }
+    (directory / "algorithm-observation.json").write_text(
+        json.dumps(observation, indent=2, allow_nan=False) + "\n"
+    )
+    with (directory / "actual-nao-and-lowdin.npz").open("xb") as stream:
+        np.savez(
+            stream,
+            coefficients_nao=transform,
+            density_nao=density_nao,
+            density_lowdin=lowdin_density,
+            density_ao=density_ao,
+            overlap_ao=overlap,
+        )
+
+
+@pytest.mark.real_engine
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        "energy_nan",
+        "energy_boolean",
+        "checkpoint_basis",
+        "retained_basis",
+        "cropped_orbitals",
+        "nonfinite_orbital_energy",
+        "fractional_occupation",
+        "cartesian_flag",
+        "ecp_flag",
+        "atom_shell_partition",
+    ],
+)
+def test_nao_rejects_corrupted_copies_of_genuine_native_evidence(
+    genuine_water_nao_cases,
+    tmp_path,
+    corruption,
+):
+    import shutil
+
+    import h5py
+    from pyscf import gto, lib
+
+    _, cases = genuine_water_nao_cases
+    source = cases[0][0] / "native-electronic"
+    target = tmp_path / "corrupt-native"
+    shutil.copytree(source, target)
+    checkpoint = target / "wavefunction.chk"
+    native = json.loads((target / "result.json").read_text())
+    molecule = lib.chkfile.load_mol(str(checkpoint))
+    checked = nao_options()
+    if corruption.startswith("energy_"):
+        with h5py.File(checkpoint, "a") as handle:
+            del handle["scf/e_tot"]
+            handle["scf/e_tot"] = float("nan") if corruption == "energy_nan" else True
+    elif corruption == "checkpoint_basis":
+        molecule._basis["O"] = gto.basis.load("6-31g", "O")
+    elif corruption == "retained_basis":
+        changed = json.loads((target / "basis-definition.json").read_text())
+        changed["O"] = gto.basis.load("6-31g", "O")
+        (target / "basis-definition.json").write_text(json.dumps(changed))
+    if corruption in {
+        "energy_nan",
+        "energy_boolean",
+        "checkpoint_basis",
+        "retained_basis",
+    }:
+        with pytest.raises(ValueError, match="energy|basis"):
+            provider._nao_checkpoint_binding(
+                native, checkpoint, molecule, checked, ["O", "H", "H"]
+            )
+    else:
+        data = lib.chkfile.load(str(checkpoint), "scf")
+        coefficients, occupations, energies = (
+            np.asarray(data[key]) for key in ("mo_coeff", "mo_occ", "mo_energy")
+        )
+        overlap = molecule.intor_symmetric("int1e_ovlp")
+        if corruption == "cropped_orbitals":
+            coefficients, occupations, energies = (
+                coefficients[:, :-1],
+                occupations[:-1],
+                energies[:-1],
+            )
+        elif corruption == "nonfinite_orbital_energy":
+            energies[0] = float("nan")
+        elif corruption == "fractional_occupation":
+            occupations[0] = 1.5
+        elif corruption == "cartesian_flag":
+            molecule.cart = True
+        elif corruption == "ecp_flag":
+            molecule.ecp = {"O": "unqualified"}
+        elif corruption == "atom_shell_partition":
+            molecule._bas[0, gto.ATOM_OF] = 1
+        with pytest.raises(ValueError):
+            provider._nao_transform(
+                molecule, coefficients, occupations, energies, overlap
+            )
+    assert not (target / "nao-density-transform.npz").exists()
+    assert not (target / "bond-analysis.json").exists()
+
+
+@pytest.mark.parametrize("setting", ["alias", "directory"])
+@pytest.mark.real_engine
+def test_nao_rejects_a_loader_that_selects_a_different_basis_file(tmp_path, setting):
+    """Engine-profile configuration control; not an additional native calculation."""
+    from pyscf import gto
+
+    original_alias, original_directory = gto.basis.ALIAS["sto3g"], gto.basis._BASIS_DIR
+    try:
+        if setting == "alias":
+            gto.basis.ALIAS["sto3g"] = "6-31g.dat"
+        else:
+            gto.basis._BASIS_DIR = str(tmp_path)
+        with pytest.raises(ValueError, match="pinned basis file"):
+            provider._nao_algorithm_identity()
+    finally:
+        gto.basis.ALIAS["sto3g"] = original_alias
+        gto.basis._BASIS_DIR = original_directory
+    assert provider._nao_algorithm_identity()["basis_loader"]["alias"] == "sto-3g.dat"
+
+
+@pytest.mark.real_engine
+def test_actual_unstable_restricted_h2_does_not_publish_nao(tmp_path):
+    from pyscf import lib
+
+    stretched = (
+        "2\nDeclared stretched RHF stability challenge, not an equilibrium\n"
+        "H 0 0 0\nH 0 0 3.0\n"
+    )
+    source = handoff(tmp_path, "wiberg_nao", stretched, nao_options())
+    directory = tmp_path / "out"
+    directory.mkdir()
+    previous = lib.num_threads()
+    try:
+        lib.num_threads(2)
+        with pytest.raises(ValueError, match="converged and stable"):
+            provider.wiberg_nao(source, directory)
+        assert lib.num_threads() == 2
+    finally:
+        lib.num_threads(previous)
+    native = json.loads((directory / "native-electronic/result.json").read_text())
+    assert native["stability"]["status"] != "stable"
+    assert not (directory / "bond-analysis.json").exists()
+    assert not (directory / "nao-density-transform.npz").exists()
+
+
+def test_executable_nao_public_boundary_refuses_legacy_ambiguous_backend(tmp_path):
+    source = handoff(tmp_path, "wiberg_nao", H2, options())
+    available = module_provider()["scientific_apis"]["wiberg_nao"]["available"]
+    if available:
+        with pytest.raises(ValueError, match="explicit"):
+            provider.execute_handoff(
+                handoff_path=source, output_directory=tmp_path / "out"
+            )
+    else:
+        # The existing public boundary reports unavailable runtimes before
+        # operation-specific input validation; do not fabricate an engine or
+        # silently substitute a different analysis in a genuine core install.
+        result = provider.execute_handoff(
+            handoff_path=source, output_directory=tmp_path / "out"
+        )
+        assert result["status"] == "unavailable" and result["result"] is None
+        assert result["reason"]
+        valid = tmp_path / "explicit-valid-request"
+        valid.mkdir()
+        explicit = handoff(valid, "wiberg_nao", H2, nao_options())
+        unavailable = provider.execute_handoff(
+            handoff_path=explicit, output_directory=valid / "out"
+        )
+        assert unavailable["status"] == "unavailable"
+        assert unavailable["result"] is None and unavailable["reason"]
+        assert not (valid / "out/native-electronic").exists()
+    assert not (tmp_path / "out/native-electronic").exists()
+
+
+@pytest.mark.real_engine
+def test_actual_public_nao_entrypoint_has_distinct_schema_and_source(tmp_path):
+    from pyscf import lib
+
+    assert module_provider()["scientific_apis"]["wiberg_nao"]["available"] is True
+    source = handoff(tmp_path, "wiberg_nao", H2, nao_options())
+    directory = tmp_path / "out"
+    previous = lib.num_threads()
+    result = provider.execute_handoff(handoff_path=source, output_directory=directory)
+    data = _independent_pair_checks(result, directory)
+    assert result["operation"] == "wiberg_nao" and result["status"] == "completed"
+    assert result["provider_distribution"] == "CoChem-TORQ"
+    assert data["bonds"][0]["value"] == pytest.approx(1.0, abs=1e-10, rel=0)
+    assert result["handoff_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
+    assert data["validation"]["pyscf_threads_during_nao"] == 1
+    assert lib.num_threads() == previous
