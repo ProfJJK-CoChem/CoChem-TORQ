@@ -1,0 +1,79 @@
+{
+  "schema_version": "cochem.nao-local-documentary-manifest/1",
+  "record_kind": "curated documentary derivative, not an original execution receipt",
+  "based_on_commit": "54d23c2638a18a001894dd331798d413bb78ceb4",
+  "manifest_self_hash_external": true,
+  "files": [
+    {
+      "path": "docs/development/nao_wiberg_validation.md",
+      "size_bytes": 9121,
+      "sha256": "8d0eb3d64498ac32729c9521ef3f6ad0fab926907ca3bd236b42ea2160960441"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/README.md",
+      "size_bytes": 3729,
+      "sha256": "ccf621ec7f7a0004fef4c3efe8749f7428adaeb350463793cf5ea499a2efaf5e"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/checks/pip-check-core.txt",
+      "size_bytes": 30,
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/checks/pip-check-engine.txt",
+      "size_bytes": 30,
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/dependency-checks.json",
+      "size_bytes": 2626,
+      "sha256": "7d12f1f448f8f76bc91e4f7807e341d16ffa449c16432f2ec7aad1f8488c2015"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/failure-history.json",
+      "size_bytes": 4181,
+      "sha256": "ef6004b27e91e2a18ea3aa349e3f4fcb2994d784cb20fec0740d3692235b2837"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/junit/final-source.xml",
+      "size_bytes": 8295,
+      "sha256": "ebe275898ffd32f4f369ed4d78dad9f00aa9cdea55eb4bdf8d1240b1ce838936"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/junit/installed-core.xml",
+      "size_bytes": 4260,
+      "sha256": "b661f286f3c291996805a59123621c610d161b3d24b70915a92df182ecf0e807"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/native-archive.json",
+      "size_bytes": 160519,
+      "sha256": "8d05b7e542c62053bb19cd1d47e1146202fc21a9d09fa42cb14da3ff4eb51fe9"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/provenance.json",
+      "size_bytes": 5048,
+      "sha256": "6d77a5258f207f3baea2861ebf7bd2faa2cce204d8211575ebf744b379a3d7f1"
+    },
+    {
+      "path": "docs/development/release_candidate_evidence/nao-wiberg-local-20261030/summary.json",
+      "size_bytes": 7008,
+      "sha256": "2878e95742af1c680bc8c2c384b1d5ecbe60a7ae45244473f9bf3ce8f99b50c1"
+    }
+  ],
+  "permitted_source_plane_suffixes": [
+    ".md",
+    ".json",
+    ".xml",
+    ".txt"
+  ],
+  "excluded_source_plane_content": [
+    "raw .log",
+    "native scientific result files",
+    "checkpoints",
+    "matrices",
+    "compiled files",
+    "wheel/distribution binaries",
+    "dependency environments"
+  ],
+  "original_document_baseline_sha256": "d087e6efb4ae4471895ad1ba0d4bdbd66959bf1f1b9f42bf6a44f262722cd33c"
+}

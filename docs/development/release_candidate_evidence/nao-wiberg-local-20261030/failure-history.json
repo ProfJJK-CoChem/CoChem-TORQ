@@ -1,0 +1,70 @@
+{
+  "schema_version": "cochem.nao-local-failure-history/1",
+  "record_kind": "curated documentary derivative, not an original execution receipt",
+  "historical_attempts": [
+    {
+      "stage": "Initial non-native preflight",
+      "actual_outcome": "Repository directory-name sandbox guard refused configuration before collection; no scientific case executed.",
+      "handling": "Retained original failure; used documented COCHEM_DISABLE_SANDBOX_CHECK only for the existing directory-name check in this already-isolated checkout. No scientific guard changed.",
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "preflight-controls.log",
+        "sha256": "d34b692ecbebababe8521114c2ee891e2fda9ac0c16c9fbf7dbe32aa7282dce8",
+        "size_bytes": 1839
+      }
+    },
+    {
+      "stage": "First genuine no-PySCF source core run",
+      "actual_outcome": "34 passed, 1 failed. The inherited unmarked public MP2 test expected ValueError despite the longstanding availability-first public contract.",
+      "handling": "Retained failure and exact original19fd source/AST comparison. Test now proves unconditional direct producer MP2 refusal plus truthful public absent/available behavior; no production scientific behavior changed. Later source/installed lanes passed final tests.",
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "core-source-tests-receipt.json",
+        "sha256": "7db9d6395acd409d26bae19599d4873f9b514f89a000f981ff7b40d4aa131913",
+        "size_bytes": 1207
+      },
+      "original_xml": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "core-source-tests.xml",
+        "sha256": "84499f96c997dec411d99adc4c0077c2d3e906724bea3befc62f0c4e61456a38",
+        "size_bytes": 5882
+      },
+      "baseline_comparison": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "baseline-core-contract/comparison.json",
+        "sha256": "6be0e007d4774c3a4a1282c034a1e89fefc1afe1b9f74545ae3c82f5370e2a65",
+        "size_bytes": 622
+      }
+    },
+    {
+      "stage": "First target wheel-install attempt",
+      "actual_outcome": "Exit1 immediately: copied target interpreter had no pip module; no installation/native calculation occurred.",
+      "handling": "Retained failure; installed new owning wheel only with documented primary pip target runner under target absolute Python. No dependency install, removal or ensurepip.",
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-env-wheel-install-receipt.json",
+        "sha256": "e38af4716cb42945bac75d645293fd3f5f349b950f0181807be5512ed94dc5ff",
+        "size_bytes": 644
+      }
+    },
+    {
+      "stage": "Initial H2 evidence limitation",
+      "actual_outcome": "Genuine source-bound H2 passed, but first test did not persist returned operation wrapper. Initial uncommitted source bytes were reconstructed after later edits.",
+      "handling": "No retroactive wrapper or pre-run-snapshot claim. Recovered bytes accepted only after exact3SHA matches to original before/after records. Final campaigns retain actual wrappers/import origins and pre-run snapshots.",
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "native-h2-receipt.json",
+        "sha256": "b8e6848cd0e75c3e7e2058e4da8a87dd12a72d071ba5a7bf33a1256961d15850",
+        "size_bytes": 1535
+      },
+      "independent_recovery_review": {
+        "original_evidence_root": "torq-nao-independent-review",
+        "original_relative_path": "initial-h2-source-recovery-verification.json",
+        "sha256": "50ab4160f70ad23f825546d487ae0ff2aea2a5f0687c791aa510dcdf3a7e1afc",
+        "size_bytes": 1539
+      }
+    }
+  ],
+  "native_refusal_controls": "Invalid basis, unstable stretched H2 and deliberately corrupted copied evidence are retained expected refusal controls, not fabricated successful scientific values. Failed/partial/unavailable states stay distinct.",
+  "no_tolerance_relaxation": true
+}

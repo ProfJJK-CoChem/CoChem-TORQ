@@ -1,0 +1,55 @@
+{
+  "schema_version": "cochem.nao-local-dependency-checks/1",
+  "record_kind": "curated documentary derivative, not an original execution receipt",
+  "checks": [
+    {
+      "role": "installed-engine",
+      "command_form": "primary python -B -m pip --python TARGET_PYTHON check",
+      "primary_pip_version": "26.2.1",
+      "exit_code": 0,
+      "installed_distribution_count": 46,
+      "elapsed_seconds": 0.378,
+      "dependency_changes_made": false,
+      "installed_payloads_and_record_unchanged": true,
+      "source_receipt": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-env-dependency-check/receipt.json",
+        "sha256": "70e6d89f6ab24f91f0fc0b5f74e57f54f64ce3ac50e5d711e9a920a8d3f7cb6c",
+        "size_bytes": 1298
+      },
+      "original_package_requirements_and_metadata_origins": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-env-dependency-check/target-package-provenance.json",
+        "sha256": "25607591c63a8641cb8320326bc29b04706630c55dc6722affa5443211c61005",
+        "size_bytes": 34583
+      },
+      "verbatim_output": "checks/pip-check-engine.txt",
+      "verbatim_output_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "role": "installed-core",
+      "command_form": "primary python -B -m pip --python TARGET_PYTHON check",
+      "primary_pip_version": "26.2.1",
+      "exit_code": 0,
+      "installed_distribution_count": 39,
+      "elapsed_seconds": 0.354,
+      "dependency_changes_made": false,
+      "installed_payloads_and_record_unchanged": true,
+      "source_receipt": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "core-env-dependency-check/receipt.json",
+        "sha256": "57243c7bf640702f34b71a53f9fc5e92e14e92222053b862938306e5ed919204",
+        "size_bytes": 1200
+      },
+      "original_package_requirements_and_metadata_origins": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "core-env-dependency-check/target-package-provenance.json",
+        "sha256": "579b2fe3054e89a056783be0bc38c8dfe3dffb6d3ace11ee2fdbc2c26be74144",
+        "size_bytes": 28408
+      },
+      "verbatim_output": "checks/pip-check-core.txt",
+      "verbatim_output_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    }
+  ],
+  "relation_to_tests": "Actual dependency consistency is a separate lane; narrow scientific/core tests do not erase dependency failures. Both actual checks passed without repair."
+}

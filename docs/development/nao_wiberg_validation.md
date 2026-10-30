@@ -107,3 +107,32 @@ controls that require the genuine installed PySCF are in the engine-profile lane
 Their lane assignment does not mean each control performs another SCF. Fresh
 physical calculations, runtime/configuration controls and copied adversarial
 checks remain separate evidence categories; no skipped or mocked absence is used.
+
+## Final source and installed-wheel local verification
+
+The final implementation commit
+`54d23c2638a18a001894dd331798d413bb78ceb4` passed the complete 57-case module
+selection with zero failures, errors or skips. Its source/public-boundary lane
+retained 12 native attempts (11 SCF records plus one invalid-basis pre-SCF
+refusal), including the existing genuine Löwdin and rigid-scan controls. A fresh
+owning wheel from that clean commit has SHA256
+`2d6f81a95e4aeec5240422e6b35d44433c590d13aedf30f9d6b3c53122c070ea`;
+all 263 Python payloads match the archived commit. The actual installed core
+without PySCF passed 35 cases, with 22 engine cases deselected and zero skips.
+Actual installed public H2 and original-water cases both completed. These are
+overlapping selections, not additive unique-test or chemical-reference counts.
+
+Both actual installed targets also passed dependency consistency checks without
+repair. Their 276 installed hashed payloads and RECORD identities remained
+unchanged, as did final producer source and Git identity. Native lanes ran
+sequentially with one CPU, 512 MiB engine advisory memory (not an OS RSS limit),
+and a 180-second bound plus 10-second owned cleanup; actual process identities
+were retained and confirmed terminal. Independent source and artifact review
+accepted this exact experimental H/O profile. This adds no NPA/NBO, carbon,
+accuracy, hosted/student or full 73-requirement/41-gate qualification.
+
+The [bounded documentary evidence packet](release_candidate_evidence/nao-wiberg-local-20261030/README.md)
+binds original receipts, derived XML, actual dependency checks and preserved
+earlier failures. Raw free-engine native outputs and the owning wheel remain in
+a separately hash-manifested archive outside the source repository. The earlier
+preactivation receipts retain their own source identity.

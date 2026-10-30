@@ -1,0 +1,3219 @@
+{
+  "schema_version": "cochem.nao-local-native-archive/1",
+  "record_kind": "curated documentary derivative, not an original execution receipt",
+  "archive_filename": "torq-nao-native-evidence-20261030.tar.gz",
+  "archive_sha256": "8627cefca585d7f0cb827894f09215fa6402f498cab843d8bf4e2f5e2d91430f",
+  "archive_size_bytes": 3161521,
+  "original_regular_files": 640,
+  "original_regular_file_bytes": 6210466,
+  "original_relative_names_preserved": true,
+  "original_file_bytes_preserved": true,
+  "originals_rehashed_unchanged_after_archiving": true,
+  "directory_owner_names_omitted_from_tar_headers": true,
+  "environment_trees_included": false,
+  "raw_native_outputs_and_owning_wheel_kept_outside_repository": true,
+  "runtime_alias_symlinks_excluded": 39,
+  "alias_note": "Only ephemeral pytest current-directory aliases omitted; actual original regular files retained without dereferencing aliases.",
+  "original_files": [
+    {
+      "path": "torq-nao-implementation/baseline-core-contract/comparison.json",
+      "size_bytes": 622,
+      "sha256": "6be0e007d4774c3a4a1282c034a1e89fefc1afe1b9f74545ae3c82f5370e2a65"
+    },
+    {
+      "path": "torq-nao-implementation/baseline-core-contract/module_provider.py",
+      "size_bytes": 41172,
+      "sha256": "ea5080defc0dd60089cc9c30449b5ba57305d4fdf8284bd36ad1b9dfc98910f4"
+    },
+    {
+      "path": "torq-nao-implementation/baseline-core-contract/test_module_provider.py",
+      "size_bytes": 12973,
+      "sha256": "6b8eb9e268cb4823ea3c52f4a3c536b4f4024f7c52d4dcf4ad8f90285fc8a592"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-copy-receipt.json",
+      "size_bytes": 423,
+      "sha256": "cc17387efc17e4559d192e835eb5bb194fdd741f020aae390b96f9269dee1b38"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-dependency-check/pip-check.log",
+      "size_bytes": 30,
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-dependency-check/receipt.json",
+      "size_bytes": 1200,
+      "sha256": "57243c7bf640702f34b71a53f9fc5e92e14e92222053b862938306e5ed919204"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-dependency-check/target-package-provenance.json",
+      "size_bytes": 28408,
+      "sha256": "579b2fe3054e89a056783be0bc38c8dfe3dffb6d3ace11ee2fdbc2c26be74144"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-readiness.json",
+      "size_bytes": 878,
+      "sha256": "5e524b417caaefc0ebcb166a50f14ed2255e1b44848323eeabc8342b5d2c647a"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-wheel-install-runner-receipt.json",
+      "size_bytes": 1038,
+      "sha256": "da2834931a98a36b31461633852f706a87e0ca3709ef600aaef55f54762a767f"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-wheel-install-runner.log",
+      "size_bytes": 336,
+      "sha256": "2e0a6c37b251e1e2ad87f4d4ba948deb2c451ee57c8785dceb1ffef325204036"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-wheel-verified/actual-metadata.json",
+      "size_bytes": 5150,
+      "sha256": "e8bba7087e6c4bf924292a559a9bb64c76b19cc8d846715497843dd41254e628"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-wheel-verified/installed-record-manifest.json",
+      "size_bytes": 67988,
+      "sha256": "cb8ef60c48c06ea2d49c53da0d0a0351d9039c89451a5b8c48604736cf2f7a8e"
+    },
+    {
+      "path": "torq-nao-implementation/core-env-wheel-verified/verification.json",
+      "size_bytes": 1740,
+      "sha256": "b18d102784e7d2ad6ff1cbdf8a9d3b654b7403cae22a19743d6e94440f3a5e48"
+    },
+    {
+      "path": "torq-nao-implementation/core-source-tests-corrected-receipt.json",
+      "size_bytes": 2567,
+      "sha256": "cb36e2ed5698ed6d3542236444a52e1ea735136e3e2d5b5117c074cf0d7715ed"
+    },
+    {
+      "path": "torq-nao-implementation/core-source-tests-corrected.log",
+      "size_bytes": 114,
+      "sha256": "8032f5ee9185a00f18c42d70b8b478f96ac4b38160e91ff1d336f20c77839a7a"
+    },
+    {
+      "path": "torq-nao-implementation/core-source-tests-corrected.xml",
+      "size_bytes": 5192,
+      "sha256": "dbe250b8d4c09a9315e0e90022c0a02cba377df92c6771976ea300368a1bb48a"
+    },
+    {
+      "path": "torq-nao-implementation/core-source-tests-receipt.json",
+      "size_bytes": 1207,
+      "sha256": "7db9d6395acd409d26bae19599d4873f9b514f89a000f981ff7b40d4aa131913"
+    },
+    {
+      "path": "torq-nao-implementation/core-source-tests.log",
+      "size_bytes": 1082,
+      "sha256": "82ed6b3e763de984f5d960426321f09ce351a88429c63ef2b6cfa3f3525f339e"
+    },
+    {
+      "path": "torq-nao-implementation/core-source-tests.xml",
+      "size_bytes": 5882,
+      "sha256": "84499f96c997dec411d99adc4c0077c2d3e906724bea3befc62f0c4e61456a38"
+    },
+    {
+      "path": "torq-nao-implementation/environment-copy-receipt.json",
+      "size_bytes": 497,
+      "sha256": "9a2d4cc0793b4b93edd9ab3d63df8cbbc041a4364e62e9465b30c8e166411592"
+    },
+    {
+      "path": "torq-nao-implementation/final-core-comment-only-link.json",
+      "size_bytes": 505,
+      "sha256": "a1a05c6abca857eff3c948a13ad8003d904cace177df65ae45a1d86c1b99ceb4"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/actual-process-origins.json",
+      "size_bytes": 1016,
+      "sha256": "4b2c4f69b19e1f92617a736a9df2a07af95b59d8cc3195590b8e5e30c326492e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/cleanup.json",
+      "size_bytes": 286,
+      "sha256": "560dfc07d7645c806b2fbe7d24a399856704a8ad4e3da980e7f0ae11173d327d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/junit.xml",
+      "size_bytes": 8317,
+      "sha256": "c8d3c1519b41b56e295601c4d4ec5c3b13cede24a0b884c6cf903300a2b5a523"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "c08caf448502f8328e0ec8f3513fd2d2cc49ff6f15decd6254b9f9f878cd8f74"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/input/molecule.xyz",
+      "size_bytes": 165,
+      "sha256": "1bad0c5f9c131f8f417519bb4e95f8d44e37f660512bbba09d362fce0a280362"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/actual-operation-wrapper.json",
+      "size_bytes": 5594,
+      "sha256": "ffc723829df99ccf61dc2ca02476554abb281ae62538f83e9c19d295a3ec395c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/bond-analysis.json",
+      "size_bytes": 4564,
+      "sha256": "384ed339b42d8e55e99c0d41f91e50c7dbafd6fc1787082e427aeb33e95db613"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "68d23c63ac68934f0a1982f364e5171026e982bacb359c732a9c8458b9cf9595"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "4a50e1af7a181c03f692ab0987301d8bd5004d4892e9edb826881fd37e75c1f9"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/launcher.log",
+      "size_bytes": 183,
+      "sha256": "1361edc0d944df1cb08bb76f218ecc8cee1474cd50fb2404e6c96abb8416a3c9"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "87dd3374eafe3c91dc686521269386479a3283802eeecff7a0693aabbea25190"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/pyscf.log",
+      "size_bytes": 3668,
+      "sha256": "e168a6cf92b21400152ea34bf6926f2fb53d0e7ff367a1ac98525c9098ae9a0c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/request.json",
+      "size_bytes": 1056,
+      "sha256": "7cef43c4579aec9a21c4a08e17eab77979b65df9a1d0191dd858f247779189e2"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "add23fe7058211a366408b1790ed6f00c9131e1dcc2a54c2330bb9369c671537"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "533a34408385abc7fce2b1f3d6d42b49d45b6de6dd312f2dfc7a49cfd8853c4f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "82832484bcf540608ece8021080f98624e4412c433b41a0f79e03e916b8ca950"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/input/molecule.xyz",
+      "size_bytes": 229,
+      "sha256": "968abb4400535683bf151dbe428cf013388eead83546a1d90a12118bc28e8bde"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/actual-operation-wrapper.json",
+      "size_bytes": 5645,
+      "sha256": "5903ffb77dd93feb419892fb6fe0af76659fc50de4c62b146d5c09b5e819d1c1"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/bond-analysis.json",
+      "size_bytes": 4615,
+      "sha256": "2b5d8045be6310e49b487ecabcd19ca7acafa0a241fe895411b79cd1e36e2d0f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "7155d2cbcaf7e78a7c07a1eb97467b8e14321b473d71c7b5ab51abc3d18e2581"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "b9d4a3129456f017b619ac2f3114b64c2a2fd3261fdccc6220648009081dbd4c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/launcher.log",
+      "size_bytes": 187,
+      "sha256": "246d2774a338475c695982832d2b4dba216756ea84ed0b03c02b92f4706f3202"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "464a3a0cbb8320c74aa15f5b34291d24a2476a2d0c2488bd5b133cec86dd1c3c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/pyscf.log",
+      "size_bytes": 3673,
+      "sha256": "bff4e47794de1b18dd2b505776016d854062298248c3f040f93f2b1a0801ffe4"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/request.json",
+      "size_bytes": 1114,
+      "sha256": "1d539435bb7be0cf1a23641fc0e673a8ff6fa98fd37aa6f3c6e9f0eb5ba76c9d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/result.json",
+      "size_bytes": 2600,
+      "sha256": "c0e40a9938c4d357f13d1824fb54ada304a83b8ea6cab1e723f7dbd50c500342"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "35698057c95c731ada7844a18e8b05ae622a7f71cdebe63ccd7185043008376b"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/mapped-pair-errors.json",
+      "size_bytes": 1180,
+      "sha256": "cb9e3a8f535e8c6dd92b046d51912536469b94abfb6fd910997bc15a74abd47f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "25c5225afa1a75f8188c2d555ee6a4066ad60f967b9996951b0e9d90aee1c80f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/input/molecule.xyz",
+      "size_bytes": 165,
+      "sha256": "08eb0afa252f1d760d9b543e82969a7db6ccf8f16a4b3ace1264217e18d62ed6"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/actual-operation-wrapper.json",
+      "size_bytes": 5594,
+      "sha256": "ec4791389e8f651428449cbe66366f7991c9332cd5993805c74463c341bb3103"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/bond-analysis.json",
+      "size_bytes": 4564,
+      "sha256": "2a750aa6e636382da1d1558099f60675850819257565f16737591ab4eb241f14"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "b691ed15b97cfcda6294fbcc5639a78ecc572f3c4ca667ddaa82d426764a665d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/genuine-water-nao-invariance0/original/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/input/handoff.json",
+      "size_bytes": 484,
+      "sha256": "60d9a1402695122bece6515ae2294e2db0bd3b283a90ab7436cfe64a1922f4e6"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/out/scan-point-000/launcher.log",
+      "size_bytes": 159,
+      "sha256": "ea90a8230e4800ffb4b971f8eacefd77c862249033ef64d50c8fc0c53ea8bb7e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/out/scan-point-000/manifest.json",
+      "size_bytes": 678,
+      "sha256": "6065c04fd89fa360587902d9e4d22ea9f6fde2a6454ef6931d456027f852dcc8"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/out/scan-point-000/pyscf.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/out/scan-point-000/request.json",
+      "size_bytes": 925,
+      "sha256": "e40e82e877364b7391cb4c214edf83c11efcc1ffd854a33166600526d2a780bb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/out/scan-point-000/result.json",
+      "size_bytes": 1945,
+      "sha256": "3060594cbf0634085783f73e62c5b506f923acc911735c56128e5a7a3c967c2d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_failed_native_scan0/out/scan-progress-000.json",
+      "size_bytes": 2294,
+      "sha256": "4aa5c5ae4c03ea694001e335e58de35d88f939ad51cd3058eac1eb4dc43579a7"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/input/handoff.json",
+      "size_bytes": 419,
+      "sha256": "8d559938d1b37cc8f8aa307fdcbd594f241f50b99af9ce61ea00c33606718591"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/bond-analysis.json",
+      "size_bytes": 1358,
+      "sha256": "ed7d74ecb909224a79d55233fe4daea7ba07057184bf64fb4c9ceff62f1d7b6a"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/lowdin-density-overlap.npz",
+      "size_bytes": 882,
+      "sha256": "5567abfc8cb5d56900cdcc10da3af36827b43c3fdc2ec972198b77683b50d2bd"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/launcher.log",
+      "size_bytes": 162,
+      "sha256": "320f9822b5c47d66c20e026ba947b012b64453a89f8a2074bb6372130859dd8e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "3ddc64a68e57433542f8daaee8e3be9babf61b579c84aef4dfa8e1c2d402b29e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/pyscf.log",
+      "size_bytes": 2674,
+      "sha256": "cf43a47b43dff2caa418d82556e495c3b4ac48ed42daaddc6efb8813eb793a93"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_lowdin_wiberg_d0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "55f1a4e132ba85eba931e3e35c7e2ce768bed33ec1f4fb260a94dae6a48fec66"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/actual-operation-wrapper.json",
+      "size_bytes": 5030,
+      "sha256": "657b7c81ba75cf9b21e61c28c624f31d30c6f3e8e69e2dfed5b8c43ca6a97358"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/bond-analysis.json",
+      "size_bytes": 4064,
+      "sha256": "c63ed1e13219dae69a9749bed371fae92db1367d255e1338f181f37e0bec5a3c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/nao-density-transform.npz",
+      "size_bytes": 2032,
+      "sha256": "70ddb32f164af29e978cb5858090b30b0f4a1a75b60397c7050667d07efb7218"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/launcher.log",
+      "size_bytes": 162,
+      "sha256": "3d33ef8cf3bd3044b6ad8b9f6bc1379c5fc7aed7f6a0277d20fab6c26ee1c3ac"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "4eabfe48f73228ada609577c12e10485b61b576f6522e397fae6e7fe286e5c44"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/pyscf.log",
+      "size_bytes": 2674,
+      "sha256": "395178a607d0bdbb2fdce34ea54a11628623300e9a79871fc023b56e71029af7"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_h2_nao_wiberg_anal0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "55f1a4e132ba85eba931e3e35c7e2ce768bed33ec1f4fb260a94dae6a48fec66"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/actual-operation-wrapper.json",
+      "size_bytes": 5191,
+      "sha256": "29eb16800e5ba608c037d64b6f15dd73826d30fbdc4a23912a04c3b25288b7ea"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/bond-analysis.json",
+      "size_bytes": 4064,
+      "sha256": "13d2f6d5aed80ec78f8fa23a14fda387385a5d8a271f31e0ea7fca9e16be1936"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/nao-density-transform.npz",
+      "size_bytes": 2032,
+      "sha256": "70ddb32f164af29e978cb5858090b30b0f4a1a75b60397c7050667d07efb7218"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/launcher.log",
+      "size_bytes": 162,
+      "sha256": "66567cfa7426d97fcf96a1891a5af5d2a95733bdda8f0cb3c4805dbe0faf87ab"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "a68272690438edb4070e83f64cb339200a13764b0e8214b69e3f3e5d1884d558"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/pyscf.log",
+      "size_bytes": 2674,
+      "sha256": "d098b17bebd98cc3a014f96d911b2cbbe78419aebe0ac4aaf273c1d7d86e46ac"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_public_nao_entrypo0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/input/handoff.json",
+      "size_bytes": 479,
+      "sha256": "53fe1a7dee36bd316ae9c2ebc95482506ce940cd5166377bf09faca6ac2931d0"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/launcher.log",
+      "size_bytes": 159,
+      "sha256": "48dfc0060a5acb29212b117ff4d1e9ddcd9f83c67b9842050d73e41303ef1a77"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "64f6604928d5bb5e9690f4a7126f2a4f6796d0eed4f56a82f4a6ac73fa0c6ae0"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/pyscf.log",
+      "size_bytes": 2671,
+      "sha256": "a29a122ba389af61901b173472f008d467be5ed1c681935a76f69ded89bc814c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-000/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "5749ceb018d3392b2df27fc9c39affb872bf469fe77d9c92afca75baad49d58a"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/launcher.log",
+      "size_bytes": 159,
+      "sha256": "134622c289cfef49da1ec518a60b547f1e338c1fb2c09b5562874ebccd0b9f35"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "7656f7332b5567177b56105390f101281f47b882daf1711f2a27b2989a87e451"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/pyscf.log",
+      "size_bytes": 2670,
+      "sha256": "5a0ae1c5ac4447c878b97cf6af6521e0e5425d2766771cbac6b2fb5096e23f9c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/request.json",
+      "size_bytes": 916,
+      "sha256": "3fd60078d007689a0cd5791e979a8c548fb08a77c91a929c4d7a8d91d533a201"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/result.json",
+      "size_bytes": 2239,
+      "sha256": "4f0cf37dd85c1a6c794ac4c21420172703106c02bca3c73bd39743feb9d08fac"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-point-001/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "2e4e6ad04483a2954a4dc6759b819c7a9660b0cfa9f4a79ec8d5e3a88efda8fb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-progress-000.json",
+      "size_bytes": 2516,
+      "sha256": "fb8c9b394bf348ea33d90b713d1cb1f9828a4e973bb8573b73dbfb43912e6dc4"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_rigid_h2_scan_reta0/out/scan-progress-001.json",
+      "size_bytes": 2806,
+      "sha256": "311dc76e3e7ccb3cbc98ac3cbff7f729d8d02d239765d1b345187f3cf328c130"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "4bf352303a762207c3c647f7637e6e226e945174f55a5d2fb7432e032b6cf7da"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/input/molecule.xyz",
+      "size_bytes": 83,
+      "sha256": "2c6f69d0dd5a60c48900c59edf853d7ee50e9d0eb445cc433f3260dcdb42b69f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "35dfbb1941bb4d83b01496c507429dc0e9add740f0c38b150bcb46ea444615cc"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/launcher.log",
+      "size_bytes": 162,
+      "sha256": "a51b17390f25d7598d9cab161a292b1365fc9d5bf215259d09bb87dbeeaca721"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "9facc248571590c3e7bbbac5d759ba2e6e1a05b9ad564a9e9198dd092b19b087"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/pyscf.log",
+      "size_bytes": 2669,
+      "sha256": "b5667e5bb5903ada0c4b1b264a6518087a3387947a7b70b1f109061b1a5bd78a"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "7657438ceb8784eea8e9496da870b84be404be07ed41f221bfb5b43c14fa9eb8"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/result.json",
+      "size_bytes": 2400,
+      "sha256": "842a2cdbd080f7ace7f3abc697b6da540769b1d881124b25f01ca3849033d3e0"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_actual_unstable_restricte0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "27759ba4fcb418fd47532f4d0f21babb9ea1e2da1c69149f3a3c1cb8f98271ed"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_atomic_json_and_matrix_pa0/result.json",
+      "size_bytes": 25,
+      "sha256": "53f3c0db55ae54548b6984fc53cf699a4f54d4c03a98c94a884445f3829c7f3e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_executable_nao_public_bou0/input/handoff.json",
+      "size_bytes": 416,
+      "sha256": "4118b6177edb66fdb7156e868cc3d0bfdf2acaa9ad87ca9932c58d3ef19fee05"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_executable_nao_public_bou0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_geometry_analysis_preserv0/input/handoff.json",
+      "size_bytes": 318,
+      "sha256": "cb22e69d625188ba294ccd66b6a9201c8bf2476a48b6d1e8b42bf73279e78d8e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_geometry_analysis_preserv0/input/molecule.xyz",
+      "size_bytes": 43,
+      "sha256": "9fca490c240116b525f94f2e70dda2bfccbaaed16aca84b8825f65f744ce1fe1"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_handoff_checksum_duplicat0/input/handoff.json",
+      "size_bytes": 339,
+      "sha256": "a5891d21d86491f27dd41e35cca56eb4380d1615418dc1657d54acb4ee24f1cd"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_handoff_checksum_duplicat0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_isotope_aliases_and_measu0/aliases.xyz",
+      "size_bytes": 59,
+      "sha256": "84e456110b646db1bbb90eb4b2bae5a88b4886ac7d2720ed6309310ef753b4a5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/input/handoff.json",
+      "size_bytes": 482,
+      "sha256": "8e88abac6294ecd3175a15a7d44c8de8b91096a517e4df5d6723ce9b289ea914"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/input/molecule.xyz",
+      "size_bytes": 87,
+      "sha256": "ac0e68bf6883ef441c6f98ad5a6158f1765e72a1064fd67e7aa8f3877e303318"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/basis-definition.json",
+      "size_bytes": 1780,
+      "sha256": "be4cd13f9ea432650459469f97875d4fd37b563973dfca2224ef33048a3383b7"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/geometry-bohr.npy",
+      "size_bytes": 248,
+      "sha256": "a38ae199a54e517eabd8ecd8c9d10597b0609a925f64dd96ce648025a94442ac"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/launcher.log",
+      "size_bytes": 159,
+      "sha256": "71da028024c92424e6ab7a09fc593d0c64c12f7c944ca7d82e7b551ffd94fba4"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/manifest.json",
+      "size_bytes": 1321,
+      "sha256": "6362d0c69f20c926e278ae20c729853c0e363b89890a21d30c5f9d9e5f726277"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/pyscf.log",
+      "size_bytes": 4065,
+      "sha256": "9d0067f7cf2e8405d98f1006642547d9b90db4e57be0b2f14ff3e93b86a08744"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/request.json",
+      "size_bytes": 1236,
+      "sha256": "e78cc28ebe8433edef3f16da5ed464274685d7b7d273729442ac2f40c7992e89"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/result.json",
+      "size_bytes": 2780,
+      "sha256": "ca72908de95baeef6aa258e75afd75298b7ab91e150aa52b53cc671e00324bab"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-point-000/wavefunction.chk",
+      "size_bytes": 16664,
+      "sha256": "4a938b385478b0e21d9abf935e3232616ca5d9af967b9dd3589ccce8ee87845d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mixed_fragment_mass_com_n0/out/scan-progress-000.json",
+      "size_bytes": 2630,
+      "sha256": "9908196dc494e1e1a9720a5bc3ccd079aeb64318833dce8213d2409495e1b11a"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mp2_is_not_relabelled_as_0/input/handoff.json",
+      "size_bytes": 420,
+      "sha256": "8193bc1ab4b220bfe2642aca15a40855e5967d95858d2adc28d20e032e44c6f5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_mp2_is_not_relabelled_as_0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici0/input/handoff.json",
+      "size_bytes": 432,
+      "sha256": "2356143693496f1e21b86d1ad3aa7fbc4e3c8db5ac71d9e4e0cf44f112dcbd7d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici1/input/handoff.json",
+      "size_bytes": 434,
+      "sha256": "59ca42973d013171f5667ed42361ce1213aec7dbc4bb6f67eee5ae937b7e7dd0"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici1/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici2/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "ae05031fb77e22df35e2660ca4bb3dc77349e06732d3956dcc86f817b876ef0a"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici2/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici3/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "fbed66a003a63efdca5263b495c56e4594a64b48d5597b645170070953f2ea09"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici3/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici4/input/handoff.json",
+      "size_bytes": 434,
+      "sha256": "22c6fded3425b328b205c2b5fac3311c999d113209db37a8c766a3dd01ceb045"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici4/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici5/input/handoff.json",
+      "size_bytes": 438,
+      "sha256": "4ce38d83ca1390d3eaf451a14d23975eadbd8d40be84a6a3880cc143e3d48f71"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici5/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici6/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "dd860b52ca04479f8612a58e740f92a8d47664bfb06bba4024cf957a6d5a8d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici6/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici7/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "9bf2016dfef0f417e94b04020352d68dcd588138b86fb101e266c9c10e497d9a"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici7/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici8/input/handoff.json",
+      "size_bytes": 438,
+      "sha256": "c8fd3ca9d4d6464fedb546d11b52c12cc1acfd9222720586b95e56af2ec8d8b5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici8/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici9/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "021730a06931d76b45c69037b0d11336ea28148f6dcd005fb8723a828fad8924"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_refuses_other_explici9/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop0/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "112a80eb9ab4a210b948988d2f95c4789e0276a623be6dd42bb4174a913a7bd1"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop1/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "2c475ba538ad8ff39317298d5137ace87d5c2c8b5417cd31f71ad90e6ca9e6e8"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop2/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/basis-definition.json",
+      "size_bytes": 442,
+      "sha256": "20545c8989dd51e729e3aad116827453815a1ec01179eb126aa8c5084fec388b"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop3/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop4/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop5/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop6/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop7/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop8/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/launcher.log",
+      "size_bytes": 169,
+      "sha256": "d39abd49d4a50db81cb1cd0eb2eb554d7b0756d78239a3ccd0e1149860353727"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "ec3d0ea5db48d7e63ec054611748d2f556a831ff7e90027f6bd474f1b38fe030"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/pyscf.log",
+      "size_bytes": 3654,
+      "sha256": "b88a637162c8b6fdcf9acf4c1b6c3fc116320d34368125246ec7054d5fa28794"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_rejects_corrupted_cop9/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_requires_backend_and_0/input/handoff.json",
+      "size_bytes": 416,
+      "sha256": "4118b6177edb66fdb7156e868cc3d0bfdf2acaa9ad87ca9932c58d3ef19fee05"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_nao_requires_backend_and_0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor0/invalid.xyz",
+      "size_bytes": 28,
+      "sha256": "67bfb804b8399395f272e482b019097b53e1a242ba797a41429b741f80cdd5d1"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor1/invalid.xyz",
+      "size_bytes": 32,
+      "sha256": "12eea641aa412f8dde27602ce21f935f3a7c32cce9440a4aa2edc81922d89a2d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor2/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "49acabb81caddb4815c6df213618d230333090d6dbf406acf9bcdfa51f19cb1f"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor3/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "588cc2201699da4bd63760b02c9884c5f0f948da0b65536f12092ba6ccd79549"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor4/invalid.xyz",
+      "size_bytes": 29,
+      "sha256": "01252dc55b6030d8dc7db8ce45b4c5df019da7827f775a9528166070b8c4d1c2"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor5/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "13711bb601b5b7743f47c50bbaeaf31391ac06db2615d8a53589dde4c0ff46a8"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor6/invalid.xyz",
+      "size_bytes": 32,
+      "sha256": "13f7dda1dec8142bd941dcd15ee12e79ddadb4515f1e3e01ca18f7c6fca16f43"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_rejects_invalid_xyz_befor7/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "a52906efa41c9658ef82af437f3581fcab204a76be58e79f6f40e4c3b95400cc"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/actual-nao-and-lowdin.npz",
+      "size_bytes": 8064,
+      "sha256": "5b0d861d0e0138d748981e81c7a8a604c804bbe0fa0eafcaf4c6c720b104ce1e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/algorithm-observation.json",
+      "size_bytes": 8821,
+      "sha256": "18fa3915f765d5313842cda2d9553f431e10f349ce23e048d2be57b7c2de3ffe"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/basis-definition.json",
+      "size_bytes": 1129,
+      "sha256": "2490febe4fa88ddb058ea3b949879809a7dec8155a6784ed063c90021333e94e"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/launcher.log",
+      "size_bytes": 187,
+      "sha256": "eefae9f965b83446d8f5990963757aea8cd6849c4fa12da7201fab62ca8bfcf8"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/manifest.json",
+      "size_bytes": 1321,
+      "sha256": "5bec4da6c86522f92d3d24ec918683dbd8dff7ad6ec3cfaf94341ef7a9190019"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/pyscf.log",
+      "size_bytes": 4121,
+      "sha256": "81370235b7d34aacd8358ce58226d92a4092c6e38f09b4a01fe5f2fd611ab61d"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/request.json",
+      "size_bytes": 1055,
+      "sha256": "30219d3669fe3f1b318cba44fe0b633f8d1cc0eb3720bc4bb819ae9e5a24e3c1"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "53432afd2a08ce6457cb521a7738f6301c2f4fa389a24619f2f1585530181dbe"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "da264ef4f6b6bde7438466ae71d7ef451862ecb0ddccd210bd6f038988f82258"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_unavailable_named_analysi0/input/handoff.json",
+      "size_bytes": 418,
+      "sha256": "0abcef7e6b1ec154ec240667458c3897f7265cdb021e6a6a244fe940d9491b95"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest-data/test_unavailable_named_analysi0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/pytest.log",
+      "size_bytes": 642,
+      "sha256": "d03b15d2e5a53c23f3878779bd89a27009671d6ef7ad2e291ba0fde10d3123c8"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/source-before/docs/development/nao_wiberg_validation.md",
+      "size_bytes": 7274,
+      "sha256": "d087e6efb4ae4471895ad1ba0d4bdbd66959bf1f1b9f42bf6a44f262722cd33c"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/source-before/manifest.json",
+      "size_bytes": 329,
+      "sha256": "743145410fb407e370ad80e9e8f93735e5f8602aa3513e697d3e6534bd365b45"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/source-before/src/cochem_torq/module_provider.py",
+      "size_bytes": 66499,
+      "sha256": "8aba8feba7302d8e3e807ef3543e996a20a150a1866ee4027ebcbee9ff068bbc"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/source-before/tests/test_module_provider.py",
+      "size_bytes": 34655,
+      "sha256": "96d56d189a4f156d60a15159adb596f9922d74167163682020f0133bd1214558"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/start.json",
+      "size_bytes": 3368,
+      "sha256": "69901e328a55ed5840743f56f555634461cedb2d6c193196ee0408fd6675b812"
+    },
+    {
+      "path": "torq-nao-implementation/final-source-54d23c2638a1/terminal.json",
+      "size_bytes": 1434,
+      "sha256": "474cc0b2748cb0d5c5e2928283b886d0616fa29068ca60f10960eb4517e1f059"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/actual-origins.json",
+      "size_bytes": 728,
+      "sha256": "39fde4e5c89ee2e95044eb32b85c91af64c1a136e4255a2e09a2369d5583eff8"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/installed-payloads-after.json",
+      "size_bytes": 52448,
+      "sha256": "c708b03a7a080d9ab42785260118816a66c4cd6241574fce6341dce2d511a244"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/installed-payloads-before.json",
+      "size_bytes": 52448,
+      "sha256": "c708b03a7a080d9ab42785260118816a66c4cd6241574fce6341dce2d511a244"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/junit.xml",
+      "size_bytes": 4282,
+      "sha256": "70ff2368fd22aac33a7ed7bb30329b79c8a309e9687e35a78238d3227bdc3751"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_atomic_json_and_matrix_pa0/result.json",
+      "size_bytes": 25,
+      "sha256": "53f3c0db55ae54548b6984fc53cf699a4f54d4c03a98c94a884445f3829c7f3e"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_executable_nao_public_bou0/explicit-valid-request/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "55f1a4e132ba85eba931e3e35c7e2ce768bed33ec1f4fb260a94dae6a48fec66"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_executable_nao_public_bou0/explicit-valid-request/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_executable_nao_public_bou0/input/handoff.json",
+      "size_bytes": 416,
+      "sha256": "4118b6177edb66fdb7156e868cc3d0bfdf2acaa9ad87ca9932c58d3ef19fee05"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_executable_nao_public_bou0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_geometry_analysis_preserv0/input/handoff.json",
+      "size_bytes": 318,
+      "sha256": "cb22e69d625188ba294ccd66b6a9201c8bf2476a48b6d1e8b42bf73279e78d8e"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_geometry_analysis_preserv0/input/molecule.xyz",
+      "size_bytes": 43,
+      "sha256": "9fca490c240116b525f94f2e70dda2bfccbaaed16aca84b8825f65f744ce1fe1"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_handoff_checksum_duplicat0/input/handoff.json",
+      "size_bytes": 339,
+      "sha256": "a5891d21d86491f27dd41e35cca56eb4380d1615418dc1657d54acb4ee24f1cd"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_handoff_checksum_duplicat0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_isotope_aliases_and_measu0/aliases.xyz",
+      "size_bytes": 59,
+      "sha256": "84e456110b646db1bbb90eb4b2bae5a88b4886ac7d2720ed6309310ef753b4a5"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_mp2_is_not_relabelled_as_0/input/handoff.json",
+      "size_bytes": 420,
+      "sha256": "8193bc1ab4b220bfe2642aca15a40855e5967d95858d2adc28d20e032e44c6f5"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_mp2_is_not_relabelled_as_0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici0/input/handoff.json",
+      "size_bytes": 432,
+      "sha256": "2356143693496f1e21b86d1ad3aa7fbc4e3c8db5ac71d9e4e0cf44f112dcbd7d"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici1/input/handoff.json",
+      "size_bytes": 434,
+      "sha256": "59ca42973d013171f5667ed42361ce1213aec7dbc4bb6f67eee5ae937b7e7dd0"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici1/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici2/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "ae05031fb77e22df35e2660ca4bb3dc77349e06732d3956dcc86f817b876ef0a"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici2/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici3/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "fbed66a003a63efdca5263b495c56e4594a64b48d5597b645170070953f2ea09"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici3/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici4/input/handoff.json",
+      "size_bytes": 434,
+      "sha256": "22c6fded3425b328b205c2b5fac3311c999d113209db37a8c766a3dd01ceb045"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici4/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici5/input/handoff.json",
+      "size_bytes": 438,
+      "sha256": "4ce38d83ca1390d3eaf451a14d23975eadbd8d40be84a6a3880cc143e3d48f71"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici5/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici6/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "dd860b52ca04479f8612a58e740f92a8d47664bfb06bba4024cf957a6d5a8d8f"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici6/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici7/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "9bf2016dfef0f417e94b04020352d68dcd588138b86fb101e266c9c10e497d9a"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici7/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici8/input/handoff.json",
+      "size_bytes": 438,
+      "sha256": "c8fd3ca9d4d6464fedb546d11b52c12cc1acfd9222720586b95e56af2ec8d8b5"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici8/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici9/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "021730a06931d76b45c69037b0d11336ea28148f6dcd005fb8723a828fad8924"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_refuses_other_explici9/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_requires_backend_and_0/input/handoff.json",
+      "size_bytes": 416,
+      "sha256": "4118b6177edb66fdb7156e868cc3d0bfdf2acaa9ad87ca9932c58d3ef19fee05"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_nao_requires_backend_and_0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor0/invalid.xyz",
+      "size_bytes": 28,
+      "sha256": "67bfb804b8399395f272e482b019097b53e1a242ba797a41429b741f80cdd5d1"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor1/invalid.xyz",
+      "size_bytes": 32,
+      "sha256": "12eea641aa412f8dde27602ce21f935f3a7c32cce9440a4aa2edc81922d89a2d"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor2/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "49acabb81caddb4815c6df213618d230333090d6dbf406acf9bcdfa51f19cb1f"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor3/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "588cc2201699da4bd63760b02c9884c5f0f948da0b65536f12092ba6ccd79549"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor4/invalid.xyz",
+      "size_bytes": 29,
+      "sha256": "01252dc55b6030d8dc7db8ce45b4c5df019da7827f775a9528166070b8c4d1c2"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor5/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "13711bb601b5b7743f47c50bbaeaf31391ac06db2615d8a53589dde4c0ff46a8"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor6/invalid.xyz",
+      "size_bytes": 32,
+      "sha256": "13f7dda1dec8142bd941dcd15ee12e79ddadb4515f1e3e01ca18f7c6fca16f43"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_rejects_invalid_xyz_befor7/invalid.xyz",
+      "size_bytes": 30,
+      "sha256": "a52906efa41c9658ef82af437f3581fcab204a76be58e79f6f40e4c3b95400cc"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_unavailable_named_analysi0/input/handoff.json",
+      "size_bytes": 418,
+      "sha256": "0abcef7e6b1ec154ec240667458c3897f7265cdb021e6a6a244fe940d9491b95"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest-data/test_unavailable_named_analysi0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/pytest.log",
+      "size_bytes": 114,
+      "sha256": "a9cbe464df87a766abf9349eeeb727f760985e2b91e1d495539b12da18b0a7de"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/terminal.json",
+      "size_bytes": 2264,
+      "sha256": "484e6be93f4708fb40ff0e5140fae41677928b4809ab9dec75c9063f78b5a5a6"
+    },
+    {
+      "path": "torq-nao-implementation/installed-core-final/test_module_provider.py",
+      "size_bytes": 34655,
+      "sha256": "96d56d189a4f156d60a15159adb596f9922d74167163682020f0133bd1214558"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-copy-receipt.json",
+      "size_bytes": 500,
+      "sha256": "2b4624dd7240b3c820ec8f1060f7a5d67d145661966a9be4f8e4aeb5951e79c7"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-dependency-check/pip-check.log",
+      "size_bytes": 30,
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-dependency-check/receipt.json",
+      "size_bytes": 1298,
+      "sha256": "70e6d89f6ab24f91f0fc0b5f74e57f54f64ce3ac50e5d711e9a920a8d3f7cb6c"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-dependency-check/target-package-provenance.json",
+      "size_bytes": 34583,
+      "sha256": "25607591c63a8641cb8320326bc29b04706630c55dc6722affa5443211c61005"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-install-receipt.json",
+      "size_bytes": 644,
+      "sha256": "e38af4716cb42945bac75d645293fd3f5f349b950f0181807be5512ed94dc5ff"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-install-runner-receipt.json",
+      "size_bytes": 1048,
+      "sha256": "5db6c232b98349f65297003b0fe856244e9417c2319028aba3164632cb3f880b"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-install-runner.log",
+      "size_bytes": 336,
+      "sha256": "2e0a6c37b251e1e2ad87f4d4ba948deb2c451ee57c8785dceb1ffef325204036"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-install.log",
+      "size_bytes": 93,
+      "sha256": "788843eafde6b0d6c4df35c55260b59ec7c792bfabdbd82ad8df949c514b03f7"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-verified/actual-metadata.json",
+      "size_bytes": 8052,
+      "sha256": "95cc45076f4e31da9e2a5e07b7dd8f5a169f10fbabb3e5549a80938a7b1a9e8f"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-verified/installed-record-manifest.json",
+      "size_bytes": 69368,
+      "sha256": "8ffcd2a0cd18c6efa471a69f693c34dbc5a1db8189a5d0d7ab4f46c158aaafd3"
+    },
+    {
+      "path": "torq-nao-implementation/installed-env-wheel-verified/verification.json",
+      "size_bytes": 1879,
+      "sha256": "db4274d1d511b6750bee4cb515cfc973a64813d36c821f56b0f4e291232d6e1f"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/actual-metadata.json",
+      "size_bytes": 8052,
+      "sha256": "95cc45076f4e31da9e2a5e07b7dd8f5a169f10fbabb3e5549a80938a7b1a9e8f"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/actual-process-origins.json",
+      "size_bytes": 1844,
+      "sha256": "8af71ec7578d650cd6cc853b873daffb5f2e69da459248876d8ce757e8f46899"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/actual-producer-before/final_test_helpers.py",
+      "size_bytes": 34655,
+      "sha256": "96d56d189a4f156d60a15159adb596f9922d74167163682020f0133bd1214558"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/actual-producer-before/installed_public_cases.py",
+      "size_bytes": 4309,
+      "sha256": "124717eed274de098158de4086aa12da658dfea7b5118156c69105950465d873"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/actual-producer-before/module_provider.py",
+      "size_bytes": 66499,
+      "sha256": "8aba8feba7302d8e3e807ef3543e996a20a150a1866ee4027ebcbee9ff068bbc"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/case-results.json",
+      "size_bytes": 3647,
+      "sha256": "6fb5ee98dcd4db013eb83a72d7376dafc9a992a4c65707d136a1fcedc48afb68"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/cleanup.json",
+      "size_bytes": 296,
+      "sha256": "a9970e882ada6a04d350955662a18a6e446bf28530f96fadf9141d2502f82b00"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/analytic-control.json",
+      "size_bytes": 1713,
+      "sha256": "3844e68db4ec8e72d6e6ba4577846258affe092e990d61e4cb25e531f1e3af6d"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "55f1a4e132ba85eba931e3e35c7e2ce768bed33ec1f4fb260a94dae6a48fec66"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/actual-operation-wrapper.json",
+      "size_bytes": 5304,
+      "sha256": "82da6c5961a8f5e41e28181da4894530ab6616a1e7533a7414dbe876ed1775f7"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/bond-analysis.json",
+      "size_bytes": 4114,
+      "sha256": "349d036c8f82dcac9122d88ddb28e2d9d06b73fa39576a39b1f0108e233d9c8e"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/invocation-origins.json",
+      "size_bytes": 696,
+      "sha256": "eb21ca42d2d0385e357d33c8ca92aa077f8918c40443547e2dda5bd5ed927f41"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/nao-density-transform.npz",
+      "size_bytes": 2032,
+      "sha256": "70ddb32f164af29e978cb5858090b30b0f4a1a75b60397c7050667d07efb7218"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/launcher.log",
+      "size_bytes": 131,
+      "sha256": "6781fa6bac0df18b2f40b3764c7896e9932376eef6cb5eff996ca7cf22cc8ab6"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "b070aff73eaea9b3977d3934779bafb82d6d98b927e68b1d79eaa2cd388e344e"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/pyscf.log",
+      "size_bytes": 7157,
+      "sha256": "76f230602b57ce1064b50bab2caf42cb90f0f036e84a4e41e3bf81c3672de545"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/h2/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/installed-payloads-after.json",
+      "size_bytes": 53828,
+      "sha256": "2c17c7d7856bbe2050a677e4415290f22d5c3e55068d7a6609a9fc78df6b5f26"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/installed-payloads-before.json",
+      "size_bytes": 53828,
+      "sha256": "2c17c7d7856bbe2050a677e4415290f22d5c3e55068d7a6609a9fc78df6b5f26"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/native.log",
+      "size_bytes": 166,
+      "sha256": "3f60267cc44866acecb09a889b82f956e4b6711e25aab64e5a10c16e45eec83c"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/start.json",
+      "size_bytes": 1406,
+      "sha256": "8cc40b2cd83f263e525545b8b6f7d6d50a3dacb17e1f5f87bfd1c8d0b896b01a"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/terminal.json",
+      "size_bytes": 1718,
+      "sha256": "ca5c2820b939a1bf59dd71a62691266e7bf6d13cf6069217d4506d48be47e623"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "25c5225afa1a75f8188c2d555ee6a4066ad60f967b9996951b0e9d90aee1c80f"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/input/molecule.xyz",
+      "size_bytes": 165,
+      "sha256": "08eb0afa252f1d760d9b543e82969a7db6ccf8f16a4b3ace1264217e18d62ed6"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/actual-operation-wrapper.json",
+      "size_bytes": 5868,
+      "sha256": "1669261e513bd2291303c8b2f6f6070bbef85f53de2f7c1ff26315a42a940961"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/bond-analysis.json",
+      "size_bytes": 4614,
+      "sha256": "c69ea7f2a0f86c157c39469376887311e2637d40dd1818b4a20970cdd25f76bf"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/invocation-origins.json",
+      "size_bytes": 696,
+      "sha256": "eb21ca42d2d0385e357d33c8ca92aa077f8918c40443547e2dda5bd5ed927f41"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "b691ed15b97cfcda6294fbcc5639a78ecc572f3c4ca667ddaa82d426764a665d"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/launcher.log",
+      "size_bytes": 134,
+      "sha256": "ea5cb1cba950cf80dc7714babc2eae0792dfa73dacf50766aed619d2c5e52fef"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "d34e9a8199f681ebc8f1a947b25d64df21378ecce783c065f313607350bad296"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/pyscf.log",
+      "size_bytes": 8133,
+      "sha256": "15155775bfb1fbd04094637e07d8073ab5d5ce484461962ebcb3c5707e82ebea"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/installed-native-final-54d23c2638a1/water/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "8f367326c82665a6e7de5db4156bad5f2b7145e3771d1fd71273966cfdc19d8f"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "55f1a4e132ba85eba931e3e35c7e2ce768bed33ec1f4fb260a94dae6a48fec66"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/bond-analysis.json",
+      "size_bytes": 3521,
+      "sha256": "0d1330a243ed1dcfd79b624e5cea43d5340b9e2604ec3a34a1e5737f50c1635c"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/nao-density-transform.npz",
+      "size_bytes": 2032,
+      "sha256": "70ddb32f164af29e978cb5858090b30b0f4a1a75b60397c7050667d07efb7218"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/launcher.log",
+      "size_bytes": 134,
+      "sha256": "a633d0ba5d760025a92516680a83ed0357ae008ff3464345f7a34013cd419276"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "6c7051a146a9b1eb1dcb932ab71980ec89988d72442be866c8c69ecdb0ab1c60"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/pyscf.log",
+      "size_bytes": 3017,
+      "sha256": "01bc90632267a8b34e715cfd6ffad3f3613d071f2809466d90563904e5ae0f94"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2/test_actual_h2_nao_wiberg_anal0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2-receipt.json",
+      "size_bytes": 1535,
+      "sha256": "b8e6848cd0e75c3e7e2058e4da8a87dd12a72d071ba5a7bf33a1256961d15850"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2-start.json",
+      "size_bytes": 984,
+      "sha256": "76a4be5c121664763d2b7c0e8b402bd50484088d5bce4101b9bad537be74829d"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2.log",
+      "size_bytes": 98,
+      "sha256": "a4455b4cfc5c6a71fc62642d8143250da30d75f91f92481676440e9c62029e4f"
+    },
+    {
+      "path": "torq-nao-implementation/native-h2.xml",
+      "size_bytes": 360,
+      "sha256": "f21df25e4d0a7af575767cd2db19114271df8eeb9dab9b7b6dc5d7496dc2aabe"
+    },
+    {
+      "path": "torq-nao-implementation/preflight-controls.log",
+      "size_bytes": 1839,
+      "sha256": "d34b692ecbebababe8521114c2ee891e2fda9ac0c16c9fbf7dbe32aa7282dce8"
+    },
+    {
+      "path": "torq-nao-implementation/preflight-supported-receipt.json",
+      "size_bytes": 1456,
+      "sha256": "a78254e717f835598639a41cfc2c64c8a1eb61e589505eacfa0cb9ad62c583b5"
+    },
+    {
+      "path": "torq-nao-implementation/preflight-supported.log",
+      "size_bytes": 114,
+      "sha256": "d330f2a1edbd451ae8c65552a119823f1d7d2054119c1f572a66d96b3ccc1139"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/final-candidate-core-compatible/docs/development/nao_wiberg_validation.md",
+      "size_bytes": 7274,
+      "sha256": "d087e6efb4ae4471895ad1ba0d4bdbd66959bf1f1b9f42bf6a44f262722cd33c"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/final-candidate-core-compatible/manifest.json",
+      "size_bytes": 329,
+      "sha256": "743145410fb407e370ad80e9e8f93735e5f8602aa3513e697d3e6534bd365b45"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/final-candidate-core-compatible/src/cochem_torq/module_provider.py",
+      "size_bytes": 66499,
+      "sha256": "8aba8feba7302d8e3e807ef3543e996a20a150a1866ee4027ebcbee9ff068bbc"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/final-candidate-core-compatible/tests/test_module_provider.py",
+      "size_bytes": 34655,
+      "sha256": "96d56d189a4f156d60a15159adb596f9922d74167163682020f0133bd1214558"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/initial-h2-experiment/docs/development/nao_wiberg_validation.md",
+      "size_bytes": 3029,
+      "sha256": "fed5f5257dad640aa15704a395725386cffea9a2e2bbfd0fc865671bc0641cd1"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/initial-h2-experiment/preservation-receipt.json",
+      "size_bytes": 563,
+      "sha256": "f4c0153f51de1d67676dfbc0083c865a5ada9d9bd4fbea2e36f7de2df83c6bc9"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/initial-h2-experiment/src/cochem_torq/module_provider.py",
+      "size_bytes": 62229,
+      "sha256": "a777eb451a32b60675dca4f820afa5aa2a02e7cb1a8b3f6823c3d09732bd8bf0"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/initial-h2-experiment/tests/test_module_provider.py",
+      "size_bytes": 17702,
+      "sha256": "22384d30634eea03f40d59ae67ad8a6f98525fbdccee76218b14493672632b57"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/stage2-preactivation/docs/development/nao_wiberg_validation.md",
+      "size_bytes": 4136,
+      "sha256": "f59946967ce4e722eca4614bb73253880f769d32a335ac5fe370b5c4a0606003"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/stage2-preactivation/manifest.json",
+      "size_bytes": 474,
+      "sha256": "65ca0ccfd758692f72446481553a8638f102a09169dc9cda89092eda2f484538"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/stage2-preactivation/src/cochem_torq/module_provider.py",
+      "size_bytes": 65833,
+      "sha256": "c78d50a3f918fcad37bf4e6a9bcdeddccc531d8b1601058344e2c2d114b806b3"
+    },
+    {
+      "path": "torq-nao-implementation/source-preservation/stage2-preactivation/tests/test_module_provider.py",
+      "size_bytes": 30078,
+      "sha256": "cfa3ae904ae3399ea906ff1181c7239c4cbfefe4fc5c6114fc5e47626666aeda"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "c08caf448502f8328e0ec8f3513fd2d2cc49ff6f15decd6254b9f9f878cd8f74"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/input/molecule.xyz",
+      "size_bytes": 165,
+      "sha256": "1bad0c5f9c131f8f417519bb4e95f8d44e37f660512bbba09d362fce0a280362"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/actual-operation-wrapper.json",
+      "size_bytes": 5594,
+      "sha256": "d051588924b37f357a2d0a5fb2dd0c42bf170633e337e8ddb5dd4a0528367961"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/bond-analysis.json",
+      "size_bytes": 4564,
+      "sha256": "36f3a4182ce9d588edbfe59863b279706c14782c76d4af7c7a34f0150e0c4d15"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "68d23c63ac68934f0a1982f364e5171026e982bacb359c732a9c8458b9cf9595"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "4a50e1af7a181c03f692ab0987301d8bd5004d4892e9edb826881fd37e75c1f9"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/launcher.log",
+      "size_bytes": 159,
+      "sha256": "d6231726ab738636a7a09092c4164dd4043ad7fb5129ac73e2e5f5930e4e866b"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "b48e94bdfa36187bbb9382c91f0e2f552f3e69a10102e85d66809954ddaabcb0"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/pyscf.log",
+      "size_bytes": 4015,
+      "sha256": "6eb1de193ab38b7ec67e191711dd218a7e5b8c41dc57bc42e9a01f2642ad6ae8"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/request.json",
+      "size_bytes": 1056,
+      "sha256": "7cef43c4579aec9a21c4a08e17eab77979b65df9a1d0191dd858f247779189e2"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "add23fe7058211a366408b1790ed6f00c9131e1dcc2a54c2330bb9369c671537"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-atom-permutation/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "97dc54da304b17cb7360ecd7e9f323962daf06d8f36bca99149a700d71078755"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "82832484bcf540608ece8021080f98624e4412c433b41a0f79e03e916b8ca950"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/input/molecule.xyz",
+      "size_bytes": 229,
+      "sha256": "968abb4400535683bf151dbe428cf013388eead83546a1d90a12118bc28e8bde"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/actual-operation-wrapper.json",
+      "size_bytes": 5645,
+      "sha256": "35b1293cb3af92b0e2ab46dfd508a44036f9feaa4b361c6ca1575e0f27551cca"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/bond-analysis.json",
+      "size_bytes": 4615,
+      "sha256": "2a02073cc4db7628b4d740b23df912aa8841c885b17ef933be23aa69b6e23d59"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "7155d2cbcaf7e78a7c07a1eb97467b8e14321b473d71c7b5ab51abc3d18e2581"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "b9d4a3129456f017b619ac2f3114b64c2a2fd3261fdccc6220648009081dbd4c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/launcher.log",
+      "size_bytes": 163,
+      "sha256": "2dedacc211a583cd4c626cd00ac3dd467c0f62268388645f6b87c45dbbedbc4b"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "3edecafc37f5698dfc075f3c612ac6474dd96e7a26eff726843302d1401e0bd5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/pyscf.log",
+      "size_bytes": 4020,
+      "sha256": "1bb6bb3ebf97c18c5455c6a49239f4c927b98bca0e58c4fb8ef8ced30407bb43"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/request.json",
+      "size_bytes": 1114,
+      "sha256": "1d539435bb7be0cf1a23641fc0e673a8ff6fa98fd37aa6f3c6e9f0eb5ba76c9d"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/result.json",
+      "size_bytes": 2600,
+      "sha256": "c0e40a9938c4d357f13d1824fb54ada304a83b8ea6cab1e723f7dbd50c500342"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/fixed-rotation-translation/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "4e6a850a9ebd6a6e6877724a33646f938efa8fb5f3f4eeda98f287969fde9698"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/mapped-pair-errors.json",
+      "size_bytes": 1180,
+      "sha256": "cb9e3a8f535e8c6dd92b046d51912536469b94abfb6fd910997bc15a74abd47f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/input/handoff.json",
+      "size_bytes": 436,
+      "sha256": "25c5225afa1a75f8188c2d555ee6a4066ad60f967b9996951b0e9d90aee1c80f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/input/molecule.xyz",
+      "size_bytes": 165,
+      "sha256": "08eb0afa252f1d760d9b543e82969a7db6ccf8f16a4b3ace1264217e18d62ed6"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/actual-operation-wrapper.json",
+      "size_bytes": 5594,
+      "sha256": "d4a8327c7a6efc3b3ebdbebcdbb9ee34812cccb3e834b30985326722b4c9b345"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/bond-analysis.json",
+      "size_bytes": 4564,
+      "sha256": "73a2bcf04bc3bfa679ee9c04ffdc3d2098866069c5b29ae1e43b1f120a9737e9"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/nao-density-transform.npz",
+      "size_bytes": 3912,
+      "sha256": "b691ed15b97cfcda6294fbcc5639a78ecc572f3c4ca667ddaa82d426764a665d"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/genuine-water-nao-invariance0/original/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "55f1a4e132ba85eba931e3e35c7e2ce768bed33ec1f4fb260a94dae6a48fec66"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/input/molecule.xyz",
+      "size_bytes": 57,
+      "sha256": "19b2c30067b0dd3a1c224201395843b4d7d3659bb9140336152b0b7ecc0ca969"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/actual-operation-wrapper.json",
+      "size_bytes": 5030,
+      "sha256": "a3b4e231977875152932af00660858b3597582668818f06b5ac7cf2d4ebd27d1"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/bond-analysis.json",
+      "size_bytes": 4064,
+      "sha256": "61e1aa6234ba0655bb1568d98e627145018d85132929ab69a587507fc2bcb361"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/invocation-origins.json",
+      "size_bytes": 569,
+      "sha256": "4121597b27c273c2af598ad9f6e71310e4b8e6e19febb3405276aebc28b36195"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/nao-density-transform.npz",
+      "size_bytes": 2032,
+      "sha256": "70ddb32f164af29e978cb5858090b30b0f4a1a75b60397c7050667d07efb7218"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "fac93ac6d6de2290d2c80c80173f14203c38854490614f33f4ae6c7e1029d836"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/launcher.log",
+      "size_bytes": 138,
+      "sha256": "fcabc8d7a51e48f42dcc05bb28647d6b44ce0dc2eddbe9df8bf1ec295cba593f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "13a90b832e81470a09f53605fbe7bf032e4c3c11721443a8ea666f4ec99aaa48"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/pyscf.log",
+      "size_bytes": 3021,
+      "sha256": "0ea61bf6c983b9e951fe565ecbe6dbf7901ea310001d7eaddd2cc8bbef2845a1"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "a5fd675fb9bc0428634a6e25b3d0f29e389aa9a9b667ddf18db98b0af592e268"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/result.json",
+      "size_bytes": 2235,
+      "sha256": "2dd91d09d2fb9cf6612b106862575e2dae7238dda68677a93f040fbbaa762090"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_h2_nao_wiberg_anal0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "545b9253c61fe1624f70ef49e583e0c88652b52001e6b207b5b2c2a084a1d773"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/input/handoff.json",
+      "size_bytes": 435,
+      "sha256": "4bf352303a762207c3c647f7637e6e226e945174f55a5d2fb7432e032b6cf7da"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/input/molecule.xyz",
+      "size_bytes": 83,
+      "sha256": "2c6f69d0dd5a60c48900c59edf853d7ee50e9d0eb445cc433f3260dcdb42b69f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/basis-definition.json",
+      "size_bytes": 204,
+      "sha256": "25fe8a0c2679400021f276f11f1bb9c8b030d3a57ca61599b0af4f9f681c6d83"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/geometry-bohr.npy",
+      "size_bytes": 176,
+      "sha256": "35dfbb1941bb4d83b01496c507429dc0e9add740f0c38b150bcb46ea444615cc"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/launcher.log",
+      "size_bytes": 138,
+      "sha256": "995f0a6bae33eac282925e8b8ae97df1a3edf4b475f596ebed533ca1bfc3b31e"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/manifest.json",
+      "size_bytes": 1319,
+      "sha256": "7d267b13d7ff92b57b5a51f5b610e8bacde95fd5985e9024c5796473b463ea5f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/pyscf.log",
+      "size_bytes": 3016,
+      "sha256": "4fc471733ffe8cb0615c0b50fc02702ace51f4dd10eae15ddc58d16174a65d69"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/request.json",
+      "size_bytes": 915,
+      "sha256": "7657438ceb8784eea8e9496da870b84be404be07ed41f221bfb5b43c14fa9eb8"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/result.json",
+      "size_bytes": 2400,
+      "sha256": "842a2cdbd080f7ace7f3abc697b6da540769b1d881124b25f01ca3849033d3e0"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_actual_unstable_restricte0/out/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "27759ba4fcb418fd47532f4d0f21babb9ea1e2da1c69149f3a3c1cb8f98271ed"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop0/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "5f2368a3a4a5628648be521ab42619a5bb7825623ddcdb0f59d322945489ce13"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop1/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "2c411ac9ea34cfd84f61b882827d02b411288e875a7ffe79379cf3057049fe33"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop2/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/basis-definition.json",
+      "size_bytes": 442,
+      "sha256": "20545c8989dd51e729e3aad116827453815a1ec01179eb126aa8c5084fec388b"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop3/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop4/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop5/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop6/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop7/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop8/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/basis-definition.json",
+      "size_bytes": 774,
+      "sha256": "09d59d250d70a218f044b0dc4af8fda69f85b489eb77246109bd6049f6f77fa5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/launcher.log",
+      "size_bytes": 145,
+      "sha256": "9a650d1f0affa9d307d3513d47c6a1b44ed028d3604563b6c12d53a8644eab2f"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/manifest.json",
+      "size_bytes": 1320,
+      "sha256": "508e48e3efffbb126031f99ace05224c7d9c64aa3e1d6ce75390dca38b4b0b40"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/pyscf.log",
+      "size_bytes": 4001,
+      "sha256": "4a5b8b88a19ffb5f7f6b238106bdfb587feba396808f2cb76e2960a06dc1924c"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/request.json",
+      "size_bytes": 1056,
+      "sha256": "ccf1fcb98790c32c55a6af70d375196d21d7af0c827b2b08b455f1416c078513"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/result.json",
+      "size_bytes": 2486,
+      "sha256": "f12b3d2e9cf43a74ba05ae5d6d8f0fefc567cb02046beb26b935b20d526e1ead"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_nao_rejects_corrupted_cop9/corrupt-native/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "bf0b354c9395882fd5069afbee7ff1b1d6d975d59c1069547ecea1a255918651"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/actual-nao-and-lowdin.npz",
+      "size_bytes": 8064,
+      "sha256": "5b0d861d0e0138d748981e81c7a8a604c804bbe0fa0eafcaf4c6c720b104ce1e"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/algorithm-observation.json",
+      "size_bytes": 8158,
+      "sha256": "29b9a14132d0b423ec67447c1ac9d58e4ffae2886049686feb1a2a0000543d76"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/basis-definition.json",
+      "size_bytes": 1129,
+      "sha256": "2490febe4fa88ddb058ea3b949879809a7dec8155a6784ed063c90021333e94e"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/engine-installation.json",
+      "size_bytes": 67206,
+      "sha256": "fce19379e83e5bc802c1c6e06a8dca20497a873f9dc6b873b6aada03445e82cb"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/geometry-bohr.npy",
+      "size_bytes": 200,
+      "sha256": "529d59277cc92b949b96327f3b0937dbe39e1b682628c59902133216daca2cb3"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/launcher.log",
+      "size_bytes": 163,
+      "sha256": "8b8b61c26bd4a39e4c0b6d4d3d076e6c1295a03e020c3ec728cfb4444ddb7d42"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/manifest.json",
+      "size_bytes": 1321,
+      "sha256": "a851a83fc0f38e220ccf54ad26ebb9a434c8ee16716c2d94e88a8ea2e32373e5"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/pyscf.log",
+      "size_bytes": 4468,
+      "sha256": "ecc9a8735fd490a9cf1fc461777a31afd0cd698fd7c7e1434bfb85c67aaf7002"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/request.json",
+      "size_bytes": 1055,
+      "sha256": "30219d3669fe3f1b318cba44fe0b633f8d1cc0eb3720bc4bb819ae9e5a24e3c1"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/result.json",
+      "size_bytes": 2486,
+      "sha256": "53432afd2a08ce6457cb521a7738f6301c2f4fa389a24619f2f1585530181dbe"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native/test_split_valence_nao_algorit0/split-valence-algorithm-only/native-electronic/wavefunction.chk",
+      "size_bytes": 10528,
+      "sha256": "577cec64a4e72551d15e44c6810444ec28e917b3172c1636c709420aba5989ff"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native-receipt.json",
+      "size_bytes": 1786,
+      "sha256": "534f5b085bd9436be1471a190b79714532f471cb03f46098115f606e90289496"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native-start.json",
+      "size_bytes": 1137,
+      "sha256": "5a2a1831b9f7dcaadd594e5cccc08ebd5ab14e0d57658e7649bf25246851fa23"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native.log",
+      "size_bytes": 114,
+      "sha256": "7089c5b804b0abdb4d30c9963903a46deeb2b60621f582a21d17d16c15322c15"
+    },
+    {
+      "path": "torq-nao-implementation/stage2-native.xml",
+      "size_bytes": 2263,
+      "sha256": "749d81dbb75514dabb76adb8b37b65d82bcf3d609b1a7f730b9a57d4d4bb2fb4"
+    },
+    {
+      "path": "torq-nao-implementation/wheel-build-54d23c2638a1/build-receipt.json",
+      "size_bytes": 2742,
+      "sha256": "8c9b8ed82231dd800a69aadd24513e55792b8167d22521e391ea2aa6901880b0"
+    },
+    {
+      "path": "torq-nao-implementation/wheel-build-54d23c2638a1/build.log",
+      "size_bytes": 638,
+      "sha256": "bea247ea926dfd96e9b38d34ec4af521e67948e30a523e95ce27c0f81c66f2b2"
+    },
+    {
+      "path": "torq-nao-implementation/wheel-build-54d23c2638a1/wheel-content-manifest.json",
+      "size_bytes": 43960,
+      "sha256": "09ce0b93c3a79e594f3bbc86330439d15afd08e16dd5e442aee94d37b6fdb2de"
+    },
+    {
+      "path": "torq-nao-implementation/wheel-build-54d23c2638a1/wheels/cochem_torq-0.1.0-py3-none-any.whl",
+      "size_bytes": 1270723,
+      "sha256": "2d6f81a95e4aeec5240422e6b35d44433c590d13aedf30f9d6b3c53122c070ea"
+    },
+    {
+      "path": "torq-nao-independent-review/final-source-artifact-review.json",
+      "size_bytes": 20916,
+      "sha256": "7936a3583731d781a6d2d40f8232d08818974c909727cdcf0cadf911327bae24"
+    },
+    {
+      "path": "torq-nao-independent-review/final-source-review.json",
+      "size_bytes": 2843,
+      "sha256": "d9054f9c026e0462c7cf8980c76832083ed2776a5d04a2b0d1bfaa6ecbbaabe4"
+    },
+    {
+      "path": "torq-nao-independent-review/h2-independent-artifact-review.json",
+      "size_bytes": 3664,
+      "sha256": "08f57a1d749deb666cced7b8959e1aa48324cf86a732244e2766894608780ad7"
+    },
+    {
+      "path": "torq-nao-independent-review/initial-h2-source-recovery-verification.json",
+      "size_bytes": 1539,
+      "sha256": "50ab4160f70ad23f825546d487ae0ff2aea2a5f0687c791aa510dcdf3a7e1afc"
+    },
+    {
+      "path": "torq-nao-independent-review/installed-wheel-artifact-review.json",
+      "size_bytes": 6358,
+      "sha256": "d64a318e0cffb7cb1af4f81cabab3df974de1ebfa4593e1edc140f425a322cf8"
+    },
+    {
+      "path": "torq-nao-independent-review/stage2-independent-artifact-review.json",
+      "size_bytes": 18830,
+      "sha256": "cf7027c200cf5fea2ec6db9ce69cd7b3393312051dbb946833074a0f122ee8a6"
+    }
+  ]
+}

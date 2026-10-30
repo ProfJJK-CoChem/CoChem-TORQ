@@ -1,0 +1,184 @@
+{
+  "schema_version": "cochem.nao-local-qualification/1",
+  "record_kind": "curated documentary derivative, not an original execution receipt",
+  "candidate_commit": "54d23c2638a18a001894dd331798d413bb78ceb4",
+  "frozen_files_sha256": {
+    "src/cochem_torq/module_provider.py": "8aba8feba7302d8e3e807ef3543e996a20a150a1866ee4027ebcbee9ff068bbc",
+    "tests/test_module_provider.py": "96d56d189a4f156d60a15159adb596f9922d74167163682020f0133bd1214558",
+    "docs/development/nao_wiberg_validation.md": "d087e6efb4ae4471895ad1ba0d4bdbd66959bf1f1b9f42bf6a44f262722cd33c"
+  },
+  "scope": {
+    "operation": "wiberg_nao",
+    "status": "experimental locally controlled pair descriptor",
+    "engine": "pyscf",
+    "engine_version": "2.14.0",
+    "platform": "linux-cpu",
+    "method": "hf",
+    "basis": "sto-3g",
+    "charge": 0,
+    "multiplicity": 1,
+    "elements": [
+      "H",
+      "O"
+    ],
+    "nuclear_identity": "unlabelled nuclei only",
+    "reference": "real closed-shell RHF",
+    "basis_convention": "all-electron spherical",
+    "not_qualified": [
+      "NPA",
+      "full NBO",
+      "E(2)",
+      "carbon or organic-student bonding readiness",
+      "chemical bond classification",
+      "broad independent NAO reference accuracy",
+      "empirical accuracy",
+      "Method Matrix production recipe",
+      "hosted/student deployment",
+      "full SRS release"
+    ]
+  },
+  "counts_are_overlapping_selections_not_additive": true,
+  "lanes": [
+    {
+      "id": "final-source",
+      "tests_passed": 57,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "test_seconds": 6.906,
+      "outer_seconds": 7.951,
+      "native_attempts": 12,
+      "actual_scf_records": 11,
+      "invalid_basis_prescf_refusals": 1,
+      "native_manifest_entries": 92,
+      "source_unchanged": true,
+      "existing_lowdin_and_rigid_scan_controls_retained": true,
+      "source_receipt": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "final-source-54d23c2638a1/terminal.json",
+        "sha256": "474cc0b2748cb0d5c5e2928283b886d0616fa29068ca60f10960eb4517e1f059",
+        "size_bytes": 1434
+      }
+    },
+    {
+      "id": "installed-core-without-pyscf",
+      "tests_passed": 35,
+      "engine_cases_deselected": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "test_seconds": 3.704,
+      "outer_seconds": 4.431,
+      "native_attempts": 0,
+      "source_receipt": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-core-final/terminal.json",
+        "sha256": "484e6be93f4708fb40ff0e5140fae41677928b4809ab9dec75c9063f78b5a5a6",
+        "size_bytes": 2264
+      }
+    },
+    {
+      "id": "installed-public-h2-water",
+      "completed_cases": 2,
+      "actual_rhf_evaluations": 2,
+      "native_manifest_entries": 16,
+      "outer_seconds": 1.53,
+      "installed_payloads_and_record_unchanged": true,
+      "source_receipt": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-native-final-54d23c2638a1/terminal.json",
+        "sha256": "ca5c2820b939a1bf59dd71a62691266e7bf6d13cf6069217d4506d48be47e623",
+        "size_bytes": 1718
+      }
+    }
+  ],
+  "native_limits": {
+    "sequential_lanes": true,
+    "requested_cpu": 1,
+    "memory_mb_engine_advisory": 512,
+    "os_rss_limit_claimed": false,
+    "outer_seconds": 180,
+    "cleanup_seconds": 10,
+    "final_source_native_attempts_max": 12,
+    "installed_native_evaluations_max": 2,
+    "owned_native_processes_terminal": true
+  },
+  "numerical_scope": {
+    "h2_analytic_target_absolute": 1e-10,
+    "h2_analytic_target_relative": 0,
+    "installed_h2_analytic_absolute_error": 1.9984014443252818e-15,
+    "stage2_water_invariance_absolute_target": 1e-10,
+    "stage2_water_invariance_relative_target": 0,
+    "stage2_water_maximum_mapped_pair_error": 6.475939576255918e-15,
+    "water_target_status": "Predeclared stringent engineering invariance target, not chemical accuracy.",
+    "idempotency_and_backtransform": "Diagnostics only, no new pass cutoff.",
+    "split_valence": "Separate actual algorithm challenge; HF/6-31G public profile remains refused."
+  },
+  "preactivation": {
+    "source_sha256": "c78d50a3f918fcad37bf4e6a9bcdeddccc531d8b1601058344e2c2d114b806b3",
+    "tests_passed": 14,
+    "skipped": 0,
+    "actual_rhf_evaluations": 6,
+    "native_manifest_entries": 48,
+    "same_as_final_source_execution": false,
+    "source_receipt": {
+      "original_evidence_root": "torq-nao-implementation",
+      "original_relative_path": "stage2-native-receipt.json",
+      "sha256": "534f5b085bd9436be1471a190b79714532f471cb03f46098115f606e90289496",
+      "size_bytes": 1786
+    }
+  },
+  "full_release_audit": {
+    "requirements": 73,
+    "acceptance_gates": 41,
+    "fully_qualified_requirements": 0,
+    "gates_remain_blocked": true,
+    "historical_audit_evidence_rewritten": false
+  },
+  "independent_review": [
+    {
+      "original_evidence_root": "torq-nao-independent-review",
+      "original_relative_path": "final-source-review.json",
+      "sha256": "d9054f9c026e0462c7cf8980c76832083ed2776a5d04a2b0d1bfaa6ecbbaabe4",
+      "size_bytes": 2843
+    },
+    {
+      "original_evidence_root": "torq-nao-independent-review",
+      "original_relative_path": "final-source-artifact-review.json",
+      "sha256": "7936a3583731d781a6d2d40f8232d08818974c909727cdcf0cadf911327bae24",
+      "size_bytes": 20916
+    },
+    {
+      "original_evidence_root": "torq-nao-independent-review",
+      "original_relative_path": "installed-wheel-artifact-review.json",
+      "sha256": "d64a318e0cffb7cb1af4f81cabab3df974de1ebfa4593e1edc140f425a322cf8",
+      "size_bytes": 6358
+    }
+  ],
+  "documentary_xml": [
+    {
+      "documentary_xml": "junit/final-source.xml",
+      "sha256": "ebe275898ffd32f4f369ed4d78dad9f00aa9cdea55eb4bdf8d1240b1ce838936",
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "final-source-54d23c2638a1/junit.xml",
+        "sha256": "c8d3c1519b41b56e295601c4d4ec5c3b13cede24a0b884c6cf903300a2b5a523",
+        "size_bytes": 8317
+      },
+      "transform": "Remove transient hostname attribute only; XML serialization may differ. Test identities, outcomes, timestamps, counts and times retained.",
+      "removed_hostname_attributes": 1
+    },
+    {
+      "documentary_xml": "junit/installed-core.xml",
+      "sha256": "b661f286f3c291996805a59123621c610d161b3d24b70915a92df182ecf0e807",
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-core-final/junit.xml",
+        "sha256": "70ff2368fd22aac33a7ed7bb30329b79c8a309e9687e35a78238d3227bdc3751",
+        "size_bytes": 4282
+      },
+      "transform": "Remove transient hostname attribute only; XML serialization may differ. Test identities, outcomes, timestamps, counts and times retained.",
+      "removed_hostname_attributes": 1
+    }
+  ]
+}

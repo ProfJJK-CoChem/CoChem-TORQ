@@ -1,0 +1,116 @@
+{
+  "schema_version": "cochem.nao-local-provenance/1",
+  "record_kind": "curated documentary derivative, not an original execution receipt",
+  "candidate_commit": "54d23c2638a18a001894dd331798d413bb78ceb4",
+  "source_archive_sha256": "593494f25a6ccdf5799fcd15db65ff591b85b6ecaadce41624c527e497b8e52f",
+  "owning_wheel": {
+    "sha256": "2d6f81a95e4aeec5240422e6b35d44433c590d13aedf30f9d6b3c53122c070ea",
+    "size_bytes": 1270723,
+    "record_entries": 272,
+    "python_payloads_exact_archive_match": 263
+  },
+  "owning_wheel_filename": "cochem_torq-0.1.0-py3-none-any.whl",
+  "build": {
+    "offline": true,
+    "dependency_resolution": false,
+    "clean_new_candidate_git_archive": true,
+    "tool_versions": {
+      "pip": "26.2.1",
+      "setuptools": "84.0.0",
+      "wheel": "0.48.0"
+    },
+    "source": {
+      "original_evidence_root": "torq-nao-implementation",
+      "original_relative_path": "wheel-build-54d23c2638a1/build-receipt.json",
+      "sha256": "8c9b8ed82231dd800a69aadd24513e55792b8167d22521e391ea2aa6901880b0",
+      "size_bytes": 2742
+    }
+  },
+  "profiles": [
+    {
+      "role": "installed-engine",
+      "installed_python_payloads_match_final_wheel": 263,
+      "all_wheel_files_except_self_record_match": 271,
+      "installed_hashed_record_entries": 276,
+      "installed_record_sha256": "b80c03094b7a56338f3e084816eebe11cc2cde8d09fd1499b060e150dd562e74",
+      "actual_provider_sha256": "8aba8feba7302d8e3e807ef3543e996a20a150a1866ee4027ebcbee9ff068bbc",
+      "registered_entrypoint": "cochem_torq.ecosystem:module_provider",
+      "actual_runtime_metadata_available": true,
+      "outside_checkout": true,
+      "source_pythonpath_absent": true,
+      "target_prefix_and_import_origins_verified": true,
+      "actual_pyscf_absent": false,
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-env-wheel-verified/verification.json",
+        "sha256": "db4274d1d511b6750bee4cb515cfc973a64813d36c821f56b0f4e291232d6e1f",
+        "size_bytes": 1879
+      }
+    },
+    {
+      "role": "installed-core",
+      "installed_python_payloads_match_final_wheel": 263,
+      "all_wheel_files_except_self_record_match": 271,
+      "installed_hashed_record_entries": 276,
+      "installed_record_sha256": "72e614dfc76a751274675c3243172a498c741cabe0f07febdc3e0778ca384be5",
+      "actual_provider_sha256": "8aba8feba7302d8e3e807ef3543e996a20a150a1866ee4027ebcbee9ff068bbc",
+      "registered_entrypoint": "cochem_torq.ecosystem:module_provider",
+      "actual_runtime_metadata_available": false,
+      "outside_checkout": true,
+      "source_pythonpath_absent": true,
+      "target_prefix_and_import_origins_verified": true,
+      "actual_pyscf_absent": true,
+      "source": {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "core-env-wheel-verified/verification.json",
+        "sha256": "b18d102784e7d2ad6ff1cbdf8a9d3b654b7403cae22a19743d6e94440f3a5e48",
+        "size_bytes": 1740
+      }
+    }
+  ],
+  "core_environment_history": {
+    "kind": "Independent non-hardlinked copy of a pre-existing genuine no-PySCF core profile, followed by new owning TORQ wheel installation.",
+    "pyscf_removed_or_masked_to_create_absence": false,
+    "actual_import_absence_verified": true,
+    "source": {
+      "original_evidence_root": "torq-nao-implementation",
+      "original_relative_path": "core-env-copy-receipt.json",
+      "sha256": "cc17387efc17e4559d192e835eb5bb194fdd741f020aae390b96f9269dee1b38",
+      "size_bytes": 423
+    }
+  },
+  "engine_environment_history": {
+    "kind": "Independent non-hardlinked full copy of qualified owned dependency environment, followed by new owning TORQ wheel installation.",
+    "fresh_dependency_resolution_claimed": false,
+    "source_copy_unchanged": true,
+    "source": {
+      "original_evidence_root": "torq-nao-implementation",
+      "original_relative_path": "installed-env-copy-receipt.json",
+      "sha256": "2b4624dd7240b3c820ec8f1060f7a5d67d145661966a9be4f8e4aeb5951e79c7",
+      "size_bytes": 500
+    }
+  },
+  "install": {
+    "owning_wheel_only": true,
+    "dependencies_installed_or_removed": false,
+    "target_absolute_python": true,
+    "bytecode_disabled": true,
+    "offline": true,
+    "installer": "Primary pip documented target-interpreter runner; copied target had no pip. Actual initial failed attempt retained.",
+    "installer_sources": [
+      {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "installed-env-wheel-install-runner-receipt.json",
+        "sha256": "5db6c232b98349f65297003b0fe856244e9417c2319028aba3164632cb3f880b",
+        "size_bytes": 1048
+      },
+      {
+        "original_evidence_root": "torq-nao-implementation",
+        "original_relative_path": "core-env-wheel-install-runner-receipt.json",
+        "sha256": "da2834931a98a36b31461633852f706a87e0ca3709ef600aaef55f54762a767f",
+        "size_bytes": 1038
+      }
+    ]
+  },
+  "protected_original_environments_mutated": false
+}
