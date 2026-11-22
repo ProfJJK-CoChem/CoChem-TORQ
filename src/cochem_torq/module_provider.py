@@ -132,7 +132,7 @@ def _nao_algorithm_identity() -> dict[str, Any]:
     }
 
 
-def _nao_options(options: dict, symbols: list[str]) -> dict:
+def _nao_options(options: dict[str, Any], symbols: list[str]) -> dict[str, Any]:
     """Admit only an explicitly requested, bounded initial RHF NAO tuple."""
     required = {"engine", "method", "charge", "multiplicity", "cores", "memory_mb"}
     if not isinstance(options, dict) or set(options) != required:
@@ -428,7 +428,7 @@ def analyze(artifact: Path) -> dict[str, Any]:
             match = re.fullmatch(r"([0-9]*)([A-Z][a-z]?)", normalized)
             assert match is not None
             mass_number, element_symbol = match.groups()
-            isotopes = mendeleev.element(element_symbol).isotopes
+            isotopes = getattr(mendeleev, "element")(element_symbol).isotopes
             if mass_number:
                 candidates = [
                     item for item in isotopes if item.mass_number == int(mass_number)
@@ -593,11 +593,13 @@ def analyze(artifact: Path) -> dict[str, Any]:
     return payload
 
 
-def _load_handoff(path: Path) -> tuple[dict, Path, list[str], list[list[float]]]:
+def _load_handoff(
+    path: Path,
+) -> tuple[dict[str, Any], Path, list[str], list[list[float]]]:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 2_000_000:
         raise ValueError("The handoff must be a bounded retained JSON file.")
 
-    def unique(items: list[tuple[str, Any]]) -> dict:
+    def unique(items: list[tuple[str, Any]]) -> dict[str, Any]:
         result = {}
         for key, value in items:
             if key in result:
@@ -664,7 +666,7 @@ def _load_handoff(path: Path) -> tuple[dict, Path, list[str], list[list[float]]]
     return record, artifact, symbols, positions
 
 
-def _scan_options(options: dict, atom_count: int) -> dict:
+def _scan_options(options: dict[str, Any], atom_count: int) -> dict[str, Any]:
     allowed = {
         "method",
         "charge",
@@ -749,7 +751,9 @@ def _scan_nuclear_masses(symbols: list[str]) -> tuple[list[str], list[float]]:
     geometry must retain its explicit isotopes or use the measured principal
     isotope, matching the mass-COM coordinate shown before submission.
     """
-    from mendeleev import element
+    import mendeleev
+
+    element = getattr(mendeleev, "element")
 
     elements, masses = [], []
     for symbol in symbols:
@@ -829,7 +833,7 @@ def research_scan(handoff_path: Path, directory: Path) -> dict[str, Any]:
         if np.min(pair) < 0.1:
             raise ValueError("The scan places nuclei less than 0.1 angstrom apart.")
         planned.append((float(distance), shifted))
-    points = []
+    points: list[dict[str, Any]] = []
     provider_path = Path(__file__).resolve()
 
     def snapshot() -> dict[str, Any]:
@@ -1418,7 +1422,7 @@ def _nao_checkpoint_binding(
         for symbol in dict.fromkeys(symbols)
     }
 
-    def canonical(value):
+    def canonical(value: Any) -> str:
         return json.dumps(value, sort_keys=True, allow_nan=False)
 
     if (

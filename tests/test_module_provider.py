@@ -447,21 +447,20 @@ def _independent_pair_checks(result, directory):
 
     import pyscf
 
-    expected = Path(
-        os.environ.get(
-            "COCHEM_NAO_EXPECTED_PROVIDER",
-            str(
-                Path(__file__).resolve().parents[1]
-                / "src/cochem_torq/module_provider.py"
-            ),
-        )
+    source_provider = (
+        Path(__file__).resolve().parents[1] / "src/cochem_torq/module_provider.py"
     ).resolve()
+    env_expected = os.environ.get("COCHEM_NAO_EXPECTED_PROVIDER")
+    actual_provider = Path(provider.__file__).resolve()
+    expected = Path(env_expected).resolve() if env_expected else actual_provider
     wrapper = directory / "actual-operation-wrapper.json"
     wrapper.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
-    assert Path(provider.__file__).resolve() == expected
+    assert actual_provider == expected
     assert Path(result["provider_file"]).resolve() == expected
+    assert actual_provider.read_bytes() == source_provider.read_bytes()
     assert (
-        result["provider_sha256"] == hashlib.sha256(expected.read_bytes()).hexdigest()
+        result["provider_sha256"]
+        == hashlib.sha256(source_provider.read_bytes()).hexdigest()
     )
     (directory / "invocation-origins.json").write_text(
         json.dumps(
