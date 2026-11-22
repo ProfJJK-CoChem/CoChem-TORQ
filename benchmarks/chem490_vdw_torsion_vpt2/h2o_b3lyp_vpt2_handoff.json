@@ -1,0 +1,115 @@
+{
+  "schema_version": "cochem.torq.vpt2-spectroscopy-handoff/1",
+  "molecule_id": "H2O_B3LYP-D4_VPT2",
+  "collaborator_institution": "Tennessee Tech University",
+  "b0_status": "AVAILABLE",
+  "re_se_status": "PENDING",
+  "re_se_pending_reason": "Semi-experimental r_e^SE awaits isotope-specific Delta B_vib and experimental B_0 constants.",
+  "pickett_parameter_basis": "B0_vpt2",
+  "pickett_reduction": "S",
+  "pickett_representation": "Ir",
+  "source_orca_sha256": "4136aeaf6dbefe3918a6d0d13b4661742477551b6a5c45bcff693fd144815f4b",
+  "source_orca_filename": "vpt2_water_b3lyp.out",
+  "rotational_record": {
+    "schema_version": "cochem.torq.orca-vpt2-rotational/1",
+    "source_path": "/mnt/d/_orca_jobs/hcooh-hsh/HCOOH-H2S_mw_predictions/tests/fixtures/vpt2_water_b3lyp.out",
+    "source_filename": "vpt2_water_b3lyp.out",
+    "source_sha256": "4136aeaf6dbefe3918a6d0d13b4661742477551b6a5c45bcff693fd144815f4b",
+    "source_size_bytes": 9321,
+    "orca_version": null,
+    "terminated_normally": true,
+    "has_vpt2_block": true,
+    "b0_status": "AVAILABLE",
+    "be_cm1": {
+      "a": 27.45356,
+      "b": 14.40989,
+      "c": 9.44984,
+      "unit": "cm^-1"
+    },
+    "be_mhz": {
+      "a": 823037.023325048,
+      "b": 431997.634260962,
+      "c": 283299.076130672,
+      "unit": "MHz"
+    },
+    "delta_b_vib_cm1": {
+      "delta_a": 0.43929999999999936,
+      "delta_b": -0.08433000000000135,
+      "delta_c": -0.23000000000000043,
+      "unit": "cm^-1"
+    },
+    "delta_b_vib_mhz": {
+      "delta_a": 13169.882679939969,
+      "delta_b": -2528.149798314029,
+      "delta_c": -6895.226534000016,
+      "unit": "MHz"
+    },
+    "b0_cm1": {
+      "a": 27.89286,
+      "b": 14.32556,
+      "c": 9.21984,
+      "unit": "cm^-1"
+    },
+    "b0_mhz": {
+      "a": 836206.906004988,
+      "b": 429469.484462648,
+      "c": 276403.849596672,
+      "unit": "MHz"
+    },
+    "zpve": {
+      "harmonic_cm1": 4673.190153,
+      "harmonic_hartree": 0.02129262103768054,
+      "anharmonic_correction_cm1": -75.274922,
+      "rotvib_correction_cm1": 4.494397,
+      "total_anharmonic_cm1": 4602.41
+    },
+    "quartic_cdc": {
+      "s_reduced_cm1": {
+        "DJ": 0.001113717,
+        "DK": 0.02623148,
+        "DJK": -0.004783057,
+        "D1": -0.0004559519,
+        "D2": -1.564028e-05
+      },
+      "s_reduced_mhz": {
+        "DJ": 33.3883956946386,
+        "DK": 786.3999866177841,
+        "DJK": -143.3924414784106,
+        "D1": -13.66909408307702,
+        "D2": -0.46888379850082396
+      },
+      "a_reduced_cm1": {
+        "DJ": 0.0009450134,
+        "DK": 0.02538797,
+        "DJK": -0.003770835,
+        "DelJ": 0.001144998,
+        "DelK": 0.02638789,
+        "DelJK": -0.00497074,
+        "delJ": 0.0004559519,
+        "delK": 0.0003914555
+      },
+      "a_reduced_mhz": {
+        "DJ": 28.33078900289372,
+        "DK": 761.112192993026,
+        "DJK": -113.04678933624301,
+        "DelJ": 34.3261764825084,
+        "DelK": 791.089040453362,
+        "DelJK": -149.019036267892,
+        "delJ": 13.66909408307702,
+        "delK": 11.7355406542619
+      }
+    },
+    "dipole": null,
+    "constants_profile": "cochem.constants.codata-2022-torq-compatible/1",
+    "scientific_notes": [
+      "Parsed genuine ORCA VPT2 B_e and B_0 constants; Delta B_vib = B_0 - B_e."
+    ]
+  },
+  "dipole_used_debye": null,
+  "dipole_source_sha256": null,
+  "pickett_var_filename": "h2o_b3lyp_vpt2.var",
+  "pickett_var_sha256": "3fb83286e85aa66d0435e84c1229a2f1fb913caffa15a76cddcd2b6eae253a6a",
+  "pickett_int_filename": "h2o_b3lyp_vpt2.int",
+  "pickett_int_sha256": "bdbde8cae79fc7675dd67fbadf302e4b6c0655a3cbb546d68214683d9839bb75",
+  "constants_profile": "cochem.constants.codata-2022-torq-compatible/1"
+}

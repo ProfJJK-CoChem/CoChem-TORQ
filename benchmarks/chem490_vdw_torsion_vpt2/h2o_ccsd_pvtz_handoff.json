@@ -1,0 +1,70 @@
+{
+  "schema_version": "cochem.torq.vpt2-spectroscopy-handoff/1",
+  "molecule_id": "H2O_CCSD_cc-pVTZ",
+  "collaborator_institution": "Tennessee Tech University",
+  "b0_status": "PENDING",
+  "re_se_status": "PENDING",
+  "re_se_pending_reason": "Semi-experimental r_e^SE awaits isotope-specific Delta B_vib and experimental B_0 constants.",
+  "pickett_parameter_basis": "Be_equilibrium_only_not_B0",
+  "pickett_reduction": "S",
+  "pickett_representation": "Ir",
+  "source_orca_sha256": "0ed9f5b81a11f5b16de807e5b9f2b597ddaf5f77f800bdba4223b9f934374bf2",
+  "source_orca_filename": "h2o_ccsd_pvtz.out",
+  "rotational_record": {
+    "schema_version": "cochem.torq.orca-vpt2-rotational/1",
+    "source_path": "/mnt/d/__CoChem/GitHub-Repo/CoChem-GEOM/benchmarks/h2o_t_geom_01/orca_ccsd_cc_pvtz/h2o_ccsd_pvtz.out",
+    "source_filename": "h2o_ccsd_pvtz.out",
+    "source_sha256": "0ed9f5b81a11f5b16de807e5b9f2b597ddaf5f77f800bdba4223b9f934374bf2",
+    "source_size_bytes": 126586,
+    "orca_version": "6.1.1",
+    "terminated_normally": true,
+    "has_vpt2_block": false,
+    "b0_status": "PENDING",
+    "be_cm1": {
+      "a": 27.05187,
+      "b": 14.721092,
+      "c": 9.533273,
+      "unit": "cm^-1"
+    },
+    "be_mhz": {
+      "a": 810993.954021,
+      "b": 441326.841003,
+      "c": 285800.093093,
+      "unit": "MHz"
+    },
+    "delta_b_vib_cm1": null,
+    "delta_b_vib_mhz": null,
+    "b0_cm1": null,
+    "b0_mhz": null,
+    "zpve": {
+      "harmonic_cm1": 4766.255947938672,
+      "harmonic_hartree": 0.02171666,
+      "anharmonic_correction_cm1": null,
+      "rotvib_correction_cm1": null,
+      "total_anharmonic_cm1": null
+    },
+    "quartic_cdc": null,
+    "dipole": {
+      "mu_a_debye": 0.0,
+      "mu_b_debye": -1.908676,
+      "mu_c_debye": 0.0,
+      "magnitude_debye": 1.908675893,
+      "method_label": "MDCI(SD)"
+    },
+    "constants_profile": "cochem.constants.codata-2022-torq-compatible/1",
+    "scientific_notes": [
+      "Equilibrium B_e only (no VPT2 block in ORCA output); b0_status=PENDING and delta_b_vib_mhz=None (B_e is never equated to B_0)."
+    ]
+  },
+  "dipole_used_debye": [
+    0.0,
+    -1.908676,
+    0.0
+  ],
+  "dipole_source_sha256": "0ed9f5b81a11f5b16de807e5b9f2b597ddaf5f77f800bdba4223b9f934374bf2",
+  "pickett_var_filename": "h2o_ccsd_pvtz.var",
+  "pickett_var_sha256": "b4056ea3f40e75edd82336a6323ff6af897e5209bd62cb31305f69c7b6f57c1d",
+  "pickett_int_filename": "h2o_ccsd_pvtz.int",
+  "pickett_int_sha256": "d0ea8ea8f75cacf571070e4ca6025ab8ea51cb4f821a29efc7424fcb041d1614",
+  "constants_profile": "cochem.constants.codata-2022-torq-compatible/1"
+}

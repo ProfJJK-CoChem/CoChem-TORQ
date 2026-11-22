@@ -1,0 +1,6 @@
+H2O_CCSD_cc-pVTZ [Be_equilibrium_only_not_B0 | Tennessee Tech University]
+   3  50   51    0    0.0000E+00    1.0000E+05    1.0000E+00 1.0000
+s   1  1  0  50  0  1  1  1  1  -1   0
+       10000   8.109939540210000E+05   1.0000E-03 /A (Be_equilibrium_only_not_B0)
+       20000   4.413268410030000E+05   1.0000E-03 /B (Be_equilibrium_only_not_B0)
+       30000   2.858000930930000E+05   1.0000E-03 /C (Be_equilibrium_only_not_B0)
