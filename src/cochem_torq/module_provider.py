@@ -18,6 +18,16 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from .chem490_vpt2_bridge import (
+    export_spycfit_geom_handoff as export_spycfit_geom_handoff,
+)
+from .chem490_vpt2_bridge import (
+    parse_orca_vpt2_rotational_constants as parse_orca_vpt2_rotational_constants,
+)
+from .chem490_vpt2_bridge import (
+    run_relaxed_1d_torsional_scan as run_relaxed_1d_torsional_scan,
+)
+
 _SYMBOL = re.compile(
     r"(?:[1-9][0-9]{0,2}[A-Z][a-z]?|[A-Z][a-z]?(?:-?[1-9][0-9]{0,2})?)\Z"
 )
