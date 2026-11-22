@@ -24,15 +24,14 @@ from cochem_torq.chem490_vpt2_bridge import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BENCH_DIR = REPO_ROOT / "benchmarks" / "chem490_vdw_torsion_vpt2"
+FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures" / "chem490_vpt2"
 
 
-def _resolve_disk_path(win_path: str, wsl_path: str) -> Path:
-    for candidate in (Path(wsl_path), Path(win_path)):
-        if candidate.is_file():
-            return candidate
-    raise FileNotFoundError(
-        f"Authentic ORCA output missing at both {wsl_path} and {win_path}"
-    )
+def _resolve_fixture(filename: str) -> Path:
+    candidate = FIXTURES_DIR / filename
+    if candidate.is_file():
+        return candidate
+    raise FileNotFoundError(f"Authentic ORCA fixture missing at {candidate}")
 
 
 def test_module_provider_reexports_bridge_without_breaking_operations() -> None:
@@ -49,10 +48,7 @@ def test_module_provider_reexports_bridge_without_breaking_operations() -> None:
 def test_parse_orca_equilibrium_only_never_equates_be_with_b0(
     tmp_path: Path,
 ) -> None:
-    orca_out = _resolve_disk_path(
-        r"D:\__CoChem\GitHub-Repo\CoChem-GEOM\benchmarks\h2o_t_geom_01\orca_ccsd_cc_pvtz\h2o_ccsd_pvtz.out",
-        "/mnt/d/__CoChem/GitHub-Repo/CoChem-GEOM/benchmarks/h2o_t_geom_01/orca_ccsd_cc_pvtz/h2o_ccsd_pvtz.out",
-    )
+    orca_out = _resolve_fixture("h2o_ccsd_pvtz.out")
     record = parse_orca_vpt2_rotational_constants(orca_out)
 
     assert record.orca_version == "6.1.1"
@@ -100,10 +96,7 @@ def test_parse_orca_equilibrium_only_never_equates_be_with_b0(
 
 
 def test_parse_orca_vpt2_ar_so2_and_export_handoff(tmp_path: Path) -> None:
-    vpt2_out = _resolve_disk_path(
-        r"D:\_orca_jobs\ar-so2\canary_s3_revdsd_dual_track\S3b_b3lyp_vpt2.out",
-        "/mnt/d/_orca_jobs/ar-so2/canary_s3_revdsd_dual_track/S3b_b3lyp_vpt2.out",
-    )
+    vpt2_out = _resolve_fixture("S3b_b3lyp_vpt2.out")
     record = parse_orca_vpt2_rotational_constants(vpt2_out)
 
     assert record.orca_version == "6.1.1"
@@ -151,10 +144,7 @@ def test_parse_orca_vpt2_ar_so2_and_export_handoff(tmp_path: Path) -> None:
 
 
 def test_parse_orca_vpt2_water_exact_values() -> None:
-    water_vpt2 = _resolve_disk_path(
-        r"D:\_orca_jobs\hcooh-hsh\HCOOH-H2S_mw_predictions\tests\fixtures\vpt2_water_b3lyp.out",
-        "/mnt/d/_orca_jobs/hcooh-hsh/HCOOH-H2S_mw_predictions/tests/fixtures/vpt2_water_b3lyp.out",
-    )
+    water_vpt2 = _resolve_fixture("vpt2_water_b3lyp.out")
     record = parse_orca_vpt2_rotational_constants(water_vpt2)
 
     assert record.has_vpt2_block is True
