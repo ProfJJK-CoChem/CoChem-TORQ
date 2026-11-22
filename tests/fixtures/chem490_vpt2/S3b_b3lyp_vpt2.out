@@ -1,0 +1,3232 @@
+
+                                 *****************
+                                 * O   R   C   A *
+                                 *****************
+
+                                            #,                                       
+                                            ###                                      
+                                            ####                                     
+                                            #####                                    
+                                            ######                                   
+                                           ########,                                 
+                                     ,,################,,,,,                         
+                               ,,#################################,,                 
+                          ,,##########################################,,             
+                       ,#########################################, ''#####,          
+                    ,#############################################,,   '####,        
+                  ,##################################################,,,,####,       
+                ,###########''''           ''''###############################       
+              ,#####''   ,,,,##########,,,,          '''####'''          '####       
+            ,##' ,,,,###########################,,,                        '##       
+           ' ,,###''''                  '''############,,,                           
+         ,,##''                                '''############,,,,        ,,,,,,###''
+      ,#''                                            '''#######################'''  
+     '                                                          ''''####''''         
+             ,#######,   #######,   ,#######,      ##                                
+            ,#'     '#,  ##    ##  ,#'     '#,    #''#        ,####,    ,#,          
+            ##       ##  ##   ,#'  ##            #'  '#       #'       ,# #          
+            ##       ##  #######   ##           ,######,      #####,      #          
+            '#,     ,#'  ##    ##  '#,     ,#' ,#      #,     #,   #      #          
+             '#######'   ##     ##  '#######'  #'      '#     '####' #    #          
+
+
+
+                #########################################################
+                #                        -***-                          #
+                #          Department of theory and spectroscopy        #
+                #                                                       #
+                #                      Frank Neese                      #
+                #                                                       #
+                #     Directorship, Architecture, Infrastructure        #
+                #                    SHARK, DRIVERS                     #
+                #        Core code/Algorithms in most modules           #
+                #                                                       #
+                #        Max Planck Institute fuer Kohlenforschung      #
+                #                Kaiser Wilhelm Platz 1                 #
+                #                 D-45470 Muelheim/Ruhr                 #
+                #                      Germany                          #
+                #                                                       #
+                #                  All rights reserved                  #
+                #                        -***-                          #
+                #########################################################
+
+
+                         Program Version 6.1.1  -  RELEASE   -
+
+
+ With contributions from (in alphabetic order):
+[Max-Planck-Institut fuer Kohlenforschung]                               
+  Daniel Aravena         : Magnetic Suceptibility                        
+  Michael Atanasov       : Ab Initio Ligand Field Theory (pilot matlab implementation)
+  Alexander A. Auer      : GIAO ZORA, VPT2 properties, NMR spectrum      
+  Ute Becker             : All parallelization in ORCA, NUMFREQ, NUMCALC 
+  Giovanni Bistoni       : ED, misc. LED, open-shell LED, HFLD           
+  Dmytro Bykov           : pre 5.0 version of the SCF Hessian            
+  Marcos Casanova-Páez   : Triplet and SCS-CIS(D). UHF-(DLPNO)-IP/EA/STEOM-CCSD. UHF-CVS-IP/STEOM-CCSD   
+  Vijay G. Chilkuri      : MRCI spin determinant printing, contributions to CSF-ICE 
+  Pauline Colinet        : FMM embedding                                 
+  Dipayan Datta          : RHF DLPNO-CCSD density                        
+  Achintya Kumar Dutta   : EOM-CC, STEOM-CC                              
+  Nicolas Foglia         : Exact transition moments, OPA infrastructure, MCD improvements    
+  Dmitry Ganyushin       : Spin-Orbit,Spin-Spin,Magnetic field MRCI      
+  Miquel Garcia-Rates    : C-PCM and meta-GGA Hessian, CCSD/C-PCM, Gaussian charge scheme 
+  Tiago L. C. Gouveia    : GS-ROHF, GS-ROCIS                             
+  Yang Guo               : DLPNO-NEVPT2, F12-NEVPT2, CIM, IAO-localization        
+  Andreas Hansen         : Spin unrestricted coupled pair/coupled cluster methods 
+  Ingolf Harden          : AUTO-CI MPn and infrastructure                
+  Benjamin Helmich-Paris : MC-RPA, TRAH-(SCF,CASSCF), AVAS, COSX integrals, SCF dyn. polar., MC-PDFT, srDFT 
+  Lee Huntington         : MR-EOM, pCC                                   
+  Robert Izsak           : Overlap fitted RIJCOSX, COSX-SCS-MP3, EOM     
+  Riya Kayal             : Wick's Theorem for AUTO-CI, AUTO-CI UHF-CCSDT 
+  Emily Kempfer          : AUTO-CI RHF CISDT and CCSDT, approximate NEVPT4
+  Christian Kollmar      : KDIIS, OOCD, Brueckner-CCSD(T), CCSD density, CASPT2, CASPT2-K, improved NEVPT2 
+  Axel Koslowski         : Symmetry handling                             
+  Simone Kossmann        : meta-GGA functionals, TD-DFT gradient, OOMP2, (MP2 Hessian; deprecated post 5.0) 
+  Lucas Lang             : DCDCAS, Hyperfine gauge corrections, ICE-SOC+SSC
+  Marvin Lechner         : AUTO-CI (C++ implementation), FIC-MRCC        
+  Spencer Leger          : CASSCF response                               
+  Dagmar Lenk            : GEPOL surface, SMD, ORCA-2-JSON               
+  Dimitrios Liakos       : Extrapolation schemes; Compound Job, Property file
+  Dimitrios Manganas     : Further ROCIS development; embedding schemes. LFT, Crystal Embedding 
+  Dimitrios Pantazis     : SARC Basis sets                               
+  Anastasios Papadopoulos: AUTO-CI, single reference methods and gradients 
+  Taras Petrenko         : pre 6.0 DFT Hessian and TD-DFT gradient,  ECA, NRVS 
+  Petra Pikulova         : Analytic Raman intensities                    
+  Peter Pinski           : DLPNO-MP2, DLPNO-MP2 Gradient                 
+  Shashank Vittal Rao    : ES-AILFT, MagRelax                            
+  Christoph Reimann      : Effective Core Potentials                     
+  Marius Retegan         : Local ZFS, SOC                                
+  Christoph Riplinger    : Optimizer, TS searches, QM/MM, DLPNO-CCSD(T), (RO)-DLPNO pert. Triples 
+  Michael Roemelt        : Original ROCIS implementation, recursive CI coupling coefficients
+  Masaaki Saitow         : Open-shell DLPNO-CCSD energy and density      
+  Barbara Sandhoefer     : DKH picture change effects                    
+  Yorick L. A. Schmerwitz: GMF and freeze-and-release deltaSCF, NEB S-IDPP initial path                    
+  Kantharuban Sivalingam : CASSCF convergence/infrastructure, NEVPT2, NEVPT3, NEVPT4(SD), FIC-MRCI and CEPA variants
+  Bernardo de Souza      : ESD, SOC TD-DFT                               
+  Georgi L. Stoychev     : AutoAux, RI-MP2 NMR, DLPNO-MP2 response, X2C  
+  Van Anh Tran           : RI-MP2 g-tensors                              
+  Willem Van den Heuvel  : Paramagnetic NMR                              
+  Zikuan Wang            : NOTCH, Electric field optimization            
+  Frank Wennmohs         : Technical directorship and infrastructure     
+  Hang Xu                : AUTO-CI-Response properties                   
+                                                                         
+[FACCTs GmbH]                                                            
+  Markus Bursch, Nicolas Foglia, Miquel Garcia-Rates, Ingolf Harden, Hagen Neugebauer, Anastasios Papadopoulos, 
+  Christoph Riplinger, Bernardo de Souza, Georgi L. Stoychev                                                    
+                                                                 
+  APM, various basis sets, CI-OPT, improved COSX, DLPNO-Multilevel,           
+  DOCKER, DRACO, updates on ESD, Fragmentator, GOAT, IRC, LR-CPCM, L-BFGS, MBIS, meta-GGA TD-DFT gradient, ML-optimized integration grids, 
+  MM, NACMEs, nearIR, NEB, NEB-TS, NL-DFT gradient (VV10), 2- and 3-layer-ONIOM, interface openCOSMO-RS, QMMM,   
+  Crystal-QMMM, RESP, rigid body optimization, SF, symmetry and pop. for TD-DFT, various functionals, SOLVATOR                                   
+                                                                         
+[Other institutions]                                                     
+  V. Asgeirsson          : NEB                                           
+  Christoph Bannwarth    : sTDA-DFT, sTD-DFT, PBEh-3c, B97-3c, D3        
+  Giovanni Bistoni       : ETS/NOCV, ADLD/ADEX, COVALED                  
+  Martin Brehm           : Molecular dynamics                            
+  Ronald Cardenas        : ETS/NOCV                                      
+  Martina Colucci        : COVALED                                       
+  Sebastian Ehlert       : rSCAN, r2SCAN, r2SCAN-3c, D4, dhf basis sets  
+  Marvin Friede          : D4 for Fr, Ra, Ac-Lr                          
+  Lars Goerigk           : TD-DFT with DH, B97 family of functionals     
+  Stefan Grimme          : VdW corrections, initial TS optimization, DFT functionals, gCP, sTDA/sTD-DF 
+  Waldemar Hujo          : DFT-NL                                        
+  H. Jonsson             : NEB                                           
+  Holger Kruse           : gCP                                           
+  Marcel Mueller         : wB97X-3c, vDZP basis set                      
+  Hagen Neugebauer       : wr2SCAN, Native XTB                           
+  Gianluca Regni         : ADLD/ADEX                                     
+  Tobias Risthaus        : pre 6.0 range-separated hybrid DFT and stability analysis
+  Lukas Wittmann         : regularized MP2, r2SCAN double-hybrids, wr2SCAN        
+                                                                         
+We gratefully acknowledge several colleagues who have allowed us to      
+interface, adapt or use parts of their codes:                            
+  Ed Valeev, F. Pavosevic, A. Kumar             : LibInt (2-el integral package), F12 methods 
+  Garnet Chan, S. Sharma, J. Yang, R. Olivares  : DMRG                   
+  Ulf Ekstrom                                   : XCFun DFT Library      
+  Mihaly Kallay                                 : mrcc  (arbitrary order and MRCC methods)
+  Frank Weinhold                                : gennbo (NPA and NBO analysis)           
+  Simon Mueller                                 : openCOSMO-RS                            
+  Christopher J. Cramer and Donald G. Truhlar   : smd solvation model                     
+  S Lehtola, MJT Oliveira, MAL Marques          : LibXC Library                           
+  Liviu Ungur et al                             : ANISO software                          
+
+
+ Your calculation uses the libint2 library for the computation of 2-el integrals
+ For citations please refer to: http://libint.valeyev.net
+
+ Your ORCA version has been built with support for libXC version: 7.0.0
+ For citations please refer to: https://libxc.gitlab.io
+
+ This ORCA versions uses:
+   CBLAS   interface :  Fast vector & matrix operations
+   LAPACKE interface :  Fast linear algebra routines
+   Shared memory     :  Shared parallel matrices
+
+
+  ***********************************
+  * Starting time: Wed Nov 18 12:30:43 2026
+  * Host name:     AETHERDESK
+  * Process ID:    27720
+  * Working dir.:  D:\_orca_jobs\ar-so2\canary_s3_revdsd_dual_track
+  ***********************************
+
+NOTE: MaxCore=3000 MB was set to SCF,MP2,MDCI,CIPSI,MRCI,RASCI and CIS
+      => If you want to overwrite this, your respective input block should be placed after the MaxCore statement
+
+
+***************************************
+The coordinates will be read from file: S3a_b3lyp_opt.xyz
+***************************************
+
+
+Your calculation utilizes the atom-pairwise dispersion correction
+based on EEQ partial charges (D4)
+
+
+================================================================================
+
+----- Orbital basis set information -----
+Your calculation utilizes the basis: jun-cc-pV(D+d)Z 
+  E. Papajak, D. G. Truhlar, J. Chem. Theory Comput. 7, 10-18 (2011).
+
+----- AuxJ basis set information -----
+Your calculation utilizes the auxiliary basis: def2/J
+   H-Rn: F. Weigend, Phys. Chem. Chem. Phys. 8, 1057 (2006).
+   Fr-Lr: K. Eichkorn, F. Weigend, O. Treutler, R. Ahlrichs; Theor. Chem. Acc. 97, 119 (1997).
+
+================================================================================
+                                        WARNINGS
+                       Please study these warnings very carefully!
+================================================================================
+
+
+WARNING: Instead of the default, updated atomic masses from 2016 are used.
+
+
+================================================================================
+                                       INPUT FILE
+================================================================================
+NAME = S3b_b3lyp_vpt2.inp
+|  1> ! B3LYP D4 jun-cc-pV(D+d)Z def2/J RIJCOSX TightSCF DefGrid3 VPT2 NoUseSym
+|  2> 
+|  3> # ORCA 6.1.1 S3b_b3lyp_vpt2 (ar-so2:canary)
+|  4> %maxcore 3000
+|  5> %pal
+|  6>   nprocs 4
+|  7> end
+|  8> 
+|  9> %scf
+| 10>   MaxIter 300
+| 11>   ConvForced true
+| 12> end
+| 13> 
+| 14> %vpt2
+| 15>   AnharmDisp 0.05
+| 16>   PrintLevel 3
+| 17> end
+| 18> 
+| 19> * xyzfile 0 1 S3a_b3lyp_opt.xyz
+| 20> 
+| 21>                          ****END OF INPUT****
+================================================================================
+
+numfreqdx 0.005000 AnHess 1 RunTyp 0 
+                     *******************************
+                     *              VPT2           *
+                     *******************************
+
+    Basename = S3b_b3lyp_vpt2
+    Pickettname = 
+    MinimiseOrcaOutput = true
+    SymThresh = 1.00e-04
+    AnharmDisp = 0.050
+    PropDisp = 0.050
+    HessianCutoff = 1.00e-14
+    print_level = 3
+    AvgProp = 0
+    SkipModes = 0
+    CubicXTB = 0
+
+
+Initial geometry in Angstroem
+Rotating Geometry into its principle axis frame!
+ -----------------------------------------------
+| PLEASE NOTE :                                 |
+| In contrast to most parts of ORCA, which keep |
+| the orientation of a system from the input,   |
+| the VPT2 module will rotate the system into   |
+| the principlal axes frame. This influences    |
+| all directional properties like dipole        |
+| or transition dipole components. Please check |
+| the geometry output below for the new coords !|
+ -----------------------------------------------
+Debug: shifting the centre of mass to [0, 0, 0]
+
+p = 2.044e+02 ...Diagonalising
+Setting up the geometry class.
+New geometry in Angstroem
+ > Obtaining the initial Hessian.
+calling ORCA analytical Hessian for initial Hessian 
+VPT2 initial Hessian finished in    25.921000 seconds 
+VPT2 initial property finished in     0.000000 seconds 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -6.62 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.95 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.38 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.68  0.055   0.002018 ( -0.044137  -0.001204  -0.008254)
+4    2.54  0.000   0.000003 ( -0.000164  -0.001766  -0.000001)
+5   11.83  2.400   0.012522 ( -0.010034  -0.111449  -0.000094)
+6   20.86  0.076   0.000226 (  0.004682   0.014296   0.000234)
+7   24.59 13.249   0.033268 ( -0.181919   0.003686  -0.012662)
+8   40.31  5.290   0.008103 (  0.089852  -0.000497   0.005464)
+9  506.39 33.559   0.004092 (  0.006622  -0.000252  -0.063626)
+10  1135.03 35.827   0.001949 (  0.004785  -0.000171  -0.043889)
+11  1327.41 228.589   0.010634 (  0.000022   0.103120  -0.000409)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001285  -0.000000  -0.000037  -0.000958  -0.000001  -0.000217
+      1      -0.000000   0.000046  -0.000000  -0.000000  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000017  -0.000043   0.000000  -0.000076
+      3      -0.000958  -0.000000  -0.000043   0.004795   0.000016  -0.039358
+      4      -0.000001  -0.000151   0.000000   0.000016   0.909345  -0.001900
+      5      -0.000217   0.000000  -0.000076  -0.039358  -0.001900   0.426399
+      6      -0.000164   0.000069   0.000042  -0.001908   0.024694   0.019605
+      7      -0.000041   0.000053   0.000024   0.020496  -0.456530  -0.217309
+      8       0.000126   0.000035   0.000029   0.019590  -0.265122  -0.211243
+      9      -0.000164  -0.000068   0.000042  -0.001929  -0.024710   0.019905
+     10       0.000042   0.000052  -0.000024  -0.020511  -0.452664   0.219199
+     11       0.000125  -0.000035   0.000030   0.019878   0.267030  -0.215080
+                  6          7          8          9         10         11    
+      0      -0.000164  -0.000041   0.000126  -0.000164   0.000042   0.000125
+      1       0.000069   0.000053   0.000035  -0.000068   0.000052  -0.000035
+      2       0.000042   0.000024   0.000029   0.000042  -0.000024   0.000030
+      3      -0.001908   0.020496   0.019590  -0.001929  -0.020511   0.019878
+      4       0.024694  -0.456530  -0.265122  -0.024710  -0.452664   0.267030
+      5       0.019605  -0.217309  -0.211243   0.019905   0.219199  -0.215080
+      6       0.001810  -0.022593  -0.017029   0.000262  -0.002223  -0.002648
+      7      -0.022593   0.481666   0.240971   0.002192  -0.025188  -0.023689
+      8      -0.017029   0.240971   0.182561  -0.002656   0.024119   0.028652
+      9       0.000262   0.002192  -0.002656   0.001830   0.022639  -0.017323
+     10      -0.002223  -0.025188   0.024119   0.022639   0.477800  -0.243300
+     11      -0.002648  -0.023689   0.028652  -0.017323  -0.243300   0.186398
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000150   0.000000  -0.001231
+      4      -0.000000  -0.000004   0.000000   0.000000   0.028442  -0.000059
+      5      -0.000006   0.000000  -0.000002  -0.001231  -0.000059   0.013337
+      6      -0.000006   0.000003   0.000002  -0.000084   0.001092   0.000867
+      7      -0.000002   0.000002   0.000001   0.000906  -0.020188  -0.009609
+      8       0.000005   0.000001   0.000001   0.000866  -0.011724  -0.009341
+      9      -0.000006  -0.000003   0.000002  -0.000085  -0.001093   0.000880
+     10       0.000002   0.000002  -0.000001  -0.000907  -0.020017   0.009693
+     11       0.000005  -0.000001   0.000001   0.000879   0.011808  -0.009511
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000084   0.000906   0.000866  -0.000085  -0.000907   0.000879
+      4       0.001092  -0.020188  -0.011724  -0.001093  -0.020017   0.011808
+      5       0.000867  -0.009609  -0.009341   0.000880   0.009693  -0.009511
+      6       0.000113  -0.001413  -0.001065   0.000016  -0.000139  -0.000166
+      7      -0.001413   0.030114   0.015066   0.000137  -0.001575  -0.001481
+      8      -0.001065   0.015066   0.011414  -0.000166   0.001508   0.001791
+      9       0.000016   0.000137  -0.000166   0.000114   0.001415  -0.001083
+     10      -0.000139  -0.001575   0.001508   0.001415   0.029872  -0.015211
+     11      -0.000166  -0.001481   0.001791  -0.001083  -0.015211   0.011654
+
+diagonalized Hessian : 
+	  0      -0.000002
+	  1      -0.000001
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000005
+	  6       0.000016
+	  7       0.000023
+	  8       0.000061
+	  9       0.009704
+	 10       0.048754
+	 11       0.066681
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.002774  -0.045900   0.603436  -0.159173  -0.001056  -0.005335
+      1      -0.318206  -0.009338  -0.002442  -0.008097  -0.908877  -0.080062
+      2       0.008392  -0.322797  -0.189801  -0.917243   0.007531   0.023851
+      3       0.004209  -0.082141   0.542956  -0.143419  -0.001081  -0.016115
+      4       0.612261   0.008114  -0.001282  -0.002845  -0.281300  -0.182603
+      5      -0.016600   0.637265  -0.072844  -0.236850   0.003996  -0.036431
+      6       0.290867   0.143557   0.383572  -0.043924   0.081141  -0.044004
+      7       0.413615   0.022792  -0.002525  -0.000516  -0.201345   0.241584
+      8       0.048798   0.440296  -0.048844  -0.164653   0.014670  -0.667990
+      9      -0.298832   0.132910   0.383734  -0.045127  -0.082183   0.084715
+     10       0.413215   0.022832  -0.002484  -0.000540  -0.201408   0.246620
+     11      -0.073494   0.497507  -0.054288  -0.159722  -0.008953   0.619318
+                  6          7          8          9         10         11    
+      0       0.006635  -0.369095  -0.687102   0.000788   0.000074  -0.000000
+      1      -0.257123  -0.002663   0.000037   0.000001   0.000000  -0.000079
+      2      -0.003403   0.133101  -0.004333   0.000097   0.000053   0.000000
+      3       0.010086  -0.386856   0.723665   0.047526   0.043537   0.000127
+      4       0.292929   0.015693  -0.002290  -0.002088  -0.001837   0.653086
+      5       0.004650  -0.181076   0.045193  -0.527041  -0.467161  -0.002570
+      6      -0.646376   0.561891   0.030724  -0.034263  -0.030660   0.025070
+      7       0.124037  -0.006534   0.000711  -0.467596   0.530400  -0.462705
+      8       0.085692  -0.019497  -0.017039   0.374358   0.328094  -0.268390
+      9       0.620859   0.583725   0.029236  -0.034187  -0.030883  -0.025249
+     10       0.123198  -0.007645   0.002261   0.470587  -0.527796  -0.460518
+     11      -0.082016  -0.080100  -0.006306   0.370648   0.332310   0.272030
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.089530  -0.000731  -0.007971
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.004554  -0.628847  -0.119621
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.515922   0.005211   0.035636
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.072155  -0.000669  -0.021536
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.001432  -0.174088  -0.244033
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.119160   0.002473  -0.048687
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.015630   0.035518  -0.041594
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -0.000184  -0.088135   0.228357
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.058591   0.006422  -0.631416
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.016058  -0.035974   0.080077
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -0.000192  -0.088162   0.233117
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.056837  -0.003919   0.585409
+                  6          7          8          9         10         11    
+      0       0.013161  -0.794996  -1.894795   0.007701   0.001079  -0.000002
+      1      -0.510014  -0.005736   0.000102   0.000010   0.000003  -0.001256
+      2      -0.006751   0.286688  -0.011948   0.000951   0.000783   0.000006
+      3       0.017895  -0.745308   1.785001   0.415481   0.569827   0.001799
+      4       0.519712   0.030233  -0.005649  -0.018253  -0.024039   9.243883
+      5       0.008250  -0.348858   0.111475  -4.607528  -6.114384  -0.036377
+      6      -0.811132   0.765674   0.053603  -0.211864  -0.283838   0.250979
+      7       0.155653  -0.008904   0.001241  -2.891346   4.910156  -4.632271
+      8       0.107535  -0.026568  -0.029727   2.314817   3.037317  -2.686926
+      9       0.779111   0.795427   0.051006  -0.211395  -0.285895  -0.252777
+     10       0.154600  -0.010418   0.003944   2.909844  -4.886052  -4.610374
+     11      -0.102921  -0.109150  -0.011001   2.291878   3.076349   2.723372
+
+ > Generate 12 displacements .
+generating displaced geometries for force field 
+generating displaced geometries for property derivatives 
+Calculate the inertia derivatives a_k^ab.
+
+Frequencies: 
+	  0      -6.618941
+	  1      -3.953049
+	  2      -0.380943
+	  3       1.677080
+	  4       2.537668
+	  5      11.833583
+	  6      20.856275
+	  7      24.592827
+	  8      40.312303
+	  9     506.388263
+	 10     1135.032721
+	 11     1327.406203
+
+
+Intensities: 
+	  0       0.004295
+	  1       0.694768
+	  2       0.000078
+	  3       0.054797
+	  4       0.000129
+	  5       2.399563
+	  6       0.076451
+	  7      13.249395
+	  8       5.290130
+	  9      33.558526
+	 10      35.826703
+	 11     228.589366
+
+
+generated displaced geometries : 
+
+Displacement 1:
+                  0          1          2    
+      0      -4.346947   0.005770   0.348737
+      1       2.650762  -0.004002   0.475522
+      2       2.799576  -2.375620  -0.904064
+      3       2.762466   2.361545  -0.917898
+
+Displacement 2:
+                  0          1          2    
+      0      -4.346695  -0.004002   0.348607
+      1       2.651191   0.008445   0.475720
+      2       2.760744  -2.368169  -0.898916
+      3       2.799765   2.368946  -0.922825
+
+Displacement 3:
+                  0          1          2    
+      0      -4.340362   0.000931   0.346343
+      1       2.658545   0.001914   0.479164
+      2       2.764617  -2.371714  -0.900951
+      3       2.764968   2.365457  -0.918146
+
+Displacement 4:
+                  0          1          2    
+      0      -4.353281   0.000837   0.351001
+      1       2.643407   0.002528   0.472078
+      2       2.795704  -2.372075  -0.902030
+      3       2.797262   2.365034  -0.922577
+
+Displacement 5:
+                  0          1          2    
+      0      -4.337429   0.000884   0.348731
+      1       2.639917   0.002256   0.474931
+      2       2.779497  -2.371910  -0.901122
+      3       2.780484   2.365196  -0.920225
+
+Displacement 6:
+                  0          1          2    
+      0      -4.356213   0.000885   0.348613
+      1       2.662035   0.002186   0.476312
+      2       2.780824  -2.371879  -0.901858
+      3       2.781747   2.365294  -0.920498
+
+Displacement 7:
+                  0          1          2    
+      0      -4.346824   0.000884   0.348672
+      1       2.650771   0.002230   0.477894
+      2       2.780369  -2.369044  -0.903772
+      3       2.781324   2.362377  -0.922621
+
+Displacement 8:
+                  0          1          2    
+      0      -4.346818   0.000884   0.348673
+      1       2.651181   0.002212   0.473349
+      2       2.779952  -2.374745  -0.899208
+      3       2.780907   2.368114  -0.918102
+
+Displacement 9:
+                  0          1          2    
+      0      -4.346821   0.000884   0.348672
+      1       2.650851   0.002227   0.476967
+      2       2.780285  -2.374054  -0.902826
+      3       2.781241   2.367394  -0.921715
+
+Displacement 10:
+                  0          1          2    
+      0      -4.346821   0.000884   0.348672
+      1       2.651102   0.002216   0.474276
+      2       2.780036  -2.369735  -0.900154
+      3       2.780990   2.363096  -0.919008
+
+Displacement 11:
+                  0          1          2    
+      0      -4.346821   0.000884   0.348672
+      1       2.650976   0.000482   0.475628
+      2       2.780066  -2.370152  -0.900480
+      3       2.781210   2.366979  -0.921386
+
+Displacement 12:
+                  0          1          2    
+      0      -4.346821   0.000884   0.348672
+      1       2.650977   0.003961   0.475614
+      2       2.780255  -2.373637  -0.902501
+      3       2.781020   2.363511  -0.919337
+
+Storing displaced geometries for hessian and property derivatives
+List of participating nodes    ...  S3b_b3lyp_vpt2.hostnames
+
+	<< Calculating Hessian on displaced geometry   1 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   3 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   4 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   2 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   5 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   6 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   7 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   8 (of  12)   >>
+	<< Calculating Hessian on displaced geometry   9 (of  12)   >>
+	<< Calculating Hessian on displaced geometry  10 (of  12)   >>
+	<< Calculating Hessian on displaced geometry  11 (of  12)   >>
+	<< Calculating Hessian on displaced geometry  12 (of  12)   >>
+VPT2 displaced Hessians finished in   398.662000 seconds 
+ 
+------- collect hessians vpt2 -------- 
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D001.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D001.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -6.43 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.49 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.39 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.69  0.057   0.002070 (  0.044676   0.002027   0.008355)
+4    2.61  0.004   0.000086 (  0.008450   0.003332   0.001986)
+5   13.08  2.402   0.011335 ( -0.011682  -0.105823  -0.000449)
+6   21.13  0.849   0.002481 ( -0.047124   0.015814  -0.003141)
+7   25.49 12.117   0.029358 ( -0.170916  -0.000593  -0.012046)
+8   40.52  5.697   0.008681 (  0.092995   0.000287   0.005727)
+9  506.39 33.555   0.004092 (  0.006652  -0.000141  -0.063621)
+10  1134.90 35.825   0.001949 (  0.004805  -0.000107  -0.043888)
+11  1327.25 228.579   0.010635 ( -0.000859   0.103121  -0.000301)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001286   0.000004  -0.000037  -0.000960  -0.000015  -0.000217
+      1       0.000004   0.000046  -0.000001   0.000002  -0.000151   0.000001
+      2      -0.000037  -0.000001   0.000018  -0.000043   0.000001  -0.000077
+      3      -0.000960   0.000002  -0.000043   0.004915  -0.007193  -0.039507
+      4      -0.000015  -0.000151   0.000001  -0.007193   0.909093  -0.001746
+      5      -0.000217   0.000001  -0.000077  -0.039507  -0.001746   0.426298
+      6      -0.000154   0.000065   0.000040  -0.002369   0.028416   0.021460
+      7      -0.000036   0.000052   0.000024   0.024186  -0.455517  -0.217312
+      8       0.000129   0.000035   0.000029   0.021818  -0.265113  -0.211712
+      9      -0.000172  -0.000072   0.000044  -0.001586  -0.021207   0.018200
+     10       0.000047   0.000053  -0.000024  -0.016995  -0.453425   0.219050
+     11       0.000122  -0.000035   0.000030   0.017796   0.266864  -0.214509
+                  6          7          8          9         10         11    
+      0      -0.000154  -0.000036   0.000129  -0.000172   0.000047   0.000122
+      1       0.000065   0.000052   0.000035  -0.000072   0.000053  -0.000035
+      2       0.000040   0.000024   0.000029   0.000044  -0.000024   0.000030
+      3      -0.002369   0.024186   0.021818  -0.001586  -0.016995   0.017796
+      4       0.028416  -0.455517  -0.265113  -0.021207  -0.453425   0.266864
+      5       0.021460  -0.217312  -0.211712   0.018200   0.219050  -0.214509
+      6       0.002262  -0.026507  -0.019059   0.000261  -0.002025  -0.002471
+      7      -0.026507   0.480644   0.241048   0.002409  -0.025180  -0.023762
+      8      -0.019059   0.241048   0.183035  -0.002859   0.024033   0.028649
+      9       0.000261   0.002409  -0.002859   0.001496   0.018922  -0.015416
+     10      -0.002025  -0.025180   0.024033   0.018922   0.478552  -0.243063
+     11      -0.002471  -0.023762   0.028649  -0.015416  -0.243063   0.185830
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032   0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1       0.000000   0.000001  -0.000000   0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027   0.000000  -0.000001   0.000154  -0.000225  -0.001236
+      4      -0.000000  -0.000004   0.000000  -0.000225   0.028434  -0.000055
+      5      -0.000006   0.000000  -0.000002  -0.001236  -0.000055   0.013333
+      6      -0.000006   0.000003   0.000002  -0.000105   0.001257   0.000949
+      7      -0.000001   0.000002   0.000001   0.001070  -0.020143  -0.009610
+      8       0.000005   0.000001   0.000001   0.000965  -0.011723  -0.009362
+      9      -0.000007  -0.000003   0.000002  -0.000070  -0.000938   0.000805
+     10       0.000002   0.000002  -0.000001  -0.000752  -0.020051   0.009686
+     11       0.000005  -0.000001   0.000001   0.000787   0.011801  -0.009486
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000001   0.000005  -0.000007   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000105   0.001070   0.000965  -0.000070  -0.000752   0.000787
+      4       0.001257  -0.020143  -0.011723  -0.000938  -0.020051   0.011801
+      5       0.000949  -0.009610  -0.009362   0.000805   0.009686  -0.009486
+      6       0.000141  -0.001657  -0.001192   0.000016  -0.000127  -0.000154
+      7      -0.001657   0.030050   0.015070   0.000151  -0.001574  -0.001486
+      8      -0.001192   0.015070   0.011443  -0.000179   0.001503   0.001791
+      9       0.000016   0.000151  -0.000179   0.000094   0.001183  -0.000964
+     10      -0.000127  -0.001574   0.001503   0.001183   0.029919  -0.015196
+     11      -0.000154  -0.001486   0.001791  -0.000964  -0.015196   0.011618
+
+diagonalized Hessian : 
+	  0      -0.000002
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000006
+	  6       0.000017
+	  7       0.000025
+	  8       0.000062
+	  9       0.009704
+	 10       0.048742
+	 11       0.066665
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.018926  -0.030823   0.601207   0.168331   0.007946  -0.007939
+      1      -0.307380   0.010805   0.024340  -0.124152   0.906615  -0.077054
+      2       0.120537  -0.267528  -0.198921   0.907066   0.184787   0.029842
+      3       0.043554  -0.059125   0.541109   0.151523   0.006334  -0.021650
+      4       0.593730   0.185479   0.015547  -0.075772   0.250988  -0.187395
+      5      -0.144923   0.627041  -0.081018   0.219907  -0.036409  -0.035050
+      6       0.217902   0.165567   0.382100   0.055825  -0.094588  -0.054096
+      7       0.404159   0.142690   0.010434  -0.056450   0.177027   0.237394
+      8      -0.055161   0.446150  -0.056471   0.154859  -0.035656  -0.664942
+      9      -0.337519   0.082209   0.382072   0.042724   0.075817   0.101226
+     10       0.399555   0.141960   0.010490  -0.056536   0.178416   0.242428
+     11      -0.166687   0.471753  -0.058280   0.145315  -0.018476   0.621165
+                  6          7          8          9         10         11    
+      0      -0.058429  -0.383059  -0.677224   0.000788   0.000074  -0.000006
+      1      -0.245875   0.032200  -0.003792   0.000003  -0.000001  -0.000079
+      2       0.047566   0.119306  -0.005356   0.000097   0.000054   0.000001
+      3      -0.107641  -0.355049   0.732444   0.047757   0.043733  -0.005104
+      4       0.284750  -0.037126   0.004685  -0.001113  -0.001070   0.653072
+      5      -0.055852  -0.164343   0.047244  -0.527012  -0.467156  -0.001945
+      6      -0.492864   0.719733  -0.013456  -0.030689  -0.035056   0.028886
+      7       0.106724  -0.017774  -0.000312  -0.468291   0.529834  -0.462146
+      8       0.078595  -0.026390  -0.017492   0.373950   0.328691  -0.268816
+      9       0.741503   0.401254   0.045350  -0.038089  -0.026768  -0.021659
+     10       0.115584  -0.021148   0.001699   0.469887  -0.528314  -0.461057
+     11      -0.120052  -0.055394  -0.007091   0.371018   0.331706   0.271569
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)   0.095149   0.005575  -0.012472
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.070177   0.636094  -0.121050
+      2      -nan(ind)  -nan(ind)  -nan(ind)   0.512717   0.129649   0.046880
+      3      -nan(ind)  -nan(ind)  -nan(ind)   0.076608   0.003975  -0.030422
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.038310   0.157511  -0.263322
+      5      -nan(ind)  -nan(ind)  -nan(ind)   0.111183  -0.022849  -0.049251
+      6      -nan(ind)  -nan(ind)  -nan(ind)   0.019963  -0.041986  -0.053765
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -0.020187   0.078578   0.235942
+      8      -nan(ind)  -nan(ind)  -nan(ind)   0.055378  -0.015827  -0.660875
+      9      -nan(ind)  -nan(ind)  -nan(ind)   0.015278   0.033654   0.100606
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -0.020218   0.079195   0.240945
+     11      -nan(ind)  -nan(ind)  -nan(ind)   0.051966  -0.008201   0.617366
+                  6          7          8          9         10         11    
+      0      -0.116642  -0.839919  -1.872441   0.007700   0.001082  -0.000099
+      1      -0.490838   0.070603  -0.010485   0.000033  -0.000013  -0.001256
+      2       0.094956   0.261597  -0.014809   0.000947   0.000785   0.000016
+      3      -0.192204  -0.696337   1.811383   0.417507   0.572359  -0.072237
+      4       0.508448  -0.072814   0.011586  -0.009730  -0.014000   9.243145
+      5      -0.099730  -0.322317   0.116836  -4.607291  -6.113963  -0.027522
+      6      -0.622466   0.998410  -0.023537  -0.189765  -0.324509   0.289167
+      7       0.134788  -0.024656  -0.000545  -2.895656   4.904630  -4.626401
+      8       0.099262  -0.036607  -0.030597   2.312298   3.042667  -2.691039
+      9       0.936486   0.556617   0.079326  -0.235522  -0.247792  -0.216824
+     10       0.145978  -0.029337   0.002971   2.905521  -4.890564  -4.615506
+     11      -0.151621  -0.076842  -0.012404   2.294170   3.070573   2.718596
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D002.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D002.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -6.33 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.59 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.37 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.66  0.055   0.002032 (  0.044304   0.000626   0.008276)
+4    2.59  0.003   0.000078 (  0.007875  -0.003536   0.001948)
+5   12.83  2.407   0.011580 ( -0.008908  -0.107241   0.000113)
+6   21.00  0.960   0.002824 (  0.051684   0.011914   0.003255)
+7   25.37 12.092   0.029432 ( -0.171002   0.006892  -0.011956)
+8   40.47  5.610   0.008560 (  0.092341  -0.001299   0.005623)
+9  506.39 33.554   0.004092 (  0.006593  -0.000362  -0.063625)
+10  1134.90 35.823   0.001949 (  0.004765  -0.000244  -0.043891)
+11  1327.26 228.576   0.010635 (  0.000903   0.103119  -0.000519)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001285  -0.000005  -0.000037  -0.000959   0.000014  -0.000217
+      1      -0.000005   0.000046   0.000001  -0.000003  -0.000151  -0.000001
+      2      -0.000037   0.000001   0.000017  -0.000043  -0.000001  -0.000076
+      3      -0.000959  -0.000003  -0.000043   0.004845   0.007229  -0.039200
+      4       0.000014  -0.000151  -0.000001   0.007229   0.909092  -0.002072
+      5      -0.000217  -0.000001  -0.000076  -0.039200  -0.002072   0.426358
+      6      -0.000173   0.000073   0.000043  -0.001536   0.020946   0.017746
+      7      -0.000047   0.000054   0.000024   0.016772  -0.457276  -0.217152
+      8       0.000122   0.000035   0.000030   0.017355  -0.264958  -0.210699
+      9      -0.000154  -0.000065   0.000040  -0.002351  -0.028190   0.021607
+     10       0.000037   0.000052  -0.000024  -0.023997  -0.451665   0.219214
+     11       0.000129  -0.000035   0.000029   0.021952   0.267040  -0.215582
+                  6          7          8          9         10         11    
+      0      -0.000173  -0.000047   0.000122  -0.000154   0.000037   0.000129
+      1       0.000073   0.000054   0.000035  -0.000065   0.000052  -0.000035
+      2       0.000043   0.000024   0.000030   0.000040  -0.000024   0.000029
+      3      -0.001536   0.016772   0.017355  -0.002351  -0.023997   0.021952
+      4       0.020946  -0.457276  -0.264958  -0.028190  -0.451665   0.267040
+      5       0.017746  -0.217152  -0.210699   0.021607   0.219214  -0.215582
+      6       0.001453  -0.018650  -0.014994   0.000256  -0.002420  -0.002825
+      7      -0.018650   0.482401   0.240732   0.001975  -0.025178  -0.023605
+      8      -0.014994   0.240732   0.182017  -0.002453   0.024193   0.028652
+      9       0.000256   0.001975  -0.002453   0.002248   0.026330  -0.019225
+     10      -0.002420  -0.025178   0.024193   0.026330   0.476791  -0.243392
+     11      -0.002825  -0.023605   0.028652  -0.019225  -0.243392   0.186901
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027   0.000000  -0.000006
+      1      -0.000000   0.000001   0.000000  -0.000000  -0.000004  -0.000000
+      2      -0.000001   0.000000   0.000000  -0.000001  -0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000152   0.000226  -0.001226
+      4       0.000000  -0.000004  -0.000000   0.000226   0.028434  -0.000065
+      5      -0.000006  -0.000000  -0.000002  -0.001226  -0.000065   0.013335
+      6      -0.000007   0.000003   0.000002  -0.000068   0.000926   0.000785
+      7      -0.000002   0.000002   0.000001   0.000742  -0.020221  -0.009603
+      8       0.000005   0.000001   0.000001   0.000767  -0.011717  -0.009317
+      9      -0.000006  -0.000003   0.000002  -0.000104  -0.001247   0.000955
+     10       0.000001   0.000002  -0.000001  -0.001061  -0.019973   0.009694
+     11       0.000005  -0.000001   0.000001   0.000971   0.011809  -0.009533
+                  6          7          8          9         10         11    
+      0      -0.000007  -0.000002   0.000005  -0.000006   0.000001   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000068   0.000742   0.000767  -0.000104  -0.001061   0.000971
+      4       0.000926  -0.020221  -0.011717  -0.001247  -0.019973   0.011809
+      5       0.000785  -0.009603  -0.009317   0.000955   0.009694  -0.009533
+      6       0.000091  -0.001166  -0.000937   0.000016  -0.000151  -0.000177
+      7      -0.001166   0.030160   0.015051   0.000124  -0.001574  -0.001476
+      8      -0.000937   0.015051   0.011380  -0.000153   0.001513   0.001791
+      9       0.000016   0.000124  -0.000153   0.000141   0.001646  -0.001202
+     10      -0.000151  -0.001574   0.001513   0.001646   0.029809  -0.015217
+     11      -0.000177  -0.001476   0.001791  -0.001202  -0.015217   0.011685
+
+diagonalized Hessian : 
+	  0      -0.000002
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000006
+	  6       0.000017
+	  7       0.000024
+	  8       0.000062
+	  9       0.009704
+	 10       0.048742
+	 11       0.066665
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.014240   0.038033   0.603099   0.160330   0.007099  -0.005661
+      1       0.311463   0.023997  -0.025594   0.137162  -0.903226  -0.061124
+      2       0.104447   0.280277  -0.188609   0.905594   0.194936   0.010748
+      3       0.036093   0.067764   0.542587   0.144448   0.005272  -0.013881
+      4      -0.599439   0.166690  -0.016917   0.078058  -0.254803  -0.191427
+      5      -0.113536  -0.633103  -0.073557   0.225281  -0.027986  -0.026496
+      6      -0.329795  -0.091374   0.383208   0.037494   0.075632  -0.044923
+      7      -0.409328   0.101917  -0.013890   0.054880  -0.180701   0.236349
+      8      -0.133989  -0.431293  -0.048810   0.154698  -0.013194  -0.664280
+      9       0.227156  -0.157944   0.383759   0.052950  -0.094017   0.084315
+     10      -0.413310   0.102288  -0.013867   0.054790  -0.179386   0.241620
+     11      -0.040829  -0.496051  -0.055302   0.153348  -0.028833   0.627647
+                  6          7          8          9         10         11    
+      0       0.063344  -0.378958  -0.679126   0.000788   0.000074   0.000007
+      1      -0.249569  -0.033087   0.003779  -0.000003   0.000001  -0.000079
+      2      -0.049686   0.119378  -0.005113   0.000097   0.000054  -0.000000
+      3       0.117916  -0.356250   0.730518   0.047303   0.043329   0.005363
+      4       0.273197   0.060859  -0.009372  -0.003058  -0.002659   0.653066
+      5       0.059034  -0.164160   0.046401  -0.527057  -0.467180  -0.003238
+      6      -0.753194   0.393271   0.048545  -0.037840  -0.026263   0.021243
+      7       0.125889   0.006973   0.001250  -0.466890   0.530956  -0.463192
+      8       0.091918  -0.002436  -0.017987   0.374760   0.327531  -0.267914
+      9       0.481695   0.722710  -0.010857  -0.030291  -0.034991  -0.028835
+     10       0.115380   0.003108   0.003306   0.471268  -0.527191  -0.460002
+     11      -0.047616  -0.080270  -0.006260   0.370256   0.332902   0.272501
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)   0.089853   0.004959  -0.008808
+      1      -nan(ind)  -nan(ind)  -nan(ind)   0.076869  -0.630840  -0.095106
+      2      -nan(ind)  -nan(ind)  -nan(ind)   0.507516   0.136149   0.016724
+      3      -nan(ind)  -nan(ind)  -nan(ind)   0.072408   0.003293  -0.019319
+      4      -nan(ind)  -nan(ind)  -nan(ind)   0.039128  -0.159180  -0.266413
+      5      -nan(ind)  -nan(ind)  -nan(ind)   0.112928  -0.017483  -0.036876
+      6      -nan(ind)  -nan(ind)  -nan(ind)   0.013294   0.033419  -0.044221
+      7      -nan(ind)  -nan(ind)  -nan(ind)   0.019458  -0.079845   0.232655
+      8      -nan(ind)  -nan(ind)  -nan(ind)   0.054849  -0.005830  -0.653897
+      9      -nan(ind)  -nan(ind)  -nan(ind)   0.018773  -0.041543   0.082997
+     10      -nan(ind)  -nan(ind)  -nan(ind)   0.019426  -0.079264   0.237843
+     11      -nan(ind)  -nan(ind)  -nan(ind)   0.054370  -0.012740   0.617836
+                  6          7          8          9         10         11    
+      0       0.126069  -0.829049  -1.876465   0.007701   0.001076   0.000104
+      1      -0.496697  -0.072384   0.010442  -0.000028   0.000020  -0.001257
+      2      -0.098885   0.261164  -0.014127   0.000951   0.000785  -0.000005
+      3       0.209910  -0.697115   1.805429   0.413531   0.567073   0.075902
+      4       0.486336   0.119089  -0.023162  -0.026734  -0.034799   9.243077
+      5       0.105090  -0.321230   0.114677  -4.607666  -6.114263  -0.045827
+      6      -0.948361   0.544310   0.084860  -0.233984  -0.243118   0.212656
+      7       0.158509   0.009651   0.002185  -2.886979   4.915007  -4.636882
+      8       0.115735  -0.003371  -0.031443   2.317300   3.031922  -2.682008
+      9       0.606512   1.000273  -0.018979  -0.187301  -0.323904  -0.288662
+     10       0.145277   0.004302   0.005779   2.914054  -4.880154  -4.604944
+     11      -0.059954  -0.111098  -0.010943   2.289452   3.081644   2.727932
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D003.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D003.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -7.10 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -4.21 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.43 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.55  0.044   0.001762 ( -0.041354  -0.001366  -0.007054)
+4    2.32  0.000   0.000007 (  0.000111  -0.002579   0.000037)
+5   11.75  2.403   0.012632 ( -0.010800  -0.111872  -0.000028)
+6   20.38  0.078   0.000238 (  0.005614   0.014356   0.000212)
+7   23.52 14.064   0.036930 ( -0.191866   0.003945  -0.010111)
+8   39.88  4.412   0.006832 (  0.082565  -0.000413   0.003797)
+9  506.38 33.521   0.004088 (  0.005461  -0.000230  -0.063701)
+10  1134.86 35.793   0.001948 (  0.003993  -0.000153  -0.043950)
+11  1327.17 228.478   0.010631 (  0.000008   0.103104  -0.000371)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001291  -0.000000  -0.000041  -0.000946  -0.000001  -0.000202
+      1      -0.000000   0.000047  -0.000000  -0.000001  -0.000154   0.000000
+      2      -0.000041  -0.000000   0.000016  -0.000039   0.000000  -0.000075
+      3      -0.000946  -0.000001  -0.000039   0.003513  -0.000059  -0.032226
+      4      -0.000001  -0.000154   0.000000  -0.000059   0.909003  -0.001729
+      5      -0.000202   0.000000  -0.000075  -0.032226  -0.001729   0.427518
+      6      -0.000172   0.000073   0.000042  -0.001279   0.020228   0.016085
+      7      -0.000045   0.000054   0.000023   0.016840  -0.456187  -0.217627
+      8       0.000120   0.000035   0.000029   0.016076  -0.265517  -0.211970
+      9      -0.000172  -0.000072   0.000042  -0.001287  -0.020169   0.016279
+     10       0.000046   0.000053  -0.000024  -0.016780  -0.452661   0.219351
+     11       0.000119  -0.000035   0.000030   0.016252   0.267250  -0.215472
+                  6          7          8          9         10         11    
+      0      -0.000172  -0.000045   0.000120  -0.000172   0.000046   0.000119
+      1       0.000073   0.000054   0.000035  -0.000072   0.000053  -0.000035
+      2       0.000042   0.000023   0.000029   0.000042  -0.000024   0.000030
+      3      -0.001279   0.016840   0.016076  -0.001287  -0.016780   0.016252
+      4       0.020228  -0.456187  -0.265517  -0.020169  -0.452661   0.267250
+      5       0.016085  -0.217627  -0.211970   0.016279   0.219351  -0.215472
+      6       0.001271  -0.018539  -0.013988   0.000181  -0.001813  -0.002168
+      7      -0.018539   0.481330   0.241347   0.001794  -0.025197  -0.023743
+      8      -0.013988   0.241347   0.183217  -0.002178   0.024134   0.028725
+      9       0.000181   0.001794  -0.002178   0.001279   0.018497  -0.014173
+     10      -0.001813  -0.025197   0.024134   0.018497   0.477805  -0.243466
+     11      -0.002168  -0.023743   0.028725  -0.014173  -0.243466   0.186717
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000026  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000026  -0.000000  -0.000001   0.000110  -0.000002  -0.001008
+      4      -0.000000  -0.000004   0.000000  -0.000002   0.028431  -0.000054
+      5      -0.000006   0.000000  -0.000002  -0.001008  -0.000054   0.013372
+      6      -0.000007   0.000003   0.000002  -0.000057   0.000895   0.000711
+      7      -0.000002   0.000002   0.000001   0.000745  -0.020173  -0.009624
+      8       0.000005   0.000001   0.000001   0.000711  -0.011741  -0.009373
+      9      -0.000007  -0.000003   0.000002  -0.000057  -0.000892   0.000720
+     10       0.000002   0.000002  -0.000001  -0.000742  -0.020017   0.009700
+     11       0.000005  -0.000001   0.000001   0.000719   0.011818  -0.009528
+                  6          7          8          9         10         11    
+      0      -0.000007  -0.000002   0.000005  -0.000007   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000057   0.000745   0.000711  -0.000057  -0.000742   0.000719
+      4       0.000895  -0.020173  -0.011741  -0.000892  -0.020017   0.011818
+      5       0.000711  -0.009624  -0.009373   0.000720   0.009700  -0.009528
+      6       0.000079  -0.001159  -0.000875   0.000011  -0.000113  -0.000136
+      7      -0.001159   0.030093   0.015089   0.000112  -0.001575  -0.001484
+      8      -0.000875   0.015089   0.011455  -0.000136   0.001509   0.001796
+      9       0.000011   0.000112  -0.000136   0.000080   0.001156  -0.000886
+     10      -0.000113  -0.001575   0.001509   0.001156   0.029872  -0.015221
+     11      -0.000136  -0.001484   0.001796  -0.000886  -0.015221   0.011674
+
+diagonalized Hessian : 
+	  0      -0.000002
+	  1      -0.000001
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000005
+	  6       0.000016
+	  7       0.000021
+	  8       0.000060
+	  9       0.009704
+	 10       0.048739
+	 11       0.066657
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.001200  -0.041041   0.591949  -0.199014   0.001644  -0.006274
+      1      -0.361284  -0.008648   0.000658  -0.007145  -0.884754  -0.089762
+      2       0.005102  -0.367813  -0.242332  -0.886059   0.006856   0.024032
+      3       0.002226  -0.085395   0.533745  -0.178312   0.001377  -0.018429
+      4       0.591843   0.001496   0.000301  -0.003213  -0.320353  -0.169697
+      5      -0.009055   0.623549  -0.105963  -0.259898   0.001728  -0.031086
+      6       0.314601   0.156486   0.376389  -0.074411   0.075429  -0.046194
+      7       0.392693   0.015437  -0.000870  -0.000632  -0.227236   0.250641
+      8       0.062254   0.433011  -0.073232  -0.182616   0.008110  -0.662071
+      9      -0.320128   0.150412   0.376595  -0.075017  -0.073830   0.088148
+     10       0.392208   0.015421  -0.000825  -0.000653  -0.227277   0.255225
+     11      -0.075599   0.481416  -0.076833  -0.177134  -0.005692   0.620499
+                  6          7          8          9         10         11    
+      0       0.007256  -0.331125  -0.706092   0.000782   0.000067  -0.000000
+      1      -0.280157  -0.003522  -0.000035  -0.000000   0.000000  -0.000081
+      2      -0.004335   0.142192   0.001044   0.000101   0.000054   0.000000
+      3       0.012368  -0.424248   0.701981   0.038661   0.035653   0.000044
+      4       0.302478   0.016485  -0.001785  -0.001905  -0.001659   0.653079
+      5       0.005587  -0.181190   0.032840  -0.527766  -0.467845  -0.002335
+      6      -0.638158   0.555569   0.061414  -0.027932  -0.025153   0.020562
+      7       0.130672  -0.006874   0.000561  -0.467749   0.530259  -0.462612
+      8       0.097818  -0.030716  -0.013229   0.374698   0.328758  -0.268967
+      9       0.608587   0.581716   0.060041  -0.027969  -0.025240  -0.020624
+     10       0.129973  -0.008020   0.002033   0.470467  -0.527910  -0.460597
+     11      -0.092753  -0.094510  -0.004314   0.371314   0.332614   0.272272
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.107653   0.001087  -0.009339
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.003865  -0.584930  -0.133612
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.479299   0.004532   0.035772
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.086275   0.000814  -0.024537
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.001555  -0.189439  -0.225938
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.125750   0.001022  -0.041388
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.025465   0.031549  -0.043502
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -0.000216  -0.095044   0.236032
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.062495   0.003392  -0.623483
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.025673  -0.030880   0.083011
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -0.000223  -0.095061   0.240349
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.060619  -0.002381   0.584334
+                  6          7          8          9         10         11    
+      0       0.014227  -0.697436  -1.936617   0.007639   0.000977  -0.000001
+      1      -0.549339  -0.007419  -0.000096  -0.000002   0.000004  -0.001284
+      2      -0.008500   0.299493   0.002865   0.000983   0.000787   0.000006
+      3       0.021693  -0.799265   1.722138   0.337984   0.466610   0.000617
+      4       0.530510   0.031057  -0.004379  -0.016655  -0.021713   9.242969
+      5       0.009799  -0.341354   0.080565  -4.613815  -6.122870  -0.033051
+      6      -0.791649   0.740312   0.106565  -0.172711  -0.232837   0.205837
+      7       0.162101  -0.009159   0.000974  -2.892261   4.908474  -4.630929
+      8       0.121345  -0.040929  -0.022954   2.316895   3.043231  -2.692464
+      9       0.754966   0.775154   0.104182  -0.172940  -0.233637  -0.206456
+     10       0.161234  -0.010687   0.003528   2.909066  -4.886725  -4.610761
+     11      -0.115062  -0.125938  -0.007486   2.295966   3.078925   2.725553
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D004.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D004.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -4.96 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -2.60 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.37 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    2.01  0.099   0.003053 ( -0.054095  -0.001929  -0.011072)
+4    2.79  0.001   0.000014 (  0.000483  -0.003764   0.000152)
+5   14.90  2.389   0.009900 ( -0.007376  -0.099227  -0.000119)
+6   22.30  0.085   0.000235 (  0.003529   0.014901   0.000205)
+7   27.80 10.924   0.024261 ( -0.155136   0.002544  -0.013670)
+8   41.60  7.926   0.011765 (  0.108142  -0.000594   0.008377)
+9  506.48 33.589   0.004095 (  0.007781  -0.000274  -0.063519)
+10  1134.86 35.849   0.001951 (  0.005575  -0.000184  -0.043812)
+11  1327.15 228.626   0.010638 (  0.000036   0.103138  -0.000444)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001279  -0.000000  -0.000034  -0.000970  -0.000001  -0.000232
+      1      -0.000000   0.000045  -0.000000  -0.000001  -0.000148   0.000000
+      2      -0.000034  -0.000000   0.000019  -0.000048   0.000000  -0.000077
+      3      -0.000970  -0.000001  -0.000048   0.006430   0.000086  -0.046411
+      4      -0.000001  -0.000148   0.000000   0.000086   0.908968  -0.002059
+      5      -0.000232   0.000000  -0.000077  -0.046411  -0.002059   0.424938
+      6      -0.000155   0.000065   0.000042  -0.002710   0.029135   0.023087
+      7      -0.000037   0.000052   0.000024   0.024111  -0.456519  -0.216759
+      8       0.000132   0.000035   0.000029   0.023059  -0.264487  -0.210348
+      9      -0.000154  -0.000064   0.000042  -0.002750  -0.029220   0.023497
+     10       0.000039   0.000051  -0.000024  -0.024196  -0.452301   0.218806
+     11       0.000131  -0.000035   0.000030   0.023459   0.266558  -0.214513
+                  6          7          8          9         10         11    
+      0      -0.000155  -0.000037   0.000132  -0.000154   0.000039   0.000131
+      1       0.000065   0.000052   0.000035  -0.000064   0.000051  -0.000035
+      2       0.000042   0.000024   0.000029   0.000042  -0.000024   0.000030
+      3      -0.002710   0.024111   0.023059  -0.002750  -0.024196   0.023459
+      4       0.029135  -0.456519  -0.264487  -0.029220  -0.452301   0.266558
+      5       0.023087  -0.216759  -0.210348   0.023497   0.218806  -0.214513
+      6       0.002493  -0.026616  -0.020034   0.000372  -0.002633  -0.003123
+      7      -0.026616   0.481666   0.240360   0.002590  -0.025200  -0.023631
+      8      -0.020034   0.240360   0.181771  -0.003130   0.024098   0.028548
+      9       0.000372   0.002590  -0.003130   0.002533   0.026742  -0.020438
+     10      -0.002633  -0.025200   0.024098   0.026742   0.477449  -0.242886
+     11      -0.003123  -0.023631   0.028548  -0.020438  -0.242886   0.185935
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000007
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000201   0.000003  -0.001452
+      4      -0.000000  -0.000004   0.000000   0.000003   0.028430  -0.000064
+      5      -0.000007   0.000000  -0.000002  -0.001452  -0.000064   0.013291
+      6      -0.000006   0.000003   0.000002  -0.000120   0.001288   0.001021
+      7      -0.000001   0.000002   0.000001   0.001066  -0.020187  -0.009585
+      8       0.000005   0.000001   0.000001   0.001020  -0.011696  -0.009302
+      9      -0.000006  -0.000003   0.000002  -0.000122  -0.001292   0.001039
+     10       0.000002   0.000002  -0.000001  -0.001070  -0.020001   0.009676
+     11       0.000005  -0.000001   0.000001   0.001037   0.011787  -0.009486
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000001   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000120   0.001066   0.001020  -0.000122  -0.001070   0.001037
+      4       0.001288  -0.020187  -0.011696  -0.001292  -0.020001   0.011787
+      5       0.001021  -0.009585  -0.009302   0.001039   0.009676  -0.009486
+      6       0.000156  -0.001664  -0.001253   0.000023  -0.000165  -0.000195
+      7      -0.001664   0.030114   0.015027   0.000162  -0.001575  -0.001477
+      8      -0.001253   0.015027   0.011364  -0.000196   0.001507   0.001785
+      9       0.000023   0.000162  -0.000196   0.000158   0.001672  -0.001278
+     10      -0.000165  -0.001575   0.001507   0.001672   0.029850  -0.015185
+     11      -0.000195  -0.001477   0.001785  -0.001278  -0.015185   0.011625
+
+diagonalized Hessian : 
+	  0      -0.000001
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000008
+	  6       0.000019
+	  7       0.000029
+	  8       0.000065
+	  9       0.009708
+	 10       0.048739
+	 11       0.066655
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.000124   0.003774   0.604433  -0.155645   0.003365  -0.005641
+      1      -0.214473  -0.004314   0.000895  -0.019041  -0.951073  -0.052783
+      2       0.000488  -0.114326  -0.183054  -0.970599   0.019427   0.012524
+      3       0.000011  -0.017180   0.543347  -0.141360   0.002717  -0.012750
+      4       0.651635   0.001403   0.000686  -0.006069  -0.192991  -0.213977
+      5      -0.008758   0.682374  -0.073948  -0.083680   0.001194  -0.023984
+      6       0.230738   0.117194   0.384048  -0.022082   0.101374  -0.061666
+      7       0.458342   0.012026  -0.001087  -0.001716  -0.136782   0.219194
+      8       0.023832   0.477947  -0.049678  -0.054942   0.012413  -0.663174
+      9      -0.232680   0.113777   0.384016  -0.025437  -0.099189   0.096368
+     10       0.458190   0.012075  -0.001051  -0.001734  -0.136821   0.224685
+     11      -0.036502   0.515328  -0.054999  -0.046564  -0.010910   0.631730
+                  6          7          8          9         10         11    
+      0       0.005430  -0.469022  -0.624793   0.000792   0.000080  -0.000000
+      1      -0.215157  -0.001246  -0.000040  -0.000000   0.000001  -0.000078
+      2      -0.002599   0.103130  -0.013439   0.000094   0.000053   0.000000
+      3       0.007717  -0.283057   0.773514   0.056401   0.051385   0.000209
+      4       0.256236   0.011001  -0.002828  -0.002273  -0.001987   0.653074
+      5       0.003609  -0.150242   0.065739  -0.526108  -0.466409  -0.002784
+      6      -0.665069   0.567466  -0.052933  -0.040600  -0.036153   0.029566
+      7       0.094072  -0.005124   0.000964  -0.467502   0.530464  -0.462808
+      8       0.079239   0.000905  -0.024900   0.373861   0.327371  -0.267798
+      9       0.644952   0.585345  -0.056785  -0.040410  -0.036510  -0.029861
+     10       0.093050  -0.005944   0.002614   0.470775  -0.527646  -0.460401
+     11      -0.076652  -0.043085  -0.012074   0.369842   0.331970   0.271744
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.095810   0.002441  -0.009458
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.011721  -0.689887  -0.088499
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.597474   0.014092   0.020999
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.077833   0.001763  -0.019121
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.003342  -0.125217  -0.320898
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.046074   0.000775  -0.035969
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.008600   0.046522  -0.065411
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -0.000668  -0.062771   0.232507
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.021397   0.005696  -0.703451
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.009906  -0.045519   0.102221
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -0.000675  -0.062789   0.238331
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.018134  -0.005007   0.670098
+                  6          7          8          9         10         11    
+      0       0.011136  -1.074166  -1.750288   0.007746   0.001177  -0.000005
+      1      -0.441281  -0.002853  -0.000111  -0.000002   0.000009  -0.001232
+      2      -0.005331   0.236191  -0.037647   0.000915   0.000777   0.000007
+      3       0.014157  -0.579845   1.938214   0.493113   0.672501   0.002951
+      4       0.470067   0.022535  -0.007086  -0.019874  -0.026000   9.242815
+      5       0.006620  -0.307771   0.164724  -4.599785  -6.104091  -0.039399
+      6      -0.862963   0.822211  -0.093813  -0.251067  -0.334660   0.295965
+      7       0.122063  -0.007424   0.001708  -2.891024   4.910381  -4.632855
+      8       0.102817   0.001311  -0.044130   2.311949   3.030395  -2.680742
+      9       0.836860   0.848116  -0.100640  -0.249892  -0.337965  -0.298915
+     10       0.120738  -0.008612   0.004632   2.911263  -4.884294  -4.608755
+     11      -0.099460  -0.062427  -0.021399   2.287097   3.072969   2.720240
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D005.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D005.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -6.14 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.77 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.40 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.43  0.034   0.001487 ( -0.037709  -0.000194  -0.008075)
+4    2.40  0.000   0.000008 (  0.000132  -0.002785   0.000057)
+5   12.97  2.400   0.011426 ( -0.008716  -0.106538  -0.000114)
+6   21.55  0.074   0.000211 (  0.003206   0.014168   0.000156)
+7   26.16 12.517   0.029551 ( -0.171367   0.003026  -0.013229)
+8   42.02  6.218   0.009139 (  0.095381  -0.000491   0.006417)
+9  506.43 33.560   0.004092 (  0.007138  -0.000254  -0.063570)
+10  1135.01 35.838   0.001950 (  0.005149  -0.000173  -0.043855)
+11  1327.35 228.579   0.010634 (  0.000023   0.103120  -0.000413)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001358  -0.000000  -0.000036  -0.001030  -0.000001  -0.000230
+      1      -0.000000   0.000044  -0.000000  -0.000000  -0.000153   0.000000
+      2      -0.000036  -0.000000   0.000015  -0.000049   0.000000  -0.000078
+      3      -0.001030  -0.000000  -0.000049   0.005548   0.000007  -0.042486
+      4      -0.000001  -0.000153   0.000000   0.000007   0.909262  -0.001923
+      5      -0.000230   0.000000  -0.000078  -0.042486  -0.001923   0.425816
+      6      -0.000164   0.000070   0.000044  -0.002248   0.026686   0.021167
+      7      -0.000042   0.000055   0.000024   0.022125  -0.456510  -0.217123
+      8       0.000131   0.000036   0.000031   0.021145  -0.264897  -0.210930
+      9      -0.000163  -0.000069   0.000044  -0.002271  -0.026692   0.021487
+     10       0.000043   0.000054  -0.000025  -0.022131  -0.452598   0.219035
+     11       0.000131  -0.000036   0.000031   0.021451   0.266829  -0.214809
+                  6          7          8          9         10         11    
+      0      -0.000164  -0.000042   0.000131  -0.000163   0.000043   0.000131
+      1       0.000070   0.000055   0.000036  -0.000069   0.000054  -0.000036
+      2       0.000044   0.000024   0.000031   0.000044  -0.000025   0.000031
+      3      -0.002248   0.022125   0.021145  -0.002271  -0.022131   0.021451
+      4       0.026686  -0.456510  -0.264897  -0.026692  -0.452598   0.266829
+      5       0.021167  -0.217123  -0.210930   0.021487   0.219035  -0.214809
+      6       0.002103  -0.024403  -0.018381   0.000308  -0.002403  -0.002858
+      7      -0.024403   0.481649   0.240762   0.002370  -0.025194  -0.023668
+      8      -0.018381   0.240762   0.182286  -0.002868   0.024103   0.028613
+      9       0.000308   0.002370  -0.002868   0.002126   0.024441  -0.018694
+     10      -0.002403  -0.025194   0.024103   0.024441   0.477738  -0.243120
+     11      -0.002858  -0.023668   0.028613  -0.018694  -0.243120   0.186165
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000034  -0.000000  -0.000001  -0.000029  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000029  -0.000000  -0.000001   0.000174   0.000000  -0.001329
+      4      -0.000000  -0.000004   0.000000   0.000000   0.028439  -0.000060
+      5      -0.000006   0.000000  -0.000002  -0.001329  -0.000060   0.013318
+      6      -0.000006   0.000003   0.000002  -0.000099   0.001180   0.000936
+      7      -0.000002   0.000002   0.000001   0.000978  -0.020187  -0.009601
+      8       0.000005   0.000001   0.000001   0.000935  -0.011714  -0.009327
+      9      -0.000006  -0.000003   0.000002  -0.000100  -0.001180   0.000950
+     10       0.000002   0.000002  -0.000001  -0.000979  -0.020014   0.009686
+     11       0.000005  -0.000001   0.000001   0.000949   0.011799  -0.009499
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000099   0.000978   0.000935  -0.000100  -0.000979   0.000949
+      4       0.001180  -0.020187  -0.011714  -0.001180  -0.020014   0.011799
+      5       0.000936  -0.009601  -0.009327   0.000950   0.009686  -0.009499
+      6       0.000131  -0.001526  -0.001149   0.000019  -0.000150  -0.000179
+      7      -0.001526   0.030113   0.015052   0.000148  -0.001575  -0.001480
+      8      -0.001149   0.015052   0.011396  -0.000179   0.001507   0.001789
+      9       0.000019   0.000148  -0.000179   0.000133   0.001528  -0.001169
+     10      -0.000150  -0.001575   0.001507   0.001528   0.029868  -0.015200
+     11      -0.000179  -0.001480   0.001789  -0.001169  -0.015200   0.011639
+
+diagonalized Hessian : 
+	  0      -0.000001
+	  1      -0.000001
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000006
+	  6       0.000018
+	  7       0.000026
+	  8       0.000067
+	  9       0.009706
+	 10       0.048752
+	 11       0.066675
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.001820   0.034035  -0.593239  -0.193967   0.001583  -0.005753
+      1      -0.330748   0.010084   0.000578  -0.011754  -0.908975  -0.068053
+      2       0.007659   0.380027   0.237014  -0.885302   0.012094   0.018498
+      3       0.002727   0.061550  -0.533979  -0.172798   0.001285  -0.014456
+      4       0.614959  -0.006808   0.000363  -0.004464  -0.283059  -0.197360
+      5      -0.015076  -0.625567   0.106046  -0.264682   0.003687  -0.030012
+      6       0.270148  -0.135313  -0.376908  -0.076158   0.078848  -0.049961
+      7       0.423012  -0.018918   0.002057  -0.002966  -0.201288   0.231612
+      8       0.037187  -0.436317   0.072041  -0.182812   0.012433  -0.665737
+      9      -0.276786  -0.126259  -0.377031  -0.077694  -0.077465   0.087399
+     10       0.422700  -0.018949   0.002021  -0.003000  -0.201335   0.236730
+     11      -0.059552  -0.483538   0.078119  -0.182397  -0.007251   0.626025
+                  6          7          8          9         10         11    
+      0       0.004609  -0.405758  -0.666773   0.000808   0.000077  -0.000000
+      1      -0.243920  -0.001254   0.000023  -0.000000   0.000000  -0.000081
+      2      -0.002313   0.122543  -0.008638   0.000098   0.000055   0.000000
+      3       0.007032  -0.352128   0.743035   0.051430   0.047017   0.000131
+      4       0.275679   0.012491  -0.002362  -0.002110  -0.001857   0.653083
+      5       0.003090  -0.167800   0.052384  -0.526648  -0.466847  -0.002599
+      6      -0.651958   0.569109   0.001064  -0.037042  -0.033124   0.027086
+      7       0.111445  -0.005985   0.000652  -0.467600   0.530394  -0.462715
+      8       0.080068  -0.010354  -0.019966   0.374103   0.327845  -0.268181
+      9       0.634246   0.583206  -0.000655  -0.036961  -0.033352  -0.027272
+     10       0.110620  -0.006990   0.002269   0.470629  -0.527761  -0.460501
+     11      -0.077675  -0.061880  -0.009100   0.370350   0.332113   0.271864
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.100671   0.001064  -0.008998
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.006101  -0.611032  -0.106450
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.459481   0.008130   0.028934
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.080218   0.000773  -0.020226
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.002072  -0.170196  -0.276132
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.122874   0.002217  -0.041991
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.025007   0.033533  -0.049442
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -0.000974  -0.085604   0.229205
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.060027   0.005287  -0.658820
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.025511  -0.032944   0.086490
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -0.000985  -0.085624   0.234270
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.059891  -0.003084   0.619520
+                  6          7          8          9         10         11    
+      0       0.009293  -0.901295  -1.877168   0.007901   0.001120  -0.000002
+      1      -0.491841  -0.002786   0.000064  -0.000002   0.000006  -0.001279
+      2      -0.004665   0.272201  -0.024318   0.000957   0.000803   0.000006
+      3       0.012683  -0.699618   1.871089   0.449635   0.615367   0.001859
+      4       0.497212   0.024818  -0.005947  -0.018444  -0.024308   9.243643
+      5       0.005572  -0.333389   0.131911  -4.604278  -6.110214  -0.036791
+      6      -0.831691   0.799762   0.001895  -0.229058  -0.306639   0.271162
+      7       0.142169  -0.008410   0.001162  -2.891481   4.910056  -4.632273
+      8       0.102142  -0.014550  -0.035562   2.313332   3.034981  -2.684782
+      9       0.809098   0.819573  -0.001167  -0.228557  -0.308756  -0.273018
+     10       0.141116  -0.009823   0.004041   2.910214  -4.885679  -4.610110
+     11      -0.099089  -0.086959  -0.016208   2.290120   3.074492   2.721651
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D006.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D006.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -6.79 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.95 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.34 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.88  0.083   0.002748 ( -0.051677  -0.002544  -0.008400)
+4    2.59  0.000   0.000003 (  0.000186  -0.001665   0.000018)
+5   11.37  2.402   0.013041 ( -0.011567  -0.113610  -0.000093)
+6   20.19  0.081   0.000248 (  0.006511   0.014349   0.000311)
+7   23.29 13.824   0.036660 ( -0.191047   0.004431  -0.011888)
+8   38.76  4.538   0.007229 (  0.084898  -0.000504   0.004628)
+9  506.37 33.556   0.004092 (  0.006107  -0.000249  -0.063677)
+10  1134.99 35.814   0.001949 (  0.004422  -0.000169  -0.043920)
+11  1327.37 228.586   0.010634 (  0.000021   0.103121  -0.000404)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001216  -0.000000  -0.000038  -0.000889  -0.000001  -0.000204
+      1      -0.000000   0.000048  -0.000000  -0.000000  -0.000150   0.000000
+      2      -0.000038  -0.000000   0.000020  -0.000039   0.000000  -0.000076
+      3      -0.000889  -0.000000  -0.000039   0.004109   0.000024  -0.036212
+      4      -0.000001  -0.000150   0.000000   0.000024   0.909288  -0.001876
+      5      -0.000204   0.000000  -0.000076  -0.036212  -0.001876   0.426915
+      6      -0.000164   0.000068   0.000040  -0.001600   0.022698   0.018036
+      7      -0.000041   0.000051   0.000023   0.018854  -0.456480  -0.217448
+      8       0.000120   0.000034   0.000028   0.018024  -0.265300  -0.211523
+      9      -0.000163  -0.000067   0.000040  -0.001619  -0.022721   0.018315
+     10       0.000042   0.000051  -0.000023  -0.018877  -0.452658   0.219316
+     11       0.000120  -0.000034   0.000028   0.018292   0.267182  -0.215317
+                  6          7          8          9         10         11    
+      0      -0.000164  -0.000041   0.000120  -0.000163   0.000042   0.000120
+      1       0.000068   0.000051   0.000034  -0.000067   0.000051  -0.000034
+      2       0.000040   0.000023   0.000028   0.000040  -0.000023   0.000028
+      3      -0.001600   0.018854   0.018024  -0.001619  -0.018877   0.018292
+      4       0.022698  -0.456480  -0.265300  -0.022721  -0.452658   0.267182
+      5       0.018036  -0.217448  -0.211523   0.018315   0.219316  -0.215317
+      6       0.001543  -0.020775  -0.015669   0.000222  -0.002043  -0.002437
+      7      -0.020775   0.481616   0.241133   0.002015  -0.025187  -0.023709
+      8      -0.015669   0.241133   0.182810  -0.002443   0.024134   0.028685
+      9       0.000222   0.002015  -0.002443   0.001561   0.020826  -0.015943
+     10      -0.002043  -0.025187   0.024134   0.020826   0.477795  -0.243433
+     11      -0.002437  -0.023709   0.028685  -0.015943  -0.243433   0.186604
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000030  -0.000000  -0.000001  -0.000025  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000025  -0.000000  -0.000001   0.000129   0.000001  -0.001133
+      4      -0.000000  -0.000004   0.000000   0.000001   0.028440  -0.000059
+      5      -0.000006   0.000000  -0.000002  -0.001133  -0.000059   0.013353
+      6      -0.000006   0.000003   0.000002  -0.000071   0.001004   0.000798
+      7      -0.000002   0.000002   0.000001   0.000834  -0.020186  -0.009616
+      8       0.000005   0.000001   0.000001   0.000797  -0.011732  -0.009354
+      9      -0.000006  -0.000003   0.000002  -0.000072  -0.001005   0.000810
+     10       0.000002   0.000002  -0.000001  -0.000835  -0.020017   0.009698
+     11       0.000005  -0.000001   0.000001   0.000809   0.011815  -0.009521
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000071   0.000834   0.000797  -0.000072  -0.000835   0.000809
+      4       0.001004  -0.020186  -0.011732  -0.001005  -0.020017   0.011815
+      5       0.000798  -0.009616  -0.009354   0.000810   0.009698  -0.009521
+      6       0.000096  -0.001299  -0.000980   0.000014  -0.000128  -0.000152
+      7      -0.001299   0.030111   0.015076   0.000126  -0.001575  -0.001482
+      8      -0.000980   0.015076   0.011429  -0.000153   0.001509   0.001793
+      9       0.000014   0.000126  -0.000153   0.000098   0.001302  -0.000997
+     10      -0.000128  -0.001575   0.001509   0.001302   0.029872  -0.015219
+     11      -0.000152  -0.001482   0.001793  -0.000997  -0.015219   0.011666
+
+diagonalized Hessian : 
+	  0      -0.000002
+	  1      -0.000001
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000005
+	  6       0.000015
+	  7       0.000021
+	  8       0.000057
+	  9       0.009703
+	 10       0.048750
+	 11       0.066677
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.001393  -0.051848   0.609520  -0.133343   0.003101  -0.006835
+      1      -0.312419  -0.009120   0.003388  -0.006082  -0.906326  -0.086085
+      2       0.007720  -0.273898  -0.150184  -0.938791   0.003725   0.029541
+      3       0.003102  -0.096371   0.548089  -0.123308   0.002735  -0.019901
+      4       0.608434   0.003455   0.001935  -0.001536  -0.284251  -0.172900
+      5      -0.012392   0.646040  -0.051733  -0.210291   0.001677  -0.039825
+      6       0.305772   0.148575   0.387380  -0.016773   0.087628  -0.040238
+      7       0.406233   0.021097   0.000809   0.002282  -0.203311   0.248124
+      8       0.058961   0.443529  -0.035721  -0.148416   0.012517  -0.668530
+      9      -0.315126   0.139375   0.387411  -0.017915  -0.084310   0.083789
+     10       0.405785   0.021142   0.000863   0.002274  -0.203369   0.253082
+     11      -0.077547   0.506391  -0.037537  -0.137057  -0.010177   0.615309
+                  6          7          8          9         10         11    
+      0       0.008581  -0.337449  -0.702860   0.000766   0.000071  -0.000000
+      1      -0.270926  -0.004972   0.000063   0.000001   0.000000  -0.000078
+      2      -0.004937   0.141864  -0.000358   0.000096   0.000052   0.000000
+      3       0.014258  -0.415692   0.705821   0.043625   0.040043   0.000123
+      4       0.303619   0.019471  -0.002296  -0.002066  -0.001816   0.653085
+      5       0.007144  -0.189261   0.038077  -0.527394  -0.467461  -0.002540
+      6      -0.642883   0.553198   0.056060  -0.031483  -0.028193   0.023049
+      7       0.132354  -0.007015   0.000735  -0.467603   0.530394  -0.462693
+      8       0.091050  -0.025211  -0.015209   0.374583   0.328332  -0.268593
+      9       0.608663   0.583936   0.054310  -0.031416  -0.028407  -0.023223
+     10       0.131513  -0.008204   0.002207   0.470557  -0.527822  -0.460531
+     11      -0.084796  -0.096007  -0.004592   0.370918   0.332499   0.272190
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.079313   0.002167  -0.010012
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.003618  -0.633222  -0.126091
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.558401   0.002603   0.043269
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.065603   0.001709  -0.026073
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.000817  -0.177637  -0.226522
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.111881   0.001048  -0.052177
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.006312   0.038733  -0.037287
+      7      -nan(ind)  -nan(ind)  -nan(ind)   0.000859  -0.089866   0.229927
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.055850   0.005533  -0.619501
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.006741  -0.037266   0.077644
+     10      -nan(ind)  -nan(ind)  -nan(ind)   0.000856  -0.089892   0.234522
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.051576  -0.004499   0.570183
+                  6          7          8          9         10         11    
+      0       0.016745  -0.707252  -1.900596   0.007485   0.001035  -0.000002
+      1      -0.528693  -0.010421   0.000172   0.000005   0.000005  -0.001234
+      2      -0.009633   0.297329  -0.000967   0.000941   0.000767   0.000007
+      3       0.024887  -0.779288   1.707163   0.381374   0.524086   0.001736
+      4       0.529958   0.036502  -0.005554  -0.018060  -0.023763   9.243736
+      5       0.012469  -0.354803   0.092095  -4.610521  -6.118193  -0.035952
+      6      -0.793689   0.733520   0.095905  -0.194670  -0.260991   0.230747
+      7       0.163402  -0.009302   0.001258  -2.891332   4.910004  -4.632078
+      8       0.112408  -0.033429  -0.026018   2.316157   3.039464  -2.688923
+      9       0.751441   0.774277   0.092910  -0.194253  -0.262968  -0.232484
+     10       0.162363  -0.010878   0.003775   2.909596  -4.886190  -4.610435
+     11      -0.104687  -0.127302  -0.007855   2.293495   3.078033   2.724929
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D007.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D007.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0  -12.43 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -2.05 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.43 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.83  0.135   0.004575 ( -0.003463  -0.067548  -0.000653)
+4    2.43  0.487   0.012370 ( -0.033949  -0.105654  -0.007430)
+5    3.24  1.441   0.027475 (  0.021663  -0.164216   0.006255)
+6   15.27  0.118   0.000478 (  0.001101   0.021840  -0.000044)
+7   32.62  5.792   0.010964 ( -0.104410   0.000923  -0.007831)
+8   44.50 13.471   0.018695 (  0.136433  -0.000583   0.008963)
+9  507.30 33.572   0.004087 (  0.006619  -0.000251  -0.063582)
+10  1135.92 35.748   0.001943 (  0.004775  -0.000171  -0.043823)
+11  1327.28 228.213   0.010617 (  0.000022   0.103040  -0.000408)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001283  -0.000000  -0.000037  -0.000955  -0.000001  -0.000214
+      1      -0.000000   0.000046  -0.000000  -0.000000  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000018  -0.000043   0.000000  -0.000077
+      3      -0.000955  -0.000000  -0.000043   0.005305   0.000014  -0.039445
+      4      -0.000001  -0.000151   0.000000   0.000014   0.908143  -0.001890
+      5      -0.000214   0.000000  -0.000077  -0.039445  -0.001890   0.427735
+      6      -0.000164   0.000069   0.000042  -0.002165   0.024755   0.019646
+      7      -0.000043   0.000053   0.000024   0.020519  -0.455934  -0.217585
+      8       0.000124   0.000035   0.000029   0.019634  -0.265816  -0.211908
+      9      -0.000164  -0.000068   0.000042  -0.002185  -0.024769   0.019947
+     10       0.000044   0.000052  -0.000024  -0.020533  -0.452058   0.219466
+     11       0.000124  -0.000035   0.000030   0.019921   0.267713  -0.215751
+                  6          7          8          9         10         11    
+      0      -0.000164  -0.000043   0.000124  -0.000164   0.000044   0.000124
+      1       0.000069   0.000053   0.000035  -0.000068   0.000052  -0.000035
+      2       0.000042   0.000024   0.000029   0.000042  -0.000024   0.000030
+      3      -0.002165   0.020519   0.019634  -0.002185  -0.020533   0.019921
+      4       0.024755  -0.455934  -0.265816  -0.024769  -0.452058   0.267713
+      5       0.019646  -0.217585  -0.211908   0.019947   0.219466  -0.215751
+      6       0.001850  -0.022635  -0.017103   0.000479  -0.002242  -0.002616
+      7      -0.022635   0.481589   0.241454   0.002211  -0.025708  -0.023894
+      8      -0.017103   0.241454   0.183349  -0.002624   0.024327   0.028530
+      9       0.000479   0.002211  -0.002624   0.001870   0.022679  -0.017397
+     10      -0.002242  -0.025708   0.024327   0.022679   0.477713  -0.243777
+     11      -0.002616  -0.023894   0.028530  -0.017397  -0.243777   0.187191
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000166   0.000000  -0.001234
+      4      -0.000000  -0.000004   0.000000   0.000000   0.028404  -0.000059
+      5      -0.000006   0.000000  -0.000002  -0.001234  -0.000059   0.013378
+      6      -0.000007   0.000003   0.000002  -0.000096   0.001095   0.000869
+      7      -0.000002   0.000002   0.000001   0.000907  -0.020162  -0.009622
+      8       0.000005   0.000001   0.000001   0.000868  -0.011754  -0.009371
+      9      -0.000006  -0.000003   0.000002  -0.000097  -0.001095   0.000882
+     10       0.000002   0.000002  -0.000001  -0.000908  -0.019990   0.009705
+     11       0.000005  -0.000001   0.000001   0.000881   0.011838  -0.009541
+                  6          7          8          9         10         11    
+      0      -0.000007  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000096   0.000907   0.000868  -0.000097  -0.000908   0.000881
+      4       0.001095  -0.020162  -0.011754  -0.001095  -0.019990   0.011838
+      5       0.000869  -0.009622  -0.009371   0.000882   0.009705  -0.009541
+      6       0.000116  -0.001415  -0.001069   0.000030  -0.000140  -0.000164
+      7      -0.001415   0.030109   0.015096   0.000138  -0.001607  -0.001494
+      8      -0.001069   0.015096   0.011463  -0.000164   0.001521   0.001784
+      9       0.000030   0.000138  -0.000164   0.000117   0.001418  -0.001088
+     10      -0.000140  -0.001607   0.001521   0.001418   0.029867  -0.015241
+     11      -0.000164  -0.001494   0.001784  -0.001088  -0.015241   0.011703
+
+diagonalized Hessian : 
+	  0      -0.000006
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000000
+	  6       0.000009
+	  7       0.000040
+	  8       0.000075
+	  9       0.009739
+	 10       0.048830
+	 11       0.066668
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.001768  -0.036943   0.605206  -0.008877  -0.114020   0.082658
+      1      -0.329591   0.019912  -0.007287   0.710802  -0.326539  -0.300633
+      2       0.002685  -0.147135  -0.178202  -0.187460  -0.835716   0.456346
+      3       0.002821  -0.023640   0.544355  -0.006948  -0.097481   0.068329
+      4       0.453152  -0.012130  -0.006430   0.373237  -0.137858  -0.108750
+      5      -0.006534  -0.648817  -0.044816  -0.085599   0.001468  -0.241764
+      6       0.497253  -0.103010   0.384762  -0.035238   0.021508   0.051009
+      7       0.230732  -0.123790  -0.021433   0.354767   0.060418   0.207245
+      8       0.195943  -0.269158  -0.002792  -0.219314  -0.261626  -0.658829
+      9      -0.502299  -0.067539   0.388516   0.035147  -0.051496  -0.035038
+     10       0.229287  -0.125304  -0.021600   0.356007   0.062526   0.211102
+     11      -0.205411  -0.660512  -0.060196   0.098407   0.272613   0.306905
+                  6          7          8          9         10         11    
+      0       0.000394  -0.630632  -0.463409   0.000783   0.000071  -0.000000
+      1      -0.434365   0.000311  -0.000050   0.000001   0.000000  -0.000079
+      2      -0.000092   0.066054  -0.020266   0.000098   0.000054   0.000000
+      3       0.002130  -0.056117   0.825578   0.047536   0.043579   0.000126
+      4       0.445264   0.003407  -0.002592  -0.002084  -0.001837   0.652719
+      5       0.002041  -0.094548   0.079031  -0.526670  -0.467578  -0.002568
+      6      -0.497217   0.540340  -0.218724  -0.034264  -0.030689   0.025149
+      7       0.211378  -0.002608   0.001084  -0.468019   0.530027  -0.462450
+      8       0.132860  -0.003966  -0.024191   0.374099   0.328391  -0.269270
+      9       0.492421   0.541641  -0.220125  -0.034190  -0.030910  -0.025328
+     10       0.210183  -0.002819   0.002835   0.471004  -0.527423  -0.460253
+     11      -0.129791  -0.021626  -0.010963   0.370371   0.332606   0.272908
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.005212  -0.077237   0.064601
+      1      -nan(ind)  -nan(ind)  -nan(ind)   0.417337  -0.221198  -0.234959
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.110064  -0.566116   0.356656
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.003649  -0.059065   0.047766
+      4      -nan(ind)  -nan(ind)  -nan(ind)   0.196012  -0.083529  -0.076023
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.044954   0.000890  -0.169008
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.013089   0.009218   0.025221
+      7      -nan(ind)  -nan(ind)  -nan(ind)   0.131779   0.025893   0.102472
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.081465  -0.112122  -0.325757
+      9      -nan(ind)  -nan(ind)  -nan(ind)   0.013055  -0.022069  -0.017325
+     10      -nan(ind)  -nan(ind)  -nan(ind)   0.132240   0.026796   0.104379
+     11      -nan(ind)  -nan(ind)  -nan(ind)   0.036553   0.116831   0.151749
+                  6          7          8          9         10         11    
+      0       0.000669  -1.564454  -1.342598   0.007656   0.001043  -0.000002
+      1      -0.737309   0.000772  -0.000144   0.000007   0.000003  -0.001256
+      2      -0.000157   0.163865  -0.058716   0.000955   0.000784   0.000006
+      3       0.003234  -0.124521   2.139433   0.415944   0.570597   0.001787
+      4       0.676040   0.007560  -0.006717  -0.018236  -0.024052   9.238263
+      5       0.003099  -0.209796   0.204804  -4.608440  -6.122243  -0.036347
+      6      -0.533957   0.848045  -0.400907  -0.212062  -0.284210   0.251761
+      7       0.226997  -0.004094   0.001987  -2.896576   4.908625  -4.629506
+      8       0.142678  -0.006225  -0.044341   2.315305   3.041256  -2.695618
+      9       0.528807   0.850087  -0.403474  -0.211600  -0.286261  -0.253552
+     10       0.225714  -0.004425   0.005197   2.915052  -4.884510  -4.607508
+     11      -0.139381  -0.033941  -0.020095   2.292230   3.080291   2.732031
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D008.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D008.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0  -15.04 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.63 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.36 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.11  0.015   0.000815 (  0.028110  -0.000947   0.004941)
+4    3.55  0.003   0.000060 (  0.000181  -0.007745   0.000062)
+5    9.73  4.188   0.026569 (  0.162674   0.006340   0.008125)
+6   16.99  2.468   0.008968 ( -0.014924   0.093506  -0.001369)
+7   26.47  0.020   0.000046 ( -0.000470   0.006757  -0.000086)
+8   38.89  2.020   0.003207 (  0.056547  -0.000349   0.003073)
+9  505.47 33.543   0.004098 (  0.006626  -0.000252  -0.063669)
+10  1134.13 35.903   0.001955 (  0.004795  -0.000171  -0.043953)
+11  1327.50 228.963   0.010651 (  0.000022   0.103201  -0.000409)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001286  -0.000000  -0.000037  -0.000960  -0.000001  -0.000219
+      1      -0.000000   0.000046  -0.000000  -0.000000  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000017  -0.000044   0.000000  -0.000076
+      3      -0.000960  -0.000000  -0.000044   0.004283   0.000017  -0.039270
+      4      -0.000001  -0.000151   0.000000   0.000017   0.910507  -0.001909
+      5      -0.000219   0.000000  -0.000076  -0.039270  -0.001909   0.425049
+      6      -0.000163   0.000069   0.000042  -0.001651   0.024632   0.019562
+      7      -0.000040   0.000053   0.000024   0.020470  -0.457107  -0.217022
+      8       0.000127   0.000035   0.000029   0.019546  -0.264416  -0.210570
+      9      -0.000163  -0.000068   0.000042  -0.001672  -0.024649   0.019862
+     10       0.000041   0.000052  -0.000024  -0.020487  -0.453249   0.218923
+     11       0.000126  -0.000035   0.000030   0.019833   0.266332  -0.214402
+                  6          7          8          9         10         11    
+      0      -0.000163  -0.000040   0.000127  -0.000163   0.000041   0.000126
+      1       0.000069   0.000053   0.000035  -0.000068   0.000052  -0.000035
+      2       0.000042   0.000024   0.000029   0.000042  -0.000024   0.000030
+      3      -0.001651   0.020470   0.019546  -0.001672  -0.020487   0.019833
+      4       0.024632  -0.457107  -0.264416  -0.024649  -0.453249   0.266332
+      5       0.019562  -0.217022  -0.210570   0.019862   0.218923  -0.214402
+      6       0.001769  -0.022551  -0.016955   0.000045  -0.002203  -0.002680
+      7      -0.022551   0.481729   0.240477   0.002173  -0.024675  -0.023483
+      8      -0.016955   0.240477   0.181769  -0.002687   0.023909   0.028773
+      9       0.000045   0.002173  -0.002687   0.001790   0.022597  -0.017248
+     10      -0.002203  -0.024675   0.023909   0.022597   0.477871  -0.242811
+     11      -0.002680  -0.023483   0.028773  -0.017248  -0.242811   0.185600
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000134   0.000001  -0.001228
+      4      -0.000000  -0.000004   0.000000   0.000001   0.028478  -0.000060
+      5      -0.000006   0.000000  -0.000002  -0.001228  -0.000060   0.013294
+      6      -0.000006   0.000003   0.000002  -0.000073   0.001089   0.000865
+      7      -0.000002   0.000002   0.000001   0.000905  -0.020214  -0.009597
+      8       0.000005   0.000001   0.000001   0.000864  -0.011693  -0.009312
+      9      -0.000006  -0.000003   0.000002  -0.000074  -0.001090   0.000878
+     10       0.000002   0.000002  -0.000001  -0.000906  -0.020043   0.009681
+     11       0.000005  -0.000001   0.000001   0.000877   0.011777  -0.009481
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000073   0.000905   0.000864  -0.000074  -0.000906   0.000877
+      4       0.001089  -0.020214  -0.011693  -0.001090  -0.020043   0.011777
+      5       0.000865  -0.009597  -0.009312   0.000878   0.009681  -0.009481
+      6       0.000111  -0.001410  -0.001060   0.000003  -0.000138  -0.000168
+      7      -0.001410   0.030118   0.015035   0.000136  -0.001543  -0.001468
+      8      -0.001060   0.015035   0.011364  -0.000168   0.001495   0.001799
+      9       0.000003   0.000136  -0.000168   0.000112   0.001413  -0.001078
+     10      -0.000138  -0.001543   0.001495   0.001413   0.029876  -0.015181
+     11      -0.000168  -0.001468   0.001799  -0.001078  -0.015181   0.011604
+
+diagonalized Hessian : 
+	  0      -0.000009
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000000
+	  5       0.000004
+	  6       0.000011
+	  7       0.000027
+	  8       0.000057
+	  9       0.009669
+	 10       0.048676
+	 11       0.066690
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.197757  -0.000055  -0.605227   0.138102   0.000437   0.087197
+      1       0.001869   0.021976   0.000519   0.004079  -0.986691  -0.002710
+      2       0.274487  -0.001535   0.179907   0.775553   0.005234  -0.538887
+      3       0.487253  -0.000211  -0.544441   0.124389   0.000367   0.252351
+      4       0.011591   0.687196   0.000013   0.000538  -0.012938   0.013610
+      5      -0.234375  -0.000642   0.067197   0.424438  -0.000039   0.513484
+      6      -0.486634   0.150012  -0.384604   0.058389   0.114420  -0.288603
+      7      -0.008501   0.491111   0.000433   0.001363  -0.003800  -0.010074
+      8      -0.214714   0.004928   0.046908   0.295700   0.001520   0.353663
+      9      -0.486902  -0.149491  -0.384645   0.058749  -0.114541  -0.289056
+     10      -0.007652   0.491097   0.000375   0.001401  -0.003779  -0.009701
+     11      -0.270082  -0.005861   0.048257   0.299176  -0.001699   0.286948
+                  6          7          8          9         10         11    
+      0      -0.017307  -0.001996  -0.753401   0.000793   0.000076  -0.000000
+      1       0.008836  -0.160785   0.000157  -0.000000   0.000000  -0.000079
+      2       0.018166   0.001203   0.006900   0.000098   0.000054   0.000000
+      3      -0.030262  -0.000532   0.618020   0.047517   0.043494   0.000128
+      4       0.255559   0.186961  -0.001720  -0.002093  -0.001836   0.653452
+      5      -0.016032  -0.001105   0.021499  -0.527416  -0.466738  -0.002572
+      6       0.072490  -0.678086   0.158677  -0.034259  -0.030633   0.024990
+      7      -0.194697   0.080083   0.000289  -0.467167   0.530776  -0.462960
+      8       0.647255   0.026232  -0.013417   0.374618   0.327792  -0.267509
+      9      -0.000521   0.682070   0.156615  -0.034189  -0.030854  -0.025170
+     10      -0.199907   0.079666   0.001609   0.470165  -0.528174  -0.460781
+     11      -0.656312  -0.026816  -0.006037   0.370929   0.332012   0.271152
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)   0.063311   0.000358   0.118153
+      1      -nan(ind)  -nan(ind)  -nan(ind)   0.001870  -0.808016  -0.003673
+      2      -nan(ind)  -nan(ind)  -nan(ind)   0.355543   0.004287  -0.730200
+      3      -nan(ind)  -nan(ind)  -nan(ind)   0.051006   0.000269   0.305851
+      4      -nan(ind)  -nan(ind)  -nan(ind)   0.000221  -0.009477   0.016495
+      5      -nan(ind)  -nan(ind)  -nan(ind)   0.174042  -0.000029   0.622345
+      6      -nan(ind)  -nan(ind)  -nan(ind)   0.016935   0.059280  -0.247406
+      7      -nan(ind)  -nan(ind)  -nan(ind)   0.000395  -0.001969  -0.008636
+      8      -nan(ind)  -nan(ind)  -nan(ind)   0.085762   0.000787   0.303179
+      9      -nan(ind)  -nan(ind)  -nan(ind)   0.017039  -0.059342  -0.247794
+     10      -nan(ind)  -nan(ind)  -nan(ind)   0.000406  -0.001958  -0.008316
+     11      -nan(ind)  -nan(ind)  -nan(ind)   0.086771  -0.000880   0.245987
+                  6          7          8          9         10         11    
+      0      -0.030986  -0.004461  -2.040577   0.007741   0.001111  -0.000003
+      1       0.015820  -0.359294   0.000424  -0.000002   0.000006  -0.001258
+      2       0.032524   0.002689   0.018688   0.000952   0.000783   0.000006
+      3      -0.048462  -0.001063   1.497232   0.415029   0.569034   0.001810
+      4       0.409253   0.373693  -0.004167  -0.018281  -0.024020   9.249392
+      5      -0.025674  -0.002209   0.052084  -4.606644  -6.106413  -0.036405
+      6       0.082107  -0.958639   0.271898  -0.211645  -0.283466   0.250187
+      7      -0.220529   0.113217   0.000495  -2.886085   4.911673  -4.634989
+      8       0.733132   0.037085  -0.022990   2.314335   3.033312  -2.678205
+      9      -0.000590   0.964272   0.268365  -0.211216  -0.285513  -0.251993
+     10      -0.226431   0.112628   0.002757   2.904609  -4.887595  -4.613172
+     11      -0.743391  -0.037911  -0.010345   2.291541   3.072360   2.714674
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D009.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D009.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -1.56 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -0.88 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.36 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    3.48  0.026   0.000455 ( -0.019711  -0.000344  -0.008120)
+4    5.51  0.004   0.000047 ( -0.000056  -0.006886   0.000027)
+5   35.87  0.543   0.000935 ( -0.030394  -0.001677  -0.002897)
+6   38.06  1.434   0.002326 (  0.000887   0.048219  -0.000141)
+7   39.74  1.028   0.001597 (  0.001186   0.039948  -0.000105)
+8   58.26 18.822   0.019950 (  0.140916  -0.000637   0.009617)
+9  506.93 33.381   0.004066 (  0.006599  -0.000251  -0.063424)
+10  1128.99 35.662   0.001951 (  0.004787  -0.000171  -0.043904)
+11  1319.87 227.729   0.010654 (  0.000022   0.103219  -0.000409)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001285  -0.000000  -0.000037  -0.000956  -0.000001  -0.000213
+      1      -0.000000   0.000046  -0.000000  -0.000000  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000018  -0.000043   0.000000  -0.000077
+      3      -0.000956  -0.000000  -0.000043   0.006256   0.000015  -0.038982
+      4      -0.000001  -0.000151   0.000000   0.000015   0.899102  -0.001868
+      5      -0.000213   0.000000  -0.000077  -0.038982  -0.001868   0.423787
+      6      -0.000165   0.000069   0.000042  -0.002640   0.024400   0.019417
+      7      -0.000042   0.000053   0.000024   0.020221  -0.451384  -0.214385
+      8       0.000124   0.000035   0.000029   0.019403  -0.261970  -0.209962
+      9      -0.000164  -0.000068   0.000042  -0.002660  -0.024415   0.019714
+     10       0.000043   0.000052  -0.000024  -0.020235  -0.447566   0.216245
+     11       0.000124  -0.000035   0.000030   0.019686   0.263847  -0.213749
+                  6          7          8          9         10         11    
+      0      -0.000165  -0.000042   0.000124  -0.000164   0.000043   0.000124
+      1       0.000069   0.000053   0.000035  -0.000068   0.000052  -0.000035
+      2       0.000042   0.000024   0.000029   0.000042  -0.000024   0.000030
+      3      -0.002640   0.020221   0.019403  -0.002660  -0.020235   0.019686
+      4       0.024400  -0.451384  -0.261970  -0.024415  -0.447566   0.263847
+      5       0.019417  -0.214385  -0.209962   0.019714   0.216245  -0.213749
+      6       0.002521  -0.022309  -0.016858   0.000284  -0.002212  -0.002632
+      7      -0.022309   0.476432   0.237935   0.002182  -0.025100  -0.023576
+      8      -0.016858   0.237935   0.181436  -0.002639   0.024003   0.028497
+      9       0.000284   0.002182  -0.002639   0.002541   0.022353  -0.017147
+     10      -0.002212  -0.025100   0.024003   0.022353   0.472613  -0.240230
+     11      -0.002632  -0.023576   0.028497  -0.017147  -0.240230   0.185223
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000196   0.000000  -0.001219
+      4      -0.000000  -0.000004   0.000000   0.000000   0.028121  -0.000058
+      5      -0.000006   0.000000  -0.000002  -0.001219  -0.000058   0.013255
+      6      -0.000007   0.000003   0.000002  -0.000117   0.001079   0.000859
+      7      -0.000002   0.000002   0.000001   0.000894  -0.019960  -0.009480
+      8       0.000005   0.000001   0.000001   0.000858  -0.011584  -0.009285
+      9      -0.000006  -0.000003   0.000002  -0.000118  -0.001080   0.000872
+     10       0.000002   0.000002  -0.000001  -0.000895  -0.019792   0.009562
+     11       0.000005  -0.000001   0.000001   0.000871   0.011667  -0.009452
+                  6          7          8          9         10         11    
+      0      -0.000007  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000117   0.000894   0.000858  -0.000118  -0.000895   0.000871
+      4       0.001079  -0.019960  -0.011584  -0.001080  -0.019792   0.011667
+      5       0.000859  -0.009480  -0.009285   0.000872   0.009562  -0.009452
+      6       0.000158  -0.001395  -0.001054   0.000018  -0.000138  -0.000165
+      7      -0.001395   0.029786   0.014876   0.000136  -0.001569  -0.001474
+      8      -0.001054   0.014876   0.011343  -0.000165   0.001501   0.001782
+      9       0.000018   0.000136  -0.000165   0.000159   0.001397  -0.001072
+     10      -0.000138  -0.001569   0.001501   0.001397   0.029548  -0.015019
+     11      -0.000165  -0.001474   0.001782  -0.001072  -0.015019   0.011580
+
+diagonalized Hessian : 
+	  0      -0.000000
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000001
+	  5       0.000049
+	  6       0.000055
+	  7       0.000060
+	  8       0.000128
+	  9       0.009725
+	 10       0.048236
+	 11       0.065926
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.001502   0.126316   0.599696  -0.102613  -0.000855  -0.764915
+      1       0.479437   0.002952  -0.003072  -0.001518  -0.874594  -0.000329
+      2      -0.002948   0.476680  -0.204318  -0.853973   0.002186   0.037244
+      3       0.001320   0.110530   0.539538  -0.072559  -0.000748   0.279036
+      4       0.618984   0.003855  -0.001702   0.001161   0.331907  -0.006402
+      5      -0.004846   0.601108  -0.092681   0.354013  -0.000912  -0.040023
+      6       0.036314   0.096961   0.380967  -0.010020   0.076971   0.402769
+      7       0.438416   0.003402  -0.001371   0.001409   0.237631   0.004909
+      8      -0.001142   0.425759  -0.065394   0.253357   0.001825  -0.025324
+      9      -0.034785   0.096680   0.381002  -0.009929  -0.077734   0.413539
+     10       0.438395   0.003407  -0.001311   0.001426   0.237629   0.005580
+     11      -0.005786   0.428027  -0.065856   0.255371  -0.003140   0.008928
+                  6          7          8          9         10         11    
+      0      -0.021085  -0.009146  -0.168083   0.000777   0.000073  -0.000000
+      1       0.044664  -0.056658  -0.000102   0.000001   0.000000  -0.000080
+      2       0.000288   0.000151  -0.018979   0.000097   0.000054   0.000000
+      3       0.014359   0.009461   0.780450   0.047486   0.043603   0.000127
+      4       0.155638   0.236444  -0.003308  -0.002086  -0.001836   0.653061
+      5       0.000459   0.000369   0.084326  -0.526421  -0.467858  -0.002568
+      6       0.436313  -0.553866  -0.419542  -0.034226  -0.030708   0.025075
+      7      -0.169920  -0.091432   0.001532  -0.468299   0.529777  -0.462689
+      8       0.522741   0.393783  -0.037933   0.373921   0.328589  -0.268453
+      9      -0.423563   0.554724  -0.420999  -0.034152  -0.030929  -0.025255
+     10      -0.173891  -0.094693   0.003247   0.471286  -0.527175  -0.460497
+     11      -0.520564  -0.392215  -0.021366   0.370206   0.332801   0.272090
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.083155  -0.000872  -1.989850
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.001230  -0.891395  -0.000855
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.692035   0.002228   0.096888
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.052594  -0.000682   0.649273
+      4      -nan(ind)  -nan(ind)  -nan(ind)   0.000841   0.302580  -0.014897
+      5      -nan(ind)  -nan(ind)  -nan(ind)   0.256604  -0.000832  -0.093126
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.005137   0.049631   0.662870
+      7      -nan(ind)  -nan(ind)  -nan(ind)   0.000722   0.153226   0.008079
+      8      -nan(ind)  -nan(ind)  -nan(ind)   0.129892   0.001177  -0.041678
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.005090  -0.050123   0.680595
+     10      -nan(ind)  -nan(ind)  -nan(ind)   0.000731   0.153224   0.009183
+     11      -nan(ind)  -nan(ind)  -nan(ind)   0.130925  -0.002025   0.014694
+                  6          7          8          9         10         11    
+      0      -0.056501  -0.025041  -0.557215   0.007601   0.001063  -0.000003
+      1       0.119684  -0.155122  -0.000339   0.000009   0.000003  -0.001266
+      2       0.000773   0.000413  -0.062918   0.000947   0.000789   0.000006
+      3       0.034415   0.023168   2.314212   0.415353   0.569177   0.001792
+      4       0.373039   0.579027  -0.009808  -0.018245  -0.023966   9.217252
+      5       0.001100   0.000903   0.250047  -4.604556  -6.107203  -0.036238
+      6       0.739678  -0.959359  -0.879913  -0.211746  -0.283522   0.250322
+      7      -0.288063  -0.158371   0.003214  -2.897230   4.891327  -4.618944
+      8       0.886198   0.682076  -0.079556   2.313343   3.033795  -2.679922
+      9      -0.718062   0.960844  -0.882968  -0.211289  -0.285565  -0.252114
+     10      -0.294796  -0.164019   0.006810   2.915710  -4.867298  -4.597057
+     11      -0.882508  -0.679360  -0.044810   2.290362   3.072689   2.716225
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D010.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D010.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0  -42.02 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1  -35.03 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2  -29.50 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3   -0.38 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+4    0.77  0.003   0.000269 ( -0.016176  -0.000572  -0.002728)
+5    1.29  0.000   0.000004 ( -0.000138   0.002000  -0.000052)
+6    5.33  0.131   0.001520 (  0.038892  -0.000039  -0.002668)
+7    9.15  0.001   0.000009 (  0.000152   0.002914  -0.000005)
+8   38.00  0.663   0.001078 (  0.032796  -0.000082   0.001421)
+9  505.83 33.736   0.004118 (  0.006646  -0.000252  -0.063830)
+10  1141.09 35.992   0.001948 (  0.004784  -0.000171  -0.043872)
+11  1334.97 229.447   0.010613 (  0.000022   0.103020  -0.000408)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001285  -0.000000  -0.000037  -0.000959  -0.000001  -0.000220
+      1      -0.000000   0.000046  -0.000000  -0.000000  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000017  -0.000044   0.000000  -0.000076
+      3      -0.000959  -0.000000  -0.000044   0.003314   0.000017  -0.039737
+      4      -0.000001  -0.000151   0.000000   0.000017   0.919692  -0.001930
+      5      -0.000220   0.000000  -0.000076  -0.039737  -0.001930   0.429018
+      6      -0.000163   0.000069   0.000042  -0.001167   0.024991   0.019793
+      7      -0.000041   0.000053   0.000024   0.020773  -0.461728  -0.220259
+      8       0.000127   0.000035   0.000029   0.019778  -0.268302  -0.212527
+      9      -0.000162  -0.000068   0.000042  -0.001188  -0.025007   0.020097
+     10       0.000042   0.000052  -0.000024  -0.020789  -0.457812   0.222181
+     11       0.000127  -0.000035   0.000030   0.020070   0.270241  -0.216415
+                  6          7          8          9         10         11    
+      0      -0.000163  -0.000041   0.000127  -0.000162   0.000042   0.000127
+      1       0.000069   0.000053   0.000035  -0.000068   0.000052  -0.000035
+      2       0.000042   0.000024   0.000029   0.000042  -0.000024   0.000030
+      3      -0.001167   0.020773   0.019778  -0.001188  -0.020789   0.020070
+      4       0.024991  -0.461728  -0.268302  -0.025007  -0.457812   0.270241
+      5       0.019793  -0.220259  -0.212527   0.020097   0.222181  -0.216415
+      6       0.001089  -0.022880  -0.017201   0.000240  -0.002234  -0.002665
+      7      -0.022880   0.486953   0.244035   0.002203  -0.025278  -0.023803
+      8      -0.017201   0.244035   0.183689  -0.002673   0.024235   0.028809
+      9       0.000240   0.002203  -0.002673   0.001110   0.022926  -0.017499
+     10      -0.002234  -0.025278   0.024235   0.022926   0.483038  -0.246397
+     11      -0.002665  -0.023803   0.028809  -0.017499  -0.246397   0.187576
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000104   0.000001  -0.001243
+      4      -0.000000  -0.000004   0.000000   0.000001   0.028765  -0.000060
+      5      -0.000006   0.000000  -0.000002  -0.001243  -0.000060   0.013419
+      6      -0.000006   0.000003   0.000002  -0.000052   0.001105   0.000875
+      7      -0.000002   0.000002   0.000001   0.000919  -0.020418  -0.009740
+      8       0.000005   0.000001   0.000001   0.000875  -0.011864  -0.009398
+      9      -0.000006  -0.000003   0.000002  -0.000053  -0.001106   0.000889
+     10       0.000002   0.000002  -0.000001  -0.000919  -0.020245   0.009825
+     11       0.000005  -0.000001   0.000001   0.000887   0.011950  -0.009570
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000052   0.000919   0.000875  -0.000053  -0.000919   0.000887
+      4       0.001105  -0.020418  -0.011864  -0.001106  -0.020245   0.011950
+      5       0.000875  -0.009740  -0.009398   0.000889   0.009825  -0.009570
+      6       0.000068  -0.001430  -0.001075   0.000015  -0.000140  -0.000167
+      7      -0.001430   0.030444   0.015257   0.000138  -0.001580  -0.001488
+      8      -0.001075   0.015257   0.011484  -0.000167   0.001515   0.001801
+      9       0.000015   0.000138  -0.000167   0.000069   0.001433  -0.001094
+     10      -0.000140  -0.001580   0.001515   0.001433   0.030199  -0.015405
+     11      -0.000167  -0.001488   0.001801  -0.001094  -0.015405   0.011727
+
+diagonalized Hessian : 
+	  0      -0.000067
+	  1      -0.000046
+	  2      -0.000033
+	  3      -0.000000
+	  4       0.000000
+	  5       0.000000
+	  6       0.000001
+	  7       0.000003
+	  8       0.000055
+	  9       0.009683
+	 10       0.049276
+	 11       0.067443
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.111831   0.006223  -0.000710   0.607066  -0.116294   0.001649
+      1       0.000387   0.002912   0.111485  -0.004759  -0.008900   0.710818
+      2       0.042759   0.002873  -0.000876  -0.170693  -0.687635  -0.011751
+      3       0.633755   0.028815  -0.001926   0.546149  -0.104084   0.001499
+      4       0.012788  -0.272547  -0.070988  -0.002012  -0.006235   0.497318
+      5       0.018736   0.002595   0.000285  -0.056181  -0.498635  -0.004633
+      6      -0.533762  -0.074529  -0.689548   0.385752  -0.059437  -0.022332
+      7      -0.009593   0.183302  -0.108783  -0.001340  -0.003926   0.350800
+      8      -0.046500  -0.655624   0.036912  -0.040002  -0.352170  -0.003842
+      9      -0.533553   0.023961   0.693301   0.385872  -0.059733   0.024801
+     10      -0.008467   0.188513  -0.109276  -0.001274  -0.003934   0.350787
+     11      -0.107699   0.647856  -0.035306  -0.039592  -0.350556  -0.002691
+                  6          7          8          9         10         11    
+      0      -0.043429   0.000849  -0.776860   0.000798   0.000075  -0.000000
+      1      -0.006460   0.694375   0.000219   0.000000   0.000000  -0.000079
+      2      -0.704131  -0.004406   0.015064   0.000097   0.000053   0.000000
+      3       0.019234   0.000721   0.532807   0.047566   0.043470   0.000128
+      4       0.001127  -0.496570  -0.000469  -0.002091  -0.001836   0.653112
+      5       0.501777   0.002566   0.004814  -0.527655  -0.466466  -0.002572
+      6      -0.062737   0.135408   0.237104  -0.034296  -0.030614   0.025063
+      7       0.000716  -0.342510  -0.000371  -0.466895   0.531017  -0.462723
+      8       0.348013  -0.000796  -0.009567   0.374790   0.327600  -0.268324
+      9      -0.062886  -0.135288   0.236610  -0.034227  -0.030836  -0.025243
+     10       0.000871  -0.342438   0.000738   0.469892  -0.528414  -0.460539
+     11       0.348017   0.004272  -0.007787   0.371088   0.331822   0.271967
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.044429   0.000814
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.003400   0.350986
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.262707  -0.005802
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.035568   0.000662
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.002131   0.219647
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.170394  -0.002046
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.014366  -0.006976
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.000949   0.109586
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.085120  -0.001200
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.014437   0.007747
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.000951   0.109582
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -nan(ind)  -0.084730  -0.000841
+                  6          7          8          9         10         11    
+      0      -0.043538   0.001116  -2.080079   0.007796   0.001095  -0.000002
+      1      -0.006476   0.912346   0.000586   0.000003   0.000003  -0.001247
+      2      -0.705889  -0.005789   0.040335   0.000950   0.000779   0.000006
+      3       0.017247   0.000848   1.276048   0.415605   0.570472   0.001812
+      4       0.001011  -0.583587  -0.001124  -0.018269  -0.024098   9.270562
+      5       0.449939   0.003015   0.011530  -4.610360  -6.121570  -0.036506
+      6      -0.039790   0.112557   0.401645  -0.211950  -0.284160   0.251624
+      7       0.000454  -0.284711  -0.000628  -2.885424   4.928975  -4.645632
+      8       0.220721  -0.000662  -0.016206   2.316213   3.040832  -2.693911
+      9      -0.039884  -0.112458   0.400807  -0.211524  -0.286221  -0.253432
+     10       0.000552  -0.284651   0.001250   2.903946  -4.904813  -4.623703
+     11       0.220724   0.003551  -0.013190   2.293335   3.080019   2.730485
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D011.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D011.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0  -36.51 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -1.14 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.37 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    0.93  0.005   0.000351 ( -0.016708   0.007911  -0.003016)
+4    3.94  0.004   0.000060 (  0.004218  -0.001969   0.006192)
+5    7.46  0.337   0.002790 ( -0.035289   0.039266  -0.001792)
+6   11.78  2.329   0.012210 (  0.017297   0.109130  -0.001313)
+7   36.28  0.186   0.000317 ( -0.017696   0.000246  -0.002038)
+8   50.13 10.758   0.013251 (  0.114854   0.000110   0.007750)
+9  506.38 33.558   0.004092 (  0.006622  -0.000402  -0.063626)
+10  1134.75 36.092   0.001964 (  0.004783   0.003989  -0.043878)
+11  1327.72 228.324   0.010619 ( -0.000144   0.103043   0.001143)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001285   0.000000  -0.000037  -0.000959   0.000000  -0.000217
+      1       0.000000   0.000046  -0.000000  -0.000001  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000017  -0.000044  -0.000001  -0.000077
+      3      -0.000959  -0.000001  -0.000044   0.004785  -0.000655  -0.039356
+      4       0.000000  -0.000151  -0.000001  -0.000655   0.909455   0.005296
+      5      -0.000217   0.000000  -0.000077  -0.039356   0.005296   0.426357
+      6      -0.000162   0.000069   0.000042  -0.001141   0.025030   0.019820
+      7      -0.000042   0.000053   0.000024   0.020834  -0.461879  -0.220911
+      8       0.000126   0.000035   0.000030   0.019807  -0.268726  -0.212765
+      9      -0.000164  -0.000068   0.000042  -0.002684  -0.024377   0.019687
+     10       0.000041   0.000052  -0.000023  -0.020176  -0.447425   0.215607
+     11       0.000126  -0.000035   0.000030   0.019659   0.263438  -0.213515
+                  6          7          8          9         10         11    
+      0      -0.000162  -0.000042   0.000126  -0.000164   0.000041   0.000126
+      1       0.000069   0.000053   0.000035  -0.000068   0.000052  -0.000035
+      2       0.000042   0.000024   0.000030   0.000042  -0.000023   0.000030
+      3      -0.001141   0.020834   0.019807  -0.002684  -0.020176   0.019659
+      4       0.025030  -0.461879  -0.268726  -0.024377  -0.447425   0.263438
+      5       0.019820  -0.220911  -0.212765   0.019687   0.215607  -0.213515
+      6       0.001041  -0.022932  -0.017245   0.000262  -0.002220  -0.002649
+      7      -0.022932   0.487014   0.244605   0.002195  -0.025188  -0.023720
+      8      -0.017245   0.244605   0.184083  -0.002656   0.024088   0.028652
+      9       0.000262   0.002195  -0.002656   0.002586   0.022303  -0.017104
+     10      -0.002220  -0.025188   0.024088   0.022303   0.472560  -0.239678
+     11      -0.002649  -0.023720   0.028652  -0.017104  -0.239678   0.184833
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032   0.000000  -0.000001  -0.000027   0.000000  -0.000006
+      1       0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001  -0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000150  -0.000020  -0.001231
+      4       0.000000  -0.000004  -0.000000  -0.000020   0.028445   0.000166
+      5      -0.000006   0.000000  -0.000002  -0.001231   0.000166   0.013335
+      6      -0.000006   0.000003   0.000002  -0.000050   0.001107   0.000876
+      7      -0.000002   0.000002   0.000001   0.000921  -0.020425  -0.009769
+      8       0.000005   0.000001   0.000001   0.000876  -0.011883  -0.009409
+      9      -0.000006  -0.000003   0.000002  -0.000119  -0.001078   0.000871
+     10       0.000002   0.000002  -0.000001  -0.000892  -0.019785   0.009534
+     11       0.000005  -0.000001   0.000001   0.000869   0.011649  -0.009442
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000050   0.000921   0.000876  -0.000119  -0.000892   0.000869
+      4       0.001107  -0.020425  -0.011883  -0.001078  -0.019785   0.011649
+      5       0.000876  -0.009769  -0.009409   0.000871   0.009534  -0.009442
+      6       0.000065  -0.001434  -0.001078   0.000016  -0.000139  -0.000166
+      7      -0.001434   0.030448   0.015293   0.000137  -0.001575  -0.001483
+      8      -0.001078   0.015293   0.011509  -0.000166   0.001506   0.001791
+      9       0.000016   0.000137  -0.000166   0.000162   0.001394  -0.001069
+     10      -0.000139  -0.001575   0.001506   0.001394   0.029544  -0.014985
+     11      -0.000166  -0.001483   0.001791  -0.001069  -0.014985   0.011556
+
+diagonalized Hessian : 
+	  0      -0.000050
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000001
+	  5       0.000002
+	  6       0.000005
+	  7       0.000050
+	  8       0.000095
+	  9       0.009704
+	 10       0.048729
+	 11       0.066712
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0       0.087045  -0.075659   0.603228  -0.097478   0.079629  -0.006876
+      1       0.055821   0.388086   0.009645  -0.449416  -0.375115   0.690928
+      2       0.037674  -0.284181  -0.189868  -0.534897   0.741657   0.206760
+      3       0.416128  -0.065115   0.542729  -0.087626   0.045328  -0.044014
+      4      -0.060435   0.421100   0.010169  -0.352051   0.030455  -0.357204
+      5       0.003115  -0.442815  -0.075056  -0.343202  -0.382479  -0.173991
+      6      -0.877547  -0.053770   0.383369  -0.038206   0.062769   0.082464
+      7      -0.036587   0.297577   0.006564  -0.256858   0.021542  -0.343802
+      8      -0.118001  -0.313465  -0.052120  -0.226957  -0.267707   0.044491
+      9       0.156367  -0.080999   0.383370  -0.053906  -0.027342   0.030591
+     10      -0.035479   0.297573   0.006627  -0.256869   0.021484  -0.343915
+     11       0.001609  -0.316925  -0.054159  -0.255285  -0.276297  -0.271705
+                  6          7          8          9         10         11    
+      0       0.011105  -0.745678  -0.225312   0.000788   0.000074  -0.000001
+      1      -0.157733  -0.023084   0.026468   0.000001  -0.000004  -0.000079
+      2      -0.039153   0.031650  -0.017810   0.000098   0.000054  -0.000002
+      3       0.030264   0.317907   0.640498   0.047524   0.043508  -0.001579
+      4       0.371801   0.026117  -0.031669  -0.003573   0.023627   0.652660
+      5       0.048232  -0.030338   0.068355  -0.527028  -0.466900   0.015731
+      6      -0.097637   0.174767   0.158284  -0.033919  -0.029651   0.026250
+      7      -0.109634   0.012043  -0.013978  -0.466553   0.511960  -0.483003
+      8       0.665359  -0.014996   0.006178   0.370575   0.317282  -0.281039
+      9       0.031562   0.555595  -0.710606  -0.034527  -0.031851  -0.024021
+     10      -0.109467   0.012753  -0.012800   0.471641  -0.545352  -0.439618
+     11      -0.595609  -0.000392  -0.043504   0.374412   0.342754   0.258807
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.040830   0.068670  -0.008158
+      1      -nan(ind)  -nan(ind)  -nan(ind)  -0.188242  -0.323491   0.819741
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.224046   0.639589   0.245308
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.032829   0.034964  -0.046709
+      4      -nan(ind)  -nan(ind)  -nan(ind)  -0.131896   0.023492  -0.379071
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.128581  -0.295029  -0.184642
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.010124   0.034246   0.061898
+      7      -nan(ind)  -nan(ind)  -nan(ind)  -0.068065   0.011753  -0.258058
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.060142  -0.146057   0.033395
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.014285  -0.014917   0.022961
+     10      -nan(ind)  -nan(ind)  -nan(ind)  -0.068068   0.011721  -0.258143
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.067648  -0.150744  -0.203942
+                  6          7          8          9         10         11    
+      0       0.016553  -1.950881  -0.692883   0.007702   0.001079  -0.000019
+      1      -0.235105  -0.060392   0.081393   0.000010  -0.000058  -0.001255
+      2      -0.058359   0.082806  -0.054768   0.000953   0.000783  -0.000029
+      3       0.040348   0.743943   1.761784   0.415464   0.569379  -0.022358
+      4       0.495690   0.061117  -0.087111  -0.031240   0.309203   9.238946
+      5       0.064303  -0.070995   0.188019  -4.607390  -6.110206   0.222689
+      6      -0.092070   0.289271   0.307948  -0.209736  -0.274461   0.262832
+      7      -0.103383   0.019934  -0.027194  -2.884877   4.738856  -4.836052
+      8       0.627424  -0.024822   0.012020   2.291410   2.936861  -2.813891
+      9       0.029762   0.919610  -1.382514  -0.213496  -0.294826  -0.240509
+     10      -0.103226   0.021109  -0.024903   2.916340  -5.047940  -4.401656
+     11      -0.561651  -0.000649  -0.084639   2.315135   3.172634   2.591295
+
+reading displaced Hessian and dipole derivatives 
+============================= 
+Reading Hessian S3b_b3lyp_vpt2_D012.hess 
+Reading dipole derivatives from the S3b_b3lyp_vpt2_D012.hess file.
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0  -36.55 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -1.17 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.38 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    0.97  0.004   0.000282 ( -0.016493  -0.001408  -0.002843)
+4    3.95  0.008   0.000127 (  0.004420   0.008318   0.006210)
+5    7.37  0.363   0.003045 ( -0.034274  -0.043221  -0.001336)
+6   11.92  2.292   0.011872 (  0.018939  -0.107299  -0.000226)
+7   36.29  0.187   0.000318 ( -0.017730   0.000097  -0.002022)
+8   50.12 10.769   0.013267 ( -0.114919   0.000925  -0.007721)
+9  506.38 33.558   0.004092 (  0.006622  -0.000102  -0.063627)
+10  1134.75 36.091   0.001964 (  0.004782  -0.004331  -0.043845)
+11  1327.72 228.325   0.010619 (  0.000188   0.103031  -0.001959)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+Printing detailed Hessian information: 
+
+Hessian : 
+                  0          1          2          3          4          5    
+      0       0.001285  -0.000001  -0.000037  -0.000959  -0.000001  -0.000217
+      1      -0.000001   0.000046  -0.000000  -0.000000  -0.000151   0.000000
+      2      -0.000037  -0.000000   0.000018  -0.000044   0.000002  -0.000077
+      3      -0.000959  -0.000000  -0.000044   0.004785   0.000686  -0.039365
+      4      -0.000001  -0.000151   0.000002   0.000686   0.909338  -0.009095
+      5      -0.000217   0.000000  -0.000077  -0.039365  -0.009095   0.426471
+      6      -0.000164   0.000069   0.000042  -0.002663   0.024363   0.019391
+      7      -0.000041   0.000053   0.000023   0.020161  -0.451234  -0.213746
+      8       0.000126   0.000035   0.000029   0.019376  -0.261561  -0.209734
+      9      -0.000162  -0.000068   0.000042  -0.001163  -0.025045   0.020125
+     10       0.000043   0.000053  -0.000024  -0.020849  -0.457953   0.222831
+     11       0.000125  -0.000035   0.000030   0.020099   0.270664  -0.216660
+                  6          7          8          9         10         11    
+      0      -0.000164  -0.000041   0.000126  -0.000162   0.000043   0.000125
+      1       0.000069   0.000053   0.000035  -0.000068   0.000053  -0.000035
+      2       0.000042   0.000023   0.000029   0.000042  -0.000024   0.000030
+      3      -0.002663   0.020161   0.019376  -0.001163  -0.020849   0.020099
+      4       0.024363  -0.451234  -0.261561  -0.025045  -0.457953   0.270664
+      5       0.019391  -0.213746  -0.209734   0.020125   0.222831  -0.216660
+      6       0.002565  -0.022258  -0.016815   0.000262  -0.002226  -0.002648
+      7      -0.022258   0.476369   0.237379   0.002190  -0.025188  -0.023659
+      8      -0.016815   0.237379   0.181053  -0.002656   0.024149   0.028652
+      9       0.000262   0.002190  -0.002656   0.001062   0.022978  -0.017543
+     10      -0.002226  -0.025188   0.024149   0.022978   0.483088  -0.246963
+     11      -0.002648  -0.023659   0.028652  -0.017543  -0.246963   0.187978
+
+symmetrized, mass weighted Hessian : 
+                  0          1          2          3          4          5    
+      0       0.000032  -0.000000  -0.000001  -0.000027  -0.000000  -0.000006
+      1      -0.000000   0.000001  -0.000000  -0.000000  -0.000004   0.000000
+      2      -0.000001  -0.000000   0.000000  -0.000001   0.000000  -0.000002
+      3      -0.000027  -0.000000  -0.000001   0.000150   0.000021  -0.001231
+      4      -0.000000  -0.000004   0.000000   0.000021   0.028442  -0.000284
+      5      -0.000006   0.000000  -0.000002  -0.001231  -0.000284   0.013339
+      6      -0.000006   0.000003   0.000002  -0.000118   0.001077   0.000857
+      7      -0.000002   0.000002   0.000001   0.000892  -0.019954  -0.009452
+      8       0.000005   0.000001   0.000001   0.000857  -0.011566  -0.009275
+      9      -0.000006  -0.000003   0.000002  -0.000051  -0.001108   0.000890
+     10       0.000002   0.000002  -0.000001  -0.000922  -0.020251   0.009854
+     11       0.000005  -0.000001   0.000001   0.000889   0.011969  -0.009581
+                  6          7          8          9         10         11    
+      0      -0.000006  -0.000002   0.000005  -0.000006   0.000002   0.000005
+      1       0.000003   0.000002   0.000001  -0.000003   0.000002  -0.000001
+      2       0.000002   0.000001   0.000001   0.000002  -0.000001   0.000001
+      3      -0.000118   0.000892   0.000857  -0.000051  -0.000922   0.000889
+      4       0.001077  -0.019954  -0.011566  -0.001108  -0.020251   0.011969
+      5       0.000857  -0.009452  -0.009275   0.000890   0.009854  -0.009581
+      6       0.000160  -0.001392  -0.001051   0.000016  -0.000139  -0.000166
+      7      -0.001392   0.029783   0.014841   0.000137  -0.001575  -0.001479
+      8      -0.001051   0.014841   0.011319  -0.000166   0.001510   0.001791
+      9       0.000016   0.000137  -0.000166   0.000066   0.001437  -0.001097
+     10      -0.000139  -0.001575   0.001510   0.001437   0.030203  -0.015440
+     11      -0.000166  -0.001479   0.001791  -0.001097  -0.015440   0.011752
+
+diagonalized Hessian : 
+	  0      -0.000051
+	  1      -0.000000
+	  2      -0.000000
+	  3       0.000000
+	  4       0.000001
+	  5       0.000002
+	  6       0.000005
+	  7       0.000050
+	  8       0.000095
+	  9       0.009704
+	 10       0.048729
+	 11       0.066712
+
+
+Eigenvectors of Hessian matrix : 
+                  0          1          2          3          4          5    
+      0      -0.086957  -0.070320   0.604633  -0.092030   0.079958  -0.004497
+      1       0.054827  -0.381535  -0.011190   0.449259   0.395559  -0.677290
+      2      -0.037953  -0.282206  -0.182988  -0.542746   0.734847   0.218568
+      3      -0.415860  -0.060355   0.543941  -0.082710   0.045866  -0.041799
+      4      -0.066580  -0.420310  -0.009045   0.351045  -0.029734   0.340875
+      5      -0.002654  -0.439751  -0.067350  -0.344673  -0.377258  -0.196500
+      6      -0.154995  -0.079304   0.384264  -0.051054  -0.029068   0.034377
+      7      -0.031304  -0.308731  -0.008346   0.250070  -0.032925   0.341263
+      8      -0.015996  -0.294746  -0.044388  -0.246139  -0.252240  -0.305578
+      9       0.875572  -0.048471   0.384644  -0.033761   0.064560   0.075223
+     10      -0.031536  -0.309020  -0.008336   0.250098  -0.033270   0.343900
+     11       0.133163  -0.331422  -0.050994  -0.238402  -0.284603   0.044566
+                  6          7          8          9         10         11    
+      0       0.015089  -0.745684   0.225292   0.000788   0.000074   0.000002
+      1       0.181729   0.023295   0.026651   0.000001   0.000004  -0.000079
+      2      -0.042126   0.031625   0.017715   0.000098   0.000053   0.000003
+      3       0.034331   0.317782  -0.640731   0.047525   0.043498   0.001833
+      4      -0.388093  -0.024707  -0.027634  -0.000604  -0.027296   0.652516
+      5       0.028144  -0.030138  -0.067999  -0.527041  -0.466700  -0.020867
+      6       0.046232   0.555480   0.709883  -0.034603  -0.031623   0.023850
+      7       0.089891  -0.013729  -0.015397  -0.468619   0.548038  -0.441703
+      8      -0.606427   0.003162   0.053479   0.378126   0.338398  -0.255335
+      9      -0.118338   0.175049  -0.157240  -0.033847  -0.029866  -0.026439
+     10       0.099999  -0.013075  -0.016863   0.469515  -0.509445  -0.480714
+     11       0.640633  -0.018429  -0.015977   0.366876   0.321355   0.284840
+
+normal coordinates : 
+                  0          1          2          3          4          5    
+      0      -nan(ind)  -nan(ind)  -nan(ind)  -0.039434   0.069002  -0.005302
+      1      -nan(ind)  -nan(ind)  -nan(ind)   0.192504   0.341361  -0.798403
+      2      -nan(ind)  -nan(ind)  -nan(ind)  -0.232563   0.634162   0.257653
+      3      -nan(ind)  -nan(ind)  -nan(ind)  -0.031700   0.035404  -0.044073
+      4      -nan(ind)  -nan(ind)  -nan(ind)   0.134545  -0.022952   0.359420
+      5      -nan(ind)  -nan(ind)  -nan(ind)  -0.132103  -0.291206  -0.207190
+      6      -nan(ind)  -nan(ind)  -nan(ind)  -0.013840  -0.015870   0.025638
+      7      -nan(ind)  -nan(ind)  -nan(ind)   0.067791  -0.017976   0.254508
+      8      -nan(ind)  -nan(ind)  -nan(ind)  -0.066725  -0.137715  -0.227895
+      9      -nan(ind)  -nan(ind)  -nan(ind)  -0.009152   0.035248   0.056100
+     10      -nan(ind)  -nan(ind)  -nan(ind)   0.067799  -0.018164   0.256475
+     11      -nan(ind)  -nan(ind)  -nan(ind)  -0.064628  -0.155384   0.033237
+                  6          7          8          9         10         11    
+      0       0.022629  -1.951037   0.692773   0.007701   0.001084   0.000025
+      1       0.272532   0.060951   0.081953   0.000007   0.000064  -0.001255
+      2      -0.063175   0.082746   0.054474   0.000956   0.000783   0.000041
+      3       0.046051   0.743703  -1.762302   0.415469   0.569245   0.025950
+      4      -0.520582  -0.057821  -0.076007  -0.005284  -0.357217   9.236900
+      5       0.037752  -0.070532  -0.187028  -4.607500  -6.107588  -0.295384
+      6       0.043863   0.919484   1.381010  -0.213961  -0.292713   0.238799
+      7       0.085285  -0.022725  -0.029953  -2.897652   5.072806  -4.422530
+      8      -0.575357   0.005233   0.104039   2.338099   3.132318  -2.556528
+      9      -0.112276   0.289758  -0.305895  -0.209288  -0.276446  -0.264716
+     10       0.094875  -0.021643  -0.032805   2.903196  -4.715582  -4.813126
+     11       0.607811  -0.030505  -0.031082   2.268536   2.974558   2.851953
+
+----- collect hessians vpt2 done ! ---
+
+processing dipole derivatives 
+dipole derivative at equilib geom
+                  0          1          2    
+      0      -0.032044  -0.000023   0.000316
+      1      -0.000029   0.009510  -0.000006
+      2      -0.004094  -0.000002   0.007583
+      3       0.584764   0.000038  -0.058255
+      4       0.000068   1.860291  -0.003206
+      5      -0.058725  -0.003208   1.053099
+      6      -0.276315   0.042036   0.028803
+      7       0.007481  -0.936738  -0.055473
+      8       0.031305  -0.390662  -0.528517
+      9      -0.276314  -0.042070   0.029153
+     10      -0.007519  -0.933136   0.058686
+     11       0.031533   0.393876  -0.532101
+dipole derivative displacement 0 :
+ Mode 0 xyz 0 : d2    -0.000229 d3    -0.039768 
+ Mode 0 xyz 1 : d2     0.003114 d3     0.012050 
+ Mode 0 xyz 2 : d2     0.000099 d3    -0.006970 
+ Mode 1 xyz 0 : d2     0.006359 d3     0.000015 
+ Mode 1 xyz 1 : d2    -0.000012 d3    -0.000938 
+ Mode 1 xyz 2 : d2    -0.001677 d3    -0.000019 
+ Mode 2 xyz 0 : d2     0.000088 d3     0.000233 
+ Mode 2 xyz 1 : d2    -0.000828 d3     0.000001 
+ Mode 2 xyz 2 : d2     0.000043 d3    -0.001108 
+ Mode 3 xyz 0 : d2     0.000758 d3     0.073786 
+ Mode 3 xyz 1 : d2    -0.212448 d3     0.002990 
+ Mode 3 xyz 2 : d2    -0.003725 d3    -0.003778 
+ Mode 4 xyz 0 : d2    -0.230672 d3     0.000292 
+ Mode 4 xyz 1 : d2     0.000283 d3    -0.107096 
+ Mode 4 xyz 2 : d2     0.009688 d3    -0.000888 
+ Mode 5 xyz 0 : d2    -0.004081 d3    -0.004368 
+ Mode 5 xyz 1 : d2     0.010975 d3    -0.004112 
+ Mode 5 xyz 2 : d2    -0.000979 d3    -0.038457 
+ Mode 6 xyz 0 : d2    -0.001260 d3    -0.041101 
+ Mode 6 xyz 1 : d2     0.107925 d3    -0.004501 
+ Mode 6 xyz 2 : d2     0.009488 d3     0.002525 
+ Mode 7 xyz 0 : d2     0.112649 d3    -0.004684 
+ Mode 7 xyz 1 : d2     0.017229 d3     0.055934 
+ Mode 7 xyz 2 : d2    -0.004098 d3     0.008567 
+ Mode 8 xyz 0 : d2     0.068264 d3     0.002021 
+ Mode 8 xyz 1 : d2    -0.004918 d3     0.035195 
+ Mode 8 xyz 2 : d2    -0.009775 d3     0.019046 
+ Mode 9 xyz 0 : d2     0.000731 d3    -0.036400 
+ Mode 9 xyz 1 : d2     0.101227 d3     0.003876 
+ Mode 9 xyz 2 : d2    -0.005861 d3     0.002336 
+ Mode 10 xyz 0 : d2     0.111133 d3     0.004384 
+ Mode 10 xyz 1 : d2    -0.017506 d3     0.050886 
+ Mode 10 xyz 2 : d2    -0.004056 d3    -0.007422 
+ Mode 11 xyz 0 : d2    -0.064272 d3     0.002147 
+ Mode 11 xyz 1 : d2    -0.005247 d3    -0.031074 
+ Mode 11 xyz 2 : d2     0.010714 d3     0.020537 
+dipole derivative displacement 1 :
+ Mode 0 xyz 0 : d2     0.006660 d3     0.003494 
+ Mode 0 xyz 1 : d2     0.000227 d3    -0.000162 
+ Mode 0 xyz 2 : d2    -0.003818 d3    -0.001362 
+ Mode 1 xyz 0 : d2     0.000143 d3     0.000054 
+ Mode 1 xyz 1 : d2     0.000515 d3    -0.000825 
+ Mode 1 xyz 2 : d2    -0.000023 d3     0.000023 
+ Mode 2 xyz 0 : d2    -0.004289 d3     0.000461 
+ Mode 2 xyz 1 : d2    -0.000009 d3    -0.000011 
+ Mode 2 xyz 2 : d2    -0.000848 d3    -0.001172 
+ Mode 3 xyz 0 : d2    -0.029535 d3     0.153096 
+ Mode 3 xyz 1 : d2    -0.002343 d3    -0.003194 
+ Mode 3 xyz 2 : d2     0.179105 d3     0.023282 
+ Mode 4 xyz 0 : d2    -0.002534 d3    -0.002826 
+ Mode 4 xyz 1 : d2    -0.005475 d3    -0.123414 
+ Mode 4 xyz 2 : d2     0.005727 d3     0.000103 
+ Mode 5 xyz 0 : d2     0.195281 d3     0.031713 
+ Mode 5 xyz 1 : d2     0.005755 d3     0.001264 
+ Mode 5 xyz 2 : d2     0.034626 d3    -0.189387 
+ Mode 6 xyz 0 : d2     0.011784 d3    -0.092374 
+ Mode 6 xyz 1 : d2    -0.128930 d3    -0.002860 
+ Mode 6 xyz 2 : d2    -0.086561 d3    -0.020027 
+ Mode 7 xyz 0 : d2    -0.017825 d3    -0.003133 
+ Mode 7 xyz 1 : d2     0.005796 d3     0.061462 
+ Mode 7 xyz 2 : d2    -0.006231 d3     0.053747 
+ Mode 8 xyz 0 : d2    -0.094293 d3    -0.016207 
+ Mode 8 xyz 1 : d2    -0.014324 d3     0.053469 
+ Mode 8 xyz 2 : d2    -0.020078 d3     0.095061 
+ Mode 9 xyz 0 : d2     0.011851 d3    -0.094998 
+ Mode 9 xyz 1 : d2     0.131156 d3     0.005524 
+ Mode 9 xyz 2 : d2    -0.088395 d3    -0.016444 
+ Mode 10 xyz 0 : d2     0.020214 d3     0.005895 
+ Mode 10 xyz 1 : d2    -0.000752 d3     0.062653 
+ Mode 10 xyz 2 : d2     0.000525 d3    -0.053872 
+ Mode 11 xyz 0 : d2    -0.096660 d3    -0.015786 
+ Mode 11 xyz 1 : d2     0.008581 d3    -0.054757 
+ Mode 11 xyz 2 : d2    -0.013809 d3     0.095777 
+dipole derivative displacement 2 :
+ Mode 0 xyz 0 : d2    -0.017838 d3    -0.003487 
+ Mode 0 xyz 1 : d2    -0.000011 d3    -0.000037 
+ Mode 0 xyz 2 : d2     0.002670 d3     0.000298 
+ Mode 1 xyz 0 : d2    -0.000017 d3    -0.000002 
+ Mode 1 xyz 1 : d2     0.002728 d3     0.000731 
+ Mode 1 xyz 2 : d2     0.000002 d3    -0.000001 
+ Mode 2 xyz 0 : d2     0.000243 d3     0.000542 
+ Mode 2 xyz 1 : d2    -0.000000 d3    -0.000004 
+ Mode 2 xyz 2 : d2     0.003119 d3     0.001307 
+ Mode 3 xyz 0 : d2     0.033369 d3     0.008494 
+ Mode 3 xyz 1 : d2    -0.000183 d3     0.000961 
+ Mode 3 xyz 2 : d2    -0.083149 d3    -0.006055 
+ Mode 4 xyz 0 : d2    -0.000202 d3    -0.000177 
+ Mode 4 xyz 1 : d2    -0.002129 d3    -0.022501 
+ Mode 4 xyz 2 : d2    -0.000841 d3    -0.000037 
+ Mode 5 xyz 0 : d2    -0.087941 d3     0.002947 
+ Mode 5 xyz 1 : d2    -0.000841 d3    -0.000184 
+ Mode 5 xyz 2 : d2    -0.019651 d3    -0.038382 
+ Mode 6 xyz 0 : d2    -0.008122 d3    -0.018622 
+ Mode 6 xyz 1 : d2     0.058818 d3    -0.001664 
+ Mode 6 xyz 2 : d2     0.039803 d3    -0.004000 
+ Mode 7 xyz 0 : d2     0.010583 d3     0.000604 
+ Mode 7 xyz 1 : d2    -0.000762 d3     0.010945 
+ Mode 7 xyz 2 : d2     0.001136 d3     0.010451 
+ Mode 8 xyz 0 : d2     0.043737 d3    -0.001763 
+ Mode 8 xyz 1 : d2     0.005985 d3     0.010307 
+ Mode 8 xyz 2 : d2     0.008704 d3     0.018478 
+ Mode 9 xyz 0 : d2    -0.008146 d3    -0.018651 
+ Mode 9 xyz 1 : d2    -0.058614 d3     0.001794 
+ Mode 9 xyz 2 : d2     0.040362 d3    -0.003782 
+ Mode 10 xyz 0 : d2    -0.010365 d3    -0.000427 
+ Mode 10 xyz 1 : d2     0.000108 d3     0.010744 
+ Mode 10 xyz 2 : d2    -0.000297 d3    -0.010423 
+ Mode 11 xyz 0 : d2     0.043948 d3    -0.001691 
+ Mode 11 xyz 1 : d2    -0.005146 d3    -0.010130 
+ Mode 11 xyz 2 : d2     0.007871 d3     0.018659 
+dipole derivative displacement 3 :
+ Mode 0 xyz 0 : d2    -0.000247 d3    -0.000052 
+ Mode 0 xyz 1 : d2    -0.000004 d3    -0.000081 
+ Mode 0 xyz 2 : d2    -0.000803 d3     0.000033 
+ Mode 1 xyz 0 : d2    -0.000004 d3     0.000013 
+ Mode 1 xyz 1 : d2     0.000225 d3     0.000006 
+ Mode 1 xyz 2 : d2     0.000000 d3    -0.000004 
+ Mode 2 xyz 0 : d2    -0.000999 d3    -0.000033 
+ Mode 2 xyz 1 : d2    -0.000000 d3    -0.000019 
+ Mode 2 xyz 2 : d2     0.000286 d3     0.000000 
+ Mode 3 xyz 0 : d2     0.032840 d3    -0.002911 
+ Mode 3 xyz 1 : d2     0.000008 d3    -0.000012 
+ Mode 3 xyz 2 : d2     0.004187 d3     0.001016 
+ Mode 4 xyz 0 : d2     0.000010 d3     0.000022 
+ Mode 4 xyz 1 : d2    -0.037676 d3    -0.005587 
+ Mode 4 xyz 2 : d2     0.000122 d3    -0.000024 
+ Mode 5 xyz 0 : d2     0.005279 d3     0.001330 
+ Mode 5 xyz 1 : d2     0.000124 d3    -0.000161 
+ Mode 5 xyz 2 : d2    -0.006966 d3    -0.013881 
+ Mode 6 xyz 0 : d2    -0.016296 d3     0.001501 
+ Mode 6 xyz 1 : d2     0.001600 d3    -0.000228 
+ Mode 6 xyz 2 : d2    -0.001693 d3    -0.000517 
+ Mode 7 xyz 0 : d2    -0.002743 d3     0.000136 
+ Mode 7 xyz 1 : d2     0.018750 d3     0.002826 
+ Mode 7 xyz 2 : d2     0.022103 d3    -0.001699 
+ Mode 8 xyz 0 : d2    -0.002135 d3    -0.000665 
+ Mode 8 xyz 1 : d2    -0.015351 d3     0.002825 
+ Mode 8 xyz 2 : d2     0.003314 d3     0.006953 
+ Mode 9 xyz 0 : d2    -0.016297 d3     0.001462 
+ Mode 9 xyz 1 : d2    -0.001604 d3     0.000244 
+ Mode 9 xyz 2 : d2    -0.001690 d3    -0.000528 
+ Mode 10 xyz 0 : d2     0.002737 d3    -0.000168 
+ Mode 10 xyz 1 : d2     0.018700 d3     0.002757 
+ Mode 10 xyz 2 : d2    -0.022225 d3     0.001718 
+ Mode 11 xyz 0 : d2    -0.002147 d3    -0.000640 
+ Mode 11 xyz 1 : d2     0.015226 d3    -0.002670 
+ Mode 11 xyz 2 : d2     0.003368 d3     0.006940 
+dipole derivative displacement 4 :
+ Mode 0 xyz 0 : d2    -0.000864 d3    -0.000043 
+ Mode 0 xyz 1 : d2    -0.000007 d3    -0.000049 
+ Mode 0 xyz 2 : d2    -0.000146 d3     0.000032 
+ Mode 1 xyz 0 : d2    -0.000003 d3     0.000008 
+ Mode 1 xyz 1 : d2     0.000156 d3    -0.000033 
+ Mode 1 xyz 2 : d2    -0.000000 d3    -0.000001 
+ Mode 2 xyz 0 : d2    -0.000585 d3    -0.000003 
+ Mode 2 xyz 1 : d2     0.000001 d3    -0.000013 
+ Mode 2 xyz 2 : d2     0.000126 d3    -0.000002 
+ Mode 3 xyz 0 : d2     0.025917 d3    -0.005205 
+ Mode 3 xyz 1 : d2     0.000013 d3     0.000007 
+ Mode 3 xyz 2 : d2     0.007457 d3    -0.000187 
+ Mode 4 xyz 0 : d2     0.000015 d3     0.000018 
+ Mode 4 xyz 1 : d2    -0.067414 d3    -0.007851 
+ Mode 4 xyz 2 : d2     0.000068 d3     0.000070 
+ Mode 5 xyz 0 : d2     0.008690 d3     0.000002 
+ Mode 5 xyz 1 : d2     0.000074 d3    -0.000108 
+ Mode 5 xyz 2 : d2    -0.049889 d3    -0.003846 
+ Mode 6 xyz 0 : d2    -0.012522 d3     0.002638 
+ Mode 6 xyz 1 : d2    -0.001832 d3    -0.000249 
+ Mode 6 xyz 2 : d2    -0.003644 d3     0.000081 
+ Mode 7 xyz 0 : d2    -0.001967 d3    -0.000055 
+ Mode 7 xyz 1 : d2     0.033768 d3     0.003988 
+ Mode 7 xyz 2 : d2     0.020000 d3     0.000362 
+ Mode 8 xyz 0 : d2    -0.004041 d3    -0.000010 
+ Mode 8 xyz 1 : d2     0.018692 d3     0.002287 
+ Mode 8 xyz 2 : d2     0.024736 d3     0.001916 
+ Mode 9 xyz 0 : d2    -0.012527 d3     0.002613 
+ Mode 9 xyz 1 : d2     0.001822 d3     0.000240 
+ Mode 9 xyz 2 : d2    -0.003667 d3     0.000076 
+ Mode 10 xyz 0 : d2     0.001955 d3     0.000032 
+ Mode 10 xyz 1 : d2     0.033461 d3     0.003894 
+ Mode 10 xyz 2 : d2    -0.020068 d3    -0.000438 
+ Mode 11 xyz 0 : d2    -0.004065 d3     0.000010 
+ Mode 11 xyz 1 : d2    -0.018766 d3    -0.002184 
+ Mode 11 xyz 2 : d2     0.025039 d3     0.001944 
+dipole derivative displacement 5 :
+ Mode 0 xyz 0 : d2     0.000017 d3    -0.047659 
+ Mode 0 xyz 1 : d2     0.000982 d3     0.011235 
+ Mode 0 xyz 2 : d2    -0.000001 d3    -0.006544 
+ Mode 1 xyz 0 : d2     0.001110 d3     0.000014 
+ Mode 1 xyz 1 : d2    -0.000001 d3     0.000005 
+ Mode 1 xyz 2 : d2    -0.000082 d3    -0.000005 
+ Mode 2 xyz 0 : d2    -0.000003 d3    -0.000228 
+ Mode 2 xyz 1 : d2    -0.000697 d3    -0.000069 
+ Mode 2 xyz 2 : d2     0.000007 d3    -0.000439 
+ Mode 3 xyz 0 : d2     0.000001 d3    -0.000515 
+ Mode 3 xyz 1 : d2    -0.004887 d3    -0.002361 
+ Mode 3 xyz 2 : d2     0.000019 d3     0.000138 
+ Mode 4 xyz 0 : d2     0.001229 d3     0.000042 
+ Mode 4 xyz 1 : d2     0.000209 d3     0.001411 
+ Mode 4 xyz 2 : d2    -0.005180 d3    -0.000401 
+ Mode 5 xyz 0 : d2     0.000008 d3     0.000312 
+ Mode 5 xyz 1 : d2     0.056539 d3    -0.000205 
+ Mode 5 xyz 2 : d2    -0.000202 d3    -0.002599 
+ Mode 6 xyz 0 : d2     0.024140 d3     0.000369 
+ Mode 6 xyz 1 : d2     0.002213 d3     0.000094 
+ Mode 6 xyz 2 : d2     0.000548 d3    -0.000107 
+ Mode 7 xyz 0 : d2    -0.001171 d3    -0.000086 
+ Mode 7 xyz 1 : d2    -0.027895 d3    -0.000627 
+ Mode 7 xyz 2 : d2     0.002835 d3     0.000444 
+ Mode 8 xyz 0 : d2     0.000173 d3    -0.000162 
+ Mode 8 xyz 1 : d2    -0.027975 d3    -0.001222 
+ Mode 8 xyz 2 : d2     0.017414 d3     0.001384 
+ Mode 9 xyz 0 : d2    -0.024138 d3     0.000226 
+ Mode 9 xyz 1 : d2     0.002229 d3    -0.000100 
+ Mode 9 xyz 2 : d2    -0.000564 d3    -0.000108 
+ Mode 10 xyz 0 : d2    -0.001150 d3     0.000069 
+ Mode 10 xyz 1 : d2     0.027688 d3    -0.000751 
+ Mode 10 xyz 2 : d2     0.002478 d3    -0.000472 
+ Mode 11 xyz 0 : d2    -0.000177 d3    -0.000144 
+ Mode 11 xyz 1 : d2    -0.028334 d3     0.001432 
+ Mode 11 xyz 2 : d2    -0.017213 d3     0.001203 
+
+ Computing mean and mean square displacements of normal modes 
+
+ mode      frequency         <q>          <q^2>
+------------------------------------------------
+  0       20.8562749    -0.1701629     2.8864065
+  1       24.5928265     3.7754076     2.4478555
+  2       40.3123032    -1.6772756     1.4933329
+  3      506.3882627    -0.1013509     0.1188805
+  4     1135.0327214    -0.1555241     0.0530378
+  5     1327.4062032     0.0018473     0.0453514
+------------------------------------------------
+
+large coordinate string for coordinates in Angstroem
+Write the harmonic data into the VPT2 file.
+Calling the VPT2 program via:
+    C:\ORCA_6.1.1\orca_vpt2 S3b_b3lyp_vpt2.vpt2 
+orca_vpt vpt2_filename: S3b_b3lyp_vpt2.vpt2
+
+
+  *******************************
+                         .@      
+                      .@@@       
+                   @@@@@@*       
+                @@@@@@@@         
+               @@@@@@@@          
+             @@@@@@@@@           
+            @@@@@@@@@@           
+           @@@@@@@@@@@           
+         @@@@@@@@@@@@@@          
+   @@@@@@@@@@@@@@@@@@@@@         
+   @@@@@@@@@@@@@@@@@    @@@@@@@  
+         ORCA VPT2/GVPT2 Analysis
+  *******************************
+
+VPT2 Settings:
+    Basename:                                S3b_b3lyp_vpt2
+    Pickettname:                                
+    Minimise the Orca amount of output:      true
+    Rotational symmetry detection threshold: 1.00e-04
+    Anharmonic displacement factor:          0.050
+    Property deriv. displ. factor:           0.050
+    Cutoff value when reading the Hessian:   1.00e-14
+    Print-level:                             3  
+    Averaged prop. (0=none,1=NMR,2=Atensor,3=Jcouplings, 4=Gtensor): 0  
+
+geometry reading: S3b_b3lyp_vpt2.vpt2
+geometry read: S3b_b3lyp_vpt2.vpt2
+Symmetrise the Hessian.
+Calculate the harmonic frequencies.
+Calculate the harmonic intensities.
+  Mass-weight the dipole derivatives.
+  Calculate the normal coordinate derivatives.
+  Sum up the intensities.
+-----------------------------------------------------------------
+                         IR Intensities                      
+-----------------------------------------------------------------
+Mode freq     Int          T2   (      Tx       Ty       Tz     )  
+     cm-1    km/mol        a.u.                                 
+----------------------------------------------------------------
+0   -6.62 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+1   -3.95 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+2   -0.38 -nan(ind)  -nan(ind) ( -nan(ind)  -nan(ind)  -nan(ind))
+3    1.68  0.055   0.002018 ( -0.044137  -0.001204  -0.008254)
+4    2.54  0.000   0.000003 ( -0.000164  -0.001766  -0.000001)
+5   11.83  2.400   0.012522 ( -0.010034  -0.111449  -0.000094)
+6   20.86  0.076   0.000226 (  0.004682   0.014296   0.000234)
+7   24.59 13.249   0.033268 ( -0.181919   0.003686  -0.012662)
+8   40.31  5.290   0.008103 (  0.089852  -0.000497   0.005464)
+9  506.39 33.559   0.004092 (  0.006622  -0.000252  -0.063626)
+10  1135.03 35.827   0.001949 (  0.004785  -0.000171  -0.043889)
+11  1327.41 228.589   0.010634 (  0.000022   0.103120  -0.000409)
+Calculate the dimensionless normal coordinates Q.
+Generate three Coriolis zeta matrices.
+
+ Analysis of possible Fermi resonances with VPT2 denominators 
+ below 10 wavenumbers (denominator values in wavenumbers): 
+
+ possible Type II resonance 10 mode 0 2 0     1.400247 
+ possible Type II resonance 10 mode 0 2 1     5.136798 
+ possible Type II resonance 10 mode 1 2 0     5.136798 
+ possible Type II resonance 10 mode 1 2 1     8.873350 
+ possible Type I resonance mode 2 0     1.400247 
+ possible Type I resonance mode 2 1     8.873350 
+ 
+                                                  ... done 
+
+evaluating centrifugal distortion constants...................  
+centrifugal distortion constants -- 
+  i  j  k  l    Tau [cm-1]  
+  0  0  0  0  -4.695572e-07 
+  0  0  0  1  -6.833849e-08 
+  0  0  0  2  -3.778176e-07 
+  0  0  1  0  -8.535694e-08 
+  0  0  1  1  -3.915944e-07 
+  0  0  1  2  1.538490e-09 
+  0  0  2  0  -4.610578e-07 
+  0  0  2  1  -4.152172e-09 
+  0  0  2  2  -3.258986e-07 
+  0  1  0  0  -6.833849e-08 
+  0  1  0  1  -1.517662e-05 
+  0  1  0  2  -2.291776e-08 
+  0  1  1  0  -1.795825e-05 
+  0  1  1  1  -2.836433e-08 
+  0  1  1  2  1.330233e-07 
+  0  1  2  0  -1.375427e-07 
+  0  1  2  1  3.126342e-07 
+  0  1  2  2  -2.453854e-08 
+  0  2  0  0  -3.778176e-07 
+  0  2  0  1  -2.291776e-08 
+  0  2  0  2  -2.230248e-06 
+  0  2  1  0  -5.502362e-08 
+  0  2  1  1  -1.193422e-06 
+  0  2  1  2  6.489729e-09 
+  0  2  2  0  -2.769114e-06 
+  0  2  2  1  -3.463945e-08 
+  0  2  2  2  -9.560408e-07 
+  1  0  0  0  -8.535694e-08 
+  1  0  0  1  -1.795825e-05 
+  1  0  0  2  -5.502362e-08 
+  1  0  1  0  -2.125006e-05 
+  1  0  1  1  -4.747591e-08 
+  1  0  1  2  1.574817e-07 
+  1  0  2  0  -1.974443e-07 
+  1  0  2  1  3.694915e-07 
+  1  0  2  2  -4.017852e-08 
+  1  1  0  0  -3.915944e-07 
+  1  1  0  1  -2.836433e-08 
+  1  1  0  2  -1.193422e-06 
+  1  1  1  0  -4.747591e-08 
+  1  1  1  1  -1.453009e-06 
+  1  1  1  2  3.284876e-09 
+  1  1  2  0  -1.444771e-06 
+  1  1  2  1  -1.628159e-08 
+  1  1  2  2  -1.166929e-06 
+  1  2  0  0  1.538490e-09 
+  1  2  0  1  1.330233e-07 
+  1  2  0  2  6.489729e-09 
+  1  2  1  0  1.574817e-07 
+  1  2  1  1  3.284876e-09 
+  1  2  1  2  -1.200038e-09 
+  1  2  2  0  9.028310e-09 
+  1  2  2  1  -2.656566e-09 
+  1  2  2  2  2.643941e-09 
+  2  0  0  0  -4.610578e-07 
+  2  0  0  1  -1.375427e-07 
+  2  0  0  2  -2.769114e-06 
+  2  0  1  0  -1.974443e-07 
+  2  0  1  1  -1.444771e-06 
+  2  0  1  2  9.028310e-09 
+  2  0  2  0  -3.440655e-06 
+  2  0  2  1  -4.084695e-08 
+  2  0  2  2  -1.157291e-06 
+  2  1  0  0  -4.152172e-09 
+  2  1  0  1  3.126342e-07 
+  2  1  0  2  -3.463945e-08 
+  2  1  1  0  3.694915e-07 
+  2  1  1  1  -1.628159e-08 
+  2  1  1  2  -2.656566e-09 
+  2  1  2  0  -4.084695e-08 
+  2  1  2  1  -7.013497e-09 
+  2  1  2  2  -1.300235e-08 
+  2  2  0  0  -3.258986e-07 
+  2  2  0  1  -2.453854e-08 
+  2  2  0  2  -9.560408e-07 
+  2  2  1  0  -4.017852e-08 
+  2  2  1  1  -1.166929e-06 
+  2  2  1  2  2.643941e-09 
+  2  2  2  0  -1.157291e-06 
+  2  2  2  1  -1.300235e-08 
+  2  2  2  2  -9.377949e-07 
+----------------------------------- 
+ quartic centrifugal distortion parameters for Watson's symmetrically 
+ and asymmetrically reduced Hamiltonian in cm-1 : 
+ --------------------------------------------------------
+ R5    -1.606302e-06  
+ R6    -8.147673e-10  
+ sigma 9.678302e+01  
+
+         s-reduced       
+ --------------------------------------------------------
+ DJ    2.806240e-07  
+ DK    -8.551180e-06  
+ DJK   8.387946e-06  
+ D1    -3.220087e-08  
+ D2    -9.113236e-09  
+
+         a-reduced       
+ --------------------------------------------------------
+ DJ    2.972209e-07 
+ DK    -8.468196e-06 
+ DJK   8.288364e-06 
+ DelJ  2.988505e-07 
+ DelK  -8.460048e-06 
+ DelJK 8.278587e-06 
+ delJ  3.220087e-08 
+ delK  3.528026e-06 
+
+                                           ................... done.
+
+Generating anharmonicity constants accoding to Amos et al. 
+J. Chem. Phys. 8323 (1991) (doi:10.1063/1.461259) eq. 5 & 6 
+Definition of Fermi resonances as described by Franke et al.  
+J. Phys. Chem. A 1301 (2021)  (doi:10.1021/acs.jpca.0c09526) 
+eq. 37 and 38 (see also Papousek/Alijev, 1982, 160 pp.) 
+ 
+                                              ................ done. 
+
+evaluating zero point vibrational energies ...................  
+
+harmonic zpe contrib.        1527.294296 
+anharmonic zpe contrib.        -122.373558 
+rotvib zpe contrib.              17.776890 
+
+contributions to rotvib zpe according to  
+ref. 30 in Bomble et. al. [doi: 10.1063/1.2206789]: 
+Term 1 - Be contrib.             -0.094350 
+Term 2 - Phi(kkkk) contrib.     155.588182 
+Term 3 - Phi(kkk) contrib.       -6.410614 
+Term 4 - Phi(kkl) contrib.     -130.930615 
+Term 5 - Phi(klm) contrib.       -0.269334 
+Term 6 - Zeta(kla) contrib.      -0.106379 
+
+                                           ................... done. 
+
+
+ combination band and overtone Analysis according 
+ to Barone et al. PCCP 16, 1759 (2014) 
+ using the VPT2 anharmonicity constants (see above). 
+ unphysical contributions to the intensities due           
+ to resonances in the anharmonic terms are circumvented by 
+ eliminating contributions for which the denominator 
+ |wi + wj - wk| is larger than 2 cm-1 
+ 
+                                              ................ done.
+
+
+
+============================ Geometry ==========================
+
+
+Coordinates in Angstroem
+--------------------------------------------------------------
+Atom         x               y               z        Mass [u]
+--------------------------------------------------------------
+Ar     -2.300238750     0.000467821     0.184509355  39.962383
+S       1.402836283     0.001175530     0.251687883  31.972071
+O       1.471197533    -1.255152510    -0.477048103  15.994915
+O       1.471702872     1.251633931    -0.487034345  15.994915
+--------------------------------------------------------------
+
+
+===================== Rotational Analysis ======================
+
+
+Moment of inertia tensor [u * Angstrom^2]
+-----------------------------------------
+Axis      x            y            z
+-----------------------------------------
+ x   61.0758694    0.0629604   28.3624732
+ y    0.0629604  354.4474760    0.1601655
+ z   28.3624732    0.1601655  393.8836063
+-----------------------------------------
+
+Vibrational-rotational constants [1/cm]
+---------------------------------------------------
+ a    i      T1         T2+3       T4        Total
+---------------------------------------------------
+ x    0   -0.00379    0.00105   -0.00692   -0.00965
+ x    1   -0.00080   -0.00083   -0.00597   -0.00761
+ x    2   -0.00001    0.00000   -0.00076   -0.00076
+ x    3   -0.00010    0.00049    0.00009    0.00047
+ x    4   -0.00037    0.00017    0.00153    0.00132
+ x    5   -0.00000   -0.00059    0.00160    0.00101
+ y    0   -0.00043    0.00003   -0.00083   -0.00123
+ y    1   -0.00013    0.00015   -0.00274   -0.00272
+ y    2   -0.00025    0.00000    0.00139    0.00115
+ y    3   -0.00000   -0.00001   -0.00007   -0.00008
+ y    4   -0.00000   -0.00001    0.00001    0.00000
+ y    5   -0.00000   -0.00000   -0.00000   -0.00000
+ z    0   -0.00000    0.00024   -0.00079   -0.00055
+ z    1   -0.00017    0.00006   -0.00206   -0.00216
+ z    2   -0.00018   -0.00004    0.00113    0.00091
+ z    3   -0.00000   -0.00001   -0.00004   -0.00005
+ z    4   -0.00000   -0.00000    0.00003    0.00003
+ z    5   -0.00000   -0.00001    0.00001    0.00001
+---------------------------------------------------
+
+Rotational constants B_e and B_0 [1/cm]
+----------------------------------------------
+Const          x            y            z
+----------------------------------------------
+B_e          0.28730      0.04756      0.04254
+B_0          0.29491      0.04900      0.04345
+B_e-B_0     -0.00761     -0.00144     -0.00091
+----------------------------------------------
+
+
+===================== Vibrational Analysis =====================
+
+
+Anharmonic constants [1/cm]
+---------------------------
+  r      s        chi[r][s] 
+---------------------------
+  0      0        -13.96379 
+  1      0        -95.54609 
+  1      1        -60.32587 
+  2      0       -126.81824 
+  2      1       -138.98309 
+  2      2        -13.15304 
+  3      0         -1.08673 
+  3      1         -5.19305 
+  3      2         -1.19106 
+  3      3         -0.33228 
+  4      0          0.69044 
+  4      1          0.12212 
+  4      2          0.59169 
+  4      3         -2.63571 
+  4      4         -3.13427 
+  5      0         -3.50325 
+  5      1         -8.89410 
+  5      2          4.63399 
+  5      3         -3.71788 
+  5      4        -12.20766 
+  5      5         -4.84637 
+---------------------------
+
+Fundamental transitions [1/cm] 
+-----------------------------------------
+Mode     w(harm)      v(fund)      Diff
+-----------------------------------------
+  0       20.856     -120.203    -141.060
+  1       24.593     -220.306    -244.899
+  2       40.312     -116.877    -157.189
+  3      506.388      498.811      -7.577
+  4     1135.033     1122.045     -12.988
+  5     1327.406     1305.869     -21.537
+-----------------------------------------
+
+Zero-point ro-vibrational energy [1/cm]
+---------------------------------------
+Harmonic contribution:         1527.294
+Anharmonic correction:         -122.374
+Ro-vibrational correction:       17.777
+---------------------------------------
+Total:                         1422.698
+
+
+Overtones and combination bands 
+--------------------------------------------------------------------------------
+  modes   freq      eps        Int     T**2     (  Tx          Ty          Tz )
+         [cm-1] [L/(mol*cm)] [km/mol] [a.u.]     
+--------------------------------------------------------------------------------
+  0   0  -268.33  -0.005101  -25.78   0.005932   ( 0.076892 -0.002937  0.003303)
+  0   1  -436.06  -0.002683  -13.56   0.001920   (-0.004063  0.043629  0.000456)
+  0   2  -363.90  -0.000489   -2.47   0.000419   ( 0.001776 -0.020396 -0.000289)
+  0   3   377.52  0.000008    0.04   0.000006   ( 0.000158 -0.002523 -0.000145)
+  0   4  1002.53  0.000000    0.00   0.000000   ( 0.000211  0.000083 -0.000046)
+  0   5  1182.16  0.000325    1.64   0.000086   (-0.009254 -0.000010  0.000533)
+  1   1  -561.26  -0.116578  -589.14   0.064818   ( 0.254242 -0.002372 -0.013145)
+  1   2  -476.17  -0.011171  -56.46   0.007321   (-0.084425  0.001003  0.013884)
+  1   3   273.31  0.000160    0.81   0.000183   (-0.013504 -0.000340  0.000791)
+  1   4   901.86  0.000265    1.34   0.000092   (-0.009555  0.000053 -0.000666)
+  1   5  1076.67  0.000000    0.00   0.000000   (-0.000185 -0.000160  0.000257)
+  2   2  -260.06  -0.001271   -6.42   0.001526   ( 0.038834 -0.000360 -0.004167)
+  2   3   380.74  0.000023    0.12   0.000019   ( 0.004379  0.000056 -0.000156)
+  2   4  1005.76  0.000038    0.19   0.000012   ( 0.003430 -0.000001  0.000165)
+  2   5  1193.63  0.000000    0.00   0.000000   ( 0.000007 -0.000308 -0.000035)
+  3   3   996.96  0.000007    0.03   0.000002   ( 0.000139 -0.000006 -0.001432)
+  3   4  1618.22  0.000000    0.00   0.000000   (-0.000045  0.000000  0.000044)
+  3   5  1800.96  0.000009    0.05   0.000002   (-0.000000 -0.001254  0.000005)
+  4   4  2237.82  0.000066    0.33   0.000009   (-0.000332  0.000011  0.003013)
+  4   5  2415.71  0.000702    3.55   0.000091   (-0.000002 -0.009521  0.000038)
+  5   5  2602.05  0.000007    0.04   0.000001   (-0.000070  0.000004  0.000939)
+
+
+============================== End =============================
+
+
+--------------------------------
+SUGGESTED CITATIONS FOR THIS RUN
+--------------------------------
+
+Below you find a list of papers that are relevant to this ORCA run
+We neither can nor want to force you to cite these papers, but we appreciate if you do
+You receive ORCA, which is the product of decades of hard work by many enthusiastic individuals, for free
+The only thing we kindly ask in return is that you cite our papers,
+We deeply appreciate it, if you show your appreciation for ORCA by not just citing the generic ORCA reference.
+
+Please note that relegating all ORCA citations to the supporting information does *not* help us.
+SI sections are not indexed - citations you put there will not count into any citation statistics
+But we need these citations in order to attract the funding resources that allow us to do what we are doing
+
+Therefore, if you are a happy ORCA user, please consider citing a few of the papers listed below in the main body of your paper
+
+In addition to the list printed below, the program has created the file S3b_b3lyp_vpt2.bibtex that contains the list in bibtex format
+You can import this file easily into all common literature databanks and citation aid programs
+
+It goes without saying that in many instances, there are alternative algorithms to achieve similar
+results as the ones you have gotten from ORCA. It is, of course, also the case that in some instances
+ORCA just re-implements algorithms worked out by others. We are fully aware of that and we are also
+fully appreciative of our colleagues work. Hence this citation list should not be read as indicating
+that the listed papers, which are focused on our own work, are the only ones worth citing. It simply
+meant to make it easier for users to cite ORCA specific papers. It is not a substitute for doing your
+own literature research and citing the relevant literature in a scientifically appropriate manner.
+
+List of essential papers. We consider these as the minimum necessary citations
+
+  1. Neese, F.
+     Software update: the ORCA program system, version 6.0
+     WIRES Comput. Molec. Sci. 2025 15(1), e70019
+     doi.org/10.1002/wcms.70019
+
+List of papers to cite with high priority. The work reported in these papers was absolutely
+necessary for this run to complete.
+Our perspective: the developers of density functionals and basis sets usually get cited in chemistry papers
+Good! But without the algorithms to do something with them, the functionals or basis sets would not do anything.
+Hence, in our opinion, the algorithm design and method developments papers are equally worthy of getting cited
+
+  1. Neese, F.
+     An improvement of the resolution of the identity approximation for the formation of the Coulomb matrix
+     J. Comp. Chem. 2003 24(14), 1740-1747
+     doi.org/10.1002/jcc.10318
+  2. Neese, F.; Wennmohs, F.; Hansen, A.; Becker, U.
+     Efficient, approximate and parallel Hartree-Fock and hybrid DFT calculations. A 'chain-of-spheres' algorithm for the Hartree-Fock exchange
+     Chem. Phys. 2009 356(1-3), 98-109
+     doi.org/10.1016/j.chemphys.2008.10.036
+  3. Caldeweyher, E.; Bannwarth, C.; Grimme, S.
+     Extension of the D3 dispersion coefficient model
+     J. Chem. Phys. 2017 147 , 034112
+     doi.org/10.1063/1.4993215
+  4. Caldeweyher, E.; Ehlert, S.; Hansen, A.; Neugebauer, H.; Spicher, S.; Bannwarth, C.; Grimme, S.
+     A generally applicable atomic-charge dependent London dispersion correction
+     J. Chem. Phys. 2019 150 , 154122
+     doi.org/10.1063/1.5090222
+  5. Helmich-Paris, B.; de Souza, B.; Neese, F.; Izsák, R.
+     An improved chain of spheres for exchange algorithm
+     J. Chem. Phys. 2021 155(10), 104109
+     doi.org/10.1063/5.0058766
+  6. Neese, F.
+     The SHARK Integral Generation and Digestion System
+     J. Comp. Chem. 2022 44(3), 381
+     doi.org/10.1002/jcc.26942
+
+List of suggested additional citations. These are papers that are important in the 'surrounding' of 
+of this run, or papers that preceded the highly important papers. If you like your results we are grateful for a citation.
+
+  1. Mills, I.M.
+     Molecular Spectroscopy: Modern Research
+     In:Rao, K.N.; Matthews, C.W. (Eds)
+     Academic, New York 1972 115-140
+  2. Izsak, R.; Neese, F.
+     An overlap fitted chain of spheres exchange method
+     J. Chem. Phys. 2011 135 , 144105
+     doi.org/10.1063/1.3646921
+  3. Izsak, R.; Hansen, A.; Neese, F.
+     The resolution of identity and chain of spheres approximations for the LPNO-CCSD singles Fock term
+     Molec. Phys. 2012 110 , 2413-2417
+     doi.org/10.1080/00268976.2012.687466
+  4. Neese, F.
+     The ORCA program system
+     WIRES Comput. Molec. Sci. 2012 2(1), 73-78
+     doi.org/10.1002/wcms.81
+  5. Izsak, R.; Neese, F.; Klopper, W.
+     Robust fitting techniques in the chain of spheres approximation to the Fock exchange: The role of the complementary space
+     J. Chem. Phys. 2013 139 , 
+     doi.org/10.1063/1.4819264
+  6. Barone, V.; Biczysko, M.; Bloino, J.
+     Fully anharmonic IR and Raman spectra of medium-size molecular 
+      systems: accuracy and interpretation
+     Phys. Chem. Chem. Phys. 2014 16 , 1759-1787
+     doi.org/10.1039/C3CP53413H
+  7. Neese, F.
+     Software update: the ORCA program system, version 4.0
+     WIRES Comput. Molec. Sci. 2018 8(1), 1-6
+     doi.org/10.1002/wcms.1327
+  8. Neese, F.; Wennmohs, F.; Becker, U.; Riplinger, C.
+     The ORCA quantum chemistry program package
+     J. Chem. Phys. 2020 152(22), 224108
+     doi.org/10.1063/5.0004608
+  9. Franke, P.R.; Stanton, J.F.; Douberly, G.E.
+     How to VPT2: Accurate and Intuitive Simulations of CH Stretching 
+     Infrared Spectra Using VPT2+K with Large Effective Hamiltonian 
+     Resonance Treatments
+     J. Phys. Chem. A 2021 125(6), 1301-1324
+     doi.org/10.1021/acs.jpca.0c09526
+ 10. Neese, F.
+     Software update: The ORCA program system—Version 5.0
+     WIRES Comput. Molec. Sci. 2022 12(1), e1606
+     doi.org/10.1002/wcms.1606
+
+List of optional additional citations
+
+  1. Waston, J.K.
+     Determination of Centrifugal Distortion Coefficients of Asymmetric-Top Molecules
+     J. Chem. Phys. 1967 46 , 1035
+     doi.org/10.1063/1.1840957
+  2. Amos, R.D.; Handy, N.C.; Green, W.H.; Jayatilaka, D.; Willetts, A.; Palmieri, P.
+     Anharmonic vibrational properties of CH2F2 : 
+     A comparison of theory and experiment
+     J. Chem. Phys. 1991 95 , 8323-8336
+     doi.org/10.1063/1.461259
+  3. Neese, F.
+     Approximate second-order SCF convergence for spin unrestricted wavefunctions
+     Chem. Phys. Lett. 2000 325(1-3), 93-98
+     doi.org/10.1016/s0009-2614(00)00662-x
+
+Timings for individual modules:
+
+Sum of individual times          ...        8.597 sec (=   0.143 min)
+Startup calculation              ...        4.079 sec (=   0.068 min)  47.4 %
+SCF iterations                   ...        4.370 sec (=   0.073 min)  50.8 %
+Property calculations            ...        0.148 sec (=   0.002 min)   1.7 %
+                             ****ORCA TERMINATED NORMALLY****
+TOTAL RUN TIME: 0 days 0 hours 7 minutes 13 seconds 828 msec
