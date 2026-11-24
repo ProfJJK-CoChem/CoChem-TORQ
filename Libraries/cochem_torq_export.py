@@ -4,7 +4,7 @@ Phase 9 (Stages 5.5 - 6.0) Specification
 ---------------------------------------------------------------------
 Aggregates forward predictions, exact physics tensors, PyArrow .parquet catalogs,
 and .var/.int files into a unified, cryptographically locked export payload
-specifically designed for seamless ingestion by CoChem-SpycFit.
+specifically designed for seamless ingestion by CoChem-SPYFY.
 
 Implements:
 1. Kraitchman coordinate calculations with explicit unavailable coordinates
@@ -402,7 +402,7 @@ def lock_provenance_payload(
     kraitchman_coords: dict[str, Any] | None = None,
     chunk_size: int = 8192,
 ) -> dict[str, Any]:
-    """Computes streaming SHA-256 checksums and serializes spycfit_manifest.json.
+    """Computes streaming SHA-256 checksums and serializes spyfy_manifest.json.
 
     Bundles rotational constants, dipoles, Kraitchman substitution coordinates,
     and metadata alongside the deliverable manifest.
@@ -421,7 +421,7 @@ def lock_provenance_payload(
         raise FileNotFoundError(f"Target directory not found: {target_directory}")
 
     if output_manifest_path is None:
-        manifest_path = target_dir / "spycfit_manifest.json"
+        manifest_path = target_dir / "spyfy_manifest.json"
     else:
         manifest_path = Path(output_manifest_path)
 
@@ -433,7 +433,7 @@ def lock_provenance_payload(
         if p.is_file():
             if (
                 p.resolve() == manifest_path.resolve()
-                or p.name == "spycfit_manifest.json"
+                or p.name == "spyfy_manifest.json"
             ):
                 continue
             if (
@@ -465,7 +465,7 @@ def lock_provenance_payload(
         meta_payload["kraitchman_coords"] = kraitchman_coords
 
     manifest: dict[str, Any] = {
-        "format": "CoChem-SpycFit-Manifest",
+        "format": "CoChem-SPYFY-Manifest",
         "schema_version": "1.0.0",
         "generator": "CoChem-TORQ",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -492,7 +492,7 @@ def lock_provenance_payload(
 # ============================================================================
 
 
-def bundle_spycfit_payload(
+def bundle_spyfy_payload(
     manifest_path_or_target_dir: str | Path,
     output_dir: str | Path | None = None,
     project_name: str = "Project",
@@ -515,13 +515,13 @@ def bundle_spycfit_payload(
     if not target_dir.exists():
         raise FileNotFoundError(f"Target directory not found: {target_dir}")
 
-    manifest_file = target_dir / "spycfit_manifest.json"
+    manifest_file = target_dir / "spyfy_manifest.json"
     if not manifest_file.exists():
         lock_provenance_payload(target_dir, manifest_file)
 
     dest_dir = Path(output_dir) if output_dir is not None else target_dir
     dest_dir.mkdir(parents=True, exist_ok=True)
-    archive_path = dest_dir / f"CoChem_{project_name}_SpycFit_Payload.tar.zst"
+    archive_path = dest_dir / f"CoChem_{project_name}_SPYFY_Payload.tar.zst"
 
     tar_buffer = io.BytesIO()
     with tarfile.open(mode="w", fileobj=tar_buffer) as tar:
@@ -554,7 +554,7 @@ def bundle_spycfit_payload(
 
     archive_path.write_bytes(compressed_bytes)
     logger.info(
-        f"Bundled deterministic SpycFit payload: {archive_path} "
+        f"Bundled deterministic SPYFY payload: {archive_path} "
         f"({len(compressed_bytes)} bytes)"
     )
     return str(archive_path)
@@ -595,16 +595,16 @@ def verify_payload_integrity(
 
         with tarfile.open(fileobj=io.BytesIO(decompressed_bytes), mode="r") as tar:
             try:
-                manifest_member = tar.getmember("spycfit_manifest.json")
+                manifest_member = tar.getmember("spyfy_manifest.json")
             except KeyError as err:
                 raise CoChemIntegrityError(
-                    "Manifest 'spycfit_manifest.json' not found in archive."
+                    "Manifest 'spyfy_manifest.json' not found in archive."
                 ) from err
 
             manifest_f = tar.extractfile(manifest_member)
             if manifest_f is None:
                 raise CoChemIntegrityError(
-                    "Failed to extract 'spycfit_manifest.json' from archive."
+                    "Failed to extract 'spyfy_manifest.json' from archive."
                 )
 
             manifest_data = json.loads(manifest_f.read().decode("utf-8"))
@@ -657,7 +657,7 @@ def verify_payload_integrity(
         if p is None:
             raise ValueError("Invalid manifest_or_path argument.")
         if p.is_dir():
-            manifest_file = p / "spycfit_manifest.json"
+            manifest_file = p / "spyfy_manifest.json"
             target_base = p
         else:
             manifest_file = p

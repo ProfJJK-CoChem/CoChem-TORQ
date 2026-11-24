@@ -16,8 +16,8 @@ from cochem_torq.chem490_vpt2_bridge import (
     SCAN_SCHEMA,
     OrcaVpt2RotationalRecord,
     RelaxedTorsionalScanReceipt,
-    SpycFitGeomHandoffPacket,
-    export_spycfit_geom_handoff,
+    SpyfyGeomHandoffPacket,
+    export_spyfy_geom_handoff,
     parse_orca_vpt2_rotational_constants,
     run_relaxed_1d_torsional_scan,
 )
@@ -39,7 +39,7 @@ def test_module_provider_reexports_bridge_without_breaking_operations() -> None:
         module_provider.parse_orca_vpt2_rotational_constants
         is parse_orca_vpt2_rotational_constants
     )
-    assert module_provider.export_spycfit_geom_handoff is export_spycfit_geom_handoff
+    assert module_provider.export_spyfy_geom_handoff is export_spyfy_geom_handoff
     assert (
         module_provider.run_relaxed_1d_torsional_scan is run_relaxed_1d_torsional_scan
     )
@@ -74,8 +74,8 @@ def test_parse_orca_equilibrium_only_never_equates_be_with_b0(
     assert record.zpve.harmonic_hartree is not None
     assert math.isclose(record.zpve.harmonic_hartree, 0.02171666, abs_tol=1e-8)
 
-    # Export SpycFit/GEOM handoff packet and verify strict status locks
-    packet, json_path = export_spycfit_geom_handoff(
+    # Export CoChem-SPYFY/GEOM handoff packet and verify strict status locks
+    packet, json_path = export_spyfy_geom_handoff(
         record, tmp_path, molecule_id="H2O_CCSD_cc-pVTZ"
     )
     assert json_path.is_file()
@@ -134,7 +134,7 @@ def test_parse_orca_vpt2_ar_so2_and_export_handoff(tmp_path: Path) -> None:
     assert record.zpve.anharmonic_correction_cm1 is not None
     assert record.zpve.total_anharmonic_cm1 is not None
 
-    packet, _ = export_spycfit_geom_handoff(record, tmp_path, molecule_id="Ar-SO2_VPT2")
+    packet, _ = export_spyfy_geom_handoff(record, tmp_path, molecule_id="Ar-SO2_VPT2")
     assert packet.b0_status == "AVAILABLE"
     assert packet.re_se_status == "PENDING"
     assert packet.pickett_parameter_basis == "B0_vpt2"
@@ -214,7 +214,7 @@ def test_committed_benchmark_receipts_are_valid_and_provenance_checked() -> None
         ("h2o_b3lyp_vpt2_handoff.json", "AVAILABLE"),
     ):
         pkt_path = BENCH_DIR / name
-        packet = SpycFitGeomHandoffPacket.model_validate(
+        packet = SpyfyGeomHandoffPacket.model_validate(
             json.loads(pkt_path.read_text(encoding="utf-8"))
         )
         assert packet.collaborator_institution == COLLABORATOR_INSTITUTION

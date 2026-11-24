@@ -38,7 +38,7 @@ from Libraries.cochem_torq_export import (
     KraitchmanZPVEWarning,
     PESStore,
     TorqExporter,
-    bundle_spycfit_payload,
+    bundle_spyfy_payload,
     calculate_kraitchman_coords,
     canonical_json_dumps,
     compute_file_sha256,
@@ -300,7 +300,7 @@ def test_lock_provenance_payload_canonical_json(tmp_path: Path) -> None:
     file_c = nested_dir / "large_tensor.bin"
     file_c.write_bytes(b"\xaa\xbb\xcc\xdd" * 4096)
 
-    manifest_path = payload_dir / "spycfit_manifest.json"
+    manifest_path = payload_dir / "spyfy_manifest.json"
     manifest = lock_provenance_payload(
         target_directory=payload_dir,
         output_manifest_path=manifest_path,
@@ -310,11 +310,11 @@ def test_lock_provenance_payload_canonical_json(tmp_path: Path) -> None:
     )
 
     assert manifest_path.exists()
-    assert manifest["format"] == "CoChem-SpycFit-Manifest"
+    assert manifest["format"] == "CoChem-SPYFY-Manifest"
     assert manifest["file_count"] == 3
 
     rel_paths = [f["relative_path"] for f in manifest["files"]]
-    assert "spycfit_manifest.json" not in rel_paths
+    assert "spyfy_manifest.json" not in rel_paths
     assert "molecule.var" in rel_paths
     assert "molecule.int" in rel_paths
     assert "tensors/large_tensor.bin" in rel_paths
@@ -336,7 +336,7 @@ def test_lock_provenance_payload_canonical_json(tmp_path: Path) -> None:
 # ============================================================================
 
 
-def test_bundle_spycfit_payload_deterministic(tmp_path: Path) -> None:
+def test_bundle_spyfy_payload_deterministic(tmp_path: Path) -> None:
     """Validates deterministic .tar.zst archive with normalized POSIX metadata."""
     payload_dir = tmp_path / "stage_deliverables"
     payload_dir.mkdir()
@@ -345,7 +345,7 @@ def test_bundle_spycfit_payload_deterministic(tmp_path: Path) -> None:
     (payload_dir / "spec.int").write_text("INT FILE CONTENT\n", encoding="utf-8")
 
     out_archive_dir = tmp_path / "exported_archives"
-    archive_path_str = bundle_spycfit_payload(
+    archive_path_str = bundle_spyfy_payload(
         manifest_path_or_target_dir=payload_dir,
         output_dir=out_archive_dir,
         project_name="Water",
@@ -354,7 +354,7 @@ def test_bundle_spycfit_payload_deterministic(tmp_path: Path) -> None:
 
     archive_path = Path(archive_path_str)
     assert archive_path.exists()
-    assert archive_path.name == "CoChem_Water_SpycFit_Payload.tar.zst"
+    assert archive_path.name == "CoChem_Water_SPYFY_Payload.tar.zst"
 
     compressed_bytes = archive_path.read_bytes()
     dctx = zstd.ZstdDecompressor()
@@ -393,10 +393,10 @@ def test_verify_payload_integrity_pass_and_tamper(tmp_path: Path) -> None:
     file_int.write_bytes(b"EXACT INTENSITIES 9876543210")
 
     lock_provenance_payload(payload_dir)
-    archive_path = bundle_spycfit_payload(payload_dir, project_name="RigidRotor")
+    archive_path = bundle_spyfy_payload(payload_dir, project_name="RigidRotor")
 
     assert verify_payload_integrity(payload_dir) is True
-    assert verify_payload_integrity(payload_dir / "spycfit_manifest.json") is True
+    assert verify_payload_integrity(payload_dir / "spyfy_manifest.json") is True
     assert verify_payload_integrity(archive_path) is True
 
     # Tamper Injection: Flip a single byte in spec.var
@@ -479,7 +479,7 @@ def test_verify_payload_corrupted_archive_cases(tmp_path: Path) -> None:
         zstd.ZstdCompressor().compress(tar_no_manifest_buf.getvalue())
     )
     with pytest.raises(
-        CoChemIntegrityError, match="Manifest 'spycfit_manifest.json' not found"
+        CoChemIntegrityError, match="Manifest 'spyfy_manifest.json' not found"
     ):
         verify_payload_integrity(no_manifest_zst)
 
@@ -487,7 +487,7 @@ def test_verify_payload_corrupted_archive_cases(tmp_path: Path) -> None:
     valid_dir.mkdir()
     (valid_dir / "data.txt").write_text("VALID DATA 123", encoding="utf-8")
     lock_provenance_payload(valid_dir)
-    valid_archive = bundle_spycfit_payload(valid_dir, project_name="CorruptTest")
+    valid_archive = bundle_spyfy_payload(valid_dir, project_name="CorruptTest")
 
     decompressed = zstd.ZstdDecompressor().decompress(Path(valid_archive).read_bytes())
     tar_tamper_buf = io.BytesIO()
@@ -544,7 +544,7 @@ def test_file_not_found_guards(tmp_path: Path) -> None:
         lock_provenance_payload(target_directory=non_existent)
 
     with pytest.raises(FileNotFoundError):
-        bundle_spycfit_payload(manifest_path_or_target_dir=non_existent)
+        bundle_spyfy_payload(manifest_path_or_target_dir=non_existent)
 
 
 def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
@@ -601,16 +601,16 @@ def test_generate_pgopher_skeleton_variations(tmp_path: Path) -> None:
     assert math.isclose(params["mu_a"], 2.0, rel_tol=1e-5)
 
 
-def test_bundle_spycfit_payload_from_manifest_file(tmp_path: Path) -> None:
+def test_bundle_spyfy_payload_from_manifest_file(tmp_path: Path) -> None:
     """Validates bundling payload when given direct path to manifest file."""
     payload_dir = tmp_path / "manifest_bundle_dir"
     payload_dir.mkdir()
     (payload_dir / "test.int").write_text("INT DATA", encoding="utf-8")
 
-    manifest_file = payload_dir / "spycfit_manifest.json"
+    manifest_file = payload_dir / "spyfy_manifest.json"
     lock_provenance_payload(payload_dir, output_manifest_path=manifest_file)
 
-    archive_str = bundle_spycfit_payload(manifest_path_or_target_dir=manifest_file)
+    archive_str = bundle_spyfy_payload(manifest_path_or_target_dir=manifest_file)
     assert Path(archive_str).exists()
     assert verify_payload_integrity(archive_str) is True
 
@@ -742,7 +742,7 @@ def test_lock_provenance_with_kraitchman_and_nested_dirs(tmp_path: Path) -> None
     assert "kraitchman_coords" in manifest["metadata"]
     assert manifest["metadata"]["kraitchman_coords"]["coords"]["b"] == 1.25
 
-    archive = bundle_spycfit_payload(
+    archive = bundle_spyfy_payload(
         manifest_path_or_target_dir=payload_dir,
         project_name="WaterDimer",
     )

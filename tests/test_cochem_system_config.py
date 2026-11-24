@@ -232,17 +232,23 @@ def test_storage_topology_valid(tmp_path: Path) -> None:
     assert Path(topo.scratch_dir).resolve() == scratch_dir.resolve()
 
 
-def test_storage_topology_airgap_violation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_storage_topology_airgap_violation(tmp_path: Path) -> None:
     """Test that targeting immutable $COCHEM_ROOT for write stores triggers AirGapViolationError."""
     cochem_root = tmp_path / "CoChem_Root"
     cochem_root.mkdir()
-    monkeypatch.setenv("COCHEM_ROOT", str(cochem_root))
-
-    with pytest.raises(ValidationError):
-        StorageTopology(
-            artifacts_dir=str(tmp_path / "Artifacts"),
-            hdf5_pes_store_path=str(cochem_root / "illegal_store.h5"),
-        )
+    previous = os.environ.get("COCHEM_ROOT")
+    os.environ["COCHEM_ROOT"] = str(cochem_root)
+    try:
+        with pytest.raises(ValidationError):
+            StorageTopology(
+                artifacts_dir=str(tmp_path / "Artifacts"),
+                hdf5_pes_store_path=str(cochem_root / "illegal_store.h5"),
+            )
+    finally:
+        if previous is None:
+            os.environ.pop("COCHEM_ROOT", None)
+        else:
+            os.environ["COCHEM_ROOT"] = previous
 
 
 # =============================================================================
@@ -416,7 +422,7 @@ def test_discover_storage_topology_live(tmp_path: Path) -> None:
     assert topo.scratch_dir is not None and Path(topo.scratch_dir).is_absolute()
 
 
-def test_resolve_golden_registry_path_hierarchy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_golden_registry_path_hierarchy(tmp_path: Path) -> None:
     """Verify 4-tier path resolution for cochem_system_config.json."""
     custom_target = tmp_path / "custom" / "cochem_system_config.json"
     assert resolve_golden_registry_path(custom_target) == custom_target.resolve()
@@ -427,8 +433,15 @@ def test_resolve_golden_registry_path_hierarchy(tmp_path: Path, monkeypatch: pyt
 
     env_cfg = tmp_path / "env_config.json"
     env_cfg.touch()
-    monkeypatch.setenv("COCHEM_CONFIG", str(env_cfg))
-    assert resolve_golden_registry_path() == env_cfg.resolve()
+    previous = os.environ.get("COCHEM_CONFIG")
+    os.environ["COCHEM_CONFIG"] = str(env_cfg)
+    try:
+        assert resolve_golden_registry_path() == env_cfg.resolve()
+    finally:
+        if previous is None:
+            os.environ.pop("COCHEM_CONFIG", None)
+        else:
+            os.environ["COCHEM_CONFIG"] = previous
 
 
 def test_save_and_load_golden_registry(tmp_path: Path) -> None:

@@ -2,7 +2,7 @@
 """
 CoChem-TORQ: Command-Line Interface (CLI) & Headless Pipeline Entrypoint
 =======================================================================
-Mandated by Readme.md Section 7.3, pyproject.toml, and Method Matrix v4
+Mandated by README.md Section 7.3, pyproject.toml, and Method Matrix v4
 (§4.4, §8A, §8B, §9A, §9B, §10, §13).
 
 Provides a production-grade, authentic, zero-stub command-line interface for direct terminal
@@ -10,7 +10,7 @@ execution, scripted workflow chaining, and automated headless HPC batch executio
 (SLURM / NVIDIA MPS).
 
 Authoritative Standards & Directives:
-- Readme.md Section 7.3: CLI Entrypoint (cochem-torq --config ... --type ... --hess-diag ...)
+- README.md Section 7.3: CLI Entrypoint (cochem-torq --config ... --type ... --hess-diag ...)
 - Method Matrix v4 §4.4: Dynamic Grid Cascades (defgrid1 -> defgrid3) & TolMaxG (1e-5 Eh/a0)
 - Method Matrix v4 §8B.3: Initial Hessian Preconditioning (InHess XTB2 / Lindh; Calc_Hess true forbidden)
 - Method Matrix v4 §8B.4: Zero-Cost Isotopologue Re-analysis
@@ -20,7 +20,7 @@ Authoritative Standards & Directives:
 - Anti-Spoofing Protocols v2: Physical execution, air-gap enforcement, zero mocks / stubs.
 
 Usage Examples:
-    # Direct execution per Readme.md Section 7.3:
+    # Direct execution per README.md Section 7.3:
     cochem-torq --config cochem_system_config.json --type TS --hess-diag Lindh
 
     # Full geometry optimization with explicit parameters:
@@ -342,7 +342,7 @@ def load_input_geometry(
 
 
 def action_run(args: argparse.Namespace) -> int:
-    """Executes the CoChem-TORQ pipeline conforming to Method Matrix v4 and Readme.md Section 7.3."""
+    """Executes the CoChem-TORQ pipeline conforming to Method Matrix v4 and README.md Section 7.3."""
     t0 = time.perf_counter()
     artifacts_dir = (
         Path(args.output_dir).resolve() if args.output_dir else get_artifact_directory()
@@ -971,7 +971,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "CoChem-TORQ: Torsional Optimization & Rotational Quantification Engine\n"
             "Command-Line Interface supporting direct terminal and headless automated pipeline execution\n"
-            "per Readme.md Section 7.3 and Method Matrix v4."
+            "per README.md Section 7.3 and Method Matrix v4."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
@@ -996,7 +996,7 @@ Usage Examples:
     parser.add_argument("-q", "--quiet", action="store_true", help="Suppress non-essential output")
     parser.add_argument("--version", action="version", version="CoChem-TORQ 0.1.0 (Method Matrix v4)")
 
-    # Readme.md Section 7.3 direct execution arguments
+    # README.md Section 7.3 direct execution arguments
     parser.add_argument(
         "-c",
         "--config",

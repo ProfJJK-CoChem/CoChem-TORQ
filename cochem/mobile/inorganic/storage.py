@@ -540,7 +540,7 @@ class InorganicAirGapClient:
         self.queue_dir.mkdir(parents=True, exist_ok=True)
         self.allowed_methods = list(
             allowed_quantum_methods
-            or ["DFT/B3LYP/def2-SVP", "DFT/PBE0/def2-TZVP", "ORCA/r2SCAN-3c", "SPYCFIT/Rotational"]
+            or ["DFT/B3LYP/def2-SVP", "DFT/PBE0/def2-TZVP", "ORCA/r2SCAN-3c", "SPYFY/Rotational"]
         )
 
     def package_quantum_rpc_task(

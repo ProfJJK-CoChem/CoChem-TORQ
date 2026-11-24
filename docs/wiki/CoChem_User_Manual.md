@@ -73,9 +73,9 @@
     - [4.7.1 T1 and D1 Diagnostics](#471-t1-and-d1-diagnostics)
     - [4.7.2 DLPNO Threshold Customization](#472-dlpno-threshold-customization)
     - [4.7.3 SCF Convergence Failures in Extended Basis Sets](#473-scf-convergence-failures-in-extended-basis-sets)
-- [Chapter 5: Advanced Fitting and Reaction Kinetics (SpycFit & KINETIC)](#chapter-5:-advanced-fitting-and-reaction-kinetics-spycfit--kinetic)
-  - [5.1 Introduction to CoChem-SpycFit and CoChem-KINETIC](#51-introduction-to-cochem-spycfit-and-cochem-kinetic)
-  - [5.2 Spectroscopic Simulation (SpycFit)](#52-spectroscopic-simulation-spycfit)
+- [Chapter 5: Advanced Fitting and Reaction Kinetics (SPYFY & KINETIC)](#chapter-5:-advanced-fitting-and-reaction-kinetics-spycfit--kinetic)
+  - [5.1 Introduction to CoChem-SPYFY and CoChem-KINETIC](#51-introduction-to-cochem-spycfit-and-cochem-kinetic)
+  - [5.2 Spectroscopic Simulation (SPYFY)](#52-spectroscopic-simulation-spycfit)
     - [5.2.1 Vibrational Spectroscopy (IR and Raman)](#521-vibrational-spectroscopy-ir-and-raman)
     - [5.2.2 Rotational (Microwave) Spectroscopy](#522-rotational-microwave-spectroscopy)
     - [5.2.3 Spectral Broadening and Line Shapes](#523-spectral-broadening-and-line-shapes)
@@ -83,8 +83,8 @@
     - [5.3.1 Conventional Transition State Theory (TST)](#531-conventional-transition-state-theory-tst)
     - [5.3.2 Quantum Tunneling Corrections ($\kappa$)](#532-quantum-tunneling-corrections-$\kappa$)
     - [5.3.3 Pressure-Dependent Kinetics: RRKM Theory](#533-pressure-dependent-kinetics:-rrkm-theory)
-  - [5.4 Best Practices and Configuration (SpycFit & KINETIC)](#54-best-practices-and-configuration-spycfit--kinetic)
-    - [5.4.1 SpycFit Configuration Block](#541-spycfit-configuration-block)
+  - [5.4 Best Practices and Configuration (SPYFY & KINETIC)](#54-best-practices-and-configuration-spycfit--kinetic)
+    - [5.4.1 SPYFY Configuration Block](#541-spycfit-configuration-block)
     - [5.4.2 KINETIC Configuration Block](#542-kinetic-configuration-block)
 - [Chapter 6: Concurrency, State-Chaining, Telemetry & Dispatch (TORQ, NODE, SCRIBE, ORACLE)](#chapter-6:-concurrency-state-chaining-telemetry--dispatch-torq-node-scribe-oracle)
   - [6.1 Heterogeneous Concurrency & The Scout-and-Anchor Pipeline](#61-heterogeneous-concurrency--the-scout-and-anchor-pipeline)
@@ -741,16 +741,16 @@ If CROWN detects an SCF failure in an ORCA log:
 2.  If it fails again, it increases the `Shift` and `Damp` parameters dynamically.
 3.  As a last resort, it activates the `AutoAux` feature and imposes a threshold for linear dependency removal (`AutoStart 1e-4` or `SThresh 1e-5`), projecting out the offending eigenvectors of the overlap matrix. *Warning:* This alters the fundamental basis set, and the energy will shift slightly. A `[CROWN WARNING]` will be appended to the final report.
 
-# Chapter 5: Advanced Fitting and Reaction Kinetics (SpycFit & KINETIC)
+# Chapter 5: Advanced Fitting and Reaction Kinetics (SPYFY & KINETIC)
 
-## 5.1 Introduction to CoChem-SpycFit and CoChem-KINETIC
+## 5.1 Introduction to CoChem-SPYFY and CoChem-KINETIC
 
-The structural optimization and *ab initio* evaluation methodologies described in preceding chapters output rigorous, highly accurate electronic and thermodynamic data. However, for practical applications in computational spectroscopy and reaction engineering, this raw data must be mapped to observable experimental spectra or macroscopic reaction rates. This transformation is governed by the `CoChem-SpycFit` and `CoChem-KINETIC` modules.
+The structural optimization and *ab initio* evaluation methodologies described in preceding chapters output rigorous, highly accurate electronic and thermodynamic data. However, for practical applications in computational spectroscopy and reaction engineering, this raw data must be mapped to observable experimental spectra or macroscopic reaction rates. This transformation is governed by the `CoChem-SPYFY` and `CoChem-KINETIC` modules.
 
-`SpycFit` (Spectroscopic Yield and Curve Fitting) acts as a high-fidelity translator, converting vibrational force constants, rotational constants, and transition dipole moments into simulated IR, Raman, and rotational (microwave) spectra. 
+`SPYFY` (Spectroscopic Yield and Curve Fitting) acts as a high-fidelity translator, converting vibrational force constants, rotational constants, and transition dipole moments into simulated IR, Raman, and rotational (microwave) spectra. 
 `KINETIC` bridges the micro-to-macro divide. It utilizes the statistical mechanical partition functions of ground states and transition states to compute macroscopic, temperature-dependent reaction rate constants ($k(T)$) utilizing Transition State Theory (TST) and Rice-Ramsperger-Kassel-Marcus (RRKM) master equations.
 
-## 5.2 Spectroscopic Simulation (SpycFit)
+## 5.2 Spectroscopic Simulation (SPYFY)
 
 The prediction of experimental spectra involves computing both the position (frequency/energy) and the intensity of the transition.
 
@@ -774,7 +774,7 @@ Where $\mathbf{\Lambda}$ is the diagonal matrix of eigenvalues $\lambda_i = 4\pi
 The harmonic approximation systematically overestimates experimental fundamental frequencies (typically by 5-10%) due to the neglect of anharmonicity and electron correlation errors.
 *   **Scaling Factors:** The simplest correction is the application of empirical scaling factors, derived from minimizing the RMS error against benchmark datasets (e.g., the Minnesota database). CoChem maintains an internal library of basis-set and method-specific scaling factors.
     $$ \nu_i^{scaled} = f_{scale} \cdot \omega_i $$
-*   **VPT2 (Vibrational Perturbation Theory):** For absolute accuracy without empirical scaling, `SpycFit` integrates with the VPT2 output from ORCA or CFOUR. VPT2 calculates the anharmonic fundamental frequencies $\nu_i$ by adding anharmonic correction terms ($X_{ij}$) to the harmonic frequencies:
+*   **VPT2 (Vibrational Perturbation Theory):** For absolute accuracy without empirical scaling, `SPYFY` integrates with the VPT2 output from ORCA or CFOUR. VPT2 calculates the anharmonic fundamental frequencies $\nu_i$ by adding anharmonic correction terms ($X_{ij}$) to the harmonic frequencies:
     $$ \nu_i = \omega_i + 2X_{ii} + \frac{1}{2} \sum_{j \neq i} X_{ij} $$
     The $X_{ij}$ constants are derived from the cubic and semi-diagonal quartic force constants.
 
@@ -785,15 +785,15 @@ $$ \hat{H}_{rot} = A \hat{J}_a^2 + B \hat{J}_b^2 + C \hat{J}_c^2 $$
 Where $A, B, C$ are the rotational constants inversely proportional to the principal moments of inertia ($I_a, I_b, I_c$).
 
 **1. Centrifugal Distortion**
-Real molecules are not rigid. As the molecule rotates, centrifugal forces cause bond stretching and angle bending, altering the moments of inertia. This is treated perturbatively using the Watson Hamiltonian (A or S reduction). `SpycFit` computes the quartic centrifugal distortion constants (e.g., $D_J, D_{JK}, D_K, d_1, d_2$ in the S-reduction) by contracting the analytical harmonic force field with the rotational derivatives of the inertia tensor.
+Real molecules are not rigid. As the molecule rotates, centrifugal forces cause bond stretching and angle bending, altering the moments of inertia. This is treated perturbatively using the Watson Hamiltonian (A or S reduction). `SPYFY` computes the quartic centrifugal distortion constants (e.g., $D_J, D_{JK}, D_K, d_1, d_2$ in the S-reduction) by contracting the analytical harmonic force field with the rotational derivatives of the inertia tensor.
 
 **2. Simulation via PGOPHER Integration**
-To simulate the complex rotational spectrum (including nuclear quadrupole coupling for nuclei with $I \geq 1$), `SpycFit` does not implement its own rotational diagonalization routine. Instead, it securely interfaces with the industry-standard PGOPHER executable. 
-`SpycFit` generates a pristine `.pgo` file containing the optimized vibrationally-averaged rotational constants ($A_0, B_0, C_0$), dipole moment components ($\mu_a, \mu_b, \mu_c$), and centrifugal distortion parameters. PGOPHER then diagonalizes the rotational Hamiltonian to yield the simulated line spectrum.
+To simulate the complex rotational spectrum (including nuclear quadrupole coupling for nuclei with $I \geq 1$), `SPYFY` does not implement its own rotational diagonalization routine. Instead, it securely interfaces with the industry-standard PGOPHER executable. 
+`SPYFY` generates a pristine `.pgo` file containing the optimized vibrationally-averaged rotational constants ($A_0, B_0, C_0$), dipole moment components ($\mu_a, \mu_b, \mu_c$), and centrifugal distortion parameters. PGOPHER then diagonalizes the rotational Hamiltonian to yield the simulated line spectrum.
 
 ### 5.2.3 Spectral Broadening and Line Shapes
 
-A raw simulated spectrum consists of discrete "stick" transitions (Dirac delta functions). `SpycFit` applies phenomenological broadening functions to match experimental line shapes.
+A raw simulated spectrum consists of discrete "stick" transitions (Dirac delta functions). `SPYFY` applies phenomenological broadening functions to match experimental line shapes.
 *   **Gaussian Broadening (Doppler/Inhomogeneous):** Dominant in gas-phase IR at low pressures.
     $$ I(\nu) = I_0 \exp\left( -4\ln 2 \left( \frac{\nu - \nu_0}{\Delta \nu_G} \right)^2 \right) $$
 *   **Lorentzian Broadening (Lifetime/Collisional):** Dominant in dense phases or high-pressure gases.
@@ -847,9 +847,9 @@ The energy-dependent rate constant is calculated as:
 $$ k(E) = \frac{W^{\ddagger}(E - E_0^{\ddagger})}{h \rho(E)} $$
 Where $W^{\ddagger}$ is the sum of states of the transition state, and $\rho(E)$ is the density of states of the reactant well. CoChem calculates these using the exact Beyer-Swinehart state-counting algorithms, seamlessly incorporating anharmonicities if VPT2 data is available.
 
-## 5.4 Best Practices and Configuration (SpycFit & KINETIC)
+## 5.4 Best Practices and Configuration (SPYFY & KINETIC)
 
-### 5.4.1 SpycFit Configuration Block
+### 5.4.1 SPYFY Configuration Block
 
 ```cochem
 %spycfit
@@ -881,7 +881,7 @@ end
 
 **Common Troubleshooting:**
 *   **"KINETIC Error: Negative Barrier Height Detected"**: The ZPE correction is larger than the electronic barrier, pushing the TS below the reactant. This implies the TS is not a true barrier on the vibrationally adiabatic ground state PES. The reaction is essentially barrierless, and standard TST fails. Switch to Variational Transition State Theory (VTST).
-*   **"SpycFit Warning: Large Imaginary Frequency (not a TS)"**: The geometry optimization was not fully converged, and the structure is a saddle point. The resulting vibrational spectrum will have artificial "negative" frequencies. The user must return to the `TORQ` module and complete the minimization.
+*   **"SPYFY Warning: Large Imaginary Frequency (not a TS)"**: The geometry optimization was not fully converged, and the structure is a saddle point. The resulting vibrational spectrum will have artificial "negative" frequencies. The user must return to the `TORQ` module and complete the minimization.
 
 # Chapter 6: Concurrency, State-Chaining, Telemetry & Dispatch (TORQ, NODE, SCRIBE, ORACLE)
 

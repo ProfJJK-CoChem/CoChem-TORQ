@@ -22,7 +22,7 @@ Accepted user decisions D01–D12 and ARCH-01–ARCH-12 retain the complete nine
 
 TORQ serves computational chemists, microwave spectroscopists, students, and operators of shared compute resources. Its initial research domain is isolated gas-phase molecules and weakly bound complexes, especially 5–10 atom dimers, on a specified ground-state Born–Oppenheimer potential. Larger systems, open shells, and additional elements are allowed only within a validated engine/model profile. Method accuracy must be established for the chemical domain, not inferred from atom count.
 
-TORQ consumes candidate structures, refines selected geometries, maps user-selected coordinates and reaction paths, characterizes stationary points, derives supported spectroscopic observables, and exports auditable artifacts. Execution profiles target Linux CPU first, followed by independently qualified named GPU/Slurm and other platform profiles, with optional notebook/Voila interaction managed through BASE. TOPOS owns global conformer discovery. SpycFit owns spectral assignment and fitting. BASE owns shared identity, installation policy, resource brokering, durable task services, and general UI hosting. Existing TORQ discovery adapters must be exposed as upstream integration adapters, not silently run during refinement.
+TORQ consumes candidate structures, refines selected geometries, maps user-selected coordinates and reaction paths, characterizes stationary points, derives supported spectroscopic observables, and exports auditable artifacts. Execution profiles target Linux CPU first, followed by independently qualified named GPU/Slurm and other platform profiles, with optional notebook/Voila interaction managed through BASE. TOPOS owns global conformer discovery. SPYFY owns spectral assignment and fitting. BASE owns shared identity, installation policy, resource brokering, durable task services, and general UI hosting. Existing TORQ discovery adapters must be exposed as upstream integration adapters, not silently run during refinement.
 
 Nonadiabatic photodynamics, general conical-intersection searches, automatic active-space selection, arbitrary-dimensional exact nuclear dynamics, condensed phases, and universal bond classification are outside the supported baseline. Extension interfaces and acceptance conditions may be developed; no baseline result may depend on them silently. Accurate rate calculations are an explicitly enabled kinetics profile, not implied by drawing an energy diagram.
 
@@ -94,7 +94,7 @@ flowchart LR
     V --> D[Observable derivation and uncertainty]
     V --> P
     D --> S[Artifact store and immutable manifests]
-    S --> X[SPCAT inputs / SpycFit bundle / report]
+    S --> X[SPCAT inputs / SPYFY bundle / report]
 ```
 
 **TORQ-ARC-001 — Layering.** Implement separable modules for domain models, input adapters, recipe/capability registry, planner, BASE task-service client/local executor, engine adapters, numerical analysis, scientific validators, artifact repository, exporters, CLI and thin UI presenters. Domain/numerical modules SHALL not require a running notebook, network, scheduler, proprietary binary, or GPU simply to import. UI actions call the same application service as CLI/API. Acceptance: V-PACKAGE and V-E2E.
@@ -329,7 +329,7 @@ Watson A reduction typically uses \(\Delta_J,\Delta_{JK},\Delta_K,\delta_J,\delt
 
 A conformer mixture is a weighted sum of separately computed conformer spectra. Averaging A/B/C first requires a separately justified fast-exchange model. Classical MD does not supply ZPE or a rigorous quantum upper bound. Finite-temperature PIMD requires bead, timestep, sampling and temperature-regime convergence; it does not directly certify zero-temperature constants, real-time quantum spectra or tunneling splittings.
 
-**TORQ-EXP-004 — HDF5 contract.** SpycFit export SHALL use a versioned schema agreed through a consumer contract test. The minimum standalone layout is:
+**TORQ-EXP-004 — HDF5 contract.** SPYFY export SHALL use a versioned schema agreed through a consumer contract test. The minimum standalone layout is:
 
 ```text
 /meta                    schema/version and producer attributes
@@ -466,7 +466,7 @@ Pure mathematical tests may use exact constructed cases, known symmetries and li
 | V-STATE | Restart between every durable transition, duplicate delivery and expired lease scenarios produce no duplicate committed result; events/attempts remain auditable. |
 | V-RESTART | Compatible checkpoints resume successfully; changed method/geometry/state/version rejects reuse; cancellation and reconciliation clean only owned processes. |
 | V-STORAGE | HDF5 schema/units and lossless round trips; fixed molecular identity/shape checks; independent shard writes, fenced publication, interrupted merges and checksums protect committed data. Reject stale/duplicate/incomplete shards; corruption does not trigger invented repair. |
-| V-CONSUMER | The actual versioned SpycFit consumer reads the bundle and compares values/conventions; until supplied, mark interoperability unverified. |
+| V-CONSUMER | The actual versioned SPYFY consumer reads the bundle and compares values/conventions; until supplied, mark interoperability unverified. |
 | V-SPCAT | Real pinned SPCAT predictions parse and reproduce reference transitions/intensities within manifest tolerances; SPFIT observed/predicted roles and Hamiltonian conventions remain distinct. |
 | V-EXPORT | Missing/estimated/unvalidated values cannot masquerade as validated publication data; partial/exploratory profiles retain honest labels and sidecar provenance. |
 | V-PACKAGE | Clean core wheel install outside checkout, documented imports/CLI and minimal supported tests succeed. Separately installed versioned engine environments satisfy declared dependencies and worker interchange checks; core success cannot qualify an engine. |
@@ -500,7 +500,7 @@ Numerical tolerances above certify numerical kernels, not universal chemical acc
 | WP07 — Correlated/composite engines | ORCA/CFOUR/other approved adapters, CP, composites, state diagnostics, response capabilities. | WP02–05 | V-CP, V-ELECTRONIC, profile V-ENGINE; accepted D01/D02/D04; exact profiles independently qualified. |
 | WP08 — Nuclear motion | VPT2 and selected LAM/PI models with convergence/benchmark manifests. | WP05–07 | V-VPT2, V-DVR, V-BENCH; D05. |
 | WP09 — Analytics and ML extensions | Wavefunction interchange, honest NBO/alternatives, QTAIM, calibrated optional active/delta learning. | WP06–08 as applicable | V-WFN, V-ANALYSIS, V-AL, V-UQ; D03/D07. |
-| WP10 — BASE/SpycFit and operations | Consumer-approved HDF5 schema, UI, separately qualified engine images/platform profiles, security and operational lifecycle. | WP03–05 | V-CONSUMER, V-E2E, V-HPC, V-SECURITY, V-DEPLOY; D08/D09. |
+| WP10 — BASE/SPYFY and operations | Consumer-approved HDF5 schema, UI, separately qualified engine images/platform profiles, security and operational lifecycle. | WP03–05 | V-CONSUMER, V-E2E, V-HPC, V-SECURITY, V-DEPLOY; D08/D09. |
 | WP11 — Scientific release | Independent benchmark dataset/manifests, citations, report generation, release capability ledger. | All enabled packages | V-BENCH, V-RELEASE; accepted D10/D11 and qualification evidence for enabled profiles. |
 | WP12 — Selected adjacent-spectrum profiles | Explicitly selected IR/THz, Raman, NMR, UV–visible or MS interfaces/solvers, or versioned handoffs to their owning modules. | Applicable property/engine packages | D12; V-METHOD, V-PROP, V-BENCH and profile-specific physical end-to-end evidence. |
 
@@ -510,7 +510,7 @@ Every work package must produce executable implementation, tests tied to require
 
 The source and reference annexes distinguish mathematical corrections, verified upstream documentation, repository observations and unverified literature claims. Exact method availability, redistribution terms, version-specific input syntax and numerical benchmark values must be rechecked against the installed software release before implementation claims are made.
 
-All 24 D01–D12 and ARCH-01–ARCH-12 selections are accepted. Remaining specification work identifies exact engine/version/property tuples, recipe benchmark variants, LAM domains, BASE/SpycFit versions, authorized deployment sites and preregistered benchmark data/targets. Architecture/release selections are tracked in the question guide; an accepted policy is not evidence that its implementation or scientific qualification is complete. The accepted research implementations retain their explicit qualification gates. See the complete pros/cons/risks and conservative interim behavior in [Decisions and risks](review/Decisions_and_Risks.md). These are explicit design decisions, not omissions to be filled with arbitrary parameters during coding.
+All 24 D01–D12 and ARCH-01–ARCH-12 selections are accepted. Remaining specification work identifies exact engine/version/property tuples, recipe benchmark variants, LAM domains, BASE/SPYFY versions, authorized deployment sites and preregistered benchmark data/targets. Architecture/release selections are tracked in the question guide; an accepted policy is not evidence that its implementation or scientific qualification is complete. The accepted research implementations retain their explicit qualification gates. See the complete pros/cons/risks and conservative interim behavior in [Decisions and risks](review/Decisions_and_Risks.md). These are explicit design decisions, not omissions to be filled with arbitrary parameters during coding.
 
 
 ### Accepted follow-up decisions

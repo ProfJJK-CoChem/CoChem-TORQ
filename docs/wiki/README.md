@@ -19,7 +19,7 @@ Reviewed repository baseline: `d7a4739a5f7d6f22ed659b32eeb4706bef16225e`. Source
 
 Historical sources remain available: [Comprehensive SRS](CoChem-TORQ_Comprehensive_SRS.md), [True SRS](CoChem-TORQ_True_SRS.md), [Iterated SRS](CoChem-TORQ_True_SRS_Iterated.md), [AutoArchitect](CoChem-TORQ_AutoArchitect_Phase1.md), [integration architecture](CoChem-TORQ_Integration_Architecture.md), [Method Matrix](Method_Matrix.md), [user manual](CoChem_User_Manual.md), [BASE blueprint](CoChem-BASE_Draco_Blueprint.md), and [NBO notes](NBO_Analysis.md). They preserve research history; contradictory commands, scope claims and placeholders are not implementation authority.
 
-TOPOS owns global conformer discovery; TORQ refines supplied candidates and selected coordinates; BASE provides shared infrastructure; SpycFit consumes validated spectroscopic artifacts. Cross-repository contracts require actual consumer validation.
+TOPOS owns global conformer discovery; TORQ refines supplied candidates and selected coordinates; BASE provides shared infrastructure; SPYFY consumes validated spectroscopic artifacts. Cross-repository contracts require actual consumer validation.
 
 ## Follow-up integrity and scientific decisions
 
