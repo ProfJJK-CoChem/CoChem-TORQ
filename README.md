@@ -46,8 +46,8 @@ the remote workflow. The interface checks workflow availability before dispatch.
    the scientific stage statuses separately from the Actions job status.
 
 Opening the notebook does not start an electronic calculation. The
-[student guide](docs/Student_Guide.md) explains each control, missing-data status
-and BASE export. [Canonical environments](docs/development/canonical_environments.md)
+[user guide](docs/USER_GUIDE.md) and [student guide](docs/Student_Guide.md) explain each control, missing-data status,
+BASE export, and downstream `CoChem-SPYFY` rotational handoff. [Canonical environments](docs/development/canonical_environments.md)
 documents setup, authentication, image identities and deployment evidence.
 
 Recover or check the existing interface from the repository root:
@@ -178,8 +178,9 @@ actual versioned file handoffs rather than importing their environments together
 An old geometry/energy-only TOPOS HDF5 file needs explicit state, units, atom
 mapping and source method metadata; unknown source convergence stays unknown.
 After verified TORQ results are downloaded, the interface can export an actual
-electronic-energy artifact to BASE. Frequencies or spectra are distinct quantities.
-See [the ecosystem contract](docs/development/ecosystem_contracts.md).
+electronic-energy artifact to BASE and versioned Pickett/JSON spectroscopy seed
+packets for downstream **CoChem-SPYFY** and **CoChem-GEOM** analysis. Frequencies or spectra are distinct quantities.
+See [the ecosystem contract](docs/development/ecosystem_contracts.md) and the [user guide](docs/USER_GUIDE.md).
 
 Runtime inputs, results, logs and scratch belong outside the source checkout,
 normally in `~/CoChem_Artifacts`. Immutable result shards carry an inventory and

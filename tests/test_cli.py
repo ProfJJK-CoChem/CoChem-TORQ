@@ -1,10 +1,10 @@
 """
 Comprehensive Zero-Mock Physical Test Suite for CoChem-TORQ CLI (Libraries/cochem_torq_cli.py).
 
-Defends CLI entrypoint integrity, Readme.md Section 7.3 compliance, and Method Matrix adherence:
+Defends CLI entrypoint integrity, README.md Section 7.3 compliance, and Method Matrix adherence:
 - Physical presence of Libraries/cochem_torq_cli.py as a non-empty regular file.
 - Strict UTF-8 encoding validation without Byte Order Mark (BOM).
-- Strict command-line argument parsing for --config, --type, and --hess-diag per Readme.md §7.3.
+- Strict command-line argument parsing for --config, --type, and --hess-diag per README.md §7.3.
 - Full validation of --type (TS, OPT, MIN, SCAN, CONFORMER, PIPELINE).
 - Full validation of --hess-diag (Lindh, XTB2, Model).
 - Execution of main() in dry-run mode with structured JSON and formatted terminal output.
@@ -79,12 +79,12 @@ def test_cli_ast_anti_spoofing_compliance() -> None:
 
 
 # =============================================================================
-# 2. Argument Parser Specifications (Readme.md Section 7.3)
+# 2. Argument Parser Specifications (README.md Section 7.3)
 # =============================================================================
 
 
 def test_parser_readme_7_3_direct_arguments() -> None:
-    """Verify parser accepts --config, --type, and --hess-diag per Readme.md Section 7.3."""
+    """Verify parser accepts --config, --type, and --hess-diag per README.md Section 7.3."""
     parser = build_parser()
     args = parser.parse_args(["--config", "cochem_system_config.json", "--type", "TS", "--hess-diag", "Lindh"])
 

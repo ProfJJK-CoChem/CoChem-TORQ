@@ -57,8 +57,8 @@ This document deduplicates and correlates the architectural ideas established in
 *   **Risk:** **Low.** 
 *   **Reward:** **Medium.** Symmetry failures are common in automatic TS searches; a human override is a vital safety net.
 
-## 7. Dual-Bundling (Legacy SPCAT + GPU SpycFit HDF5)
-**Plain-English Summary:** TORQ packages the final physics into two formats: the old-school text files used by traditional spectroscopists (SPCAT), and a modern, high-speed database file (HDF5) that powers the new, interactive visual GPU assigner (SpycFit).
+## 7. Dual-Bundling (Legacy SPCAT + GPU SPYFY HDF5)
+**Plain-English Summary:** TORQ packages the final physics into two formats: the old-school text files used by traditional spectroscopists (SPCAT), and a modern, high-speed database file (HDF5) that powers the new, interactive visual GPU assigner (SPYFY).
 
 *   **Pros:** Bridges the gap between traditional experimentalists and modern data-science workflows.
 *   **Cons:** Requires maintaining two completely different export pipelines and strict filtering to ensure Machine Learning guesses don't pollute the legacy SPCAT files.

@@ -56,7 +56,7 @@ CORE_ENGINE_DIRS: Set[str] = {
     "CoChem-PULSE",
     "CoChem-SCAN",
     "CoChem-SHIFT",
-    "CoChem-SpycFit",
+    "CoChem-SPYFY",
     "CoChem-Council",
 }
 

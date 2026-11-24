@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from cochem_torq.chem490_vpt2_bridge import (
-    export_spycfit_geom_handoff,
+    export_spyfy_geom_handoff,
     parse_orca_vpt2_rotational_constants,
     run_relaxed_1d_torsional_scan,
 )
@@ -39,7 +39,7 @@ def main() -> None:
         "h2o_t_geom_01/orca_ccsd_cc_pvtz/h2o_ccsd_pvtz.out"
     )
     h2o_eq = parse_orca_vpt2_rotational_constants(h2o_eq_path)
-    pkt_eq, _ = export_spycfit_geom_handoff(
+    pkt_eq, _ = export_spyfy_geom_handoff(
         h2o_eq,
         BENCH_DIR,
         molecule_id="H2O_CCSD_cc-pVTZ",
@@ -70,7 +70,7 @@ def main() -> None:
         if arso2_dip.dipole is not None
         else None
     )
-    pkt_arso2, _ = export_spycfit_geom_handoff(
+    pkt_arso2, _ = export_spyfy_geom_handoff(
         arso2_vpt2,
         BENCH_DIR,
         molecule_id="Ar-SO2_B3LYP-D4_VPT2",
@@ -101,7 +101,7 @@ def main() -> None:
         "tests/fixtures/vpt2_water_b3lyp.out"
     )
     h2o_vpt2 = parse_orca_vpt2_rotational_constants(h2o_vpt2_path)
-    pkt_h2o_vpt2, _ = export_spycfit_geom_handoff(
+    pkt_h2o_vpt2, _ = export_spyfy_geom_handoff(
         h2o_vpt2,
         BENCH_DIR,
         molecule_id="H2O_B3LYP-D4_VPT2",

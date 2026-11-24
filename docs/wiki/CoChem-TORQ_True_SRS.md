@@ -32,7 +32,7 @@ To prevent dependency lock-in and ensure accessibility, TORQ MUST implement thre
 
 ### 2.3 CPU vs. GPU Hardware Brokering
 TORQ MUST poll the host system (via `cochem_system_config.json`) to dynamically allocate hardware resources:
-*   **GPU Routing:** MLFF evaluations, tensor contractions, and HDF5 `SpycFit` spectra generation MUST be routed to available CUDA/ROCm graphics cards to bypass CPU bottlenecks.
+*   **GPU Routing:** MLFF evaluations, tensor contractions, and HDF5 `SPYFY` spectra generation MUST be routed to available CUDA/ROCm graphics cards to bypass CPU bottlenecks.
 *   **CPU Routing:** Traditional *ab initio* integrators (HF, MP2, CCSD) MUST be routed to CPU MPI pools. TORQ must inject exact `%maxcore` and `%pal nprocs` memory allocations into the input files, reserving a strict safety buffer for the host OS.
 
 ---
@@ -77,7 +77,7 @@ The engine MUST support real-space physical electron density mapping (e.g., QTAI
 ### 5.1 Dual Export Architecture
 TORQ MUST produce two parallel artifact bundles for downstream use:
 1.  **Legacy SPCAT / SPFIT:** Generation of standard Pickett `.var` and `.int` files. These files MUST be rigorously scrubbed of any `[E]` (Estimated/MLFF) data to ensure that publication-facing legacy formats only contain anchored, *ab initio* values.
-2.  **SpycFit HDF5 Integration:** Delivery of high-dimensional tensor data directly into the `CoChem-BASE` HDF5 bus. This feeds the **SpycFit** ecosystem, which utilizes graphics-card-based (GPU) rapid spectra prediction paired with a human-in-the-loop interactive UI for spectral assignment.
+2.  **SPYFY HDF5 Integration:** Delivery of high-dimensional tensor data directly into the `CoChem-BASE` HDF5 bus. This feeds the **SPYFY** ecosystem, which utilizes graphics-card-based (GPU) rapid spectra prediction paired with a human-in-the-loop interactive UI for spectral assignment.
 
 ---
 

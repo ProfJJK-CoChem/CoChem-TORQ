@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .chem490_vpt2_bridge import (
-    export_spycfit_geom_handoff as export_spycfit_geom_handoff,
+    export_spyfy_geom_handoff as export_spyfy_geom_handoff,
 )
 from .chem490_vpt2_bridge import (
     parse_orca_vpt2_rotational_constants as parse_orca_vpt2_rotational_constants,

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "CoChem-TORQ"
 version = "0.1.0"
 description = "Reaction Coordinate Optimization & Transition State location for the CoChem ecosystem."
-readme = "Readme.md"
+readme = "README.md"
 requires-python = ">=3.10"
 authors = [
     {name = "CoChem Swarm"}

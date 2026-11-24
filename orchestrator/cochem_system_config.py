@@ -14,7 +14,7 @@ Core Authoritative Schemas:
 - QuantumEngineRegistry: Cryptographic provenance, binary hashes, versioning, and execution
   tracks for ORCA, xTB, mpirun, CFOUR, PySCF, gpu4pyscf, AIMNet2, and MACE.
 - SiloRegistry: Isolated micro-environment deployments (TORQ, GPU, CORE, CALC, UI, MACE,
-  MOLSYM, SPYCFIT, BENCH, TOPOS) with C++ ABI isolation.
+  MOLSYM, SPYFY, BENCH, TOPOS) with C++ ABI isolation.
 - StorageTopology: Centralized HDF5 SWMR PES store, fast scratch hierarchies, DB backends,
   and HPC tripartite air-gap validation against immutable $COCHEM_ROOT write pollution.
 - HPCProfile / HPCConfig: SLURM/PBS/SGE cluster scheduler topologies and partition limits.
@@ -198,7 +198,7 @@ class SiloType(str, Enum):
     CALC = "cochem_calc_silo"
     MACE = "cochem_mace_silo"
     MOLSYM = "cochem_molsym_silo"
-    SPYCFIT = "cochem_spycfit_silo"
+    SPYFY = "cochem_spyfy_silo"
     BENCH = "cochem_bench_silo"
     TOPOS = "cochem_topos_silo"
     CUSTOM = "cochem_custom_silo"
@@ -891,7 +891,7 @@ class SiloRegistry(BaseModel):
     calc_silo: Optional[SiloAuditItem] = Field(default=None, description="Calculation engine silo")
     mace_silo: Optional[SiloAuditItem] = Field(default=None, description="MACE ML force field silo")
     molsym_silo: Optional[SiloAuditItem] = Field(default=None, description="MolSym symmetry silo")
-    spycfit_silo: Optional[SiloAuditItem] = Field(default=None, description="SPyCFIT fitting silo")
+    spyfy_silo: Optional[SiloAuditItem] = Field(default=None, description="CoChem-SPYFY fitting silo")
     bench_silo: Optional[SiloAuditItem] = Field(default=None, description="Benchmarking harness silo")
     topos_silo: Optional[SiloAuditItem] = Field(default=None, description="TOPOS topology search silo")
     custom_silos: Dict[str, SiloAuditItem] = Field(

@@ -8,9 +8,9 @@ Provides:
    SHA-256 provenance of the raw ``.out`` file. Strictly separates equilibrium
    Be from ground-state B0: when no VPT2 block is present, ``b0_status`` is
    ``"PENDING"`` and ``delta_b_vib_mhz`` is ``None`` (never ``0.0``).
-2. ``export_spycfit_geom_handoff``: Exports a versioned JSON + Pickett
+2. ``export_spyfy_geom_handoff``: Exports a versioned JSON + Pickett
    ``.var`` / ``.int`` seed packet (``cochem.torq.vpt2-spectroscopy-handoff/1``,
-   ``collaborator_institution: "Tennessee Tech University"``) for CoChem-SpycFit
+   ``collaborator_institution: "Tennessee Tech University"``) for CoChem-SPYFY
    and CoChem-GEOM semi-experimental ``r_e^SE`` analysis (with
    ``re_se_status = "PENDING"`` until isotope-specific Delta B_vib and
    experimental B0 are supplied).
@@ -128,8 +128,8 @@ class OrcaVpt2RotationalRecord(_StrictModel):
     scientific_notes: tuple[str, ...]
 
 
-class SpycFitGeomHandoffPacket(_StrictModel):
-    """Versioned CoChem-SpycFit & CoChem-GEOM spectroscopy handoff packet."""
+class SpyfyGeomHandoffPacket(_StrictModel):
+    """Versioned CoChem-SPYFY & CoChem-GEOM spectroscopy handoff packet."""
 
     schema_version: Literal["cochem.torq.vpt2-spectroscopy-handoff/1"] = HANDOFF_SCHEMA
     molecule_id: str = Field(min_length=1)
@@ -602,7 +602,7 @@ def _render_pickett_int(
     """Render a Pickett SPCAT ``.int`` intensity/dipole seed file."""
     safe_title = re.sub(r"[^ -~]", "_", title)[:50]
     lines = [
-        f"{safe_title} [CoChem-TORQ -> SpycFit | {COLLABORATOR_INSTITUTION}]",
+        f"{safe_title} [CoChem-TORQ -> CoChem-SPYFY | {COLLABORATOR_INSTITUTION}]",
         f"0  91  1000.0  0  {max_j}  -10.0  -10.0  {freq_limit_ghz:.3f}  "
         f"{temperature_k:.3f}",
     ]
@@ -619,7 +619,7 @@ def _render_pickett_int(
     return "\n".join(lines) + "\n"
 
 
-def export_spycfit_geom_handoff(
+def export_spyfy_geom_handoff(
     record: OrcaVpt2RotationalRecord,
     output_dir: str | Path,
     *,
@@ -630,8 +630,8 @@ def export_spycfit_geom_handoff(
     temperature_k: float = 2.0,
     max_j: int = 30,
     freq_limit_ghz: float = 40.0,
-) -> tuple[SpycFitGeomHandoffPacket, Path]:
-    """Export a versioned CoChem-SpycFit & CoChem-GEOM JSON + Pickett seed packet.
+) -> tuple[SpyfyGeomHandoffPacket, Path]:
+    """Export a versioned CoChem-SPYFY & CoChem-GEOM JSON + Pickett seed packet.
 
     Always leaves ``re_se_status = "PENDING"`` until isotope-specific
     ``Delta B_vib`` and experimental ``B_0`` constants are supplied.
@@ -692,7 +692,7 @@ def export_spycfit_geom_handoff(
     var_path.write_bytes(var_bytes)
     int_path.write_bytes(int_bytes)
 
-    packet = SpycFitGeomHandoffPacket(
+    packet = SpyfyGeomHandoffPacket(
         molecule_id=molecule_id,
         b0_status=record.b0_status,
         pickett_parameter_basis=basis_label,
@@ -988,11 +988,11 @@ __all__ = [
     "QuarticDistortionConstants",
     "RelaxedTorsionalScanReceipt",
     "RotationalTriple",
-    "SpycFitGeomHandoffPacket",
+    "SpyfyGeomHandoffPacket",
     "TorsionalScanPoint",
     "VibrationalCorrectionTriple",
     "ZpveSummary",
-    "export_spycfit_geom_handoff",
+    "export_spyfy_geom_handoff",
     "parse_orca_vpt2_rotational_constants",
     "run_relaxed_1d_torsional_scan",
 ]

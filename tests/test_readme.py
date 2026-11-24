@@ -14,11 +14,12 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-README = ROOT / "Readme.md"
+README = ROOT / "README.md"
 GUIDE = ROOT / "docs" / "Student_Guide.md"
+USER_GUIDE = ROOT / "docs" / "USER_GUIDE.md"
 
 
-@pytest.mark.parametrize("document", [README, GUIDE])
+@pytest.mark.parametrize("document", [README, GUIDE, USER_GUIDE])
 def test_student_document_links_resolve_to_actual_files(document):
     raw = document.read_bytes()
     assert not raw.startswith(b"\xef\xbb\xbf")

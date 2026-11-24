@@ -7,8 +7,8 @@ Defends build system integrity, package metadata, and developer tooling:
 - Valid TOML syntax parsing via standard tomllib.
 - [build-system] table adhering to PEP 517 / PEP 518 specifications.
 - [project] metadata table compliance: name ("CoChem-TORQ"), valid PEP 440 version,
-  description, readme ("Readme.md"), supported Python versions, and authors.
-- Physical existence of the referenced Readme.md file.
+  description, readme ("README.md"), supported Python versions, and authors.
+- Physical existence of the referenced README.md file.
 - PEP 508 core dependencies and explicit optional engine separation.
 - [project.optional-dependencies] containing bounded developer tools.
 - [tool.setuptools.packages.find] package discovery configuration.
@@ -51,7 +51,7 @@ EXPECTED_PROJECT_DESCRIPTION = (
     "Reaction Coordinate Optimization & Transition State location "
     "for the CoChem ecosystem."
 )
-EXPECTED_PROJECT_README = "Readme.md"
+EXPECTED_PROJECT_README = "README.md"
 EXPECTED_PROJECT_REQUIRES_PYTHON = ">=3.10"
 EXPECTED_PROJECT_AUTHORS = [{"name": "CoChem Swarm"}]
 
