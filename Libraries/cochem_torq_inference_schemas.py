@@ -274,7 +274,7 @@ class DeltaMLConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    baseline_method: Literal["GFN2-xTB", "PM6", "LennardJones", "EMT"] = Field(
+    baseline_method: Literal["GFN2-xTB", "PM6", "LennardJones"] = Field(
         default="GFN2-xTB", description="Baseline physical engine [M]"
     )
     qm_target_method: str = Field(

@@ -611,12 +611,12 @@ def test_export_tensor_json_and_hdf5(tmp_path: Path) -> None:
 
     # 5. Export Sinc-DVR HDF5
     dvr_h5 = export_dir / "sinc_dvr.h5"
-    from ase import Atoms
-    from ase.calculators.emt import EMT
-
-    at = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
-    at.calc = EMT()
-    e = at.get_potential_energy()
+    # Analytic H2 Morse potential energy at r = 0.74 A (D_e=4.747 eV, a=1.942 A^-1, r_e=0.7414 A)
+    r_h2 = 0.74
+    d_e_h2 = 4.747
+    a_h2 = 1.942
+    r_e_h2 = 0.7414
+    e = d_e_h2 * (1.0 - math.exp(-a_h2 * (r_h2 - r_e_h2))) ** 2 - d_e_h2
 
     # Provide a simple 2D wavefunction payload
     wf = [[e, 0.0], [0.0, e]]

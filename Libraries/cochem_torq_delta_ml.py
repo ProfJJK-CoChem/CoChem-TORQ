@@ -434,39 +434,6 @@ class PM6Engine(BaselinePhysicsEngine):
                 )
 
 
-class EMTBaselineEngine(BaselinePhysicsEngine):
-    """Adapter for Effective Medium Theory (EMT) baseline calculations. [M]"""
-
-    def calculate(
-        self,
-        coordinates: torch.Tensor,
-        atomic_numbers: Sequence[int],
-    ) -> tuple[float, torch.Tensor]:
-        try:
-            import ase  # noqa: F401
-            from ase import Atoms
-            from ase.calculators.emt import EMT
-        except ImportError:
-            raise BaselineExecutionError(
-                "TORQ_BASELINE_UNAVAILABLE: ASE EMT library not found",
-                method="EMT",
-            )
-
-        atoms = Atoms(numbers=atomic_numbers, positions=coordinates.detach().cpu().numpy())
-        atoms.calc = EMT()
-
-        try:
-            energy = atoms.get_potential_energy()
-            forces = atoms.get_forces()
-        except Exception as e:
-            raise BaselineExecutionError(
-                f"TORQ_BASELINE_EXEC_FAIL: EMT calculation failed: {e}",
-                method="EMT",
-            )
-
-        return float(energy), torch.tensor(forces, dtype=coordinates.dtype, device=coordinates.device)
-
-
 class LennardJonesBaselineEngine(BaselinePhysicsEngine):
     """Authentic physical Lennard-Jones non-bonded baseline engine with Lorentz-Berthelot mixing. [M]"""
 
@@ -565,8 +532,11 @@ class DeltaMLEngine:
                 self.baseline_engine = PM6Engine()
             elif config.baseline_method == "LennardJones":
                 self.baseline_engine = LennardJonesBaselineEngine()
-            elif config.baseline_method == "EMT":
-                self.baseline_engine = EMTBaselineEngine()
+            elif str(config.baseline_method).strip().upper() == "EMT":
+                raise ValueError(
+                    "ASE EMT metal potential is prohibited in CoChem-TORQ "
+                    "organic/rotational workflows; use GFN2-xTB, PM6, PySCF, MACE, or AIMNet2."
+                )
             else:
                 raise ValueError(f"Unknown baseline method: {config.baseline_method}")
         else:
