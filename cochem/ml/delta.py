@@ -12,7 +12,6 @@ if _torq_libs.is_dir() and str(_torq_libs) not in sys.path:
 from Libraries.cochem_torq_delta_ml import (
     BaselinePhysicsEngine,
     DeltaMLEngine,
-    EMTBaselineEngine,
     GFN2xTBEngine,
     LennardJonesBaselineEngine,
     PM6Engine,
@@ -31,7 +30,6 @@ __all__ = [
     "DeltaMLEngine",
     "DispersionD3Config",
     "DispersionD3Layer",
-    "EMTBaselineEngine",
     "GFN2xTBEngine",
     "LennardJonesBaselineEngine",
     "PM6Engine",

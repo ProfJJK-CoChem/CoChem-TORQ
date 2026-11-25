@@ -555,6 +555,7 @@ class TorqMACETriage:
         model_name: str = "MACE-OFF24m",
         batch_size: int = 128,
         device: str = "cpu",
+        calculator: Any = None,
     ) -> None:
         """
         Initialize the TorqMACETriage engine with grid data, MLFF model, and parameters.
@@ -590,7 +591,22 @@ class TorqMACETriage:
         self.onnx_config: dict[str, Any] = {}
 
         self._load_grid_file()
-        self.calculator = self._init_calculator()
+        if self.model_name.strip().lower() == "emt":
+            raise ValueError(
+                "ASE EMT metal potential is prohibited in CoChem-TORQ "
+                "organic/rotational workflows; use GFN2-xTB, PySCF, MACE, or AIMNet2."
+            )
+        if calculator is not None:
+            calc_module = getattr(type(calculator), "__module__", "")
+            calc_name = getattr(type(calculator), "__name__", "")
+            if calc_name == "EMT" or calc_module.endswith(".emt"):
+                raise ValueError(
+                    "ASE EMT metal potential is prohibited in CoChem-TORQ "
+                    "organic/rotational workflows; use GFN2-xTB, PySCF, MACE, or AIMNet2."
+                )
+            self.calculator = calculator
+        else:
+            self.calculator = self._init_calculator()
 
     def _load_grid_file(self) -> None:
         """Parse molecular symbols and grid points from the input JSON grid file."""
@@ -614,7 +630,12 @@ class TorqMACETriage:
 
     def _init_calculator(self) -> Any:
         """Initialize only the requested calculator; unavailable engines fail explicitly."""
-        model = self.model_name.lower()
+        model = self.model_name.strip().lower()
+        if model == "emt":
+            raise ValueError(
+                "ASE EMT metal potential is prohibited in CoChem-TORQ "
+                "organic/rotational workflows; use GFN2-xTB, PySCF, MACE, or AIMNet2."
+            )
         try:
             if "mace" in model:
                 from mace.calculators import mace_off
@@ -626,10 +647,10 @@ class TorqMACETriage:
                 from aimnet2calc import AIMNet2ASE
 
                 return AIMNet2ASE(model=self.model_name)
-            if model == "emt":
-                from ase.calculators.emt import EMT
+            if model in {"pyscf", "rhf/sto-3g"}:
+                import pyscf  # noqa: F401
 
-                return EMT()
+                return "pyscf"
             if model.endswith(".onnx") or "onnx" in model:
                 raise RuntimeError(
                     "ONNX model-to-ASE energy/force adapter is not implemented."
@@ -671,6 +692,20 @@ class TorqMACETriage:
             or not np.isfinite(coords_arr).all()
         ):
             raise ValueError("A nonempty finite molecular geometry is required.")
+        if self.calculator == "pyscf":
+            energy_ev, forces, _ = evaluate_physical_potential(
+                self.symbols, coords_arr, use_pyscf=True
+            )
+            max_force_ev_ang = (
+                float(np.max(np.linalg.norm(forces, axis=1)))
+                if len(forces) > 0
+                else 0.0
+            )
+            max_force_eh_bohr = max_force_ev_ang * (
+                BOHR_TO_ANGSTROM / HARTREE_TO_EV
+            )
+            converged = max_force_eh_bohr <= self.scf_tolerance_guard
+            return energy_ev, forces, converged
         if self.calculator is not None:
             try:
                 from ase import Atoms  # type: ignore[import-not-found,import-untyped]

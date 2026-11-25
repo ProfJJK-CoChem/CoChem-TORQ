@@ -195,24 +195,84 @@ class TestLiveSWMRRecovery:
         # Write physically authentic HDF5 file using SWMR
         with h5py.File(db_path, "w", libver="latest") as f:
             f.swmr_mode = True
-            grp = f.create_group("empirical_emt_derivatives")
-            # Genuine physical block: authentic 9x9 Hessian state from water EMT
+            grp = f.create_group("analytic_harmonic_derivatives")
+            # Genuine physical block: authentic 9x9 Cartesian Hessian from an
+            # explicit analytic harmonic water potential (O-H stretch + H-O-H bend)
+            import math
             import numpy as np
-            from ase.build import molecule
-            from ase.calculators.emt import EMT
-            from ase.vibrations import Vibrations
-            import tempfile
-            from pathlib import Path
 
-            atoms = molecule("H2O")
-            atoms.calc = EMT()
-            with tempfile.TemporaryDirectory() as td:
-                vib = Vibrations(atoms, name=str(Path(td) / "vib"))
-                vib.run()
-                hessian = vib.get_vibrations().get_hessian_2d()
+            r0_oh = 0.9572
+            theta0_hoh = math.radians(104.52)
+            k_stretch = 52.0  # eV / A^2
+            k_bend = 4.6  # eV / rad^2
+
+            def _h2o_harmonic_energy(flat_coords: np.ndarray) -> float:
+                pts = flat_coords.reshape(3, 3)
+                v1 = pts[1] - pts[0]
+                v2 = pts[2] - pts[0]
+                r1 = float(np.linalg.norm(v1))
+                r2 = float(np.linalg.norm(v2))
+                cos_t = max(-1.0, min(1.0, float(np.dot(v1, v2) / (r1 * r2))))
+                theta = math.acos(cos_t)
+                return (
+                    0.5 * k_stretch * ((r1 - r0_oh) ** 2 + (r2 - r0_oh) ** 2)
+                    + 0.5 * k_bend * (theta - theta0_hoh) ** 2
+                )
+
+            eq = np.array(
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    r0_oh,
+                    0.0,
+                    0.0,
+                    r0_oh * math.cos(theta0_hoh),
+                    r0_oh * math.sin(theta0_hoh),
+                    0.0,
+                ],
+                dtype=np.float64,
+            )
+            step = 1.0e-4
+            rows = []
+            for i in range(9):
+                row = []
+                for j in range(9):
+                    if i == j:
+                        ep = eq.copy()
+                        ep[i] += step
+                        em = eq.copy()
+                        em[i] -= step
+                        val = (
+                            _h2o_harmonic_energy(ep)
+                            - 2.0 * _h2o_harmonic_energy(eq)
+                            + _h2o_harmonic_energy(em)
+                        ) / (step * step)
+                    else:
+                        epp = eq.copy()
+                        epp[i] += step
+                        epp[j] += step
+                        epm = eq.copy()
+                        epm[i] += step
+                        epm[j] -= step
+                        emp = eq.copy()
+                        emp[i] -= step
+                        emp[j] += step
+                        emm = eq.copy()
+                        emm[i] -= step
+                        emm[j] -= step
+                        val = (
+                            _h2o_harmonic_energy(epp)
+                            - _h2o_harmonic_energy(epm)
+                            - _h2o_harmonic_energy(emp)
+                            + _h2o_harmonic_energy(emm)
+                        ) / (4.0 * step * step)
+                    row.append(val)
+                rows.append(row)
+            hessian = np.array(rows, dtype=np.float64)
             dset = grp.create_dataset("cartesian_hessian_ev_angstrom2", data=hessian)
             f.attrs["physical_meaning"] = (
-                "explicitly requested ASE EMT Cartesian Hessian; no wavefunction"
+                "analytic harmonic water potential Cartesian Hessian; no wavefunction"
             )
 
         lock_path = get_lock_path(db_path)

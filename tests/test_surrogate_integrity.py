@@ -120,13 +120,21 @@ def test_unsupported_model_does_not_become_emt(tmp_path):
         TorqMACETriage(str(grid), model_name="unavailable-model")
 
 
-def test_emt_only_runs_when_explicitly_selected(tmp_path):
+def test_emt_is_explicitly_rejected_everywhere(tmp_path):
+    from pydantic import ValidationError
+    import Libraries.cochem_torq_delta_ml as delta_ml_mod
+    from Libraries.cochem_torq_inference_schemas import DeltaMLConfig
+
     grid = tmp_path / "grid.json"
     grid.write_text(json.dumps({"symbols": ["H", "H"], "grid_points": []}))
-    triage = TorqMACETriage(str(grid), model_name="EMT")
-    energy, forces, _ = triage.evaluate_point([[0., 0., 0.], [0., 0., 0.74]])
-    assert np.isfinite(energy)
-    assert np.isfinite(forces).all()
+    for name in ("EMT", "emt", " emt "):
+        with pytest.raises(ValueError, match="prohibited"):
+            TorqMACETriage(str(grid), model_name=name)
+
+    with pytest.raises(ValidationError):
+        DeltaMLConfig(baseline_method="EMT")
+
+    assert not hasattr(delta_ml_mod, "EMTBaselineEngine")
 
 
 @pytest.mark.parametrize("angles,energies", [([0], [1]), ([0, 1], [0, 1]), ([0, 0, 1], [0, 0, 1])])

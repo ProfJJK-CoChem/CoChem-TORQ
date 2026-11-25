@@ -1,12 +1,15 @@
 """
 Test Automated GOAT + CREST Union Conformer Exploration
 SRS Chunk 09, Suggestion #89 (Method Matrix v4 §9B.1-§9B.3)
-Declared geometry inputs evaluated with explicitly selected ASE EMT.
+Declared geometry inputs evaluated with explicit-parameter Lennard-Jones baseline.
 This tests numerical deduplication; no GOAT/CREST calculation is represented.
 """
 
 import numpy as np
+import torch
+from scipy.constants import physical_constants
 
+from Libraries.cochem_torq_delta_ml import LennardJonesBaselineEngine
 from Libraries.cochem_torq_goat import compute_moments_and_constants
 from Libraries.cochem_torq_pipeline import (
     deduplicate_conformer_union,
@@ -15,8 +18,9 @@ from Libraries.cochem_torq_pipeline import (
 
 
 def test_deduplicate_conformer_union_rotational_and_rmsd():
-    """Actual EMT values cannot resolve absent graph/stereo/state identity."""
+    """Explicit non-bonded pair energies cannot resolve absent graph/stereo/state identity."""
     symbols = ["C", "C", "O", "H", "H", "H", "H", "H", "H"]
+    atomic_numbers = [6, 6, 8, 1, 1, 1, 1, 1, 1]
     coords_trans = np.array(
         [
             [0.000, 0.000, 0.000],
@@ -45,25 +49,27 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
         ]
     )
 
-    from ase import Atoms
-    from ase.calculators.emt import EMT
-    from scipy.constants import physical_constants
+    lj_engine = LennardJonesBaselineEngine(
+        {
+            6: (3.50, 0.00286),
+            8: (3.12, 0.00737),
+            1: (2.50, 0.00130),
+        }
+    )
 
-    atoms_trans = Atoms(symbols, positions=coords_trans)
-    atoms_trans.calc = EMT()
-    energy_trans = atoms_trans.get_potential_energy()
+    energy_trans, _ = lj_engine.calculate(
+        torch.tensor(coords_trans, dtype=torch.float64), atomic_numbers
+    )
+    energy_gauche, _ = lj_engine.calculate(
+        torch.tensor(coords_gauche, dtype=torch.float64), atomic_numbers
+    )
 
-    atoms_gauche = Atoms(symbols, positions=coords_gauche)
-    atoms_gauche.calc = EMT()
-    energy_gauche = atoms_gauche.get_potential_energy()
-
-    atoms_dup = Atoms(symbols, positions=coords_trans.copy())
     coords_trans_dup = (
         coords_trans.copy()
     )  # Exact duplicate of the same declared input.
-    atoms_dup.positions = coords_trans_dup
-    atoms_dup.calc = EMT()
-    energy_dup = atoms_dup.get_potential_energy()
+    energy_dup, _ = lj_engine.calculate(
+        torch.tensor(coords_trans_dup, dtype=torch.float64), atomic_numbers
+    )
     hartree_ev = physical_constants["Hartree energy in eV"][0]
     energy_trans /= hartree_ev
     energy_gauche /= hartree_ev
@@ -79,21 +85,21 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
             "coordinates": coords_trans.tolist(),
             "energy_hartree": energy_trans,
             "rotational_constants_mhz": (A1, B1, C1),
-            "origin": "ASE/EMT",
+            "origin": "LennardJones/explicit",
         },
         {
             "symbols": symbols,
             "coordinates": coords_trans_dup.tolist(),
             "energy_hartree": energy_dup,
             "rotational_constants_mhz": (A3, B3, C3),
-            "origin": "ASE/EMT",
+            "origin": "LennardJones/explicit",
         },
         {
             "symbols": symbols,
             "coordinates": coords_gauche.tolist(),
             "energy_hartree": energy_gauche,
             "rotational_constants_mhz": (A2, B2, C2),
-            "origin": "ASE/EMT",
+            "origin": "LennardJones/explicit",
         },
     ]
 
@@ -103,7 +109,7 @@ def test_deduplicate_conformer_union_rotational_and_rmsd():
 
     assert len(deduped) == len(raw_pool)
     assert all(after is before for after, before in zip(deduped, raw_pool))
-    assert deduped[0]["origin"] == "ASE/EMT"
+    assert deduped[0]["origin"] == "LennardJones/explicit"
     energies = [d["energy_hartree"] for d in deduped]
     assert energy_trans in energies
     assert energy_gauche in energies

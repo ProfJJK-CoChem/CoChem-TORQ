@@ -1,8 +1,10 @@
-"""Actual calculator availability, declared EMT computation, and statistical mathematics.
+"""Actual calculator availability, explicit analytical Morse computation, and statistical mathematics.
 
-EMT here is requested explicitly as a computational example. It is not MACE,
+The explicit spectroscopic H2 Morse potential below is used solely to test
+grid-evaluation plumbing and rank-statistics mathematics. It is not MACE,
 AIMNet2, a quantum surrogate qualification, or a student accuracy profile. The
 ONNX identity graph tests runtime serialization only, never molecular physics.
+ASE EMT metal potentials are strictly prohibited and tested for explicit rejection.
 """
 
 import json
@@ -128,10 +130,12 @@ def test_aimnet2_triage_init(tmp_path: Path) -> None:
         TorqMACETriage(grid_filepath=str(grid_file), model_name="AIMNet2")
 
 
-def _actual_emt_triage(tmp_path: Path) -> TorqMACETriage:
-    """Select the genuine ASE empirical EMT calculator, retaining its own identity."""
+def _actual_morse_h2_triage(tmp_path: Path) -> TorqMACETriage:
+    """Select an explicit spectroscopic H2 Morse calculator, retaining its own identity."""
     pytest.importorskip("ase")
-    source = tmp_path / "declared-emt-inputs.json"
+    from ase.calculators.morse import MorsePotential
+
+    source = tmp_path / "declared-morse-inputs.json"
     source.write_text(
         json.dumps(
             {
@@ -146,11 +150,23 @@ def _actual_emt_triage(tmp_path: Path) -> TorqMACETriage:
             }
         )
     )
-    return TorqMACETriage(grid_filepath=str(source), model_name="EMT")
+    return TorqMACETriage(
+        grid_filepath=str(source),
+        model_name="Morse-H2-explicit",
+        calculator=MorsePotential(epsilon=4.747, r0=0.7414, rho0=1.4398),
+    )
+
+
+def test_emt_calculator_is_prohibited(tmp_path: Path) -> None:
+    source = tmp_path / "prohibited-emt-inputs.json"
+    source.write_text(json.dumps({"symbols": ["H", "H"], "grid_points": []}))
+    for model_name in ("EMT", "emt"):
+        with pytest.raises(ValueError, match="prohibited"):
+            TorqMACETriage(grid_filepath=str(source), model_name=model_name)
 
 
 def test_extract_topographic_extrema(tmp_path: Path) -> None:
-    triage = _actual_emt_triage(tmp_path)
+    triage = _actual_morse_h2_triage(tmp_path)
     observed = triage.evaluate_grid()
     suggestions = triage.extract_topographic_extrema()
     assert len(suggestions) == len(observed)
@@ -310,12 +326,12 @@ def test_torq_mace_triage_adaptive_workflow(tmp_path: Path) -> None:
 
 def test_torq_mace_triage_onnx_method(tmp_path: Path) -> None:
     pytest.importorskip("onnxruntime")
-    triage = _actual_emt_triage(tmp_path)
+    triage = _actual_morse_h2_triage(tmp_path)
     configuration = triage.onnx_cpu_fallback()
     assert configuration["provider"] == "CPUExecutionProvider"
     assert triage.onnx_config == configuration
     assert (
-        triage.model_name == "EMT"
+        triage.model_name == "Morse-H2-explicit"
     )  # Configuring a runtime does not select a different potential.
 
 
@@ -336,7 +352,7 @@ def test_float32_noise_floor_constants() -> None:
 
 def test_guard_g4_rank_inversion_audit(tmp_path: Path) -> None:
     """Check actual SciPy arithmetic on observed values, not an independent benchmark."""
-    triage = _actual_emt_triage(tmp_path)
+    triage = _actual_morse_h2_triage(tmp_path)
     values = triage.evaluate_grid()
     energies = [item["relative_energy_kcal_mol"] for item in values]
     audit = triage.audit_rank_inversion(energies, spearman_threshold=0.9)
@@ -350,7 +366,7 @@ def test_guard_g4_rank_inversion_audit(tmp_path: Path) -> None:
 
 
 def test_rank_statistics_reject_undefined_or_missing_evidence(tmp_path: Path) -> None:
-    triage = _actual_emt_triage(tmp_path)
+    triage = _actual_morse_h2_triage(tmp_path)
     triage.evaluate_grid()
     with pytest.raises(ValueError, match="constant energy series"):
         triage.audit_rank_inversion([1.0] * 4)
