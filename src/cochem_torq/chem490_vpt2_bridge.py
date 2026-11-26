@@ -882,13 +882,13 @@ def _set_initial_dihedral(
     axis = base_coords[k] - base_coords[j]
     axis_norm = float(np.linalg.norm(axis))
     if axis_norm < 1e-8 or abs(delta_deg) < 1e-9:
-        return base_coords.copy()
+        return np.array(base_coords, dtype=float, copy=True)
     u = axis / axis_norm
     theta = math.radians(delta_deg)
     cos_t = math.cos(theta)
     sin_t = math.sin(theta)
 
-    rotated = base_coords.copy()
+    rotated: np.ndarray = np.array(base_coords, dtype=float, copy=True)
     origin = base_coords[k]
     moving = _find_rotating_branch(base_coords, j, k, m)
     for atom_idx in moving:
@@ -908,7 +908,7 @@ def _set_initial_dihedral(
         theta = -theta
         cos_t = math.cos(theta)
         sin_t = math.sin(theta)
-        alt = base_coords.copy()
+        alt: np.ndarray = np.array(base_coords, dtype=float, copy=True)
         for atom_idx in moving:
             vec = base_coords[atom_idx] - origin
             v_rot = (
