@@ -87,8 +87,10 @@ PROHIBITED_SYMBOLS = frozenset(
         "NonCallableMock",
         "mock_open",
         "monkeypatch",
+        "MonkeyPatch",
         "mocker",
         "MockerFixture",
+        "MockFixture",
     }
 )
 
@@ -104,6 +106,7 @@ PROHIBITED_EXACT_NAMES = frozenset(
         "COLAB_WORKER_FAKE_GPU_NAME",
         "simulated_temp",
         "dummy_force",
+        "true_heavy_computation",
     }
 )
 
@@ -131,6 +134,10 @@ ENGINE_SETATTR_TARGET_TOKENS = frozenset(
 )
 
 SIMULATION_MODE_PATTERN = re.compile(r"""\bmode\s*=\s*(['"])simulation\1""")
+FABRICATED_SCF_PATTERN = re.compile(
+    r"Final System Energy Metric|SCF Optimization Complete.*a\.u\.",
+    re.IGNORECASE,
+)
 
 MEDIA_EXTENSIONS = frozenset({".png", ".pdf", ".jpg", ".jpeg", ".svg", ".webp", ".gif"})
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -476,6 +483,129 @@ def scan_python_source(source: str, filename: str = "<memory>") -> list[str]:
             f"{filename}:{lineno}: prohibited simulation mode literal '{match.group(0)}'"
         )
 
+    for match in FABRICATED_SCF_PATTERN.finditer(source):
+        lineno = source.count("\n", 0, match.start()) + 1
+        findings.append(
+            f"{filename}:{lineno}: prohibited fabricated SCF marker '{match.group(0)}'"
+        )
+
+    return findings
+
+
+def _strip_ipython_magic_lines(source: str) -> str:
+    """Strip IPython line/shell magics preserving line numbers; skip cell-magic bodies."""
+    lines = source.splitlines(keepends=True)
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped:
+            continue
+        if stripped.startswith("%%"):
+            return ""
+        break
+    cleaned: list[str] = []
+    for line in lines:
+        stripped = line.lstrip()
+        if stripped.startswith(("%", "!", "?")):
+            cleaned.append("\n" if line.endswith("\n") else "")
+        else:
+            cleaned.append(line)
+    return "".join(cleaned)
+
+
+def _extract_notebook_output_texts(cell: dict[str, Any]) -> list[str]:
+    texts: list[str] = []
+    for output in cell.get("outputs", []) or []:
+        if not isinstance(output, dict):
+            continue
+        raw_text = output.get("text")
+        if isinstance(raw_text, list):
+            texts.append("".join(str(x) for x in raw_text))
+        elif isinstance(raw_text, str):
+            texts.append(raw_text)
+        data = output.get("data")
+        if isinstance(data, dict):
+            plain = data.get("text/plain")
+            if isinstance(plain, list):
+                texts.append("".join(str(x) for x in plain))
+            elif isinstance(plain, str):
+                texts.append(plain)
+    return texts
+
+
+def _iter_tracked_notebooks(repo_root: Path) -> list[Path]:
+    """List tracked .ipynb files via git ls-files, falling back to os.walk for non-git trees."""
+    if (repo_root / ".git").exists():
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "ls-files", "-z", "--", "*.ipynb"],
+            capture_output=True,
+            check=False,
+        )
+        if proc.returncode == 0:
+            notebooks: list[Path] = []
+            for entry in proc.stdout.split(b"\x00"):
+                if not entry:
+                    continue
+                rel_str = entry.decode("utf-8", errors="surrogateescape")
+                candidate = repo_root / rel_str
+                if candidate.is_file():
+                    notebooks.append(candidate)
+            return sorted(set(notebooks))
+    discovered: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(repo_root):
+        dirnames[:] = sorted(
+            d
+            for d in dirnames
+            if d not in EXCLUDED_DIRS and not d.endswith(".egg-info")
+        )
+        root_path = Path(dirpath)
+        for filename in sorted(filenames):
+            if filename.endswith(".ipynb"):
+                discovered.append(root_path / filename)
+    return discovered
+
+
+def scan_notebook_source(raw_json: str, filename: str) -> list[str]:
+    """Parse a Jupyter notebook JSON payload and AST/regex-scan every code cell and output."""
+    try:
+        notebook = json.loads(raw_json)
+    except Exception as exc:
+        return [f"{filename}:1: invalid notebook JSON ({exc})"]
+
+    cells = notebook.get("cells")
+    if not isinstance(cells, list):
+        return [f"{filename}:1: notebook missing 'cells' list"]
+
+    findings: list[str] = []
+    for idx, cell in enumerate(cells):
+        if not isinstance(cell, dict) or cell.get("cell_type") != "code":
+            continue
+        raw_src = cell.get("source", [])
+        cell_src = "".join(str(x) for x in raw_src) if isinstance(raw_src, list) else str(raw_src)
+        cell_label = f"{filename}#cell[{idx}]"
+
+        for match in FABRICATED_SCF_PATTERN.finditer(cell_src):
+            lineno = cell_src.count("\n", 0, match.start()) + 1
+            findings.append(
+                f"{cell_label}:{lineno}: prohibited fabricated SCF marker '{match.group(0)}'"
+            )
+        for out_text in _extract_notebook_output_texts(cell):
+            for match in FABRICATED_SCF_PATTERN.finditer(out_text):
+                findings.append(
+                    f"{cell_label}:output: prohibited fabricated SCF output '{match.group(0)}'"
+                )
+
+        cleaned = _strip_ipython_magic_lines(cell_src)
+        if cleaned.strip():
+            findings.extend(scan_python_source(cleaned, filename=cell_label))
+    return sorted(set(findings))
+
+
+def scan_repository_notebooks(repo_root: Path = REPO_ROOT) -> list[str]:
+    """Scan all tracked .ipynb files in repo_root for prohibited mocks and fabricated SCF cells."""
+    findings: list[str] = []
+    for nb_path in _iter_tracked_notebooks(repo_root):
+        rel = nb_path.relative_to(repo_root).as_posix()
+        findings.extend(scan_notebook_source(nb_path.read_text(encoding="utf-8-sig"), filename=rel))
     return findings
 
 
@@ -749,6 +879,7 @@ def test_repository_zero_test_doubles_and_no_simulation_gate() -> None:
         source = py_path.read_text(encoding="utf-8-sig")
         all_findings.extend(scan_python_source(source, filename=rel))
 
+    all_findings.extend(scan_repository_notebooks(REPO_ROOT))
     all_findings.extend(validate_amnesty_files(REPO_ROOT))
     assert not all_findings, (
         "Zero-double / zero-simulation CI gate failed:\n" + "\n".join(all_findings)
@@ -944,3 +1075,80 @@ def test_mockup_firewall_rejects_seeded_png_and_pdf_canaries(tmp_path: Path) -> 
         _build_minimal_pdf(flate_text="BT (NOT SCIENTIFIC DATA) Tj ET")
     )
     assert scan_pdf_for_mockup_leaks(watermark_pdf), "Firewall missed PDF FlateDecode watermark"
+
+
+def test_tracked_notebooks_zero_mock_and_no_fabricated_scf() -> None:
+    """Enforce AST zero-mock and zero fabricated SCF checks across all tracked .ipynb notebooks."""
+    findings = scan_repository_notebooks(REPO_ROOT)
+    assert not findings, (
+        "Notebook zero-mock / anti-spoof gate failed:\n" + "\n".join(findings)
+    )
+
+
+def test_seeded_ipynb_fake_scf_and_mock_canaries(tmp_path: Path) -> None:
+    """Seeded .ipynb canary test proving fake-SCF cells and mocked notebook cells are caught."""
+    clean_nb = {
+        "nbformat": 4,
+        "nbformat_minor": 4,
+        "metadata": {},
+        "cells": [
+            {"cell_type": "markdown", "metadata": {}, "source": ["# Clean Notebook\n"]},
+            {
+                "cell_type": "code",
+                "metadata": {},
+                "execution_count": None,
+                "outputs": [],
+                "source": ["%matplotlib inline\n", "import math\n", "val = math.sqrt(4.0)\n"],
+            },
+        ],
+    }
+    clean_path = tmp_path / "clean.ipynb"
+    clean_path.write_text(json.dumps(clean_nb), encoding="utf-8")
+    assert scan_repository_notebooks(tmp_path) == []
+
+    fake_scf_nb = {
+        "nbformat": 4,
+        "nbformat_minor": 4,
+        "metadata": {},
+        "cells": [
+            {
+                "cell_type": "code",
+                "metadata": {},
+                "execution_count": 1,
+                "outputs": [
+                    {
+                        "name": "stdout",
+                        "output_type": "stream",
+                        "text": ["SCF Optimization Complete. Final System Energy Metric: -0.054944 a.u.\n"],
+                    }
+                ],
+                "source": [
+                    "import math\n",
+                    "def true_heavy_computation():\n",
+                    "    return sum(math.sin(i * i) for i in range(50))\n",
+                    "energy = true_heavy_computation()\n",
+                    "print(f'SCF Optimization Complete. Final System Energy Metric: {energy:.6f} a.u.')\n",
+                ],
+            }
+        ],
+    }
+    scf_hits = scan_notebook_source(json.dumps(fake_scf_nb), filename="fake_scf.ipynb")
+    assert any("true_heavy_computation" in h for h in scf_hits)
+    assert any("fabricated SCF" in h for h in scf_hits)
+
+    mock_nb = {
+        "nbformat": 4,
+        "nbformat_minor": 4,
+        "metadata": {},
+        "cells": [
+            {
+                "cell_type": "code",
+                "metadata": {},
+                "execution_count": None,
+                "outputs": [],
+                "source": ["%time\n", "from unittest import mock as m\n", "x = m.MagicMock()\n"],
+            }
+        ],
+    }
+    mock_hits = scan_notebook_source(json.dumps(mock_nb), filename="mock_cell.ipynb")
+    assert mock_hits, "Notebook AST gate failed to catch aliased mock inside code cell"
