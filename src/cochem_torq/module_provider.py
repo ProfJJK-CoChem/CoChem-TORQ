@@ -82,7 +82,9 @@ def _pure_element_symbol(symbol: str) -> str:
     return match.group(1)
 
 
-def _normalize_nao_method(method: dict[str, Any]) -> tuple[dict[str, str], dict[str, Any]]:
+def _normalize_nao_method(
+    method: dict[str, Any],
+) -> tuple[dict[str, str], dict[str, Any]]:
     """Validate and normalize a PySCF restricted SCF/DFT method for NAO Wiberg."""
     if not isinstance(method, dict) or set(method) != {"name", "basis"}:
         raise ValueError(
@@ -575,7 +577,10 @@ def parse_nbo7_output(output_text: str) -> dict[str, Any]:
     in_e2 = False
     unit_context = ""
     for line in lines:
-        if "SECOND ORDER PERTURBATION THEORY ANALYSIS OF FOCK MATRIX IN NBO BASIS" in line:
+        if (
+            "SECOND ORDER PERTURBATION THEORY ANALYSIS OF FOCK MATRIX IN NBO BASIS"
+            in line
+        ):
             in_e2 = True
             e2_interactions = []
             unit_context = ""
@@ -782,9 +787,7 @@ def run_nbo7_analysis(
             parsed_syms, parsed_coords, xyz_sha = read_xyz(Path(xyz_path))
         elif symbols is not None and coordinates_angstrom is not None:
             parsed_syms = [str(s) for s in symbols]
-            parsed_coords = [
-                [float(v) for v in row] for row in coordinates_angstrom
-            ]
+            parsed_coords = [[float(v) for v in row] for row in coordinates_angstrom]
             if len(parsed_syms) != len(parsed_coords) or len(parsed_syms) < 2:
                 raise ValueError(
                     "symbols and coordinates_angstrom must have equal length >= 2."
@@ -832,7 +835,9 @@ def run_nbo7_analysis(
             ]
         )
         for sym, pos in zip(pure_syms, parsed_coords, strict=True):
-            orca_lines.append(f"{sym:<3s} {pos[0]:16.10f} {pos[1]:16.10f} {pos[2]:16.10f}")
+            orca_lines.append(
+                f"{sym:<3s} {pos[0]:16.10f} {pos[1]:16.10f} {pos[2]:16.10f}"
+            )
         orca_lines.append("*")
 
         inp_path = run_root / "orca_nbo.inp"
@@ -2431,7 +2436,8 @@ def nbo_analysis(handoff_path: Path, directory: Path) -> dict[str, Any]:
     engine_choice = options.get("engine")
     if engine_choice is not None and engine_choice not in {"orca", "gennbo", "nbo7"}:
         raise ValueError(
-            f"Unsupported NBO engine {engine_choice!r}; expected 'orca', 'gennbo', or 'nbo7'."
+            f"Unsupported NBO engine {engine_choice!r}; "
+            "expected 'orca', 'gennbo', or 'nbo7'."
         )
     archive_47 = options.get("archive_47_path")
     method_opt = options.get("method", dict(_NBO_DEFAULT_METHOD))

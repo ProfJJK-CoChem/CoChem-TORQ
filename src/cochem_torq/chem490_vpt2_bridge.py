@@ -768,11 +768,7 @@ def _parse_xyz_text(xyz_text: str) -> tuple[tuple[str, ...], np.ndarray]:
         header_idx = next(
             idx for idx, raw in enumerate(raw_lines) if raw.strip() == lines[0]
         )
-        atom_lines = [
-            raw.strip()
-            for raw in raw_lines[header_idx + 2 :]
-            if raw.strip()
-        ]
+        atom_lines = [raw.strip() for raw in raw_lines[header_idx + 2 :] if raw.strip()]
         if len(atom_lines) != declared_count:
             raise ValueError(
                 f"XYZ declared {declared_count} atoms but contained "
@@ -793,9 +789,7 @@ def _parse_xyz_text(xyz_text: str) -> tuple[tuple[str, ...], np.ndarray]:
         try:
             xyz = [float(val) for val in parts[1:]]
         except ValueError as exc:
-            raise ValueError(
-                f"Non-numeric coordinate in XYZ row {row_num}."
-            ) from exc
+            raise ValueError(f"Non-numeric coordinate in XYZ row {row_num}.") from exc
         if not all(math.isfinite(v) for v in xyz):
             raise ValueError(f"Non-finite coordinate in XYZ row {row_num}.")
         symbols.append(parts[0])
@@ -1072,8 +1066,7 @@ def run_relaxed_1d_torsional_scan(
                     base_coords, dihedral_idx, target_val
                 )
                 coords_list = [
-                    (float(row[0]), float(row[1]), float(row[2]))
-                    for row in seed_coords
+                    (float(row[0]), float(row[1]), float(row[2])) for row in seed_coords
                 ]
             else:
                 coords_list = _build_h2o2_geometry(target_val)
