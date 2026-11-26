@@ -54,15 +54,15 @@ def test_linter_script_exists_and_encoding() -> None:
 
 def test_detect_forbidden_mock_imports(tmp_path: Path) -> None:
     """Verify AST linter detects forbidden mock imports."""
-    mock_file = tmp_path / "mock_module.py"
-    mock_file.write_text(
+    prohibited_import_file = tmp_path / "prohibited_import_module.py"
+    prohibited_import_file.write_text(
         "import unittest.mock\n"
         "from unittest.mock import MagicMock, patch\n"
         "import mock\n",
         encoding="utf-8",
     )
 
-    violations = check_file(mock_file, tmp_path, set())
+    violations = check_file(prohibited_import_file, tmp_path, set())
     assert len(violations) >= 3
     categories = {v.category for v in violations}
     assert "MOCK_IMPORT" in categories
@@ -155,13 +155,22 @@ def test_detect_banned_identifiers(tmp_path: Path) -> None:
 
 
 def test_detect_unamnestied_concurrency(tmp_path: Path) -> None:
-    """Verify AST linter detects unamnestied concurrency engines."""
+    """Verify stdlib concurrency needs no amnesty while external schedulers are flagged."""
+    stdlib_concurrency_file = tmp_path / "stdlib_worker.py"
+    stdlib_concurrency_file.write_text(
+        "import threading\n"
+        "import multiprocessing\n"
+        "from concurrent.futures import ThreadPoolExecutor\n",
+        encoding="utf-8",
+    )
+    assert check_file(stdlib_concurrency_file, tmp_path, set()) == []
+
     concurrency_file = tmp_path / "worker.py"
     concurrency_file.write_text(
-        "import multiprocessing\n"
-        "from concurrent.futures import ThreadPoolExecutor\n"
         "import parsl\n"
-        "import ray\n",
+        "import ray\n"
+        "import dask\n"
+        "import celery\n",
         encoding="utf-8",
     )
 

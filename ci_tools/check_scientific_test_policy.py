@@ -17,7 +17,7 @@ import json
 import sys
 from pathlib import Path
 
-MOCK_PACKAGES = ("unittest.mock", "pytest_mock", "mock", "mockito")
+PROHIBITED_TEST_DOUBLE_PACKAGES = ("unittest.mock", "pytest_mock", "mock", "mockito")
 REPLACEMENT_METHODS = {
     "setattr",
     "delattr",
@@ -64,7 +64,7 @@ def inventory(path: Path) -> dict:
             aliases[local] = canonical
             if any(
                 canonical == package or canonical.startswith(package + ".")
-                for package in MOCK_PACKAGES
+                for package in PROHIBITED_TEST_DOUBLE_PACKAGES
             ):
                 findings.append(
                     {"line": node.lineno, "kind": "mocking_import", "name": canonical}
@@ -81,7 +81,7 @@ def inventory(path: Path) -> dict:
             configuration_calls.append({"line": node.lineno, "name": name})
         elif any(
             canonical == package or canonical.startswith(package + ".")
-            for package in MOCK_PACKAGES
+            for package in PROHIBITED_TEST_DOUBLE_PACKAGES
         ) or (
             parts[0] in {"monkeypatch", "mocker", "mock"}
             and ".".join(parts[1:]) in REPLACEMENT_METHODS

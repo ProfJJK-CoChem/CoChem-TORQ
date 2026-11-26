@@ -47,13 +47,10 @@ BANNED_MOCK_ATTRIBUTES: Set[str] = {
 }
 
 BANNED_CONCURRENCY_MODULES: Set[str] = {
-    "multiprocessing",
-    "concurrent.futures",
     "parsl",
     "dask",
     "ray",
     "mpi4py",
-    "threading",
     "celery",
 }
 

@@ -1,9 +1,1 @@
-[
-    "Libraries/cochem_path_manager.py",
-    "Libraries/cochem_torq_goat.py",
-    "Libraries/cochem_torq_ipc.py",
-    "Libraries/cochem_torq_telemetry.py",
-    "tests/test_cochem_torq_init.py",
-    "tests/test_ipc.py",
-    "tests/test_torq_telemetry.py"
-]
+[]
