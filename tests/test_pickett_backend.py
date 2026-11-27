@@ -19,10 +19,14 @@ from cochem_torq.domain import (
     CalculationRequest,
     PrerequisiteError,
     canonical_json,
+    digest,
     read_json,
 )
 from cochem_torq.publication import export_publication_bundle
 from cochem_torq.spectroscopy.pickett_backend import (
+    SUPPORTED_SOURCE_INVENTORY,
+    SUPPORTED_SOURCE_SHA256,
+    SUPPORTED_UPSTREAM,
     CatalogSettings,
     FitLine,
     PickettModel,
@@ -131,6 +135,53 @@ def test_missing_actual_provisioning_cannot_select_a_substitute_binary(tmp_path)
     with pytest.raises(PrerequisiteError, match="provisioning"):
         load_pickett_installation(
             tmp_path / "missing-provisioning.json", expected_manifest_sha256="0" * 64
+        )
+
+
+def test_jpl_pin_digest_covers_exactly_the_listed_upstream_bytes():
+    records = [
+        {"path": path, "sha256": sha, "size_bytes": size}
+        for path, sha, size in SUPPORTED_SOURCE_INVENTORY
+    ]
+    names = [record["path"] for record in records]
+    assert SUPPORTED_UPSTREAM == "https://spec.jpl.nasa.gov/ftp/pub/calpgm/"
+    assert names == sorted(set(names))
+    assert digest(records) == SUPPORTED_SOURCE_SHA256
+    assert {"Makefile", "calcat.c", "calfit.c", "spinv.c", "spinit.c"} <= set(names)
+    # Upstream also serves prebuilt executables and objects; none is pinned.
+    assert not {"spcat", "spfit", "splib.a"} & set(names)
+    assert not [name for name in names if name.endswith(".o")]
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {
+            "schema_version": "cochem.torq.pickett-provisioning/1",
+            "upstream_url": "https://github.com/laserkelvin/Pickett",
+            "source_inventory_sha256": (
+                "9ce0f0b761a4094eee4aaf2d32017d80b47c1fca4083861d68c80a3accd46053"
+            ),
+        },
+        {"schema_version": "cochem.torq.pickett-provisioning/1"},
+        {"upstream_url": "https://cdms.astro.uni-koeln.de/"},
+        {"source_inventory_sha256": "0" * 64},
+    ],
+)
+def test_provisioning_from_another_source_or_inventory_is_rejected(changes, tmp_path):
+    record = {
+        "schema_version": "cochem.torq.pickett-provisioning/2",
+        "upstream_url": SUPPORTED_UPSTREAM,
+        "source_inventory_sha256": SUPPORTED_SOURCE_SHA256,
+        "distribution_permission": "unverified_not_bundled",
+        "binary_redistribution_authorized": False,
+    }
+    record.update(changes)
+    manifest = tmp_path / "provisioning.json"
+    manifest.write_bytes(canonical_json(record) + b"\n")
+    with pytest.raises(ValueError, match="Unsupported Pickett source"):
+        load_pickett_installation(
+            manifest, expected_manifest_sha256=file_digest(manifest)
         )
 
 

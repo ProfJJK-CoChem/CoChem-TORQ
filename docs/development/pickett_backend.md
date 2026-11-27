@@ -7,49 +7,84 @@ immutable inventory. It never substitutes another solver for Pickett.
 
 ## Source, provisioning, and permission boundary
 
-The inspected source is the publicly accessible
-[laserkelvin/Pickett mirror](https://github.com/laserkelvin/Pickett), pinned to
-`f5af2ff0f1acb1eb11ecffe7ef3b55d457801f7b`. Its README traces the base to CDMS
-Pickett sources, with subsequent modifications. Inspection found Caltech
-copyright notices, “all rights reserved,” and a NASA sponsorship acknowledgement.
-The repository has no license granting source or binary redistribution.
+The pinned source is Pickett's own distribution at JPL,
+<https://spec.jpl.nasa.gov/ftp/pub/calpgm/>. The PI instructed the switch on
+2026-10-17 ("Switch to the JPL source"; "Yes, change TORQ"). CoChem-SpycFit
+keeps its record of the ecosystem's source choice under D-SPYC-17
+(`docs/decisions/D-SPYC-17.md`). JPL publishes no version tags, so the pin is
+the bytes: `SUPPORTED_SOURCE_INVENTORY` lists the SHA-256 and size of the
+`Makefile`, the 12 C files and 7 headers that `make spcat spfit` compiles or
+includes, `blas.h` (in the JPL directory but included by none of them), the
+`README`, the `whats.new` change log and the `calpgm.pdf` and `spinv.pdf`
+manuals. Its canonical inventory SHA-256 is
+`de701d2b8a0fe232987518739cd9544a7e34a8c0b63a759c421083cfe8f55919`. The
+`spinv.pdf` hash is
+`4dd04df5c2fa82e87e4ff0a6942a12e5d7d710be01b09e66f37c6952e2d488e9`, the same
+bytes as in the previous pin.
+
+`ci_tools/provision_pickett_validation.py` downloads exactly these files over
+HTTPS. A changed size or hash, a redirect (never followed) or an HTTP 4xx
+response stops provisioning at once. After an HTTP 5xx response, a connection
+failure, a transfer cut short of its declared length or an attempt longer than
+300 s, the file is requested up to four times in all (three retries, 2, 4 and
+8 s apart); a fourth failure stops provisioning, and the provisioning log
+records each failure's reason. The prebuilt executables, objects and `splib.a` that
+the same JPL directory serves are never downloaded. Any change at JPL therefore
+blocks provisioning until a reviewed pin update. On 2026-10-17 all 25 files
+were retrieved from JPL on the first attempt; on the same day JPL answered every
+`.var` request (for example the HCO example's `hco.var`) with HTTP 500. No
+`.var` file is part of this pin.
+
+Inspection found Caltech copyright notices, “all rights reserved,” and a NASA
+sponsorship acknowledgement in the source headers. The JPL catalog site states:
+“These programs are copyrighted, but made freely available as a service to the
+spectroscopic community.” No license grants source or binary redistribution.
 Availability and file hashes do not establish the author's authentication,
 redistribution permission, or permission for every deployment.
 
 No vendor source, binary, archive, or container layer is added to TORQ. The
-observed local build stays outside the checkout. Official JPL/CDMS retrieval was
-denied by this session's network proxy; that denial is not evidence of upstream
-unavailability or a license grant. Automatic student-image provisioning remains
-blocked until the laboratory establishes appropriate distribution/use rights.
+local build stays outside the checkout. Automatic student-image provisioning
+remains blocked until the laboratory establishes appropriate distribution/use
+rights.
 
-The source inventory contains 63 unchanged non-build Git blobs, independently
-compared with the pinned commit. Its canonical inventory SHA-256 is
-`9ce0f0b761a4094eee4aaf2d32017d80b47c1fca4083861d68c80a3accd46053`.
-The tracked prebuilt `splib.a` is deliberately excluded because `make` rebuilds
-it; the external provisioning record retains both archive hashes separately.
-The inspected `spinv.pdf` hash is
-`4dd04df5c2fa82e87e4ff0a6942a12e5d7d710be01b09e66f37c6952e2d488e9`.
+Until 2026-10-17 TORQ pinned the laserkelvin/Pickett GitHub mirror at
+`f5af2ff0f1acb1eb11ecffe7ef3b55d457801f7b`. Of the 24 pinned JPL files it also
+carries (it has no `README`), 16 have different bytes: 14 only because the
+mirror stores CRLF line endings, and `Makefile` and `calcat.c` in content. For
+the `spcat` and `spfit` targets the mirror's `Makefile` differs only in `CFLAGS`
+(`-g -O3 -Wall` instead of `-O2 -Wall`); its other targets and install rule also
+differ. In `calcat.c` a 2020 change tabulates the partition function from
+1000 K down to 1 K, plus the catalog temperature, instead of JPL's seven fixed
+temperatures plus the catalog temperature. TORQ writes its own partition
+function into the `.int` deck and does not read that printed table. In a local
+run (not CI) the TORQ Pickett tests gave the same per-test outcomes on both
+builds. GitHub Actions run 38990246761 at `a05106c` compiled the JPL pin and
+passed the native lane, including these tests, without skips.
 
-The actual local compiler was `gcc (Debian 14.2.0-19) 14.2.0`, running
-`make spcat spfit`. Actual local binary hashes are:
+An observed build on 2026-10-17, `gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0`
+running `make -j1 spcat spfit` with the JPL `Makefile` (`-O2`, no debug
+information), produced these binaries; a different compiler or flags give
+different hashes, which the provisioning manifest records:
 
 | Program | SHA-256 |
 | --- | --- |
-| SPCAT | `6fa5c0a61a9b52a55bad093bd70ab87420acc0ddbff85302d0c1b34346e962f8` |
-| SPFIT | `4b2e27d044de0ef6e313925c979c3c9bdb1deebb3c9d63bf306b8be98eb5b372` |
+| SPCAT | `8d3eb357347e9678d699cee1ee7d9df12c20b91d220f788aea7ad50be3ca533c` |
+| SPFIT | `784ce379142ce700dbf0345ca1cdec6f82be344f687433ee585e5cd279012071` |
 
-The provisioning manifest binds source paths, all inventoried source hashes,
+The provisioning manifest binds the upstream URL, all inventoried source hashes,
 actual executable hashes, compiler and build-log provenance, and the explicit
 `unverified_not_bundled` distribution status. The adapter verifies these bytes
 before and after actual execution. A different build needs an independently
 reviewed external manifest; an ELF header alone does not qualify an engine.
 
 Native tests require both `COCHEM_TORQ_PICKETT_PROVISIONING_JSON` and
-`COCHEM_TORQ_PICKETT_PROVISIONING_SHA256`. For this observed environment they are:
+`COCHEM_TORQ_PICKETT_PROVISIONING_SHA256`, which the provisioning receipt
+prints as `provisioning_manifest_path` and `provisioning_manifest_sha256`:
 
 ```sh
-export COCHEM_TORQ_PICKETT_PROVISIONING_JSON=/workspace/torq-review/pickett-f5af2ff-provisioning.json
-export COCHEM_TORQ_PICKETT_PROVISIONING_SHA256=e5ec8f43cf1d71de894c3329e671665abf4fa8cba1a55af11a410fa855eb8843
+PYTHONPATH=src:. python ci_tools/provision_pickett_validation.py --root /absolute/new/external/dir
+export COCHEM_TORQ_PICKETT_PROVISIONING_JSON=<provisioning_manifest_path>
+export COCHEM_TORQ_PICKETT_PROVISIONING_SHA256=<provisioning_manifest_sha256>
 PYTHONPATH=src COCHEM_DISABLE_SANDBOX_CHECK=1 python -m pytest tests/test_pickett_backend.py -q
 ```
 

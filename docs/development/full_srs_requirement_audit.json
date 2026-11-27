@@ -330,7 +330,7 @@
     {
       "evidence_ids": [],
       "id": "V-SPCAT",
-      "reason": "Strict export rejects missing constants. Genuine pinned externally compiled SPCAT/SPFIT executes the bounded supported Hamiltonian and round trips with 52 passing local checks; redistribution permission, independent molecular/consumer conventions, experimental transition/intensity accuracy and complete calibrated identification remain unqualified.",
+      "reason": "Strict export rejects missing constants. Genuine externally compiled SPCAT/SPFIT executes the bounded supported Hamiltonian and round trips. The 52 passing local checks were recorded at e77e2a4 on the previous laserkelvin/Pickett f5af2ff pin; the current pin is the JPL calpgm sources (inventory de701d2b8a0fe232987518739cd9544a7e34a8c0b63a759c421083cfe8f55919), whose GitHub Actions run 38990246761 at a05106c compiled them and passed the native lane without skips. Redistribution permission, independent molecular/consumer conventions, experimental transition/intensity accuracy and complete calibrated identification remain unqualified.",
       "required_evidence_kinds": [
         "software",
         "real_engine",
