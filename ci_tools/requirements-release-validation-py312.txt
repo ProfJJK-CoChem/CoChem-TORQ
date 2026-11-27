@@ -4,6 +4,7 @@
 ase==3.29.0
 ast-serialize==0.12.1
 build==1.6.1
+cryptography==50.0.2
 dftd3==1.6.0
 fsspec==2026.7.0
 flatbuffers==25.12.19

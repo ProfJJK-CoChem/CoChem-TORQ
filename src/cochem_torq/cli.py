@@ -312,6 +312,47 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument("--sources", required=True, type=Path)
         if name != "benchmark-references":
             command.add_argument("--output", required=True, type=Path)
+    workstation = commands.add_parser(
+        "workstation",
+        help="Queue heavy approved requests to the lab workstation (Drive folder)",
+    )
+    station = workstation.add_subparsers(dest="workstation_command", required=True)
+    for name, text in (
+        ("assign", "Prepare the assigned Drive folder (inbox/, jobs/, identity)"),
+        ("recommend", "Report whether Actions or the workstation can run a request"),
+        ("submit", "Queue an approved request (recorded PENDING_WORKSTATION)"),
+        ("status", "Refresh one queued request from the folder"),
+        ("poll", "Refresh all queued requests and ingest verified results"),
+        ("cancel", "Withdraw or cancel a queued request"),
+    ):
+        command = station.add_parser(name, help=text)
+        command.add_argument("--json", action="store_true", default=argparse.SUPPRESS)
+        if name != "recommend":
+            command.add_argument(
+                "--folder", type=Path, help="Assigned workstation Drive folder"
+            )
+            command.add_argument("--student", help="Student ID recorded in the folder")
+            command.add_argument(
+                "--ledger", type=Path, help="TPO ledger (tpo_ledger.sqlite)"
+            )
+            command.add_argument(
+                "--trusted-key",
+                action="append",
+                default=[],
+                help="Fingerprint of a workstation key whose signed results are "
+                "accepted (`cochem-runner key`); repeatable",
+            )
+        if name in {"recommend", "submit"}:
+            command.add_argument("--request", type=Path, required=True)
+        if name == "submit":
+            command.add_argument("--approved-plan", type=Path, required=True)
+            command.add_argument("--idempotency-key", required=True)
+        if name in {"status", "cancel"}:
+            command.add_argument("client_job_id")
+        if name == "cancel":
+            command.add_argument("--reason", required=True)
+        if name == "poll":
+            command.add_argument("--destination", type=Path, required=True)
     for command in commands.choices.values():
         if not any(action.dest == "json" for action in command._actions):
             command.add_argument(
@@ -735,6 +776,39 @@ def main(argv: Sequence[str] | None = None) -> int:
                 status="complete" if complete else "partial",
             )
             return 0 if complete else 4
+        elif arguments.command == "workstation":
+            from .workstation import WorkstationQueue, recommend_execution
+
+            action = arguments.workstation_command
+            if action == "recommend":
+                emit(recommend_execution(read_json(arguments.request)))
+                return 0
+            queue = WorkstationQueue.from_environment(
+                arguments.folder,
+                student_id=arguments.student,
+                ledger_path=arguments.ledger,
+                trusted_keys=arguments.trusted_key,
+            )
+            try:
+                if action == "assign":
+                    emit(queue.assign())
+                elif action == "submit":
+                    emit(
+                        queue.submit(
+                            read_json(arguments.request),
+                            approved_plan=read_json(arguments.approved_plan),
+                            idempotency_key=arguments.idempotency_key,
+                        ),
+                        status="submitted",
+                    )
+                elif action == "status":
+                    emit(queue.status(arguments.client_job_id))
+                elif action == "poll":
+                    emit(queue.poll(arguments.destination))
+                else:
+                    emit(queue.cancel(arguments.client_job_id, reason=arguments.reason))
+            finally:
+                queue.close()
         elif arguments.command == "cancel":
             from .github import GitHubActions
 

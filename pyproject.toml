@@ -36,6 +36,9 @@ cochem-torq-ui = "cochem_torq.ui:main"
 torq = "cochem_torq.ecosystem:module_provider"
 
 [project.optional-dependencies]
+workstation = [
+    "cryptography>=43"
+]
 dev = [
     "pytest>=8,<10",
     "ruff>=0.9",
