@@ -159,3 +159,10 @@ def test_doctor_reports_observed_dependencies_and_unchecked_hosted_permissions()
     assert report["github"]["status"] == "not_checked"
     assert not report["github"]["calculation_dispatch_verified"]
     assert not report["full_srs_release_qualified"]
+
+
+def test_doctor_local_validation_never_requires_github_cli():
+    report = doctor(execution="local_validation")
+    assert report["execution"] == "local_validation"
+    assert report["github"]["status"] == "not_checked"
+    assert not any("GitHub CLI" in reason for reason in report["blocking_reasons"])
