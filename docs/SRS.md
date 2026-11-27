@@ -3,7 +3,7 @@ schema: cochem-srs/5.0
 repo: CoChem-TORQ
 status: ACTIVE_CORE_STUDENT_ON_HOLD
 pipeline_baseline: 5.0.0
-source_commit: 3d2a5b24e68f052b70d0a7185c1da753ed328f4f
+source_commit: b995bc69bba201f06e9870921ea17177c069ae3b
 decision_ref: swarm-1126-8efd
 ---
 
@@ -25,7 +25,7 @@ decision_ref: swarm-1126-8efd
 
 `CoChem-TORQ` aligns with the Pipeline 5.0.0 control-plane and execution topology ratified under `swarm-1126-8efd` and `sys-1126-a3d4`:
 
-- **CONTRA-01 (Execution Topology):** Local WSL2 workstation (`~/CoChem_Workstation_Direct/Modules/torq-env`, synced via read-only `git archive HEAD`) and GCP Cloud Run / Colab GPU cloud offload (`cochem-mcp-mailbox-request/2`) replace earlier Codespaces-first assumptions. Student browser UI packaging (`UI/Start_TORQ.ipynb` via `src/cochem_torq/ui.py`) remains a bounded optional teaching interface currently **ON HOLD** for student deployment.
+- **CONTRA-01 (Execution Topology & Host Allocation):** Local WSL2 workstation (`~/CoChem_Workstation_Direct/Modules/torq-env`, synced via read-only `git archive HEAD`) and GCP Cloud Run / Colab GPU cloud offload (`cochem-mcp-mailbox-request/2`) replace earlier Codespaces-first assumptions. In `cochem/orchestration/host_allocation.py` (commit `b995bc6` / P1-03), unbounded/root cgroup-v2 environments on WSL2 use an honest OS kernel capacity fallback (`os.sched_getaffinity` + `/proc/meminfo` 90% ceiling) while retaining strict enforcement of finite cgroup-v2 caps when present. Student browser UI packaging (`UI/Start_TORQ.ipynb` via `src/cochem_torq/ui.py`) remains a bounded optional teaching interface currently **ON HOLD** per `docs/development/scientific_acceptance_gaps.md`.
 - **CONTRA-02 & CONTRA-03 (Scheduling & Job Harness):** Deferred orchestration routes exclusively through `cochem-scheduled-prompt/1` and `cochem-mcp-mailbox-request/2`; legacy `g01..g22` queue lanes are retired.
 - **CONTRA-06 (Packaging & Schema Consolidation):** Open glob wildcards (`Libraries*`, `cochem*`, `scripts*`, `core*`, `orchestrator*`, `UI*`) in `pyproject.toml` are replaced by an explicit zero-wildcard allowlist so `CoChem-TORQ` wheels cannot sweep in sibling `cochem_*` namespaces or unreferenced `cochem.*` collision trees. Typed request/plan/artifact schemas live in `src/cochem_torq/domain.py`, `src/cochem_torq/service.py`, and `src/cochem_torq/artifacts.py`.
 
