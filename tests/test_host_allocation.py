@@ -26,6 +26,8 @@ from cochem.orchestration.host_allocation import (
     HostCapacityError,
     HostRevisionConflict,
     ObservedHostUsage,
+    _qualify_cpu_and_memory,
+    _read_proc_meminfo,
     _valid_process_start_time,
     bootstrap_host_allocation,
     probe_host_resources,
@@ -963,3 +965,79 @@ def test_copied_frozen_models_cannot_bypass_resource_validation(tmp_path):
         assert not (tmp_path / "invalid-policy.sqlite").exists()
     finally:
         ledger.close()
+
+
+def test_unbounded_and_root_cgroup_v2_qualify_honestly_from_os_telemetry(tmp_path):
+    """WSL2/root cgroup-v2 without limit files or 'max' qualifies from OS telemetry."""
+    meminfo = tmp_path / "meminfo"
+    meminfo.write_text(
+        "MemTotal:        16384000 kB\n"
+        "MemFree:         10000000 kB\n"
+        "MemAvailable:    15000000 kB\n",
+        encoding="utf-8",
+    )
+    proc_cgroup = tmp_path / "proc_cgroup"
+    proc_cgroup.write_text("0::/\n", encoding="utf-8")
+    root_cg = tmp_path / "cgroup_root_only"
+    root_cg.mkdir()
+    (root_cg / "cgroup.controllers").write_text("cpu memory io\n", encoding="utf-8")
+
+    # 1. Root cgroup without cpu.max / memory.max (exact WSL2 layout)
+    cores, affinity, mem_limit, avail = _qualify_cpu_and_memory(
+        meminfo_path=meminfo, proc_cgroup=proc_cgroup, cgroup_root=root_cg
+    )
+    assert cores == len(affinity) >= 1
+    assert mem_limit <= 16384000 * 1024
+    assert 0 < avail <= int(mem_limit * 0.9)
+
+    # 2. Explicit unbounded cgroup-v2 ("max")
+    unbounded_cg = tmp_path / "cgroup_unbounded"
+    unbounded_cg.mkdir()
+    (unbounded_cg / "cpu.max").write_text("max 100000\n", encoding="utf-8")
+    (unbounded_cg / "memory.max").write_text("max\n", encoding="utf-8")
+    cores_u, _, mem_limit_u, avail_u = _qualify_cpu_and_memory(
+        meminfo_path=meminfo, proc_cgroup=proc_cgroup, cgroup_root=unbounded_cg
+    )
+    assert cores_u == cores
+    assert mem_limit_u == mem_limit
+    assert avail_u == avail
+
+    # 3. Finite cgroup-v2 limits are strictly enforced
+    finite_cg = tmp_path / "cgroup_finite"
+    finite_cg.mkdir()
+    (finite_cg / "cpu.max").write_text("100000 100000\n", encoding="utf-8")
+    (finite_cg / "memory.max").write_text(f"{256 * MIB}\n", encoding="utf-8")
+    (finite_cg / "memory.current").write_text(f"{64 * MIB}\n", encoding="utf-8")
+    cores_f, _, mem_limit_f, avail_f = _qualify_cpu_and_memory(
+        meminfo_path=meminfo, proc_cgroup=proc_cgroup, cgroup_root=finite_cg
+    )
+    assert cores_f == 1
+    assert mem_limit_f == 256 * MIB
+    assert avail_f <= 192 * MIB
+
+    # 4. Malformed cgroup, missing memory.current, or unreadable meminfo fail closed
+    bad_cpu_cg = tmp_path / "cgroup_bad_cpu"
+    bad_cpu_cg.mkdir()
+    (bad_cpu_cg / "cpu.max").write_text("not_a_limit\n", encoding="utf-8")
+    with pytest.raises(HostCapacityError, match="malformed"):
+        _qualify_cpu_and_memory(
+            meminfo_path=meminfo, proc_cgroup=proc_cgroup, cgroup_root=bad_cpu_cg
+        )
+
+    missing_current_cg = tmp_path / "cgroup_missing_current"
+    missing_current_cg.mkdir()
+    (missing_current_cg / "memory.max").write_text(f"{256 * MIB}\n", encoding="utf-8")
+    with pytest.raises(HostCapacityError, match="lacks actual usage"):
+        _qualify_cpu_and_memory(
+            meminfo_path=meminfo,
+            proc_cgroup=proc_cgroup,
+            cgroup_root=missing_current_cg,
+        )
+
+    with pytest.raises(HostCapacityError, match="/proc/meminfo"):
+        _read_proc_meminfo(tmp_path / "nonexistent_meminfo")
+
+    incomplete_meminfo = tmp_path / "incomplete_meminfo"
+    incomplete_meminfo.write_text("MemTotal: 16384000 kB\n", encoding="utf-8")
+    with pytest.raises(HostCapacityError, match="MemTotal/MemAvailable"):
+        _read_proc_meminfo(incomplete_meminfo)

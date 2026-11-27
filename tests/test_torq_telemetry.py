@@ -42,7 +42,7 @@ class WebhookRecordingHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:
         # Suppress standard HTTP server console spam during tests
-        pass
+        return None
 
     def do_POST(self) -> None:  # noqa: N802
         content_length = int(self.headers.get("Content-Length", 0))

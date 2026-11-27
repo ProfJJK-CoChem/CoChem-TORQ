@@ -197,6 +197,64 @@ def test_real_pyscf_relaxed_1d_torsional_scan_h2o2(tmp_path: Path) -> None:
     assert reloaded.scan_sha256 == receipt.scan_sha256
 
 
+def test_torsional_scan_rejects_unknown_molecule_id_without_geometry() -> None:
+    with pytest.raises(ValueError, match="custom geometry"):
+        run_relaxed_1d_torsional_scan(
+            molecule_id="C2H6",
+            dihedral_angles_deg=(0.0, 60.0),
+            method="rhf",
+            basis="sto-3g",
+        )
+    with pytest.raises(ValueError, match="dihedral_indices"):
+        run_relaxed_1d_torsional_scan(
+            molecule_id="H2S2",
+            dihedral_angles_deg=(0.0, 90.0),
+            xyz_text=(
+                "4\nH2S2\n"
+                "H  0.000  1.340  0.000\n"
+                "S  0.000  0.000  0.000\n"
+                "S  2.060  0.000  0.000\n"
+                "H  2.060  0.000  1.340\n"
+            ),
+            method="rhf",
+            basis="sto-3g",
+        )
+
+
+def test_real_pyscf_relaxed_1d_torsional_scan_custom_geometry_h2s2(
+    tmp_path: Path,
+) -> None:
+    h2s2_xyz = (
+        "4\nHydrogen disulfide custom geometry\n"
+        "H  0.000000  1.340000  0.000000\n"
+        "S  0.000000  0.000000  0.000000\n"
+        "S  2.060000  0.000000  0.000000\n"
+        "H  2.060000  0.000000  1.340000\n"
+    )
+    out_json = tmp_path / "h2s2_custom_scan.json"
+    receipt = run_relaxed_1d_torsional_scan(
+        molecule_id="H2S2",
+        xyz_text=h2s2_xyz,
+        dihedral_indices=(0, 1, 2, 3),
+        dihedral_angles_deg=(0.0, 90.0, 180.0),
+        method="rhf",
+        basis="sto-3g",
+        output_json=out_json,
+    )
+    assert receipt.molecule_id == "H2S2"
+    assert receipt.symbols == ("H", "S", "S", "H")
+    assert receipt.dihedral_atom_indices_0based == (0, 1, 2, 3)
+    assert len(receipt.points) == 3
+    assert all(pt.scf_converged for pt in receipt.points)
+    for pt in receipt.points:
+        assert abs(pt.achieved_dihedral_deg - pt.target_dihedral_deg) < 0.5
+    # Authentic H2S2 physics: skew (~90 deg) minimum is lower than planar cis/trans
+    assert receipt.points[1].energy_hartree < receipt.points[0].energy_hartree
+    assert receipt.points[1].energy_hartree < receipt.points[2].energy_hartree
+    assert receipt.cis_barrier_cm1 is not None and receipt.cis_barrier_cm1 > 500.0
+    assert out_json.is_file()
+
+
 def test_committed_benchmark_receipts_are_valid_and_provenance_checked() -> None:
     scan_path = BENCH_DIR / "h2o2_rhf_631gs_relaxed_torsion_scan.json"
     scan_receipt = RelaxedTorsionalScanReceipt.model_validate(

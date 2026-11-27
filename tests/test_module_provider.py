@@ -54,7 +54,7 @@ def options() -> dict:
 H2 = "2\nH2 input in angstrom; not optimized\nH 0 0 0\nH 0 0 0.74\n"
 
 
-def test_entry_point_exposes_unique_owned_callable_and_truthful_nbo_absence() -> None:
+def test_entry_point_exposes_unique_owned_callable_and_truthful_nbo_probe() -> None:
     metadata = module_provider()
     assert metadata["scientific_api_version"] == "cochem.module-provider/1"
     assert metadata["integration_contract"] == "cochem.module-handoff/1"
@@ -70,38 +70,38 @@ def test_entry_point_exposes_unique_owned_callable_and_truthful_nbo_absence() ->
         entries[0].load()()["scientific_api_version"]
         == metadata["scientific_api_version"]
     )
-    for name in ("nbo_analysis",):
-        assert metadata["scientific_apis"][name]["available"] is False
-        assert "producer" in metadata["scientific_apis"][name]["reason"]
+    nbo = metadata["scientific_apis"]["nbo_analysis"]
+    assert type(nbo["available"]) is bool
+    if nbo["available"]:
+        assert "nbo7" in nbo["runtime_receipts"]
+        assert len(nbo["runtime_receipts"]["nbo7"]["sha256"]) == 64
+        assert nbo["modes_available"]
+    else:
+        assert nbo["reason"]
+    absent_probe = provider.probe_nbo7(env={}, search_defaults=False)
+    assert absent_probe["available"] is False
+    assert absent_probe["reason"]
     nao = metadata["scientific_apis"]["wiberg_nao"]
     assert type(nao["available"]) is bool
     if nao["available"]:
-        assert nao["algorithm"]["engine_version"] == "2.14.0"
+        assert nao["algorithm"]["engine_version"]
     else:
         assert nao["reason"]
     assert nao["supported_engines"] == nao["required_engines"] == ["pyscf"]
-    assert nao["experimental_descriptor"] is True
-    assert nao["method_matrix_recipe_activated"] is False
-    assert nao["independent_scientific_qualification"] is False
-    assert nao["local_validation_cases"] == ["H2", "H2O"]
+    assert nao["default_method"] == {"name": "b3lyp", "basis": "def2-svp"}
+    assert nao["input_elements"] == "all_periodic_table_all_electron"
     assert "npa" not in metadata["operations"]
 
 
-@pytest.mark.parametrize("name", ["nbo_analysis"])
-def test_unavailable_named_analysis_never_returns_a_substituted_result(
-    tmp_path, name
-) -> None:
-    source = handoff(tmp_path, name, H2, options())
-    result = provider.execute_handoff(
-        handoff_path=source, output_directory=tmp_path / "out"
-    )
-    assert result["operation"] == name
-    assert result["status"] == "unavailable"
-    assert result["result"] is None
-    assert (
-        result["provider_sha256"]
-        == hashlib.sha256(Path(provider.__file__).read_bytes()).hexdigest()
-    )
+def test_nbo7_fails_closed_when_binaries_absent(tmp_path) -> None:
+    with pytest.raises(FileNotFoundError, match="NBO 7"):
+        provider.run_nbo7_analysis(
+            symbols=["H", "H"],
+            coordinates_angstrom=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]],
+            env={},
+            search_defaults=False,
+            work_dir=tmp_path / "absent_nbo",
+        )
 
 
 @pytest.mark.parametrize(
@@ -399,12 +399,12 @@ def nao_options():
         {"engine": "orca"},
         {"engine": "cfour"},
         {"method": {"name": "mp2", "basis": "sto-3g"}},
-        {"method": {"name": "hf", "basis": "6-31g"}},
+        {"method": {"name": "revdsd", "basis": "def2-svp"}},
         {"charge": True},
         {"charge": 1},
         {"multiplicity": 3},
         {"cores": True},
-        {"memory_mb": 2049},
+        {"memory_mb": 20000},
     ],
 )
 def test_nao_refuses_other_explicit_tuples_before_native(tmp_path, change):
@@ -414,12 +414,19 @@ def test_nao_refuses_other_explicit_tuples_before_native(tmp_path, change):
     assert not (tmp_path / "out/native-electronic").exists()
 
 
-def test_nao_requires_backend_and_refuses_carbon_before_native(tmp_path):
+def test_nao_requires_backend_and_accepts_general_elements(tmp_path):
     source = handoff(tmp_path, "wiberg_nao", H2, options())
     with pytest.raises(ValueError, match="explicit"):
         provider.wiberg_nao(source, tmp_path / "out")
-    with pytest.raises(ValueError, match="H/O"):
-        provider._nao_options(nao_options(), ["C", "H", "H", "H", "H"])
+    checked_ch4 = provider._nao_options(
+        {"engine": "pyscf"}, ["C", "H", "H", "H", "H"]
+    )
+    assert checked_ch4["method"] == {"name": "b3lyp", "basis": "def2-svp"}
+    checked_hf = provider._nao_options(
+        {**nao_options(), "method": {"name": "b3lyp", "basis": "def2-svp"}},
+        ["H", "F"],
+    )
+    assert checked_hf["method"] == {"name": "b3lyp", "basis": "def2-svp"}
     assert not (tmp_path / "out/native-electronic").exists()
 
 
@@ -432,7 +439,7 @@ def test_nao_default_mutable_configuration_is_part_of_identity():
     before = provider._nao_algorithm_identity()
     try:
         nao.AOSHELL[1] = (original[0], "2s0p0d0f")
-        with pytest.raises(ValueError, match="default H/O AOSHELL"):
+        with pytest.raises(ValueError, match="default AOSHELL"):
             provider._nao_algorithm_identity()
     finally:
         nao.AOSHELL[1] = original
@@ -650,14 +657,14 @@ def test_actual_water_nao_fixed_rotation_translation_and_permutation(
 
 
 @pytest.mark.real_engine
-def test_split_valence_nao_algorithm_does_not_activate_that_provider_tuple(tmp_path):
+def test_split_valence_nao_algorithm_executes_genuine_pyscf_nao(tmp_path):
     import sys
 
     from pyscf.lo import nao
 
     checked = {**nao_options(), "method": {"name": "hf", "basis": "6-31g"}}
-    with pytest.raises(ValueError, match="hf/sto-3g"):
-        provider._nao_options(checked, ["O", "H", "H"])
+    validated = provider._nao_options(checked, ["O", "H", "H"])
+    assert validated["method"] == {"name": "hf", "basis": "6-31g"}
     directory = tmp_path / "split-valence-algorithm-only"
     directory.mkdir()
     native, checkpoint, molecule, coefficients, occupations, overlap = (
@@ -693,6 +700,7 @@ def test_split_valence_nao_algorithm_does_not_activate_that_provider_tuple(tmp_p
                 occupations,
                 orbital_energies,
                 overlap,
+                basis="6-31g",
             )
         )
     finally:
@@ -924,3 +932,92 @@ def test_actual_public_nao_entrypoint_has_distinct_schema_and_source(tmp_path):
     assert result["handoff_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     assert data["validation"]["pyscf_threads_during_nao"] == 1
     assert lib.num_threads() == previous
+
+
+@pytest.mark.real_engine
+def test_actual_general_element_nao_wiberg_hf_and_n2(tmp_path):
+    hf_res = provider.run_wiberg_nao(
+        ["H", "F"],
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.917]],
+        method={"name": "b3lyp", "basis": "def2-svp"},
+        output_directory=tmp_path / "hf_nao",
+    )
+    assert hf_res["status"] == "completed"
+    hf_data = hf_res["result"]
+    assert hf_data["atoms"] == ["H", "F"]
+    assert hf_data["method"] == {"name": "b3lyp", "basis": "def2-svp"}
+    assert 0.5 < hf_data["bonds"][0]["value"] < 1.1
+    assert hf_data["validation"]["electron_count"] == 10
+
+    n2_res = provider.run_wiberg_nao(
+        ["N", "N"],
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 1.098]],
+        output_directory=tmp_path / "n2_nao",
+    )
+    assert n2_res["status"] == "completed"
+    n2_data = n2_res["result"]
+    assert n2_data["atoms"] == ["N", "N"]
+    assert n2_data["method"] == {"name": "b3lyp", "basis": "def2-svp"}
+    assert 2.7 < n2_data["bonds"][0]["value"] < 3.3
+    assert n2_data["validation"]["electron_count"] == 14
+
+
+@pytest.mark.real_engine
+def test_actual_nbo7_orca_handoff_and_standalone_gennbo(tmp_path):
+    if not provider.probe_nbo7()["available"]:
+        pytest.skip("Native NBO 7 binaries are not installed on this host.")
+    h2o_xyz = (
+        "3\nWater for authentic NBO 7 verification\n"
+        "O 0.0 0.0 0.0\n"
+        "H 0.0 0.75716 0.58626\n"
+        "H 0.0 -0.75716 0.58626\n"
+    )
+    source = handoff(
+        tmp_path,
+        "nbo_analysis",
+        h2o_xyz,
+        {
+            "method": {"name": "hf", "basis": "sto-3g"},
+            "charge": 0,
+            "multiplicity": 1,
+            "cores": 1,
+            "memory_mb": 512,
+        },
+    )
+    out_dir = tmp_path / "nbo_out"
+    res = provider.execute_handoff(handoff_path=source, output_directory=out_dir)
+    assert res["status"] == "completed"
+    assert res["operation"] == "nbo_analysis"
+    data = res["result"]
+    assert data["nbo_banner_verified"] is True
+    assert data["nbo_version"].startswith("7.")
+    assert len(data["raw_output_sha256"]) == 64
+    assert len(data["nbo_exe_sha256"]) == 64
+    assert len(data["npa_charges"]) == 3
+    o_chg = data["npa_charges"][0]["natural_charge"]
+    h1_chg = data["npa_charges"][1]["natural_charge"]
+    h2_chg = data["npa_charges"][2]["natural_charge"]
+    assert o_chg < -0.2 and h1_chg > 0.1 and h2_chg > 0.1
+    assert abs(o_chg + h1_chg + h2_chg) < 1e-4
+    oh_bonds = [
+        b["value"]
+        for b in data["wiberg_bonds"]
+        if {b["symbol_i"], b["symbol_j"]} == {"O", "H"}
+    ]
+    assert len(oh_bonds) == 2 and all(0.7 < val < 1.2 for val in oh_bonds)
+    assert len(data["e2_interactions"]) >= 2
+    assert data["archive_47_path"] and Path(data["archive_47_path"]).is_file()
+
+    # Also verify standalone gennbo.i8.exe directly on the produced FILE.47
+    gen_res = provider.run_nbo7_analysis(
+        archive_47_path=data["archive_47_path"],
+        work_dir=tmp_path / "gennbo_standalone",
+    )
+    assert gen_res["driver_mode"] == "gennbo_47"
+    assert gen_res["nbo_banner_verified"] is True
+    assert gen_res["nbo_version"].startswith("7.")
+    assert gen_res["npa_charges"][0]["natural_charge"] == pytest.approx(
+        o_chg, abs=1e-4
+    )
+    assert len(gen_res["wiberg_bonds"]) == 3
+    assert len(gen_res["raw_output_sha256"]) == 64

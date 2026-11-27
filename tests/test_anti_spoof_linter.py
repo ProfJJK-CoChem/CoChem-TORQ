@@ -6,7 +6,7 @@ Verifies:
 3. AST visitor detection of NotImplementedError dead-end stubs.
 4. AST visitor detection of empty pass stubs in functions and classes.
 5. Legitimate exception class and overload / abstractmethod exemptions.
-6. AST visitor detection of unamnestied concurrency modules (parsl, ray, multiprocessing).
+6. AST visitor detection of unamnestied external concurrency schedulers (parsl, ray, dask, celery) while allowing stdlib concurrency.
 7. AST visitor detection of synthetic mock generators (np.linspace, np.sin).
 8. AST visitor detection of monkeypatch OS/subprocess intercepts.
 9. AST visitor detection of string concatenation obfuscation.
@@ -54,15 +54,15 @@ def test_linter_script_exists_and_encoding() -> None:
 
 def test_detect_forbidden_mock_imports(tmp_path: Path) -> None:
     """Verify AST linter detects forbidden mock imports."""
-    mock_file = tmp_path / "mock_module.py"
-    mock_file.write_text(
+    prohibited_import_file = tmp_path / "prohibited_import_module.py"
+    prohibited_import_file.write_text(
         "import unittest.mock\n"
         "from unittest.mock import MagicMock, patch\n"
         "import mock\n",
         encoding="utf-8",
     )
 
-    violations = check_file(mock_file, tmp_path, set())
+    violations = check_file(prohibited_import_file, tmp_path, set())
     assert len(violations) >= 3
     categories = {v.category for v in violations}
     assert "MOCK_IMPORT" in categories
@@ -155,13 +155,24 @@ def test_detect_banned_identifiers(tmp_path: Path) -> None:
 
 
 def test_detect_unamnestied_concurrency(tmp_path: Path) -> None:
-    """Verify AST linter detects unamnestied concurrency engines."""
+    """Verify stdlib concurrency needs no amnesty while external schedulers are flagged."""
+    stdlib_concurrency_file = tmp_path / "stdlib_worker.py"
+    stdlib_concurrency_file.write_text(
+        "import threading\n"
+        "import multiprocessing\n"
+        "import concurrent.futures\n"
+        "from concurrent import futures\n"
+        "from concurrent.futures import ThreadPoolExecutor\n",
+        encoding="utf-8",
+    )
+    assert check_file(stdlib_concurrency_file, tmp_path, set()) == []
+
     concurrency_file = tmp_path / "worker.py"
     concurrency_file.write_text(
-        "import multiprocessing\n"
-        "from concurrent.futures import ThreadPoolExecutor\n"
         "import parsl\n"
-        "import ray\n",
+        "import ray\n"
+        "import dask\n"
+        "import celery\n",
         encoding="utf-8",
     )
 
@@ -254,3 +265,44 @@ def test_cli_execution_with_json_output(tmp_path: Path) -> None:
     parsed = json.loads(result.stdout)
     assert parsed["exit_code"] == 0
     assert parsed["violations_count"] == 0
+
+
+def test_detect_widened_indirect_mocks_sys_modules_and_engine_setattr(tmp_path: Path) -> None:
+    """Verify widened linter detects indirect mock aliases, sys.modules injection, HTTP mocks, and engine setattr."""
+    samples = {
+        "indirect_alias.py": ("from unittest import mock as secret_m\n", "MOCK_IMPORT"),
+        "unittest_attr.py": ("import unittest as ut\nm = ut.mock\n", "MOCK_IMPORT"),
+        "dynamic_import.py": (
+            "from importlib import import_module as im\nm = im('unittest.mock')\n",
+            "MOCK_IMPORT",
+        ),
+        "sys_modules_set.py": (
+            "import sys\nsys.modules['pyscf'] = object()\n",
+            "SYS_MODULES_INJECTION",
+        ),
+        "sys_modules_update.py": (
+            "from sys import modules as m\nm.update({'orca': object()})\n",
+            "SYS_MODULES_INJECTION",
+        ),
+        "http_mocks.py": (
+            "import responses\nimport vcrpy\nimport requests_mock\n",
+            "MOCK_IMPORT",
+        ),
+        "pytest_mocker.py": (
+            "def run_check(mocker):\n    return mocker.patch('os.getcwd')\n",
+            "MOCK_IMPORT",
+        ),
+        "engine_setattr.py": (
+            "import Libraries.cochem_torq_engine as eng\nsetattr(eng, 'run_orca', lambda *a: None)\n",
+            "ENGINE_SETATTR_INTERCEPT",
+        ),
+    }
+
+    for fname, (code, expected_category) in samples.items():
+        sample_path = tmp_path / fname
+        sample_path.write_text(code, encoding="utf-8")
+        violations = check_file(sample_path, tmp_path, set())
+        categories = {v.category for v in violations}
+        assert expected_category in categories, (
+            f"Expected {expected_category} for {fname}, got {violations}"
+        )

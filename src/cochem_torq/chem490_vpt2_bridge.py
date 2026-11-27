@@ -754,6 +754,195 @@ def _build_h2o2_geometry(
     return [h1, o1, o2, h2]
 
 
+def _parse_xyz_text(xyz_text: str) -> tuple[tuple[str, ...], np.ndarray]:
+    """Parse Cartesian XYZ coordinates (full XYZ or raw symbol/x/y/z lines)."""
+    if not isinstance(xyz_text, str) or not xyz_text.strip():
+        raise ValueError("xyz_text must be a nonempty Cartesian XYZ string.")
+    lines = [line.strip() for line in xyz_text.strip().splitlines() if line.strip()]
+    start_idx = 0
+    declared_count: int | None = None
+    if re.fullmatch(r"[1-9][0-9]*", lines[0]):
+        declared_count = int(lines[0])
+        raw_lines = xyz_text.splitlines()
+        # Locate the header line in original lines so an empty comment line is preserved
+        header_idx = next(
+            idx for idx, raw in enumerate(raw_lines) if raw.strip() == lines[0]
+        )
+        atom_lines = [raw.strip() for raw in raw_lines[header_idx + 2 :] if raw.strip()]
+        if len(atom_lines) != declared_count:
+            raise ValueError(
+                f"XYZ declared {declared_count} atoms but contained "
+                f"{len(atom_lines)} coordinate rows."
+            )
+    else:
+        atom_lines = lines[start_idx:]
+
+    symbols: list[str] = []
+    coords: list[list[float]] = []
+    sym_re = re.compile(r"^[A-Z][a-z]?$")
+    for row_num, row in enumerate(atom_lines, start=1):
+        parts = row.split()
+        if len(parts) != 4 or sym_re.fullmatch(parts[0]) is None:
+            raise ValueError(
+                f"Invalid XYZ coordinate row {row_num}: expected 'Symbol x y z'."
+            )
+        try:
+            xyz = [float(val) for val in parts[1:]]
+        except ValueError as exc:
+            raise ValueError(f"Non-numeric coordinate in XYZ row {row_num}.") from exc
+        if not all(math.isfinite(v) for v in xyz):
+            raise ValueError(f"Non-finite coordinate in XYZ row {row_num}.")
+        symbols.append(parts[0])
+        coords.append(xyz)
+
+    if len(symbols) < 4:
+        raise ValueError(
+            "A 1D torsional scan requires at least 4 atoms to define a dihedral."
+        )
+    return tuple(symbols), np.asarray(coords, dtype=np.float64)
+
+
+def _normalize_atoms_input(
+    atoms: Sequence[tuple[str, Sequence[float]]],
+) -> tuple[tuple[str, ...], np.ndarray]:
+    """Validate an explicit sequence of (symbol, (x, y, z)) Cartesian pairs."""
+    if not atoms or len(atoms) < 4:
+        raise ValueError(
+            "Custom atoms input requires at least 4 atoms to define a dihedral."
+        )
+    sym_re = re.compile(r"^[A-Z][a-z]?$")
+    symbols: list[str] = []
+    coords: list[list[float]] = []
+    for idx, entry in enumerate(atoms):
+        if len(entry) != 2:
+            raise ValueError(f"Atom entry {idx} must be a (symbol, (x, y, z)) pair.")
+        sym, pos = entry
+        if not isinstance(sym, str) or sym_re.fullmatch(sym.strip()) is None:
+            raise ValueError(f"Invalid element symbol {sym!r} at atom {idx}.")
+        pos_list = [float(v) for v in pos]
+        if len(pos_list) != 3 or not all(math.isfinite(v) for v in pos_list):
+            raise ValueError(f"Atom {idx} requires 3 finite Cartesian coordinates.")
+        symbols.append(sym.strip())
+        coords.append(pos_list)
+    return tuple(symbols), np.asarray(coords, dtype=np.float64)
+
+
+def _find_rotating_branch(
+    coords: np.ndarray,
+    j: int,
+    k: int,
+    m: int,
+    bond_cutoff_angstrom: float = 1.95,
+) -> set[int]:
+    """Identify atoms connected to k without crossing the (j, k) torsion bond."""
+    n_atoms = len(coords)
+    adjacency: dict[int, set[int]] = {idx: set() for idx in range(n_atoms)}
+    for a in range(n_atoms):
+        for b in range(a + 1, n_atoms):
+            if (a == j and b == k) or (a == k and b == j):
+                continue
+            dist = float(np.linalg.norm(coords[a] - coords[b]))
+            if dist <= bond_cutoff_angstrom:
+                adjacency[a].add(b)
+                adjacency[b].add(a)
+
+    visited: set[int] = {k}
+    stack = [k]
+    while stack:
+        current = stack.pop()
+        for nbr in adjacency[current]:
+            if nbr not in visited:
+                visited.add(nbr)
+                stack.append(nbr)
+
+    # If the bond is inside a ring (j reachable from k), rotate only atom m as seed.
+    if j in visited:
+        return {m}
+    visited.add(m)
+    visited.discard(k)
+    visited.discard(j)
+    return visited
+
+
+def _set_initial_dihedral(
+    base_coords: np.ndarray,
+    indices: tuple[int, int, int, int],
+    target_deg: float,
+) -> np.ndarray:
+    """Rigidly pre-rotate the k-side torsion branch toward target_deg via Rodrigues."""
+    i, j, k, m = indices
+    current_deg = _dihedral_degrees(base_coords, indices)
+    delta_deg = target_deg - current_deg
+    # Wrap delta to (-180, 180]
+    while delta_deg > 180.0:
+        delta_deg -= 360.0
+    while delta_deg <= -180.0:
+        delta_deg += 360.0
+
+    axis = base_coords[k] - base_coords[j]
+    axis_norm = float(np.linalg.norm(axis))
+    if axis_norm < 1e-8 or abs(delta_deg) < 1e-9:
+        return np.array(base_coords, dtype=float, copy=True)
+    u = axis / axis_norm
+    theta = math.radians(delta_deg)
+    cos_t = math.cos(theta)
+    sin_t = math.sin(theta)
+
+    rotated: np.ndarray = np.array(base_coords, dtype=float, copy=True)
+    origin = base_coords[k]
+    moving = _find_rotating_branch(base_coords, j, k, m)
+    for atom_idx in moving:
+        vec = base_coords[atom_idx] - origin
+        # Rodrigues' rotation formula: v_rot = v cos(t) + (u x v) sin(t) + u(u.v)(1-cos)
+        v_rot = (
+            vec * cos_t
+            + np.cross(u, vec) * sin_t
+            + u * float(np.dot(u, vec)) * (1.0 - cos_t)
+        )
+        rotated[atom_idx] = origin + v_rot
+
+    # Verify sign convention; invert rotation angle if needed to match _dihedral_degrees
+    trial_deg = _dihedral_degrees(rotated, indices)
+    err_pos = abs(((trial_deg - target_deg + 180.0) % 360.0) - 180.0)
+    if err_pos > 1e-3:
+        theta = -theta
+        cos_t = math.cos(theta)
+        sin_t = math.sin(theta)
+        alt: np.ndarray = np.array(base_coords, dtype=float, copy=True)
+        for atom_idx in moving:
+            vec = base_coords[atom_idx] - origin
+            v_rot = (
+                vec * cos_t
+                + np.cross(u, vec) * sin_t
+                + u * float(np.dot(u, vec)) * (1.0 - cos_t)
+            )
+            alt[atom_idx] = origin + v_rot
+        alt_deg = _dihedral_degrees(alt, indices)
+        err_neg = abs(((alt_deg - target_deg + 180.0) % 360.0) - 180.0)
+        if err_neg < err_pos:
+            return alt
+    return rotated
+
+
+def _build_pyscf_scf(
+    mol: Any,
+    method: str,
+    multiplicity: int,
+) -> Any:
+    """Construct the genuine PySCF RHF/UHF or RKS/UKS mean-field object."""
+    from pyscf import dft, scf
+
+    normalized = method.strip().lower()
+    is_closed_shell = multiplicity == 1
+    if normalized in {"rhf", "hf", "uhf"}:
+        mf: Any = scf.RHF(mol) if is_closed_shell else scf.UHF(mol)
+    else:
+        mf = dft.RKS(mol) if is_closed_shell else dft.UKS(mol)
+        mf.xc = normalized
+    mf.conv_tol = 1e-10
+    return mf
+
+
 def run_relaxed_1d_torsional_scan(
     *,
     molecule_id: str = "H2O2",
@@ -772,35 +961,118 @@ def run_relaxed_1d_torsional_scan(
         165.0,
         180.0,
     ),
-    method: Literal["rhf", "b3lyp"] = "rhf",
+    method: str = "rhf",
     basis: str = "6-31g*",
     charge: int = 0,
     multiplicity: int = 1,
+    xyz_text: str | None = None,
+    atoms: Sequence[tuple[str, Sequence[float]]] | None = None,
+    dihedral_indices: tuple[int, int, int, int] | None = None,
     output_json: str | Path | None = None,
 ) -> RelaxedTorsionalScanReceipt:
-    """Run a genuine PySCF + geomeTRIC relaxed 1D torsional PES scan on H2O2.
+    """Run a genuine PySCF + geomeTRIC relaxed 1D torsional PES scan.
 
-    Every grid point executes a real constrained geometry optimization in
-    PySCF + geomeTRIC with the H-O-O-H dihedral frozen at the target angle.
-    Zero mocks, zero interpolated/fabricated points.
+    Accepts any user-supplied molecular geometry via ``xyz_text`` or ``atoms``
+    paired with explicit 0-based ``dihedral_indices=(i, j, k, m)``. Every grid
+    point executes a real constrained geometry optimization in PySCF + geomeTRIC
+    with the specified dihedral frozen at the target angle.
+
+    Backward-compatible built-in H2O2 coordinates are used ONLY when
+    ``molecule_id == "H2O2"`` is explicitly requested without custom geometry.
+    Any other ``molecule_id`` supplied without coordinates raises ``ValueError``
+    instead of silently substituting H2O2.
     """
-    import geometric
-    import pyscf
-    from pyscf import dft, gto, scf
-    from pyscf.geomopt.geometric_solver import optimize
-
     if not dihedral_angles_deg:
         raise ValueError("At least one dihedral angle is required for a 1D scan.")
+    if xyz_text is not None and atoms is not None:
+        raise ValueError("Supply either xyz_text or atoms, not both.")
+    if not isinstance(method, str) or not method.strip():
+        raise ValueError("method must be a nonempty PySCF method/functional name.")
+    if not isinstance(basis, str) or not basis.strip():
+        raise ValueError("basis must be a nonempty basis set name.")
 
-    symbols = ("H", "O", "O", "H")
-    dihedral_idx = (0, 1, 2, 3)
+    has_custom_geom = xyz_text is not None or atoms is not None
+    base_coords: np.ndarray | None = None
+    if has_custom_geom:
+        if dihedral_indices is None:
+            raise ValueError(
+                "Custom geometry requires explicit dihedral_indices "
+                "(4 distinct 0-based atom indices)."
+            )
+        if xyz_text is not None:
+            symbols, base_coords = _parse_xyz_text(xyz_text)
+        else:
+            assert atoms is not None
+            symbols, base_coords = _normalize_atoms_input(atoms)
+        if (
+            len(dihedral_indices) != 4
+            or any(
+                isinstance(idx, bool) or not isinstance(idx, int)
+                for idx in dihedral_indices
+            )
+            or len(set(dihedral_indices)) != 4
+            or any(not 0 <= idx < len(symbols) for idx in dihedral_indices)
+        ):
+            raise ValueError(
+                "dihedral_indices must contain 4 distinct 0-based atom indices "
+                f"in [0, {len(symbols) - 1}], got {dihedral_indices!r}."
+            )
+        dihedral_idx = (
+            dihedral_indices[0],
+            dihedral_indices[1],
+            dihedral_indices[2],
+            dihedral_indices[3],
+        )
+    else:
+        if molecule_id != "H2O2":
+            raise ValueError(
+                f"Unknown molecule_id {molecule_id!r} without custom geometry: "
+                "provide xyz_text or atoms together with dihedral_indices. "
+                "Built-in coordinates exist only when molecule_id == 'H2O2'."
+            )
+        symbols = ("H", "O", "O", "H")
+        if dihedral_indices is not None:
+            if (
+                len(dihedral_indices) != 4
+                or len(set(dihedral_indices)) != 4
+                or any(not 0 <= idx < 4 for idx in dihedral_indices)
+            ):
+                raise ValueError(
+                    "dihedral_indices for H2O2 must be 4 distinct indices in [0, 3]."
+                )
+            dihedral_idx = (
+                dihedral_indices[0],
+                dihedral_indices[1],
+                dihedral_indices[2],
+                dihedral_indices[3],
+            )
+        else:
+            dihedral_idx = (0, 1, 2, 3)
+
+    import geometric
+    import pyscf
+    from pyscf import gto
+    from pyscf.geomopt.geometric_solver import optimize
+
     raw_points: list[dict[str, Any]] = []
+    i1, j1, k1, m1 = (idx + 1 for idx in dihedral_idx)
 
     with tempfile.TemporaryDirectory(prefix="torq_torsion_scan_") as tmp_dir:
         tmp_root = Path(tmp_dir)
         for idx, target_deg in enumerate(dihedral_angles_deg):
-            coords = _build_h2o2_geometry(float(target_deg))
-            atom_spec = [(sym, xyz) for sym, xyz in zip(symbols, coords, strict=True)]
+            target_val = float(target_deg)
+            if base_coords is not None:
+                seed_coords = _set_initial_dihedral(
+                    base_coords, dihedral_idx, target_val
+                )
+                coords_list = [
+                    (float(row[0]), float(row[1]), float(row[2])) for row in seed_coords
+                ]
+            else:
+                coords_list = _build_h2o2_geometry(target_val)
+            atom_spec = [
+                (sym, xyz) for sym, xyz in zip(symbols, coords_list, strict=True)
+            ]
             mol = gto.M(
                 atom=atom_spec,
                 basis=basis,
@@ -809,18 +1081,12 @@ def run_relaxed_1d_torsional_scan(
                 unit="Angstrom",
                 verbose=0,
             )
-            mf: Any
-            if method == "rhf":
-                mf = scf.RHF(mol)
-            else:
-                mf = dft.RKS(mol)
-                mf.xc = "b3lyp"
-            mf.conv_tol = 1e-10
+            mf = _build_pyscf_scf(mol, method, multiplicity)
 
             # geomeTRIC uses 1-based atom indices for $set dihedral constraints
             constraint_file = tmp_root / f"constraints_{idx:02d}.txt"
             constraint_file.write_text(
-                f"$set\ndihedral 1 2 3 4 {float(target_deg):.6f}\n",
+                f"$set\ndihedral {i1} {j1} {k1} {m1} {target_val:.6f}\n",
                 encoding="utf-8",
             )
             log_path = tmp_root / f"geom_{idx:02d}.log"
@@ -833,13 +1099,7 @@ def run_relaxed_1d_torsional_scan(
             )
 
             # Recompute authenticated SCF energy at the converged relaxed geometry
-            mf_final: Any
-            if method == "rhf":
-                mf_final = scf.RHF(mol_opt)
-            else:
-                mf_final = dft.RKS(mol_opt)
-                mf_final.xc = "b3lyp"
-            mf_final.conv_tol = 1e-10
+            mf_final = _build_pyscf_scf(mol_opt, method, multiplicity)
             energy_eh = float(mf_final.kernel())
             if not bool(mf_final.converged) or not math.isfinite(energy_eh):
                 raise RuntimeError(
@@ -849,14 +1109,15 @@ def run_relaxed_1d_torsional_scan(
             opt_coords_ang = np.asarray(
                 mol_opt.atom_coords(unit="Angstrom"), dtype=np.float64
             )
-            achieved_deg = abs(_dihedral_degrees(opt_coords_ang, dihedral_idx))
+            raw_achieved = _dihedral_degrees(opt_coords_ang, dihedral_idx)
+            achieved_deg = raw_achieved if target_val < 0.0 else abs(raw_achieved)
             geom_tuple = tuple(
                 (float(row[0]), float(row[1]), float(row[2])) for row in opt_coords_ang
             )
             raw_points.append(
                 {
                     "index": idx,
-                    "target_dihedral_deg": float(target_deg),
+                    "target_dihedral_deg": target_val,
                     "achieved_dihedral_deg": achieved_deg,
                     "energy_hartree": energy_eh,
                     "scf_converged": True,

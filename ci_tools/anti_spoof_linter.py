@@ -30,6 +30,14 @@ BANNED_MOCK_MODULES: Set[str] = {
     "unittest.mock",
     "mock",
     "pytest_mock",
+    "responses",
+    "vcr",
+    "vcrpy",
+    "requests_mock",
+    "mockito",
+    "flexmock",
+    "respx",
+    "httpretty",
 }
 
 BANNED_MOCK_ATTRIBUTES: Set[str] = {
@@ -40,6 +48,9 @@ BANNED_MOCK_ATTRIBUTES: Set[str] = {
     "AsyncMock",
     "create_autospec",
     "NonCallableMock",
+    "mock_open",
+    "mocker",
+    "MockerFixture",
     "ANY",
     "sentinel",
     "call",
@@ -47,14 +58,32 @@ BANNED_MOCK_ATTRIBUTES: Set[str] = {
 }
 
 BANNED_CONCURRENCY_MODULES: Set[str] = {
-    "multiprocessing",
-    "concurrent.futures",
     "parsl",
     "dask",
     "ray",
     "mpi4py",
-    "threading",
     "celery",
+}
+
+ENGINE_SETATTR_TARGET_TOKENS: Set[str] = {
+    "engine",
+    "runner",
+    "solver",
+    "bridge",
+    "subprocess",
+    "pyscf",
+    "orca",
+    "xtb",
+    "crest",
+    "cfour",
+    "spcat",
+    "spfit",
+    "cochem",
+    "torq",
+    "topos",
+    "mace",
+    "ase",
+    "calculator",
 }
 
 BANNED_NUMPY_GENERATORS: Set[str] = {
@@ -239,6 +268,57 @@ class SpoofVisitor(ast.NodeVisitor):
         self.amnesty_set = amnesty_set
         self.violations: List[Violation] = []
         self.is_test_file = "test" in filepath.stem.lower() or "tests" in filepath.parts
+        self._imported_modules: Dict[str, str] = {}
+        self._importlib_aliases: Set[str] = {"importlib"}
+        self._import_module_aliases: Set[str] = {"import_module", "__import__"}
+        self._sys_aliases: Set[str] = {"sys"}
+        self._sys_modules_aliases: Set[str] = set()
+        self._unittest_aliases: Set[str] = {"unittest"}
+        self._scope_depth: int = 0
+
+    def _is_banned_mock_module(self, mod_name: str) -> bool:
+        if not mod_name:
+            return False
+        base_mod = mod_name.split(".")[0]
+        return (
+            mod_name in BANNED_MOCK_MODULES
+            or base_mod in BANNED_MOCK_MODULES
+            or any(mod_name.startswith(m + ".") for m in BANNED_MOCK_MODULES)
+        )
+
+    def _is_sys_modules_expr(self, node: ast.AST) -> bool:
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr == "modules"
+            and isinstance(node.value, ast.Name)
+            and node.value.id in self._sys_aliases
+        ):
+            return True
+        if isinstance(node, ast.Name) and node.id in self._sys_modules_aliases:
+            return True
+        return False
+
+    def _dotted_name(self, node: ast.AST) -> str:
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            prefix = self._dotted_name(node.value)
+            return f"{prefix}.{node.attr}" if prefix else node.attr
+        return ""
+
+    def _is_engine_setattr_target(self, target: ast.AST) -> bool:
+        if isinstance(target, ast.Subscript) and self._is_sys_modules_expr(target.value):
+            return True
+        if isinstance(target, ast.Name) and target.id in self._imported_modules:
+            return True
+        dotted = self._dotted_name(target)
+        if not dotted:
+            return False
+        root = dotted.split(".")[0]
+        if root in self._imported_modules:
+            return True
+        tokens = set(re.findall(r"[a-z0-9]+", dotted.lower()))
+        return bool(tokens & ENGINE_SETATTR_TARGET_TOKENS)
 
     def _is_amnestied_concurrency(self) -> bool:
         norm_variants = normalize_path_entry(self.rel_path)
@@ -270,7 +350,16 @@ class SpoofVisitor(ast.NodeVisitor):
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             base_mod = alias.name.split(".")[0]
-            if alias.name in BANNED_MOCK_MODULES or base_mod in BANNED_MOCK_MODULES:
+            local_name = alias.asname or base_mod
+            self._imported_modules[local_name] = alias.name
+            if alias.name == "importlib":
+                self._importlib_aliases.add(local_name)
+            elif alias.name == "sys":
+                self._sys_aliases.add(local_name)
+            elif alias.name == "unittest":
+                self._unittest_aliases.add(local_name)
+
+            if self._is_banned_mock_module(alias.name):
                 if not self.is_exempt:
                     self.violations.append(
                         Violation(
@@ -300,9 +389,23 @@ class SpoofVisitor(ast.NodeVisitor):
         mod = node.module or ""
         base_mod = mod.split(".")[0]
 
-        if mod in BANNED_MOCK_MODULES or base_mod in BANNED_MOCK_MODULES or (mod == "unittest" and any(a.name == "mock" for a in node.names)):
+        for alias in node.names:
+            local_name = alias.asname or alias.name
+            full_target = f"{mod}.{alias.name}" if mod else alias.name
+            self._imported_modules[local_name] = full_target
+            if mod == "importlib" and alias.name == "import_module":
+                self._import_module_aliases.add(local_name)
+            elif mod == "builtins" and alias.name == "__import__":
+                self._import_module_aliases.add(local_name)
+            elif mod == "sys" and alias.name == "modules":
+                self._sys_modules_aliases.add(local_name)
+
+        if self._is_banned_mock_module(mod) or (mod == "unittest" and any(a.name == "mock" for a in node.names)):
             if not self.is_exempt:
                 for alias in node.names:
+                    if mod == "unittest" and alias.name != "mock":
+                        continue
+                    as_suffix = f" as {alias.asname}" if alias.asname else ""
                     self.violations.append(
                         Violation(
                             file_path=self.rel_path,
@@ -310,10 +413,10 @@ class SpoofVisitor(ast.NodeVisitor):
                             col=node.col_offset,
                             category="MOCK_IMPORT",
                             symbol=f"{mod}.{alias.name}" if mod else alias.name,
-                            message=f"Prohibited mock symbol import '{alias.name}' from '{mod}'",
+                            message=f"Prohibited mock symbol import '{alias.name}{as_suffix}' from '{mod}'",
                         )
                     )
-        elif mod in BANNED_CONCURRENCY_MODULES or base_mod in BANNED_CONCURRENCY_MODULES or (mod == "concurrent" and any(a.name == "futures" for a in node.names)):
+        elif mod in BANNED_CONCURRENCY_MODULES or base_mod in BANNED_CONCURRENCY_MODULES:
             if not self.is_exempt and not self._is_amnestied_concurrency():
                 for alias in node.names:
                     self.violations.append(
@@ -327,6 +430,19 @@ class SpoofVisitor(ast.NodeVisitor):
                         )
                     )
         else:
+            if not self.is_exempt:
+                for alias in node.names:
+                    if alias.name in {"MagicMock", "Mock", "AsyncMock", "PropertyMock", "NonCallableMock", "create_autospec", "mock_open", "MockerFixture", "mocker"}:
+                        self.violations.append(
+                            Violation(
+                                file_path=self.rel_path,
+                                line=node.lineno,
+                                col=node.col_offset,
+                                category="MOCK_IMPORT",
+                                symbol=f"{mod}.{alias.name}" if mod else alias.name,
+                                message=f"Prohibited mock symbol import '{alias.name}' from '{mod}'",
+                            )
+                        )
             if mod == "numpy":
                 for alias in node.names:
                     if alias.name in BANNED_NUMPY_GENERATORS:
@@ -347,12 +463,20 @@ class SpoofVisitor(ast.NodeVisitor):
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._check_ident(node.name, node, "function")
         self._check_function_stubs(node)
-        self.generic_visit(node)
+        self._scope_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scope_depth -= 1
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._check_ident(node.name, node, "async function")
         self._check_function_stubs(node)
-        self.generic_visit(node)
+        self._scope_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scope_depth -= 1
 
     def _check_function_stubs(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> None:
         if self.is_exempt:
@@ -398,6 +522,62 @@ class SpoofVisitor(ast.NodeVisitor):
                         message=f"Empty pass/ellipsis stub in class '{node.name}'",
                     )
                 )
+        self._scope_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scope_depth -= 1
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if self._is_sys_modules_expr(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self._sys_modules_aliases.add(target.id)
+        if not self.is_exempt:
+            for target in node.targets:
+                if isinstance(target, ast.Subscript) and self._is_sys_modules_expr(target.value):
+                    self.violations.append(
+                        Violation(
+                            file_path=self.rel_path,
+                            line=node.lineno,
+                            col=node.col_offset,
+                            category="SYS_MODULES_INJECTION",
+                            symbol="sys.modules[...]=",
+                            message="Prohibited sys.modules mock injection via subscript assignment",
+                        )
+                    )
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if node.value is not None and self._is_sys_modules_expr(node.value) and isinstance(node.target, ast.Name):
+            self._sys_modules_aliases.add(node.target.id)
+        if not self.is_exempt and isinstance(node.target, ast.Subscript) and self._is_sys_modules_expr(node.target.value):
+            self.violations.append(
+                Violation(
+                    file_path=self.rel_path,
+                    line=node.lineno,
+                    col=node.col_offset,
+                    category="SYS_MODULES_INJECTION",
+                    symbol="sys.modules[...]=",
+                    message="Prohibited sys.modules mock injection via annotated subscript assignment",
+                )
+            )
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        if not self.is_exempt:
+            for target in node.targets:
+                if isinstance(target, ast.Subscript) and self._is_sys_modules_expr(target.value):
+                    self.violations.append(
+                        Violation(
+                            file_path=self.rel_path,
+                            line=node.lineno,
+                            col=node.col_offset,
+                            category="SYS_MODULES_INJECTION",
+                            symbol="del sys.modules[...]",
+                            message="Prohibited sys.modules mutation via del",
+                        )
+                    )
         self.generic_visit(node)
 
     def visit_Raise(self, node: ast.Raise) -> None:
@@ -479,44 +659,116 @@ class SpoofVisitor(ast.NodeVisitor):
                     )
                 )
 
-        func_name = node.func.id if isinstance(node.func, ast.Name) else (node.func.attr if isinstance(node.func, ast.Attribute) else "")
-        if func_name in {"__import__", "import_module"} and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-            target_mod = node.args[0].value
-            base_target = target_mod.split(".")[0]
-            if target_mod in BANNED_MOCK_MODULES or base_target in BANNED_MOCK_MODULES:
-                self.violations.append(
-                    Violation(
-                        file_path=self.rel_path,
-                        line=node.lineno,
-                        col=node.col_offset,
-                        category="MOCK_IMPORT",
-                        symbol=target_mod,
-                        message=f"Dynamic mock module import '{target_mod}'",
-                    )
-                )
-            elif target_mod in BANNED_CONCURRENCY_MODULES or base_target in BANNED_CONCURRENCY_MODULES:
-                if not self._is_amnestied_concurrency():
+        is_dynamic_import = False
+        if isinstance(node.func, ast.Name) and node.func.id in self._import_module_aliases:
+            is_dynamic_import = True
+        elif isinstance(node.func, ast.Attribute):
+            if node.func.attr in {"__import__", "import_module"}:
+                is_dynamic_import = True
+            elif (
+                isinstance(node.func.value, ast.Name)
+                and node.func.value.id in self._importlib_aliases
+                and node.func.attr == "import_module"
+            ):
+                is_dynamic_import = True
+
+        if is_dynamic_import:
+            target_arg: Optional[ast.AST] = node.args[0] if node.args else None
+            if target_arg is None:
+                for kw in node.keywords:
+                    if kw.arg == "name":
+                        target_arg = kw.value
+                        break
+            target_mod = self._extract_concat_str(target_arg) if target_arg is not None else None
+            if target_mod:
+                base_target = target_mod.split(".")[0]
+                if self._is_banned_mock_module(target_mod):
                     self.violations.append(
                         Violation(
                             file_path=self.rel_path,
                             line=node.lineno,
                             col=node.col_offset,
-                            category="CONCURRENCY_IMPORT",
+                            category="MOCK_IMPORT",
                             symbol=target_mod,
-                            message=f"Dynamic unamnestied concurrency import '{target_mod}'",
+                            message=f"Dynamic mock module import '{target_mod}'",
                         )
                     )
+                elif target_mod in BANNED_CONCURRENCY_MODULES or base_target in BANNED_CONCURRENCY_MODULES:
+                    if not self._is_amnestied_concurrency():
+                        self.violations.append(
+                            Violation(
+                                file_path=self.rel_path,
+                                line=node.lineno,
+                                col=node.col_offset,
+                                category="CONCURRENCY_IMPORT",
+                                symbol=target_mod,
+                                message=f"Dynamic unamnestied concurrency import '{target_mod}'",
+                            )
+                        )
 
-        if isinstance(node.func, ast.Attribute) and node.func.attr == "setattr":
-            if isinstance(node.func.value, ast.Name) and node.func.value.id == "monkeypatch":
+        if (
+            isinstance(node.func, ast.Attribute)
+            and self._is_sys_modules_expr(node.func.value)
+            and node.func.attr in {"setdefault", "update", "__setitem__", "__delitem__", "pop", "clear"}
+        ):
+            self.violations.append(
+                Violation(
+                    file_path=self.rel_path,
+                    line=node.lineno,
+                    col=node.col_offset,
+                    category="SYS_MODULES_INJECTION",
+                    symbol=f"sys.modules.{node.func.attr}",
+                    message=f"Prohibited sys.modules mock injection via '{node.func.attr}'",
+                )
+            )
+
+        if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+            if node.func.value.id == "monkeypatch" and node.func.attr in {"setattr", "delattr", "setitem", "delitem"}:
                 self.violations.append(
                     Violation(
                         file_path=self.rel_path,
                         line=node.lineno,
                         col=node.col_offset,
                         category="MONKEYPATCH_INTERCEPT",
-                        symbol="monkeypatch.setattr",
+                        symbol=f"monkeypatch.{node.func.attr}",
                         message="Prohibited monkeypatch intercept of core system interfaces",
+                    )
+                )
+            elif node.func.value.id == "mocker":
+                self.violations.append(
+                    Violation(
+                        file_path=self.rel_path,
+                        line=node.lineno,
+                        col=node.col_offset,
+                        category="MOCK_IMPORT",
+                        symbol=f"mocker.{node.func.attr}",
+                        message=f"Prohibited pytest-mock mocker call 'mocker.{node.func.attr}'",
+                    )
+                )
+
+        callee_dotted = self._dotted_name(node.func)
+        if callee_dotted in {"setattr", "builtins.setattr"}:
+            if self._scope_depth == 0:
+                self.violations.append(
+                    Violation(
+                        file_path=self.rel_path,
+                        line=node.lineno,
+                        col=node.col_offset,
+                        category="ENGINE_SETATTR_INTERCEPT",
+                        symbol=callee_dotted,
+                        message="Prohibited module-level setattr interception",
+                    )
+                )
+            elif node.args and self._is_engine_setattr_target(node.args[0]):
+                target_label = self._dotted_name(node.args[0]) or "sys.modules[...]"
+                self.violations.append(
+                    Violation(
+                        file_path=self.rel_path,
+                        line=node.lineno,
+                        col=node.col_offset,
+                        category="ENGINE_SETATTR_INTERCEPT",
+                        symbol=f"setattr({target_label}, ...)",
+                        message=f"Prohibited setattr interception on engine/imported module '{target_label}'",
                     )
                 )
 
@@ -643,6 +895,22 @@ class SpoofVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
+        if (
+            not self.is_exempt
+            and node.attr == "mock"
+            and isinstance(node.value, ast.Name)
+            and node.value.id in self._unittest_aliases
+        ):
+            self.violations.append(
+                Violation(
+                    file_path=self.rel_path,
+                    line=node.lineno,
+                    col=node.col_offset,
+                    category="MOCK_IMPORT",
+                    symbol=f"{node.value.id}.mock",
+                    message=f"Prohibited indirect unittest.mock attribute access '{node.value.id}.mock'",
+                )
+            )
         if isinstance(node.ctx, (ast.Store, ast.Param)):
             self._check_ident(node.attr, node, "attribute")
         self.generic_visit(node)

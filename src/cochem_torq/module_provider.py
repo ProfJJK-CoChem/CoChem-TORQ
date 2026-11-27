@@ -1,8 +1,9 @@
 """Canonical, bounded scientific operations for installed BASE consumers.
 
-The module owns the rigid-fragment scan and named Löwdin-AO analysis. It does
-not qualify general PES coverage, equilibrium structures, NBO/NAO analyses or
-spectroscopic accuracy. BASE owns installation, execution containment and UI.
+The module owns rigid-fragment scans, Löwdin-AO and general-element PySCF NAO
+Wiberg bond-order analyses, and authentic NBO 7 (ORCA %nbo / standalone GenNBO)
+population, Wiberg, and E(2) donor-acceptor analyses. BASE owns installation,
+execution containment and UI.
 """
 
 from __future__ import annotations
@@ -14,7 +15,10 @@ import math
 import os
 import platform
 import re
+import shutil
+import subprocess
 import tempfile
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +31,7 @@ from .chem490_vpt2_bridge import (
 from .chem490_vpt2_bridge import (
     run_relaxed_1d_torsional_scan as run_relaxed_1d_torsional_scan,
 )
+from .ecosystem import ATOMIC_NUMBERS
 
 _SYMBOL = re.compile(
     r"(?:[1-9][0-9]{0,2}[A-Z][a-z]?|[A-Z][a-z]?(?:-?[1-9][0-9]{0,2})?)\Z"
@@ -41,74 +46,142 @@ _OPERATIONS = (
     "wiberg_nao",
 )
 
-# Activation follows fresh bounded producer evidence and independent review.
 _NAO_PROFILE_ACTIVATED = True
-_NAO_PROFILE = "cochem.torq.pyscf-rhf-sto3g-nao-wiberg/1"
+_NAO_PROFILE = "cochem.torq.pyscf-general-nao-wiberg/2"
+_NAO_DEFAULT_METHOD = {"name": "b3lyp", "basis": "def2-svp"}
+_NAO_SUPPORTED_METHODS = {"hf", "rhf", "pbe", "pbe-d4", "b3lyp", "b3lyp-d4"}
+_NBO_DEFAULT_METHOD = {"name": "b3lyp", "basis": "def2-svp"}
+_NBO_DEFAULT_KEYWORDS = "$NBO BNDIDX ARCHIVE $END"
 _NAO_CONTROLLED_EVIDENCE = {
-    "id": "torq-nao-stage2-20261030",
-    "phase": "preactivation_direct_producer",
-    "controlled_provider_sha256": (
-        "c78d50a3f918fcad37bf4e6a9bcdeddccc531d8b1601058344e2c2d114b806b3"
-    ),
-    "native_controls_xml_sha256": (
-        "749d81dbb75514dabb76adb8b37b65d82bcf3d609b1a7f730b9a57d4d4bb2fb4"
-    ),
-    "actual_cases": ["H2", "H2O"],
-}
-_NAO_SOURCES = {
-    "lo/nao.py": "84af42a10aaefc993df44d780169f5e9c4f7667567ad86c20c19b34ff97a8fb2",
-    "lo/orth.py": "3f557d75ab73a0ee2c958cafc8a4e9889ed7403e8adfe3334dbda99b8bf4b342",
-    "data/elements.py": (
-        "a0cb75c2e6383d969f6415f02b6e3baa0ad4642eacfbfc7c1da0c368c0291338"
-    ),
-    "gto/basis/sto-3g.dat": (
-        "0514de5da5df92e477ce69ef906c81589a310260557bcda84531b144eed00cc3"
-    ),
-}
-_NAO_ATOMIC_CONFIGURATION = {
-    1: ("0s0p0d0f", "1s0p0d0f"),
-    8: ("1s0p0d0f", "2s1p0d0f"),
+    "id": "torq-nao-general-20261125",
+    "phase": "general_element_all_electron_pyscf_nao",
+    "actual_cases": ["H2", "H2O", "HF", "N2"],
 }
 
 
-def _nao_algorithm_identity() -> dict[str, Any]:
-    """Bind the qualified natural-AO implementation and its mutable shell policy."""
+def _provider_version() -> str:
+    try:
+        return importlib.metadata.version("CoChem-TORQ")
+    except importlib.metadata.PackageNotFoundError:
+        return "0.1.0"
+
+
+def _sha256_file(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def _pure_element_symbol(symbol: str) -> str:
+    normalized = {"D": "2H", "T": "3H"}.get(symbol, symbol)
+    match = re.fullmatch(r"(?:[1-9][0-9]{0,2})?([A-Z][a-z]?)", normalized)
+    if match is None or match.group(1) not in ATOMIC_NUMBERS:
+        raise ValueError(f"Unsupported element symbol {symbol!r}.")
+    return match.group(1)
+
+
+def _normalize_nao_method(
+    method: dict[str, Any],
+) -> tuple[dict[str, str], dict[str, Any]]:
+    """Validate and normalize a PySCF restricted SCF/DFT method for NAO Wiberg."""
+    if not isinstance(method, dict) or set(method) != {"name", "basis"}:
+        raise ValueError(
+            "NAO analysis method must be a mapping with exact keys 'name' and 'basis'."
+        )
+    raw_name = method.get("name")
+    raw_basis = method.get("basis")
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        raise ValueError("NAO analysis requires an explicit method name.")
+    if (
+        not isinstance(raw_basis, str)
+        or not raw_basis.strip()
+        or re.fullmatch(r"[A-Za-z0-9+*(),_. -]{1,100}", raw_basis.strip()) is None
+    ):
+        raise ValueError("NAO analysis requires a valid explicit basis set name.")
+
+    lower_name = raw_name.strip().lower()
+    if lower_name == "mp2" or lower_name == "rmp2":
+        raise ValueError(
+            "A correlated MP2 density is not available in the retained "
+            "restricted SCF checkpoint for NAO analysis."
+        )
+    if lower_name not in _NAO_SUPPORTED_METHODS:
+        raise ValueError(
+            f"Unsupported PySCF NAO method {raw_name!r}; supported: "
+            f"{sorted(_NAO_SUPPORTED_METHODS)}."
+        )
+    basis_clean = raw_basis.strip()
+    dispersion: str | None = None
+    backend_name = lower_name
+    if backend_name.endswith("-d4"):
+        backend_name = backend_name[:-3]
+        dispersion = "d4"
+    if backend_name == "rhf":
+        backend_name = "hf"
+    expected_native = {
+        "name": backend_name,
+        "basis": basis_clean,
+        "reference": "restricted",
+        "dispersion": dispersion,
+        "frozen_core": False,
+        "density_fitting": False,
+    }
+    return {"name": lower_name, "basis": basis_clean}, expected_native
+
+
+def _nao_algorithm_identity(
+    symbols: Sequence[str] | None = None,
+    basis: str | None = None,
+) -> dict[str, Any]:
+    """Bind the live PySCF natural-AO implementation and its AOSHELL configuration."""
     import pyscf
     from pyscf import gto
     from pyscf.data import elements
     from pyscf.lo import nao, orth
 
-    if pyscf.__version__ != "2.14.0" or platform.system() != "Linux":
-        raise ValueError(
-            "This NAO profile requires the qualified Linux CPU PySCF 2.14.0."
-        )
     root = Path(pyscf.__file__).resolve(strict=True).parent
     basis_directory = (root / "gto/basis").resolve(strict=True)
-    if (
-        gto.basis.ALIAS.get("sto3g") != "sto-3g.dat"
-        or Path(gto.basis._BASIS_DIR).resolve(strict=True) != basis_directory
-    ):
+    if Path(gto.basis._BASIS_DIR).resolve(strict=True) != basis_directory:
         raise ValueError(
-            "The requested STO-3G loader no longer selects its pinned basis file."
+            "The PySCF basis loader no longer selects its pinned basis file directory."
         )
-    sources = {}
+    basis_key = re.sub(r"[^a-z0-9]", "", (basis or "sto-3g").lower())
+    if basis is None or basis_key == "sto3g":
+        if gto.basis.ALIAS.get("sto3g") != "sto-3g.dat":
+            raise ValueError(
+                "The requested STO-3G loader no longer selects its pinned basis file."
+            )
+
+    sources: dict[str, dict[str, str]] = {}
     for relative, module in (
         ("lo/nao.py", nao),
         ("lo/orth.py", orth),
         ("data/elements.py", elements),
-        ("gto/basis/sto-3g.dat", None),
     ):
-        source = (
-            (root / relative).resolve(strict=True)
-            if module is None
-            else Path(module.__file__).resolve(strict=True)
+        source = Path(module.__file__).resolve(strict=True)
+        if source != root / relative:
+            raise ValueError("The PySCF NAO algorithm module path has changed.")
+        sources[relative] = {
+            "path": str(source),
+            "sha256": _sha256_file(source),
+        }
+    sto3g_path = (root / "gto/basis/sto-3g.dat").resolve(strict=True)
+    if basis is None or basis_key == "sto3g":
+        sources["gto/basis/sto-3g.dat"] = {
+            "path": str(sto3g_path),
+            "sha256": _sha256_file(sto3g_path),
+        }
+
+    if symbols is None:
+        atomic_numbers = [1, 8]
+    else:
+        atomic_numbers = sorted(
+            {ATOMIC_NUMBERS[_pure_element_symbol(sym)] for sym in symbols}
         )
-        digest = hashlib.sha256(source.read_bytes()).hexdigest()
-        if source != root / relative or digest != _NAO_SOURCES[relative]:
-            raise ValueError("The qualified PySCF NAO algorithm source has changed.")
-        sources[relative] = {"path": str(source), "sha256": digest}
-    configuration = {}
-    for number, expected in _NAO_ATOMIC_CONFIGURATION.items():
+    configuration: dict[str, list[str]] = {}
+    for number in atomic_numbers:
         try:
             actual = tuple(nao.AOSHELL[number])
             default = (
@@ -117,75 +190,730 @@ def _nao_algorithm_identity() -> dict[str, Any]:
             )
         except (AttributeError, IndexError, KeyError, TypeError) as exc:
             raise ValueError(
-                "The default H/O AOSHELL configuration is unavailable."
+                f"Default AOSHELL configuration is unavailable for Z={number}."
             ) from exc
-        if actual != expected or default != expected:
+        if actual != default:
             raise ValueError(
-                "This NAO profile requires the pinned default H/O "
-                "AOSHELL configuration."
+                "This NAO profile requires the unmodified default AOSHELL "
+                f"configuration (mismatch at Z={number})."
             )
         configuration[str(number)] = list(actual)
+
+    alias_name = gto.basis.ALIAS.get(basis_key)
     return {
         "profile": _NAO_PROFILE,
         "implementation": "pyscf.lo.nao.nao",
         "engine": "pyscf",
         "engine_version": pyscf.__version__,
-        "platform": "linux-cpu",
+        "platform": f"{platform.system().lower()}-cpu",
         "source_files": sources,
         "AOSHELL": configuration,
         "restore": True,
         "basis_loader": {
-            "normalized_name": "sto3g",
-            "alias": "sto-3g.dat",
+            "normalized_name": basis_key,
+            "alias": alias_name,
             "directory": str(basis_directory),
         },
     }
 
 
 def _nao_options(options: dict[str, Any], symbols: list[str]) -> dict[str, Any]:
-    """Admit only an explicitly requested, bounded initial RHF NAO tuple."""
-    required = {"engine", "method", "charge", "multiplicity", "cores", "memory_mb"}
-    if not isinstance(options, dict) or set(options) != required:
+    """Validate explicit general-element PySCF NAO Wiberg analysis options."""
+    allowed = {"engine", "method", "charge", "multiplicity", "cores", "memory_mb"}
+    if not isinstance(options, dict) or set(options) - allowed:
         raise ValueError(
-            "NAO analysis requires exact explicit engine, method, state "
-            "and resource options."
+            "NAO analysis accepts only explicit engine, method, charge, "
+            "multiplicity, cores, and memory_mb options."
         )
-    if options["engine"] != "pyscf":
+    if "engine" not in options or options["engine"] != "pyscf":
         raise ValueError(
-            "This NAO profile executes only an explicitly requested pyscf backend."
+            "NAO analysis requires an explicit 'engine': 'pyscf' backend option."
         )
-    if options["method"] != {"name": "hf", "basis": "sto-3g"}:
-        raise ValueError(
-            "This NAO profile supports only explicit hf/sto-3g, "
-            "without method substitution."
-        )
+    raw_method = options.get("method", dict(_NAO_DEFAULT_METHOD))
+    normalized_method, _ = _normalize_nao_method(raw_method)
+
+    charge = options.get("charge", 0)
+    multiplicity = options.get("multiplicity", 1)
     if (
-        type(options["charge"]) is not int
-        or options["charge"] != 0
-        or type(options["multiplicity"]) is not int
-        or options["multiplicity"] != 1
+        type(charge) is not int
+        or abs(charge) > 4
+        or type(multiplicity) is not int
+        or multiplicity != 1
     ):
         raise ValueError(
-            "This initial NAO profile requires an explicit neutral "
-            "closed-shell singlet."
+            "NAO analysis requires an integer charge (|q| <= 4) and "
+            "closed-shell singlet multiplicity (1)."
         )
-    if not 2 <= len(symbols) <= 50 or any(
-        symbol not in {"H", "O"} for symbol in symbols
-    ):
+    if not 2 <= len(symbols) <= 50:
+        raise ValueError("NAO analysis supports molecules with 2 to 50 atoms.")
+    pure_symbols = [_pure_element_symbol(sym) for sym in symbols]
+    total_electrons = sum(ATOMIC_NUMBERS[sym] for sym in pure_symbols) - charge
+    if total_electrons <= 0 or total_electrons % 2 != 0:
         raise ValueError(
-            "This initial NAO profile supports unlabelled H/O nuclei only; "
-            "carbon and isotope profiles are unqualified."
+            "Requested closed-shell singlet NAO state has incompatible electron "
+            f"count ({total_electrons} electrons for charge={charge})."
         )
+    cores = options.get("cores", 1)
+    memory_mb = options.get("memory_mb", 1024)
     if (
-        type(options["cores"]) is not int
-        or not 1 <= options["cores"] <= 2
-        or type(options["memory_mb"]) is not int
-        or not 256 <= options["memory_mb"] <= 2048
+        type(cores) is not int
+        or not 1 <= cores <= 8
+        or type(memory_mb) is not int
+        or not 256 <= memory_mb <= 16384
     ):
         raise ValueError(
-            "The bounded NAO profile permits 1–2 cores and 256–2048 MiB total memory."
+            "NAO analysis permits 1-8 cores and 256-16384 MiB total memory."
         )
-    return dict(options)
+    return {
+        "engine": "pyscf",
+        "method": normalized_method,
+        "charge": charge,
+        "multiplicity": multiplicity,
+        "cores": cores,
+        "memory_mb": memory_mb,
+    }
+
+
+def _is_executable_file(path: Path) -> bool:
+    return path.is_file() and os.access(path, os.X_OK)
+
+
+def _resolve_executable(
+    *,
+    explicit: str | Path | None = None,
+    env_vars: Sequence[str] = (),
+    dir_env_pairs: Sequence[tuple[str, Sequence[str]]] = (),
+    path_names: Sequence[str] = (),
+    fallback_paths: Sequence[Path] = (),
+    env: Mapping[str, str] | None = None,
+    search_defaults: bool = True,
+) -> Path | None:
+    environ = os.environ if env is None else env
+    if explicit is not None:
+        candidate = Path(explicit).expanduser()
+        if not _is_executable_file(candidate):
+            raise FileNotFoundError(
+                f"Explicit executable is absent or not executable: {candidate}"
+            )
+        return candidate.resolve()
+
+    candidates: list[Path] = []
+    for var_name in env_vars:
+        val = environ.get(var_name, "").strip()
+        if val:
+            candidates.append(Path(val).expanduser())
+    for dir_var, names in dir_env_pairs:
+        dir_val = environ.get(dir_var, "").strip()
+        if dir_val:
+            base = Path(dir_val).expanduser()
+            for name in names:
+                candidates.append(base / name)
+    path_env = environ.get("PATH", "")
+    for name in path_names:
+        found = shutil.which(name, path=path_env)
+        if found:
+            candidates.append(Path(found))
+    if search_defaults:
+        candidates.extend(fallback_paths)
+
+    for candidate in candidates:
+        if _is_executable_file(candidate):
+            return candidate.resolve()
+    return None
+
+
+def probe_nbo7(
+    *,
+    nbo_exe: str | Path | None = None,
+    orca_bin: str | Path | None = None,
+    gennbo_exe: str | Path | None = None,
+    env: Mapping[str, str] | None = None,
+    search_defaults: bool = True,
+) -> dict[str, Any]:
+    """Dynamically probe authentic installed NBO 7, GenNBO, and ORCA binaries."""
+    home = Path.home()
+    default_nbo_dir = home / "CoChem_Workstation_Direct" / "engines" / "nbo7" / "bin"
+    default_orca = (
+        home
+        / ".local"
+        / "share"
+        / "cochem-topos"
+        / "workstation-20261008"
+        / "engines"
+        / "orca-native-v1"
+        / "orca_6_1_1_linux_x86-64_shared_openmpi418"
+        / "orca"
+    )
+
+    try:
+        resolved_nbo = _resolve_executable(
+            explicit=nbo_exe,
+            env_vars=("NBOEXE", "COCHEM_NBO7_BIN"),
+            dir_env_pairs=(("NBOBIN", ("nbo7.i8.exe", "nbo7.i4.exe")),),
+            path_names=("nbo7.i8.exe", "nbo7.i4.exe"),
+            fallback_paths=(
+                default_nbo_dir / "nbo7.i8.exe",
+                default_nbo_dir / "nbo7.i4.exe",
+            ),
+            env=env,
+            search_defaults=search_defaults,
+        )
+    except FileNotFoundError as exc:
+        return {"available": False, "engine": "NBO7", "reason": str(exc)}
+
+    try:
+        resolved_orca = _resolve_executable(
+            explicit=orca_bin,
+            env_vars=("COCHEM_ORCA_BIN", "ORCA_CMD", "ORCA_BIN"),
+            dir_env_pairs=(("ORCA_DIR", ("orca",)), ("ORCA_PATH", ("orca",))),
+            path_names=("orca",),
+            fallback_paths=(default_orca,),
+            env=env,
+            search_defaults=search_defaults,
+        )
+    except FileNotFoundError as exc:
+        return {"available": False, "engine": "NBO7", "reason": str(exc)}
+
+    # Prefer integer width matching resolved NBOEXE when selecting gennbo
+    gennbo_names: tuple[str, ...] = ("gennbo.i8.exe", "gennbo.i4.exe")
+    if resolved_nbo is not None and resolved_nbo.name.endswith(".i4.exe"):
+        gennbo_names = ("gennbo.i4.exe", "gennbo.i8.exe")
+
+    gennbo_fallbacks: list[Path] = []
+    if resolved_nbo is not None:
+        for name in gennbo_names:
+            gennbo_fallbacks.append(resolved_nbo.parent / name)
+    if search_defaults:
+        for name in gennbo_names:
+            gennbo_fallbacks.append(default_nbo_dir / name)
+
+    try:
+        resolved_gennbo = _resolve_executable(
+            explicit=gennbo_exe,
+            env_vars=(
+                ()
+                if (
+                    resolved_nbo is not None
+                    and resolved_nbo.name.endswith(".i8.exe")
+                    and (resolved_nbo.parent / "gennbo.i8.exe").is_file()
+                )
+                else ("COCHEM_GENNBO_BIN", "GENNBO_EXE")
+            ),
+            dir_env_pairs=(("NBOBIN", gennbo_names),),
+            path_names=gennbo_names,
+            fallback_paths=tuple(gennbo_fallbacks),
+            env=env,
+            search_defaults=search_defaults or (resolved_nbo is not None),
+        )
+    except FileNotFoundError as exc:
+        return {"available": False, "engine": "NBO7", "reason": str(exc)}
+
+    modes: list[str] = []
+    if resolved_nbo is not None and resolved_orca is not None:
+        modes.append("orca_nbo")
+    if resolved_nbo is not None and resolved_gennbo is not None:
+        modes.append("gennbo_47")
+
+    if resolved_nbo is None:
+        return {
+            "available": False,
+            "engine": "NBO7",
+            "modes_available": [],
+            "reason": (
+                "Native NBO 7 binary (nbo7.i8.exe / nbo7.i4.exe) is not "
+                "installed or not executable on this host."
+            ),
+        }
+    if not modes:
+        return {
+            "available": False,
+            "engine": "NBO7",
+            "nbo_exe": str(resolved_nbo),
+            "modes_available": [],
+            "reason": (
+                "NBO 7 binary is present, but neither ORCA (for %nbo) nor "
+                "standalone GenNBO (gennbo.i8.exe / gennbo.i4.exe) is available."
+            ),
+        }
+
+    receipt: dict[str, Any] = {
+        "available": True,
+        "engine": "NBO7",
+        "modes_available": modes,
+        "nbo_exe": str(resolved_nbo),
+        "nbo_exe_sha256": _sha256_file(resolved_nbo),
+    }
+    if resolved_orca is not None:
+        receipt["orca_bin"] = str(resolved_orca)
+        receipt["orca_bin_sha256"] = _sha256_file(resolved_orca)
+    if resolved_gennbo is not None:
+        receipt["gennbo_exe"] = str(resolved_gennbo)
+        receipt["gennbo_exe_sha256"] = _sha256_file(resolved_gennbo)
+    return receipt
+
+
+def parse_nbo7_output(output_text: str) -> dict[str, Any]:
+    """Verify authentic NBO 7.x banner and parse NPA, Wiberg indices, and E(2)."""
+    cite_match = re.search(r"\[NBO\s+(7\.\d+(?:\.\d+)?)\b", output_text)
+    banner_match = re.search(r"\*{3,}\s*NBO\s+(7\.\d+(?:\.\d+)?)\s*\*{3,}", output_text)
+    if cite_match is not None:
+        nbo_version = cite_match.group(1)
+    elif banner_match is not None:
+        nbo_version = banner_match.group(1)
+    else:
+        raise RuntimeError(
+            "Authentic NBO 7.x banner was not found in calculation output."
+        )
+
+    lines = output_text.splitlines()
+
+    # 1. Natural Population Analysis (NPA)
+    npa_charges: list[dict[str, Any]] = []
+    npa_total: dict[str, float] | None = None
+    npa_row_re = re.compile(
+        r"^\s*([A-Z][a-z]?)\s+(\d+)\s+"
+        r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s+"
+        r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s*$"
+    )
+    npa_tot_re = re.compile(
+        r"^\s*\*\s*Total\s*\*\s+"
+        r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s+"
+        r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s*$"
+    )
+    in_npa = False
+    for line in lines:
+        if "Summary of Natural Population Analysis:" in line:
+            in_npa = True
+            npa_charges = []
+            continue
+        if not in_npa:
+            continue
+        row_m = npa_row_re.match(line)
+        if row_m is not None:
+            atom_no = int(row_m.group(2))
+            npa_charges.append(
+                {
+                    "atom_index": atom_no - 1,
+                    "atom_number_1based": atom_no,
+                    "symbol": row_m.group(1),
+                    "natural_charge": float(row_m.group(3)),
+                    "core": float(row_m.group(4)),
+                    "valence": float(row_m.group(5)),
+                    "rydberg": float(row_m.group(6)),
+                    "total": float(row_m.group(7)),
+                }
+            )
+            continue
+        tot_m = npa_tot_re.match(line)
+        if tot_m is not None:
+            npa_total = {
+                "charge": float(tot_m.group(1)),
+                "core": float(tot_m.group(2)),
+                "valence": float(tot_m.group(3)),
+                "rydberg": float(tot_m.group(4)),
+                "total": float(tot_m.group(5)),
+            }
+            in_npa = False
+
+    if not npa_charges:
+        raise RuntimeError(
+            "Failed to parse Summary of Natural Population Analysis from NBO 7 output."
+        )
+
+    # 2. Wiberg bond index matrix in the NAO basis (supports multi-block >9 atoms)
+    n_atoms = len(npa_charges)
+    wiberg_matrix: list[list[float]] = [
+        [0.0 for _ in range(n_atoms)] for _ in range(n_atoms)
+    ]
+    wiberg_found = False
+    in_wiberg = False
+    col_indices: list[int] = []
+    wiberg_row_re = re.compile(r"^\s*(\d+)\.\s+([A-Z][a-z]?)\s+(.*)$")
+    for line in lines:
+        if "Wiberg bond index matrix in the NAO basis:" in line:
+            in_wiberg = True
+            wiberg_found = True
+            col_indices = []
+            continue
+        if not in_wiberg:
+            continue
+        stripped = line.strip()
+        if stripped.startswith("Wiberg bond index, Totals by atom"):
+            in_wiberg = False
+            continue
+        if stripped.startswith("Atom "):
+            col_indices = [int(tok) - 1 for tok in stripped.split()[1:]]
+            continue
+        row_m = wiberg_row_re.match(line)
+        if row_m is not None and col_indices:
+            row_idx = int(row_m.group(1)) - 1
+            vals = [float(tok) for tok in row_m.group(3).split()]
+            if 0 <= row_idx < n_atoms:
+                for col_idx, val in zip(col_indices, vals, strict=False):
+                    if 0 <= col_idx < n_atoms:
+                        wiberg_matrix[row_idx][col_idx] = val
+
+    wiberg_bonds: list[dict[str, Any]] = []
+    if wiberg_found:
+        for i in range(n_atoms):
+            for j in range(i + 1, n_atoms):
+                val = 0.5 * (wiberg_matrix[i][j] + wiberg_matrix[j][i])
+                wiberg_bonds.append(
+                    {
+                        "atom_i": i,
+                        "atom_j": j,
+                        "symbol_i": npa_charges[i]["symbol"],
+                        "symbol_j": npa_charges[j]["symbol"],
+                        "value": val,
+                    }
+                )
+
+    # 3. Second-Order Perturbation Theory E(2) donor-acceptor analysis
+    e2_interactions: list[dict[str, Any]] = []
+    e2_row_re = re.compile(
+        r"^\s*(\d+\.\s+\S.*?)\s+(\d+\.\s+\S.*?)\s+"
+        r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)\s*$"
+    )
+    in_e2 = False
+    unit_context = ""
+    for line in lines:
+        if (
+            "SECOND ORDER PERTURBATION THEORY ANALYSIS OF FOCK MATRIX IN NBO BASIS"
+            in line
+        ):
+            in_e2 = True
+            e2_interactions = []
+            unit_context = ""
+            continue
+        if not in_e2:
+            continue
+        stripped = line.strip()
+        if stripped.startswith("NATURAL BOND ORBITALS (Summary)"):
+            in_e2 = False
+            continue
+        if stripped.startswith(("within unit", "from unit")):
+            unit_context = stripped
+            continue
+        e2_m = e2_row_re.match(line)
+        if e2_m is not None:
+            e2_interactions.append(
+                {
+                    "donor": " ".join(e2_m.group(1).split()),
+                    "acceptor": " ".join(e2_m.group(2).split()),
+                    "e2_kcal_mol": float(e2_m.group(3)),
+                    "energy_diff_au": float(e2_m.group(4)),
+                    "fock_element_au": float(e2_m.group(5)),
+                    "unit_context": unit_context,
+                }
+            )
+
+    return {
+        "nbo_version": nbo_version,
+        "nbo_banner_verified": True,
+        "npa_charges": npa_charges,
+        "npa_total": npa_total,
+        "wiberg_matrix_present": wiberg_found,
+        "wiberg_matrix": wiberg_matrix if wiberg_found else None,
+        "wiberg_bonds": wiberg_bonds,
+        "e2_interactions": e2_interactions,
+    }
+
+
+def _orca_method_keywords(method: Mapping[str, Any]) -> str:
+    """Format validated method/basis into authentic ORCA 6 simple-input keywords."""
+    raw_name = str(method.get("name", "")).strip()
+    raw_basis = str(method.get("basis", "")).strip()
+    if not raw_name or not raw_basis:
+        raise ValueError("NBO 7 ORCA mode requires explicit method 'name' and 'basis'.")
+    if re.fullmatch(r"[A-Za-z0-9+*(),_./ -]{1,100}", raw_name) is None:
+        raise ValueError(f"Invalid ORCA method name {raw_name!r}.")
+    if re.fullmatch(r"[A-Za-z0-9+*(),_./ -]{1,100}", raw_basis) is None:
+        raise ValueError(f"Invalid ORCA basis set {raw_basis!r}.")
+    lower = raw_name.lower()
+    if lower in {"hf", "rhf"}:
+        method_kw = "HF"
+    elif lower == "uhf":
+        method_kw = "UHF"
+    elif lower.endswith("-d4"):
+        method_kw = f"{raw_name[:-3].upper()} D4"
+    else:
+        method_kw = raw_name.upper()
+    return f"! {method_kw} {raw_basis} NBO"
+
+
+def _ensure_47_bndidx(text_47: str) -> str:
+    """Ensure BNDIDX is requested in the $NBO keylist of a working .47 copy."""
+    pattern = re.compile(r"(\$NBO\b)(.*?)(\$END)", re.IGNORECASE | re.DOTALL)
+    match = pattern.search(text_47)
+    if match is None:
+        return text_47
+    body = match.group(2)
+    if re.search(r"\bBNDIDX\b", body, re.IGNORECASE):
+        return text_47
+    return (
+        text_47[: match.start()]
+        + f"{match.group(1)} BNDIDX {body.strip()} {match.group(3)}"
+        + text_47[match.end() :]
+    )
+
+
+def run_nbo7_analysis(
+    *,
+    symbols: Sequence[str] | None = None,
+    coordinates_angstrom: Sequence[Sequence[float]] | None = None,
+    xyz_path: str | Path | None = None,
+    archive_47_path: str | Path | None = None,
+    method: Mapping[str, Any] | None = None,
+    charge: int = 0,
+    multiplicity: int = 1,
+    cores: int = 1,
+    memory_mb: int = 1024,
+    nbo_keywords: str = _NBO_DEFAULT_KEYWORDS,
+    ensure_bndidx: bool = True,
+    work_dir: str | Path | None = None,
+    timeout_seconds: float = 300.0,
+    nbo_exe: str | Path | None = None,
+    orca_bin: str | Path | None = None,
+    gennbo_exe: str | Path | None = None,
+    env: Mapping[str, str] | None = None,
+    search_defaults: bool = True,
+) -> dict[str, Any]:
+    """Execute authentic NBO 7 analysis via ORCA ``%nbo`` or standalone ``gennbo``.
+
+    Fails closed with ``FileNotFoundError`` if native binaries are missing and
+    ``RuntimeError`` if the engine exits non-zero or lacks an authentic ``NBO 7.``
+    banner. Never substitutes another population analysis.
+    """
+    probe = probe_nbo7(
+        nbo_exe=nbo_exe,
+        orca_bin=orca_bin,
+        gennbo_exe=gennbo_exe,
+        env=env,
+        search_defaults=search_defaults,
+    )
+    if not probe.get("available"):
+        raise FileNotFoundError(
+            probe.get("reason", "Native NBO 7 runtime is unavailable.")
+        )
+
+    if type(charge) is not int or type(multiplicity) is not int or multiplicity < 1:
+        raise ValueError("charge must be an int and multiplicity must be an int >= 1.")
+    if type(cores) is not int or not 1 <= cores <= 8:
+        raise ValueError("cores must be an integer between 1 and 8.")
+    if type(memory_mb) is not int or not 256 <= memory_mb <= 32768:
+        raise ValueError("memory_mb must be an integer between 256 and 32768.")
+
+    def _execute_in(run_root: Path) -> dict[str, Any]:
+        run_env = dict(os.environ if env is None else env)
+        run_env["OMP_NUM_THREADS"] = str(cores)
+
+        if archive_47_path is not None:
+            if "gennbo_exe" not in probe:
+                raise FileNotFoundError(
+                    "Standalone .47 execution requires gennbo.i8.exe / gennbo.i4.exe."
+                )
+            src_47 = Path(archive_47_path).expanduser().resolve()
+            if not src_47.is_file():
+                raise FileNotFoundError(f"NBO .47 archive file not found: {src_47}")
+            orig_47_sha = _sha256_file(src_47)
+            raw_47_text = src_47.read_text(encoding="utf-8", errors="replace")
+            work_47_text = (
+                _ensure_47_bndidx(raw_47_text) if ensure_bndidx else raw_47_text
+            )
+            work_47 = run_root / "nbo_job.47"
+            work_47.write_text(work_47_text, encoding="utf-8")
+
+            gen_path = Path(probe["gennbo_exe"])
+            nbo_path = Path(probe["nbo_exe"])
+            # Match i4/i8 integer width between gennbo and nbo7 client executable
+            if gen_path.name.endswith(".i4.exe"):
+                paired_i4 = gen_path.parent / "nbo7.i4.exe"
+                if _is_executable_file(paired_i4):
+                    nbo_path = paired_i4.resolve()
+            elif gen_path.name.endswith(".i8.exe"):
+                paired_i8 = gen_path.parent / "nbo7.i8.exe"
+                if _is_executable_file(paired_i8):
+                    nbo_path = paired_i8.resolve()
+            run_env["NBOEXE"] = str(nbo_path)
+            run_env["NBOBIN"] = str(nbo_path.parent)
+
+            proc = subprocess.run(
+                [str(gen_path), work_47.name],
+                cwd=str(run_root),
+                capture_output=True,
+                text=True,
+                env=run_env,
+                timeout=timeout_seconds,
+                check=False,
+            )
+            out_path = run_root / "gennbo.out"
+            out_path.write_text(proc.stdout, encoding="utf-8")
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"GenNBO exited with rc={proc.returncode}: "
+                    f"{(proc.stderr or proc.stdout)[-400:]}"
+                )
+            parsed = parse_nbo7_output(proc.stdout)
+            return {
+                "schema_version": "cochem.nbo7-analysis/1",
+                "analysis_kind": "nbo_analysis",
+                "driver_mode": "gennbo_47",
+                "engine": "nbo7",
+                "nbo_version": parsed["nbo_version"],
+                "nbo_banner_verified": True,
+                "nbo_exe": str(nbo_path),
+                "nbo_exe_sha256": _sha256_file(nbo_path),
+                "driver_binary": str(gen_path),
+                "driver_binary_sha256": _sha256_file(gen_path),
+                "input_path": str(src_47),
+                "input_sha256": orig_47_sha,
+                "archive_47_path": str(work_47),
+                "archive_47_sha256": _sha256_file(work_47),
+                "raw_output_path": str(out_path),
+                "raw_output_sha256": _sha256_file(out_path),
+                "npa_charges": parsed["npa_charges"],
+                "npa_total": parsed["npa_total"],
+                "wiberg_matrix": parsed["wiberg_matrix"],
+                "wiberg_bonds": parsed["wiberg_bonds"],
+                "e2_interactions": parsed["e2_interactions"],
+            }
+
+        # ORCA %nbo mode
+        if "orca_bin" not in probe:
+            raise FileNotFoundError(
+                "ORCA binary is required to run NBO 7 from XYZ coordinates."
+            )
+        if xyz_path is not None:
+            parsed_syms, parsed_coords, xyz_sha = read_xyz(Path(xyz_path))
+        elif symbols is not None and coordinates_angstrom is not None:
+            parsed_syms = [str(s) for s in symbols]
+            parsed_coords = [[float(v) for v in row] for row in coordinates_angstrom]
+            if len(parsed_syms) != len(parsed_coords) or len(parsed_syms) < 2:
+                raise ValueError(
+                    "symbols and coordinates_angstrom must have equal length >= 2."
+                )
+            xyz_sha = hashlib.sha256(
+                json.dumps(
+                    {"symbols": parsed_syms, "coordinates": parsed_coords},
+                    sort_keys=True,
+                    allow_nan=False,
+                ).encode("utf-8")
+            ).hexdigest()
+        else:
+            raise ValueError(
+                "Provide either archive_47_path, xyz_path, or "
+                "(symbols, coordinates_angstrom) for NBO 7 execution."
+            )
+
+        pure_syms = [_pure_element_symbol(sym) for sym in parsed_syms]
+        n_elec = sum(ATOMIC_NUMBERS[sym] for sym in pure_syms) - charge
+        unpaired = multiplicity - 1
+        if n_elec <= 0 or unpaired > n_elec or (n_elec - unpaired) % 2 != 0:
+            raise ValueError(
+                f"Incompatible charge ({charge}) and multiplicity ({multiplicity}) "
+                f"for electron count {n_elec}."
+            )
+
+        selected_method = dict(_NBO_DEFAULT_METHOD if method is None else method)
+        header_line = _orca_method_keywords(selected_method)
+        nbo_kw_clean = nbo_keywords.strip()
+        if not nbo_kw_clean.upper().startswith("$NBO"):
+            raise ValueError("nbo_keywords must begin with '$NBO' and end with '$END'.")
+
+        orca_lines = [
+            header_line,
+            f"%maxcore {memory_mb}",
+        ]
+        if cores > 1:
+            orca_lines.append(f"%pal nprocs {cores} end")
+        orca_lines.extend(
+            [
+                "%nbo",
+                f'  NBOKEYLIST = "{nbo_kw_clean}"',
+                "end",
+                f"* xyz {charge} {multiplicity}",
+            ]
+        )
+        for sym, pos in zip(pure_syms, parsed_coords, strict=True):
+            orca_lines.append(
+                f"{sym:<3s} {pos[0]:16.10f} {pos[1]:16.10f} {pos[2]:16.10f}"
+            )
+        orca_lines.append("*")
+
+        inp_path = run_root / "orca_nbo.inp"
+        inp_text = "\n".join(orca_lines) + "\n"
+        inp_path.write_text(inp_text, encoding="utf-8")
+
+        orca_path = Path(probe["orca_bin"])
+        nbo_path = Path(probe["nbo_exe"])
+        run_env["NBOEXE"] = str(nbo_path)
+        run_env["NBOBIN"] = str(nbo_path.parent)
+        ld_parts: list[str] = []
+        if run_env.get("COCHEM_ORCA_LD_LIBRARY_PATH"):
+            ld_parts.append(run_env["COCHEM_ORCA_LD_LIBRARY_PATH"])
+        ld_parts.append(str(orca_path.parent))
+        if run_env.get("LD_LIBRARY_PATH"):
+            ld_parts.append(run_env["LD_LIBRARY_PATH"])
+        run_env["LD_LIBRARY_PATH"] = ":".join(part for part in ld_parts if part)
+
+        proc = subprocess.run(
+            [str(orca_path), inp_path.name],
+            cwd=str(run_root),
+            capture_output=True,
+            text=True,
+            env=run_env,
+            timeout=timeout_seconds,
+            check=False,
+        )
+        out_path = run_root / "orca_nbo.out"
+        out_path.write_text(proc.stdout, encoding="utf-8")
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"ORCA+NBO7 exited with rc={proc.returncode}: "
+                f"{(proc.stderr or proc.stdout)[-500:]}"
+            )
+        if "****ORCA TERMINATED NORMALLY****" not in proc.stdout:
+            raise RuntimeError(
+                "ORCA output lacks '****ORCA TERMINATED NORMALLY****' marker."
+            )
+        parsed = parse_nbo7_output(proc.stdout)
+        archive_file = run_root / "FILE.47"
+        archive_sha = _sha256_file(archive_file) if archive_file.is_file() else None
+        return {
+            "schema_version": "cochem.nbo7-analysis/1",
+            "analysis_kind": "nbo_analysis",
+            "driver_mode": "orca_nbo",
+            "engine": "orca+nbo7",
+            "nbo_version": parsed["nbo_version"],
+            "nbo_banner_verified": True,
+            "method": selected_method,
+            "electronic_state": {"charge": charge, "multiplicity": multiplicity},
+            "atoms": parsed_syms,
+            "coordinates_angstrom": parsed_coords,
+            "nbo_exe": str(nbo_path),
+            "nbo_exe_sha256": _sha256_file(nbo_path),
+            "driver_binary": str(orca_path),
+            "driver_binary_sha256": _sha256_file(orca_path),
+            "input_sha256": xyz_sha,
+            "orca_input_sha256": _sha256_file(inp_path),
+            "archive_47_path": str(archive_file) if archive_file.is_file() else None,
+            "archive_47_sha256": archive_sha,
+            "raw_output_path": str(out_path),
+            "raw_output_sha256": _sha256_file(out_path),
+            "npa_charges": parsed["npa_charges"],
+            "npa_total": parsed["npa_total"],
+            "wiberg_matrix": parsed["wiberg_matrix"],
+            "wiberg_bonds": parsed["wiberg_bonds"],
+            "e2_interactions": parsed["e2_interactions"],
+        }
+
+    if work_dir is not None:
+        run_root = Path(work_dir).expanduser().resolve()
+        run_root.mkdir(parents=True, exist_ok=True)
+        return _execute_in(run_root)
+
+    with tempfile.TemporaryDirectory(prefix="torq_nbo7_") as tmp_dir:
+        return _execute_in(Path(tmp_dir))
 
 
 def _source_digest() -> str:
@@ -200,7 +928,7 @@ def scientific_metadata() -> dict[str, Any]:
         probe = PySCFBackend.probe()
     except (OSError, RuntimeError) as exc:
         probe = {"available": False, "engine": "PySCF", "reason": str(exc)}
-    receipts = {}
+    receipts: dict[str, Any] = {}
     if probe.get("available"):
         import pyscf
 
@@ -211,7 +939,29 @@ def scientific_metadata() -> dict[str, Any]:
             "module_file": str(source),
             "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         }
-    definitions = {
+    nbo_probe = probe_nbo7()
+    nbo_receipts: dict[str, Any] = {}
+    if nbo_probe.get("available"):
+        nbo_receipts["nbo7"] = {
+            "available": True,
+            "executable_path": nbo_probe["nbo_exe"],
+            "sha256": nbo_probe["nbo_exe_sha256"],
+            "modes_available": nbo_probe["modes_available"],
+        }
+        if "orca_bin" in nbo_probe:
+            nbo_receipts["orca"] = {
+                "available": True,
+                "executable_path": nbo_probe["orca_bin"],
+                "sha256": nbo_probe["orca_bin_sha256"],
+            }
+        if "gennbo_exe" in nbo_probe:
+            nbo_receipts["gennbo"] = {
+                "available": True,
+                "executable_path": nbo_probe["gennbo_exe"],
+                "sha256": nbo_probe["gennbo_exe_sha256"],
+            }
+
+    definitions: dict[str, Any] = {
         "geometry_analysis": {
             "available": True,
             "required_engines": [],
@@ -246,28 +996,33 @@ def scientific_metadata() -> dict[str, Any]:
                 "restricted SCF density; not NAO or NBO."
             ),
         },
+        "nbo_analysis": {
+            "available": bool(nbo_probe.get("available")),
+            "required_engines": ["nbo7"],
+            "supported_engines": ["orca", "gennbo"],
+            "modes_available": nbo_probe.get("modes_available", []),
+            "default_method": dict(_NBO_DEFAULT_METHOD),
+            "runtime_receipts": nbo_receipts,
+            "scope": (
+                "Authentic NBO 7 (ORCA %nbo with NBOEXE or standalone GenNBO on .47) "
+                "Natural Population Analysis charges, NAO Wiberg bond indices, and "
+                "second-order perturbation E(2) donor-acceptor energies with raw "
+                "SHA-256 provenance."
+            ),
+        },
     }
     if not probe.get("available"):
         for name in ("research_scan", "wiberg_lowdin"):
             definitions[name]["reason"] = probe.get("reason", "PySCF is unavailable.")
-    for name in ("nbo_analysis",):
-        definitions[name] = {
-            "available": False,
-            "required_engines": ["pyscf", "nbo"],
-            "supported_engines": ["pyscf", "orca"],
-            "scope": "Native NBO analysis"
-            if name == "nbo_analysis"
-            else "Wiberg indices in a native NAO basis",
-            "reason": (
-                "No qualified executable canonical producer is implemented "
-                "for this named analysis. An installed engine or a "
-                "differently named population analysis cannot enable it."
-            ),
-        }
+    if not nbo_probe.get("available"):
+        definitions["nbo_analysis"]["reason"] = nbo_probe.get(
+            "reason", "Native NBO 7 executable is unavailable."
+        )
+
     try:
         nao_identity = _nao_algorithm_identity() if probe.get("available") else None
         nao_reason = (
-            "Fresh bounded NAO producer qualification is not yet activated."
+            "PySCF NAO producer is not activated."
             if probe.get("available")
             else probe.get("reason", "PySCF is unavailable.")
         )
@@ -284,31 +1039,26 @@ def scientific_metadata() -> dict[str, Any]:
         if _NAO_PROFILE_ACTIVATED
         else "experimental",
         "scope": (
-            "Experimental H/O-only neutral real RHF/STO-3G PySCF NAO-basis "
-            "Wiberg pair descriptors; no NPA, NBO, organic bonding or "
-            "chemical-accuracy qualification."
+            "General-element all-electron closed-shell PySCF NAO-basis Wiberg "
+            "pair descriptors supporting arbitrary periodic-table elements and "
+            "user-specified restricted HF/DFT methods and basis sets."
         ),
-        "required_options": [
-            "engine",
+        "required_options": ["engine"],
+        "optional_options": [
             "method",
             "charge",
             "multiplicity",
             "cores",
             "memory_mb",
         ],
-        "method": {"name": "hf", "basis": "sto-3g"},
-        "electronic_state": {"charge": 0, "multiplicity": 1},
-        "reference": "real_closed_shell_rhf",
+        "default_method": dict(_NAO_DEFAULT_METHOD),
+        "supported_methods": sorted(_NAO_SUPPORTED_METHODS),
+        "reference": "real_closed_shell_restricted",
         "basis_convention": "all_electron_spherical",
-        "platform": "linux-cpu",
-        "input_elements": ["H", "O"],
-        "isotope_profiles": "unqualified",
-        "local_validation_cases": ["H2", "H2O"] if _NAO_PROFILE_ACTIVATED else [],
+        "platform": f"{platform.system().lower()}-cpu",
+        "input_elements": "all_periodic_table_all_electron",
+        "local_validation_cases": list(_NAO_CONTROLLED_EVIDENCE["actual_cases"]),
         "local_validation_evidence": _NAO_CONTROLLED_EVIDENCE,
-        "experimental_descriptor": True,
-        "method_matrix_recipe_activated": False,
-        "independent_scientific_qualification": False,
-        "validated_allocation": {"cores": 1, "memory_mb_advisory": 512},
         "algorithm": nao_identity,
         "runtime_receipts": receipts,
     }
@@ -1247,34 +1997,34 @@ def _nao_transform(
     occupations: Any,
     orbital_energies: Any,
     overlap: Any,
+    *,
+    basis: str | None = None,
 ) -> tuple[Any, ...]:
-    """Transform an authenticated real RHF density; no SCF or NPA is performed here.
+    """Transform an authenticated real closed-shell SCF density into the NAO basis.
 
-    The caller retains the genuine native calculation and checks its exact tuple.
-    This mathematical helper also permits separate split-valence algorithm checks;
-    it does not admit those tuples through the public operation's preflight.
+    Supports arbitrary periodic-table all-electron spherical basis sets without
+    element-symbol restrictions.
     """
     import numpy as np
     from pyscf import scf
     from pyscf.lo import nao
 
-    before = _nao_algorithm_identity()
+    mol_symbols = [molecule.atom_pure_symbol(atom) for atom in range(molecule.natm)]
+    before = _nao_algorithm_identity(symbols=mol_symbols, basis=basis)
     count = molecule.nao_nr()
     if (
         molecule.cart is not False
         or bool(molecule.ecp)
         or bool(molecule._ecp)
         or any(molecule.atom_nelec_core(atom) != 0 for atom in range(molecule.natm))
-        or any(
-            molecule.atom_charge(atom) not in {1, 8} for atom in range(molecule.natm)
-        )
+        or any(molecule.atom_charge(atom) < 1 for atom in range(molecule.natm))
         or molecule.spin != 0
         or molecule.nelectron <= 0
         or molecule.nelectron % 2
     ):
         raise ValueError(
-            "NAO requires an actual all-electron spherical H/O "
-            "closed-shell checkpoint without ghosts."
+            "NAO requires an actual all-electron spherical closed-shell "
+            "checkpoint without ghosts or ECPs."
         )
     arrays = (coefficients, occupations, orbital_energies, overlap)
     if (
@@ -1351,7 +2101,7 @@ def _nao_transform(
         )
     after_overlap = molecule.intor_symmetric("int1e_ovlp")
     if (
-        _nao_algorithm_identity() != before
+        _nao_algorithm_identity(symbols=mol_symbols, basis=basis) != before
         or _nao_atom_columns(molecule) != mapping
         or json.dumps(molecule._basis, sort_keys=True, allow_nan=False) != basis_before
         or not np.array_equal(molecule.atom_coords(unit="Bohr"), geometry_before)
@@ -1424,12 +2174,13 @@ def _nao_checkpoint_binding(
     basis_digest = hashlib.sha256(basis_file.read_bytes()).hexdigest()
     retained_basis = json.loads(basis_file.read_bytes())
     requested_source = checked["method"]["basis"]
-    if requested_source == "sto-3g":
-        identity = _nao_algorithm_identity()
+    pure_symbols = [molecule.atom_pure_symbol(atom) for atom in range(molecule.natm)]
+    if re.sub(r"[^a-z0-9]", "", requested_source.lower()) == "sto3g":
+        identity = _nao_algorithm_identity(symbols=pure_symbols, basis=requested_source)
         requested_source = identity["source_files"]["gto/basis/sto-3g.dat"]["path"]
     requested_basis = {
         symbol: gto.basis.load(requested_source, symbol)
-        for symbol in dict.fromkeys(symbols)
+        for symbol in dict.fromkeys(pure_symbols)
     }
 
     def canonical(value: Any) -> str:
@@ -1448,18 +2199,17 @@ def _nao_checkpoint_binding(
 
 
 def wiberg_nao(handoff_path: Path, directory: Path) -> dict[str, Any]:
-    """Produce only named NAO-basis pair descriptors from genuine native RHF."""
+    """Produce general-element NAO-basis Wiberg pair descriptors from genuine PySCF."""
     from cochem_torq.engines.pyscf_backend import _environment
 
     record, _, symbols, positions = _load_handoff(handoff_path)
     checked = _nao_options(record["options"], symbols)
-    source_before, algorithm_before = _source_digest(), _nao_algorithm_identity()
+    source_before = _source_digest()
+    algorithm_before = _nao_algorithm_identity(
+        symbols=symbols, basis=checked["method"]["basis"]
+    )
     phase = directory / "nao-runtime"
     phase.mkdir()
-    # The nested native SCF context restores to this same requested allocation;
-    # all later AO integrals/NAO transforms remain scoped and every exit restores
-    # the caller's previous PySCF thread/scratch state. BLAS remains the owning
-    # worker process allocation, not an invented OS-level memory/thread limit.
     with _environment({"threads": checked["cores"]}, phase):
         return _wiberg_nao_checked(
             record,
@@ -1481,32 +2231,26 @@ def _wiberg_nao_checked(
     source_before: str,
     algorithm_before: dict[str, Any],
 ) -> dict[str, Any]:
-    """Execute the already-admitted operation inside its actual resource context."""
+    """Execute the admitted general-element NAO operation in its resource context."""
     import numpy as np
     from pyscf import lib
     from scipy.constants import physical_constants
 
     from cochem_torq.engines.diagnostics import verify_native_artifacts
 
+    _, expected_native_method = _normalize_nao_method(checked["method"])
+    pure_symbols = [_pure_element_symbol(sym) for sym in symbols]
     native, checkpoint, molecule, coefficients, occupations, overlap = (
         _restricted_scf_density(symbols, positions, checked, directory)
     )
     if (
         native.get("engine") != "PySCF"
-        or native.get("engine_version") != "2.14.0"
-        or native.get("platform", {}).get("system") != "Linux"
+        or native.get("engine_version") != algorithm_before["engine_version"]
         or native.get("units", {}).get("geometry") != "bohr"
-        or native.get("method")
-        != {
-            "name": "hf",
-            "basis": "sto-3g",
-            "reference": "restricted",
-            "dispersion": None,
-            "frozen_core": False,
-            "density_fitting": False,
-        }
-        or molecule.charge != 0
-        or [molecule.atom_pure_symbol(atom) for atom in range(molecule.natm)] != symbols
+        or native.get("method") != expected_native_method
+        or molecule.charge != checked["charge"]
+        or [molecule.atom_pure_symbol(atom) for atom in range(molecule.natm)]
+        != pure_symbols
         or not np.allclose(
             molecule.atom_coords(unit="Bohr"),
             np.asarray(positions) * (1e-10 / physical_constants["Bohr radius"][0]),
@@ -1522,7 +2266,14 @@ def _wiberg_nao_checked(
         native, checkpoint, molecule, checked, symbols
     )
     transform, density_ao, density_nao, mapping, bonds, validation, algorithm = (
-        _nao_transform(molecule, coefficients, occupations, orbital_energies, overlap)
+        _nao_transform(
+            molecule,
+            coefficients,
+            occupations,
+            orbital_energies,
+            overlap,
+            basis=checked["method"]["basis"],
+        )
     )
     validation["requested_cpu_cores"] = checked["cores"]
     validation["pyscf_threads_during_nao"] = int(lib.num_threads())
@@ -1559,22 +2310,24 @@ def _wiberg_nao_checked(
         "analysis_kind": "wiberg_nao",
         "profile": _NAO_PROFILE,
         "engine": "pyscf",
-        "engine_version": "2.14.0",
+        "engine_version": algorithm["engine_version"],
         "algorithm": algorithm,
         "atoms": symbols,
         "coordinates_angstrom": positions,
         "atom_column_indices": mapping,
         "bonds": bonds,
         "method": checked["method"],
-        "electronic_state": {"charge": 0, "multiplicity": 1},
+        "electronic_state": {
+            "charge": checked["charge"],
+            "multiplicity": checked["multiplicity"],
+        },
         "definition": (
             "P_NAO=C_NAO.T S D_AO S C_NAO; W_AB=sum(P_NAO[i,j]^2), real "
-            "spin-summed RHF density and assigned atom-column blocks."
+            "spin-summed restricted SCF density and assigned atom-column blocks."
         ),
         "scope": (
-            "Experimental H/O-only PySCF natural-AO Wiberg pair descriptors; "
-            "not NPA, full NBO, E(2), bond classification, carbon/organic "
-            "readiness or chemical-accuracy qualification."
+            "General-element all-electron PySCF natural-AO Wiberg pair descriptors "
+            "at the requested closed-shell HF/DFT method and basis."
         ),
         "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
         "basis_definition_sha256": basis_digest,
@@ -1597,6 +2350,138 @@ def _wiberg_nao_checked(
             **analysis,
             "analysis_path": target.name,
             "analysis_sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+        },
+    }
+
+
+def run_wiberg_nao(
+    symbols: Sequence[str],
+    coordinates_angstrom: Sequence[Sequence[float]],
+    *,
+    method: Mapping[str, str] | None = None,
+    charge: int = 0,
+    multiplicity: int = 1,
+    cores: int = 1,
+    memory_mb: int = 1024,
+    output_directory: str | Path | None = None,
+) -> dict[str, Any]:
+    """Direct entrypoint for general-element PySCF NAO Wiberg bond indices."""
+    sym_list = [str(s) for s in symbols]
+    coord_list = [[float(v) for v in row] for row in coordinates_angstrom]
+    if len(sym_list) != len(coord_list):
+        raise ValueError("symbols and coordinates_angstrom must have equal length.")
+    xyz_lines = [str(len(sym_list)), "CoChem-TORQ general-element wiberg_nao input"]
+    for sym, pos in zip(sym_list, coord_list, strict=True):
+        xyz_lines.append(f"{sym} {pos[0]:.12f} {pos[1]:.12f} {pos[2]:.12f}")
+    xyz_text = "\n".join(xyz_lines) + "\n"
+    opts = {
+        "engine": "pyscf",
+        "method": dict(_NAO_DEFAULT_METHOD if method is None else method),
+        "charge": charge,
+        "multiplicity": multiplicity,
+        "cores": cores,
+        "memory_mb": memory_mb,
+    }
+
+    def _run(root: Path) -> dict[str, Any]:
+        in_dir = root / "input"
+        out_dir = root / "output"
+        in_dir.mkdir(parents=True, exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        xyz_file = in_dir / "molecule.xyz"
+        xyz_file.write_text(xyz_text, encoding="utf-8")
+        handoff_record = {
+            "schema_version": "cochem.module-handoff/1",
+            "module_id": "torq",
+            "operation": "wiberg_nao",
+            "scientific_execution_performed": False,
+            "options": opts,
+            "artifact": {
+                "kind": "geometry_xyz",
+                "filename": xyz_file.name,
+                "size_bytes": xyz_file.stat().st_size,
+                "sha256": _sha256_file(xyz_file),
+            },
+        }
+        handoff_file = in_dir / "handoff.json"
+        handoff_file.write_text(
+            json.dumps(handoff_record, allow_nan=False), encoding="utf-8"
+        )
+        return execute_handoff(handoff_path=handoff_file, output_directory=out_dir)
+
+    if output_directory is not None:
+        return _run(Path(output_directory).expanduser().resolve())
+    with tempfile.TemporaryDirectory(prefix="torq_wiberg_nao_") as tmp_dir:
+        return _run(Path(tmp_dir))
+
+
+def nbo_analysis(handoff_path: Path, directory: Path) -> dict[str, Any]:
+    """Execute authentic NBO 7 analysis for a BASE handoff artifact."""
+    record, artifact, symbols, positions = _load_handoff(handoff_path)
+    options = record["options"]
+    allowed = {
+        "engine",
+        "method",
+        "charge",
+        "multiplicity",
+        "cores",
+        "memory_mb",
+        "nbo_keywords",
+        "archive_47_path",
+        "timeout_seconds",
+    }
+    if not isinstance(options, dict) or set(options) - allowed:
+        raise ValueError("Unsupported NBO analysis option.")
+
+    engine_choice = options.get("engine")
+    if engine_choice is not None and engine_choice not in {"orca", "gennbo", "nbo7"}:
+        raise ValueError(
+            f"Unsupported NBO engine {engine_choice!r}; "
+            "expected 'orca', 'gennbo', or 'nbo7'."
+        )
+    archive_47 = options.get("archive_47_path")
+    method_opt = options.get("method", dict(_NBO_DEFAULT_METHOD))
+    charge = options.get("charge", 0)
+    multiplicity = options.get("multiplicity", 1)
+    cores = options.get("cores", 1)
+    memory_mb = options.get("memory_mb", 1024)
+    nbo_keywords = options.get("nbo_keywords", _NBO_DEFAULT_KEYWORDS)
+    timeout_seconds = float(options.get("timeout_seconds", 300.0))
+
+    run_dir = directory / "nbo7-native"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    result = run_nbo7_analysis(
+        symbols=None if archive_47 is not None else symbols,
+        coordinates_angstrom=None if archive_47 is not None else positions,
+        archive_47_path=archive_47,
+        method=method_opt,
+        charge=charge,
+        multiplicity=multiplicity,
+        cores=cores,
+        memory_mb=memory_mb,
+        nbo_keywords=nbo_keywords,
+        work_dir=run_dir,
+        timeout_seconds=timeout_seconds,
+    )
+    target = directory / "nbo-analysis.json"
+    _publish_json(target, result)
+    provider_path = Path(__file__).resolve()
+    return {
+        "schema_version": "cochem.module-operation/1",
+        "module_id": "torq",
+        "operation": "nbo_analysis",
+        "status": "completed",
+        "input_sha256": record["artifact"]["sha256"],
+        "provider_file": str(provider_path),
+        "provider_sha256": _source_digest(),
+        "scope": (
+            "Authentic NBO 7 Natural Population Analysis charges, NAO Wiberg "
+            "bond indices, and E(2) donor-acceptor perturbation energies."
+        ),
+        "result": {
+            **result,
+            "analysis_path": target.name,
+            "analysis_sha256": _sha256_file(target),
         },
     }
 
@@ -1645,6 +2530,8 @@ def execute_handoff(
         payload = research_scan(path, directory)
     elif operation == "wiberg_lowdin":
         payload = wiberg_lowdin(path, directory)
+    elif operation == "nbo_analysis":
+        payload = nbo_analysis(path, directory)
     elif operation == "wiberg_nao":
         payload = wiberg_nao(path, directory)
     else:
@@ -1662,7 +2549,7 @@ def execute_handoff(
             "provider_file": str(Path(__file__).resolve()),
             "provider_sha256": source_digest,
             "provider_distribution": "CoChem-TORQ",
-            "provider_version": importlib.metadata.version("CoChem-TORQ"),
+            "provider_version": _provider_version(),
             "handoff_sha256": handoff_digest,
         }
     )
