@@ -64,7 +64,31 @@ cochem_torq = "src/cochem_torq"
 
 [tool.setuptools.packages.find]
 where = [".", "src"]
-include = ["Libraries*", "cochem*", "orchestrator*", "scripts*", "UI*", "core*"]
+include = [
+    "cochem_torq",
+    "cochem_torq.engines",
+    "cochem_torq.spectroscopy",
+    "Libraries",
+    "UI",
+    "orchestrator",
+    "scripts",
+    "core",
+    "cochem",
+    "cochem.concurrency",
+    "cochem.core",
+    "cochem.core.hardware",
+    "cochem.core.ingestors",
+    "cochem.engine",
+    "cochem.hpc",
+    "cochem.mobile",
+    "cochem.mobile.assembly",
+    "cochem.mobile.inorganic",
+    "cochem.mobile.pwa",
+    "cochem.orchestration",
+    "cochem.runners",
+    "cochem.storage",
+    "cochem.topos",
+]
 exclude = ["tests*", "build*", "dist*"]
 
 [tool.setuptools.package-data]
