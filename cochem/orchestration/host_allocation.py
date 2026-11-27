@@ -213,29 +213,76 @@ def _host_identity() -> dict[str, Any]:
     return {**identity, "host_sha256": digest(identity)}
 
 
-def _cgroup_directories() -> list[Path]:
-    lines = Path("/proc/self/cgroup").read_text().splitlines()
+def _read_proc_meminfo(meminfo_path: Path = Path("/proc/meminfo")) -> tuple[int, int]:
+    """Read actual MemTotal and MemAvailable (in bytes) from Linux /proc/meminfo."""
+    try:
+        lines = meminfo_path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise HostCapacityError(
+            "Actual OS /proc/meminfo telemetry is unavailable; capacity is unqualified."
+        ) from exc
+    values_kb: dict[str, int] = {}
+    for line in lines:
+        if line.startswith(("MemTotal:", "MemAvailable:")):
+            key, _, rest = line.partition(":")
+            parts = rest.split()
+            if not parts:
+                continue
+            try:
+                values_kb[key] = int(parts[0])
+            except ValueError as exc:
+                raise HostCapacityError(
+                    "Actual OS /proc/meminfo telemetry is malformed; "
+                    "capacity is unqualified."
+                ) from exc
+    if "MemTotal" not in values_kb or "MemAvailable" not in values_kb:
+        raise HostCapacityError(
+            "Actual OS /proc/meminfo lacks MemTotal/MemAvailable; "
+            "capacity is unqualified."
+        )
+    total_bytes = values_kb["MemTotal"] * 1024
+    available_bytes = values_kb["MemAvailable"] * 1024
+    if total_bytes <= 0 or available_bytes < 0:
+        raise HostCapacityError(
+            "Actual OS /proc/meminfo values are non-positive; capacity is unqualified."
+        )
+    return total_bytes, min(available_bytes, total_bytes)
+
+
+def _cgroup_directories(
+    *,
+    proc_cgroup: Path = Path("/proc/self/cgroup"),
+    cgroup_root: Path = Path("/sys/fs/cgroup"),
+) -> list[Path]:
+    try:
+        lines = proc_cgroup.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
     unified = next(
         (line.split(":", 2)[2] for line in lines if line.startswith("0::")), None
     )
     if unified is None:
-        raise HostCapacityError(
-            "Actual cgroup-v1 limits are not qualified; cgroup-v2 evidence is required."
-        )
+        if (cgroup_root / "memory" / "memory.limit_in_bytes").is_file() or (
+            cgroup_root / "cpu" / "cpu.cfs_quota_us"
+        ).is_file():
+            raise HostCapacityError(
+                "Actual cgroup-v1 limits are not qualified; "
+                "cgroup-v2 evidence is required."
+            )
+        return []
     # A container may expose a delegated cgroup as /sys/fs/cgroup even when
     # /proc/self/cgroup retains a path above that mount. Prefer the actual leaf.
-    root = Path("/sys/fs/cgroup")
     relative = unified.lstrip("/")
-    leaf = root
-    candidate = root / relative
+    leaf = cgroup_root
+    candidate = cgroup_root / relative
     if ".." not in Path(relative).parts and candidate.is_dir():
         leaf = candidate
     directories = [leaf]
     for parent in leaf.parents:
-        if parent == root:
+        if parent == cgroup_root:
             directories.append(parent)
             break
-        if root not in parent.parents:
+        if cgroup_root not in parent.parents:
             break
         directories.append(parent)
     return directories
@@ -291,6 +338,102 @@ def _gpu_probe() -> dict[str, Any]:
     }
 
 
+def _qualify_cpu_and_memory(
+    *,
+    meminfo_path: Path = Path("/proc/meminfo"),
+    proc_cgroup: Path = Path("/proc/self/cgroup"),
+    cgroup_root: Path = Path("/sys/fs/cgroup"),
+) -> tuple[int, set[int], int, int]:
+    """Qualify CPU cores and memory bytes from cgroup-v2 or OS kernel telemetry.
+
+    Finite cgroup-v2 limits are always enforced and malformed cgroup-v2 files
+    fail closed. On local Linux/WSL2 hosts where cgroup-v2 limits are absent
+    (e.g. root cgroup ``0::/``) or explicitly ``max`` (unbounded), capacity is
+    qualified honestly from OS kernel telemetry (``os.sched_getaffinity(0)`` /
+    ``os.cpu_count()`` and ``/proc/meminfo`` ``MemTotal`` / ``MemAvailable``)
+    with a conservative available-memory ceiling and fail-closed checks when
+    OS kernel telemetry itself is unreadable.
+    """
+    try:
+        affinity = set(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        affinity = set()
+    if not affinity:
+        count = os.cpu_count()
+        if count is None or count < 1:
+            raise HostCapacityError(
+                "Actual OS CPU telemetry is unavailable; capacity is unqualified."
+            )
+        affinity = set(range(count))
+    cores = len(affinity)
+
+    meminfo_total, meminfo_available = _read_proc_meminfo(meminfo_path)
+    memory = psutil.virtual_memory()
+    memory_limit = min(meminfo_total, int(memory.total))
+    available = min(meminfo_available, int(memory.available), memory_limit)
+    if memory_limit < MIB or available < 0:
+        raise HostCapacityError(
+            "Actual OS memory telemetry is invalid; capacity is unqualified."
+        )
+
+    memory_bounded = False
+    for directory in _cgroup_directories(
+        proc_cgroup=proc_cgroup, cgroup_root=cgroup_root
+    ):
+        cpu_file = directory / "cpu.max"
+        if cpu_file.is_file():
+            fields = cpu_file.read_text(encoding="utf-8").split()
+            try:
+                period = int(fields[1]) if len(fields) == 2 else 0
+            except ValueError as exc:
+                raise HostCapacityError(
+                    "The actual cgroup CPU limit is malformed."
+                ) from exc
+            if len(fields) != 2 or period <= 0:
+                raise HostCapacityError("The actual cgroup CPU limit is malformed.")
+            if fields[0] != "max":
+                try:
+                    quota = int(fields[0])
+                except ValueError as exc:
+                    raise HostCapacityError(
+                        "The actual cgroup CPU limit is malformed."
+                    ) from exc
+                if quota <= 0:
+                    raise HostCapacityError("The actual cgroup CPU limit is malformed.")
+                cores = min(cores, quota // period)
+        memory_file = directory / "memory.max"
+        if memory_file.is_file():
+            maximum = memory_file.read_text(encoding="utf-8").strip()
+            if maximum != "max":
+                current_file = directory / "memory.current"
+                if not current_file.is_file():
+                    raise HostCapacityError(
+                        "A finite cgroup memory limit lacks actual usage."
+                    )
+                try:
+                    maximum_bytes = int(maximum)
+                    current_bytes = int(current_file.read_text(encoding="utf-8"))
+                except ValueError as exc:
+                    raise HostCapacityError(
+                        "The actual cgroup memory limit is malformed."
+                    ) from exc
+                if maximum_bytes <= 0 or current_bytes < 0:
+                    raise HostCapacityError(
+                        "The actual cgroup memory limit is malformed."
+                    )
+                memory_limit = min(memory_limit, maximum_bytes)
+                available = min(available, max(0, maximum_bytes - current_bytes))
+                memory_bounded = True
+
+    if cores < 1 or memory_limit < MIB:
+        raise HostCapacityError(
+            "Actual host CPU/RAM capacity is below the minimum operational floor."
+        )
+    if not memory_bounded:
+        available = min(available, int(memory_limit * 0.9))
+    return cores, affinity, memory_limit, available
+
+
 def probe_host_resources(scratch_root: str | Path) -> dict[str, Any]:
     """Read real Linux/psutil/filesystem limits; no benchmark or GPU promise."""
     root = _path(scratch_root)
@@ -298,40 +441,7 @@ def probe_host_resources(scratch_root: str | Path) -> dict[str, Any]:
         raise HostCapacityError(
             "The scratch capacity probe requires an existing directory."
         )
-    affinity = os.sched_getaffinity(0)
-    cores = len(affinity)
-    memory = psutil.virtual_memory()
-    memory_limit = memory.total
-    available = memory.available
-    cpu_observed = False
-    memory_observed = False
-    for directory in _cgroup_directories():
-        cpu_file = directory / "cpu.max"
-        if cpu_file.is_file():
-            cpu_observed = True
-            fields = cpu_file.read_text().split()
-            if len(fields) != 2 or int(fields[1]) <= 0:
-                raise HostCapacityError("The actual cgroup CPU limit is malformed.")
-            if fields[0] != "max":
-                cores = min(cores, int(fields[0]) // int(fields[1]))
-        memory_file = directory / "memory.max"
-        if memory_file.is_file():
-            memory_observed = True
-            maximum = memory_file.read_text().strip()
-            if maximum != "max":
-                current_file = directory / "memory.current"
-                if not current_file.is_file():
-                    raise HostCapacityError(
-                        "A finite cgroup memory limit lacks actual usage."
-                    )
-                maximum_bytes = int(maximum)
-                current_bytes = int(current_file.read_text())
-                memory_limit = min(memory_limit, maximum_bytes)
-                available = min(available, max(0, maximum_bytes - current_bytes))
-    if not cpu_observed or not memory_observed:
-        raise HostCapacityError(
-            "Actual cgroup-v2 CPU/RAM limits are unavailable; capacity is unqualified."
-        )
+    cores, affinity, memory_limit, available = _qualify_cpu_and_memory()
     info = root.stat()
     filesystem = os.statvfs(root)
     return {
